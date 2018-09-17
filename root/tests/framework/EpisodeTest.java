@@ -2,6 +2,7 @@ package framework;
 
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
+import framework.Episode;
 
 public class EpisodeTest {
 
