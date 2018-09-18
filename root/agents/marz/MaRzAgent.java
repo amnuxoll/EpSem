@@ -72,7 +72,7 @@ public class MaRzAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> implemen
 	 * MaRzAgent
 	 *
 	 */
-	MaRzAgent(ISuffixNodeBaseProvider<TSuffixNode> nodeProvider) {
+	public MaRzAgent(ISuffixNodeBaseProvider<TSuffixNode> nodeProvider) {
 		this.nodeProvider = nodeProvider;
 	}// ctor
 
