@@ -67,6 +67,37 @@ public class Episode {
         return this.move.equals(episode.move);
     }
 
+    /**
+     * return a weighted match to the given episode
+     * based on the provided weights
+     *
+     * @param ep the episode to compare this episode to
+     * @param weights the weights to use in the comparison
+     * @return a weighted match score between this episode and ep
+     */
+    public double matchScore(Episode ep, EpisodeWeights weights){
+        double score= 0;
+        if(ep.move == this.move){
+            score+= weights.getActionWeight();
+        }
+        else{
+            score-= weights.getActionWeight();
+        }
+
+        //find match of each sensor
+        for(String sensorName : sensorData.getSensorNames()){
+            //if sensor values match
+            if(this.sensorData.getSensor(sensorName).equals(ep.sensorData.getSensor(sensorName))){
+                score+= weights.getSensorWeight(sensorName);
+            }
+            else{
+                score-= weights.getSensorWeight(sensorName);
+            }
+        }
+
+        return score;
+    }
+
     @Override
     public int hashCode() {
         return Objects.hash(this.move, this.sensorData);

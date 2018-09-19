@@ -48,7 +48,7 @@ public class MaRzAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> implemen
 
 	private SequenceGenerator sequenceGenerator;
 
-	private int lastGoalIndex = 0;
+	protected int lastGoalIndex = 0;
 
 	//Instance Variables
 	protected Move[] alphabet;
@@ -110,7 +110,7 @@ public class MaRzAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> implemen
 		}
 		else if (!this.currentSequence.hasNext()) {
 			this.markFailure();
-			this.updateCurrentSequence();
+			this.currentSequence= selectNextSequence();
 		}
 		Move nextMove = this.currentSequence.next();
 		episodicMemory.add(new Episode(nextMove));
@@ -135,7 +135,9 @@ public class MaRzAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> implemen
 				int index = this.episodicMemory.size() - node.getSuffix().getLength();
 				node.addSuccessIndex(index);
 			}
-		} else {
+		}
+		//we hit the goal at the end of current sequence
+		else {
 			this.activeNode.addSuccessIndex(this.episodicMemory.size() - this.activeNode.getSuffix().getLength());
 			this.activeNode.setFoundGoal();
 		}
@@ -152,7 +154,7 @@ public class MaRzAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> implemen
 		return this.sequenceGenerator.nextPermutation(this.lastPermutationIndex);
 	}// nextPermutation
 
-	private void updateCurrentSequence() {
+	protected Sequence selectNextSequence() {
 		//System.out.println("Active Node: " + this.activeNode);
 //		System.out.println("Suffix Tree:");
 //		this.suffixTree.printTree();
@@ -166,10 +168,14 @@ public class MaRzAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> implemen
 			else
 				this.lastPermutationIndex = this.sequenceGenerator.getCanonicalIndex(this.activeNode.getSuffix());
 		}
+
+		Sequence currentSequence;
 		do {
-			this.currentSequence = this.nextPermutation();
-		} while (!this.currentSequence.endsWith(this.activeNode.getSuffix()));
+			currentSequence = this.nextPermutation();
+		} while (!currentSequence.endsWith(this.activeNode.getSuffix()));
 //		System.out.println("Found suffix node: " + this.activeNode + " for sequence: " + this.currentSequence);
+
+		return currentSequence;
 	}
 
 	private Sequence sequenceSinceLastGoal() {

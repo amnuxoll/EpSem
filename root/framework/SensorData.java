@@ -111,4 +111,8 @@ public class SensorData {
         stringBuilder.append("]");
         return stringBuilder.toString();
     }
+
+    public Set<String> getSensorNames(){
+        return data.keySet();
+    }
 }
