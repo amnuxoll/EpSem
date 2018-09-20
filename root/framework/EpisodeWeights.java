@@ -20,6 +20,15 @@ public class EpisodeWeights {
     }
 
     /**
+     * updates the episode weights based on how well these episodes match
+     * @param ep1
+     * @param ep2
+     */
+    public void updateWeights(Episode ep1, Episode ep2){
+
+    }
+
+    /**
      *  c
      * @param ep1
      * @param ep2

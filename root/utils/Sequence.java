@@ -1,5 +1,6 @@
 package utils;
 
+import framework.Episode;
 import framework.Move;
 
 import java.util.*;
@@ -26,6 +27,21 @@ public class Sequence {
         if (moves == null)
             throw new IllegalArgumentException("moves cannot be null");
         this.moves = moves;
+    }
+
+    /**
+     * Create an instance of sequence representing the sequence
+     * that a list of episodes followed
+     * @param episodes the list of episodes
+     * @param start the inclusive index to start the sequence
+     * @param end the exclusive index to end the sequence
+     */
+    public Sequence(List<Episode> episodes, int start, int end){
+        this.moves= new Move[end-start];
+
+        for(int i=start; i<end; i++){
+            moves[i]= episodes.get(i).getMove();
+        }
     }
 
     /**

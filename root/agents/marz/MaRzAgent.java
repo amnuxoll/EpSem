@@ -66,7 +66,7 @@ public class MaRzAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> implemen
 
 	private HashMap<TSuffixNode, Integer> permutationQueues = new HashMap<>();
 
-	private ISuffixNodeBaseProvider<TSuffixNode> nodeProvider;
+	protected ISuffixNodeBaseProvider<TSuffixNode> nodeProvider;
 
 	/**
 	 * MaRzAgent
@@ -124,7 +124,7 @@ public class MaRzAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> implemen
 		}// if
 	}
 
-	private void markSuccess() {
+	protected void markSuccess() {
 		this.lastSuccessfulSequence = this.currentSequence;
 		if (this.currentSequence.hasNext()) {
 			// Was partial match so find the best node to update
