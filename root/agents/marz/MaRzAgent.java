@@ -118,6 +118,10 @@ public class MaRzAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> implemen
 	}
 
 	private void markFailure() {
+		if(activeNode == null){
+			return;
+		}
+
 		this.activeNode.addFailIndex(this.episodicMemory.size() - this.activeNode.getSuffix().getLength());
 		if (this.activeNode.canSplit() && this.suffixTree.splitSuffix(this.activeNode.getSuffix())) {
 			this.permutationQueues.remove(this.activeNode);
@@ -125,6 +129,10 @@ public class MaRzAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> implemen
 	}
 
 	protected void markSuccess() {
+		if(activeNode == null){
+			return;
+		}
+
 		this.lastSuccessfulSequence = this.currentSequence;
 		if (this.currentSequence.hasNext()) {
 			// Was partial match so find the best node to update
@@ -161,7 +169,9 @@ public class MaRzAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> implemen
 		TSuffixNode newBestNode = this.suffixTree.findBestNodeToTry();
 //		System.out.println("New best node: " + newBestNode);
 		if (newBestNode != this.activeNode) {
-			this.permutationQueues.put(this.activeNode, this.lastPermutationIndex);
+			if(this.activeNode != null) {
+				this.permutationQueues.put(this.activeNode, this.lastPermutationIndex);
+			}
 			this.activeNode = newBestNode;
 			if (this.permutationQueues.containsKey(this.activeNode))
 				this.lastPermutationIndex = this.permutationQueues.get(this.activeNode);
@@ -184,5 +194,15 @@ public class MaRzAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> implemen
 			moves.add(this.episodicMemory.get(i).getMove());
 		}
 		return new Sequence(moves.toArray(new Move[0]));
+	}
+
+	/**
+	 * set Marz's active node to the node in the suffix tree which best
+	 * matches newSequence
+	 *
+	 * @param newSequence the sequence whcih marz will now be trying
+	 */
+	protected void setActiveNode(Sequence newSequence){
+		this.activeNode= suffixTree.findBestMatch(newSequence);
 	}
 }// MaRzAgent

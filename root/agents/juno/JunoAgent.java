@@ -45,7 +45,9 @@ public class JunoAgent extends MaRzAgent {
 
         //we will go with the shorter of the two suggested sequences
         if(junoSuggestion.getLength() < marzSuggestion.getLength()){
-
+            //if were going with juno's suggestion, we gotta tell marz
+            super.setActiveNode(junoSuggestion);
+            return junoSuggestion;
         }
 
         return marzSuggestion;
@@ -55,8 +57,6 @@ public class JunoAgent extends MaRzAgent {
     @Override
     protected void markSuccess(){
         super.markSuccess();
-
-
     }
 
     /**
@@ -102,9 +102,4 @@ public class JunoAgent extends MaRzAgent {
 
         return new Sequence(episodicMemory,startIndex,index);
     }
-
-    private void addSequenceToMarzTree(Sequence sequence){
-        SuffixNode node= this.nodeProvider.getNode(Sequence.EMPTY, this.alphabet, (index) -> this.episodicMemory.get(index));
-    }
-
 }
