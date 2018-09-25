@@ -13,7 +13,7 @@ import framework.IAgentProvider;
  */
 public class MaRzAgentProvider<TSuffixNode extends SuffixNodeBase<TSuffixNode>> implements IAgentProvider {
 
-    private ISuffixNodeBaseProvider<TSuffixNode> nodeProvider;
+    protected ISuffixNodeBaseProvider<TSuffixNode> nodeProvider;
 
     public MaRzAgentProvider(ISuffixNodeBaseProvider<TSuffixNode> nodeProvider) {
         this.nodeProvider = nodeProvider;

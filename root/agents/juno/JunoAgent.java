@@ -56,7 +56,8 @@ public class JunoAgent extends MaRzAgent {
 
     @Override
     protected void markSuccess(){
-        weightTable.updateTable(episodicMemory, currentSequence.getCurrentIndex());
+        super.markSuccess();
+        weightTable.updateTable(episodicMemory, episodicMemory.size()-currentSequence.getCurrentIndex()-1);
     }
 
 
@@ -94,14 +95,14 @@ public class JunoAgent extends MaRzAgent {
      */
     private Sequence sequenceToGoal(int startIndex){
         int index= startIndex;
-        while(((Episode)episodicMemory.get(index)).getSensorData().isGoal()){
-            index++;
-
+        while(!((Episode)episodicMemory.get(index)).getSensorData().isGoal()){
             if(index == episodicMemory.size()-1){
                 return null;
             }
+
+            index++;
         }
 
-        return new Sequence(episodicMemory,startIndex,index);
+        return new Sequence(episodicMemory,startIndex,index+1);
     }
 }

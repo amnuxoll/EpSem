@@ -1,5 +1,6 @@
 package experiments;
 
+import agents.juno.JunoAgentProvider;
 import agents.marz.MaRzAgentProvider;
 import agents.marz.nodes.SuffixNodeProvider;
 import agents.nsm.NSMAgentProvider;
@@ -14,12 +15,12 @@ import java.util.EnumSet;
 
 public class Runner {
 
-    private static TestSuite MaRzFSM = new TestSuite(
-            TestSuiteConfiguration.MEDIUM,
+    private static TestSuite JunoFSM = new TestSuite(
+            TestSuiteConfiguration.QUICK,
             new FileResultWriterProvider(),
-            new FSMDescriptionProvider(3, 15, FSMDescription.Sensor.NO_SENSORS),
+            new FSMDescriptionProvider(3, 15, EnumSet.of(FSMDescription.Sensor.EVEN_ODD)),
             new IAgentProvider[] {
-                    new MaRzAgentProvider<>(new SuffixNodeProvider())
+                    new JunoAgentProvider(new SuffixNodeProvider())
             }
     );
 
@@ -46,7 +47,7 @@ public class Runner {
     public static void main(String[] args) {
         try {
             Services.register(IRandomizer.class, new Randomizer());
-            Runner.MaRzMeta.run();
+            Runner.JunoFSM.run();
         } catch (Exception ex)
         {
             System.out.println("Runner failed with exception: " + ex.getMessage());

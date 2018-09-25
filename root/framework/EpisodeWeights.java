@@ -24,8 +24,27 @@ public class EpisodeWeights {
      * @param ep1
      * @param ep2
      */
-    public void updateWeights(Episode ep1, Episode ep2){
+    public void updateWeights(Episode ep1, Episode ep2, double adjustValue){
+        if(ep1.getMove().equals(ep2.getMove())) {
+            actionWeight *= adjustValue;
+        }
+        else {
+            actionWeight *= -adjustValue;
+        }
 
+        for(String sensor : sensorWeights.keySet()) {
+            if (episodeSensorsMatch(ep1, ep2, sensor)) {
+                sensorWeights.put(sensor, sensorWeights.get(sensor)*adjustValue);
+            }
+            else sensorWeights.put(sensor, sensorWeights.get(sensor)* -adjustValue);
+        }
+    }
+
+    private boolean episodeSensorsMatch(Episode ep1, Episode ep2, String sensor) {
+        if(ep1.getSensorData().hasSensor(sensor) && ep2.getSensorData().hasSensor(sensor))
+            return ep1.getSensorData().getSensor(sensor).equals(ep2.getSensorData().getSensor(sensor));
+
+        return !ep1.getSensorData().hasSensor(sensor) && !ep2.getSensorData().hasSensor(sensor);
     }
 
     /**

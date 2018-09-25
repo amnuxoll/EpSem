@@ -102,4 +102,14 @@ public class Episode {
     public int hashCode() {
         return Objects.hash(this.move, this.sensorData);
     }
+
+    @Override
+    public String toString(){
+        String str= this.move.toString();
+        if(sensorData.isGoal()){
+            str+= "!";
+        }
+
+        return str;
+    }
 }

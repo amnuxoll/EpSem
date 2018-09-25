@@ -49,6 +49,7 @@ class TestRun {
             } while (goalCount < this.numberOfGoalsToFind);
         } catch (Exception ex) {
             System.out.println("TestRun failed with exception: " + ex.getMessage());
+            ex.printStackTrace();
         }
     }
 

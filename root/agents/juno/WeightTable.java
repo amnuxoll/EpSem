@@ -2,6 +2,7 @@ package agents.juno;
 
 import framework.Episode;
 import framework.EpisodeWeights;
+import framework.Move;
 import utils.Sequence;
 
 import java.util.ArrayList;
@@ -59,11 +60,16 @@ public class WeightTable {
         }
 
         //maybe there werent 'numMatches' sequeunces to check, so we have less match
-        numMatches= Math.max(bestIndexes.size(),numMatches);
+        numMatches= Math.min(bestIndexes.size(),numMatches);
 
         int[] indexArray= new int[numMatches];
         for(int i=0;i<indexArray.length;i++){
-            indexArray[i]= bestIndexes.poll().index;
+            int idx = bestIndexes.poll().index;
+            if(episodes.get(idx).getSensorData().isGoal()) {
+                i--;
+                continue;
+            }
+            indexArray[i]= idx;
         }
 
         return indexArray;
@@ -75,15 +81,77 @@ public class WeightTable {
      * @param goalSequenceIndex the index at which we reached the goal
      */
     public void updateTable(ArrayList<Episode> episodes, int goalSequenceIndex){
-        Sequence goalSequence = new Sequence(episodes, episodes.size()-goalSequenceIndex, episodes.size());
-        if(lastGoalIndex(episodes, episodes.size()-1) > episodes.size() - (goalSequenceIndex+table.size())){
+        int previousGoalIndex = lastGoalIndex(episodes, episodes.size()-2);
+
+        if(previousGoalIndex<0) return; //return if this is the first time we're hitting a goal
+
+        Sequence goalSequence = new Sequence(episodes, goalSequenceIndex, episodes.size());
+        if(previousGoalIndex >= goalSequenceIndex-table.size()){
             return; //don't do anything if the last goalSequence was too short to matter
         }
 
-        Sequence preGoalSequence =
-                new Sequence(episodes, episodes.size() - (goalSequenceIndex+table.size()),
-                        episodes.size()-goalSequenceIndex);
-        
+        int nextGoalIndex= lastGoalIndex(episodes, episodes.size()-2);
+        //nextGoalIndex is the index of the goal after the current window
+        int startIndex = nextGoalIndex-1;
+
+        previousGoalIndex = lastGoalIndex(episodes, startIndex);
+
+        for(int i = startIndex; i>table.size(); i--) {
+
+            if(i-table.size() <= previousGoalIndex) {
+                i = previousGoalIndex -1;
+                nextGoalIndex = previousGoalIndex;
+                previousGoalIndex = lastGoalIndex(episodes, i);
+            }
+
+            Sequence goalSequence2= new Sequence(episodes, i+1,nextGoalIndex+1);
+            double attemptSimilarity = getAttemptSimlarity(goalSequence, goalSequence2);
+            double actualSimilarity = getActualSimilarity(goalSequence, goalSequence2);
+
+            double adjustValue = attemptSimilarity*actualSimilarity;
+
+            for(int j = 0; j<table.size(); j++) {
+                table.get(j).updateWeights(episodes.get(goalSequenceIndex-j-1), episodes.get(i-j), adjustValue);
+            }
+        }
+
+
+    }
+
+    /**
+     * gets the similarity of the 'attempts' after the pre-goal sequence and the window
+     * @param goalSequence1
+     * @param goalSequence2
+     * @return
+     */
+    private double getAttemptSimlarity(Sequence goalSequence1, Sequence goalSequence2){
+        int m= Math.min(goalSequence1.getLength(),goalSequence2.getLength());
+        int i = 0;
+        Move[] gs1Moves = goalSequence1.getMoves();
+        Move[] gs2Moves = goalSequence2.getMoves();
+
+        for(; i<m; i++) {
+            if(gs1Moves[i] != gs2Moves[i]) break;
+        }
+
+        return (double) i/m;
+    }
+
+    /**
+     * gets the similarity between what we've done after the pre-goal sequence and the window
+     * @param goalSequence1
+     * @param goalSequence2
+     * @return
+     */
+    private double getActualSimilarity(Sequence goalSequence1, Sequence goalSequence2) {
+        int m= Math.min(goalSequence1.getLength(),goalSequence2.getLength());
+        int l= Math.max(goalSequence1.getLength(),goalSequence2.getLength());
+
+        int difference = m-l;
+
+        if(difference ==0) return 1;
+
+        return (2.0*m)/l - 1;
     }
 
     private int lastGoalIndex(ArrayList<Episode> list, int index) {
