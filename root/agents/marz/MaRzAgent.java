@@ -38,7 +38,7 @@ public class MaRzAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> implemen
 	 * the next sequence to consider testing (typically generated via
 	 * lastPermutationIndex
 	 */
-	private Sequence currentSequence = null; // 'a' is always safe because of how
+	protected Sequence currentSequence = null; // 'a' is always safe because of how
 
 	/**
 	 * the last sequence that was successful (used for reporting and not
@@ -57,7 +57,7 @@ public class MaRzAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> implemen
 	/** Number of episodes per run */
 	public static final int MAX_EPISODES = 2000000;
 
-	private SuffixTree<TSuffixNode> suffixTree;
+	protected SuffixTree<TSuffixNode> suffixTree;
 
 	/** Turn this on to print debugging messages */
 	public static boolean debug = false;

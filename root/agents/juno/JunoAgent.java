@@ -56,8 +56,10 @@ public class JunoAgent extends MaRzAgent {
 
     @Override
     protected void markSuccess(){
-        super.markSuccess();
+        weightTable.updateTable(episodicMemory, currentSequence.getCurrentIndex());
     }
+
+
 
     /**
      * finds the shortest sequence to goal given an array of starting indexes

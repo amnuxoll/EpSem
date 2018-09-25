@@ -2,6 +2,7 @@ package agents.juno;
 
 import framework.Episode;
 import framework.EpisodeWeights;
+import utils.Sequence;
 
 import java.util.ArrayList;
 import java.util.PriorityQueue;
@@ -68,8 +69,28 @@ public class WeightTable {
         return indexArray;
     }
 
-    public void updateTable(ArrayList<Episode> episodes){
+    /**
+     * compares goalSequence and pre-goalSequences and updates the table based on matching values and/or mismatching values
+     * @param episodes the entire episodic memory
+     * @param goalSequenceIndex the index at which we reached the goal
+     */
+    public void updateTable(ArrayList<Episode> episodes, int goalSequenceIndex){
+        Sequence goalSequence = new Sequence(episodes, episodes.size()-goalSequenceIndex, episodes.size());
+        if(lastGoalIndex(episodes, episodes.size()-1) > episodes.size() - (goalSequenceIndex+table.size())){
+            return; //don't do anything if the last goalSequence was too short to matter
+        }
 
+        Sequence preGoalSequence =
+                new Sequence(episodes, episodes.size() - (goalSequenceIndex+table.size()),
+                        episodes.size()-goalSequenceIndex);
+        
+    }
+
+    private int lastGoalIndex(ArrayList<Episode> list, int index) {
+        for(int i = index; i>=0; i--) {
+            if(list.get(i).getSensorData().isGoal()) return i; //if the episode at i was a goal, return i
+        }
+        return -1; //return -1 if we don't find any goals in the list
     }
 
     private class ScoredIndex implements Comparable<ScoredIndex>{

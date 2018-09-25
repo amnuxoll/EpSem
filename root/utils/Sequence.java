@@ -184,4 +184,8 @@ public class Sequence {
         }
         return representation.toString();
     }
+
+    public int getCurrentIndex() {
+        return currentIndex;
+    }
 }
