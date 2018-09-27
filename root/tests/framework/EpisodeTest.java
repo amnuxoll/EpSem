@@ -1,5 +1,6 @@
 package framework;
 
+import environments.fsm.FSMDescription;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 import framework.Episode;
@@ -115,5 +116,37 @@ public class EpisodeTest {
         Episode episode2 = new Episode(new Move("move"));
         episode2.setSensorData(new SensorData(true));
         assertEquals(episode1.hashCode(), episode2.hashCode());
+    }
+
+    @Test
+    public void testEpisodeMatchScore() {
+        Move move = new Move("a");
+        Episode episode1 = new Episode(move);
+        Episode episode2 = new Episode(move);
+        SensorData data1 = new SensorData(false);
+        SensorData data2 = new SensorData(false);
+        data1.setSensor("sensor", 1);
+        data2.setSensor("sensor", 1);
+        episode1.setSensorData(data1);
+        episode2.setSensorData(data2);
+
+        EpisodeWeights weights = new EpisodeWeights();
+
+
+        double score = episode1.matchScore(episode2, weights);
+        assertEquals(0, score);
+        weights.updateWeights(episode1, episode2, 0.5);
+        assertEquals(0.5, weights.getActionWeight());
+
+        for(String s : episode1.getSensorData().getSensorNames()) {
+            assertTrue(weights.episodeSensorsMatch(episode1, episode2, s));
+            assertTrue(weights.getSensorWeight(s) == 0.5);
+            assertTrue(episode1.getSensorData().getSensor(s).equals(episode2.getSensorData().getSensor(s)));
+        }
+
+
+        score = episode1.matchScore(episode2, weights);
+
+        assertEquals(1.5, score);
     }
 }
