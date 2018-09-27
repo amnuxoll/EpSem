@@ -40,7 +40,7 @@ public class EpisodeWeights {
         }
     }
 
-    private boolean episodeSensorsMatch(Episode ep1, Episode ep2, String sensor) {
+    public boolean episodeSensorsMatch(Episode ep1, Episode ep2, String sensor) {
         if(ep1.getSensorData().hasSensor(sensor) && ep2.getSensorData().hasSensor(sensor))
             return ep1.getSensorData().getSensor(sensor).equals(ep2.getSensorData().getSensor(sensor));
 
