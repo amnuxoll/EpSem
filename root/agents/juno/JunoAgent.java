@@ -18,7 +18,8 @@ public class JunoAgent extends MaRzAgent {
     //how many episodes we match at a time
     private int WINDOW_SIZE= 5;
     private int NUM_MATCHES= 5;
-
+    private int goals= 0;
+    private int marzGoals= 10;
     /**
      * JunoAgent
      *
@@ -35,11 +36,11 @@ public class JunoAgent extends MaRzAgent {
     protected Sequence selectNextSequence(){
         Sequence marzSuggestion= super.selectNextSequence();
 
-        if(this.lastGoalIndex <= 0){
+        if(this.lastGoalIndex <= 0 || goals<marzGoals){
             return marzSuggestion;
         }
 
-        int[] bestIndices= weightTable.bestIndices(episodicMemory,lastGoalIndex,5);
+        int[] bestIndices= weightTable.bestIndices(episodicMemory,lastGoalIndex,NUM_MATCHES);
 
         Sequence junoSuggestion= shortestSequenceToGoal(bestIndices);
 
@@ -56,6 +57,7 @@ public class JunoAgent extends MaRzAgent {
 
     @Override
     protected void markSuccess(){
+        goals++;
         super.markSuccess();
         weightTable.updateTable(episodicMemory, episodicMemory.size()-currentSequence.getCurrentIndex()-1);
     }

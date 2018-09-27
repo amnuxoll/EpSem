@@ -48,7 +48,11 @@ public class Runner {
         try {
             Services.register(IRandomizer.class, new Randomizer());
             Runner.JunoFSM.run();
-        } catch (Exception ex)
+        }
+        catch (OutOfMemoryError mem){
+            mem.printStackTrace();
+        }
+        catch (Exception ex)
         {
             System.out.println("Runner failed with exception: " + ex.getMessage());
             ex.printStackTrace();

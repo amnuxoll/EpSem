@@ -1,13 +1,15 @@
 package utils;
 
+import framework.Episode;
 import framework.Move;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class SequenceTest {
 
@@ -15,6 +17,43 @@ public class SequenceTest {
     @Test
     public void constructorNullMovesThrowsException() {
         assertThrows(IllegalArgumentException.class, () -> new Sequence(null));
+    }
+
+    @Test
+    public void constructorEpisodesThrowsException(){
+        assertThrows(IllegalArgumentException.class, () -> new Sequence(null,4,5));
+
+        ArrayList<Episode> episodes= new ArrayList<>();
+        Move move= new Move("a");
+        //add 12 episodes
+        for(int i=0;i<12;i++)
+            episodes.add(new Episode(move));
+
+        assertThrows(IllegalArgumentException.class, () -> new Sequence(episodes,-1,5));
+        assertThrows(IllegalArgumentException.class, () -> new Sequence(episodes,0,13));
+        assertThrows(IllegalArgumentException.class, () -> new Sequence(episodes,5,4));
+    }
+
+    @Test
+    public void constructorEpisodesGivesCorretSequence(){
+        ArrayList<Episode> episodes= new ArrayList<>();
+        Move[] moves= {
+                new Move("a"),
+                new Move("b"),
+                new Move("b"),
+                new Move("c")
+        };
+
+        Move[] correctMoves= new Move[12];
+
+        //add 12 episodes
+        for(int i=0;i<12;i++) {
+            episodes.add(new Episode(moves[i % moves.length]));
+            correctMoves[i]= moves[i % moves.length];
+        }
+
+        assertArrayEquals(Arrays.copyOfRange(correctMoves,0,12), new Sequence(episodes,0,12).getMoves());
+        assertArrayEquals(Arrays.copyOfRange(correctMoves,5,7), new Sequence(episodes,5,7).getMoves());
     }
 
     // endsWith Tests
