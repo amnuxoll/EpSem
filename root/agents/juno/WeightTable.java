@@ -6,19 +6,23 @@ import framework.Move;
 import utils.Sequence;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.PriorityQueue;
 import java.util.Queue;
 
 public class WeightTable {
     //table of episode weights
     //indexed where 0 is most recent episode
-    private ArrayList<EpisodeWeights> table;
+    protected ArrayList<EpisodeWeights> table;
 
     /**
      * makes a weight table with 'windowSize' rows
      * @param windowSize number of rows to store weights for
      */
     public WeightTable(int windowSize){
+        if(windowSize < 1){
+            throw new IllegalArgumentException("Window size must be positive");
+        }
         this.table= new ArrayList<>(windowSize);
         for(int i=0; i<windowSize; i++){
             table.add(new EpisodeWeights());
@@ -30,11 +34,20 @@ public class WeightTable {
      * recent window
      *
      * @param episodes the list of episodes to look for matches in
-     * @param lastGoalIndex the index of the last goal, where to start the search
      * @param numMatches the number of best matches to return
-     * @return the indexes of the best (at most) 'numMatches' matches to the most recent window of episodes
+     * @return the indexes of the best (at most) 'numMatches' matches to the most recent window of episodes,
+     *          which weren't goals
      */
-    public int[] bestIndices(ArrayList<Episode> episodes, int lastGoalIndex, int numMatches){
+    public int[] bestIndices(ArrayList<Episode> episodes, int numMatches){
+        if(episodes == null){
+            throw new IllegalArgumentException("episodes cannot be null");
+        }
+        if(numMatches < 0){
+            throw new IllegalArgumentException("numMatches must be non-negative");
+        }
+
+        int lastGoalIndex= lastGoalIndex(episodes, episodes.size()-1);
+
         PriorityQueue<ScoredIndex> bestIndexes= new PriorityQueue<>(numMatches);
 
         //shift which sub-sequence we are looking at
@@ -63,7 +76,11 @@ public class WeightTable {
         numMatches= Math.min(bestIndexes.size(),numMatches);
 
         int[] indexArray= new int[numMatches];
-        for(int i=0;i<indexArray.length;i++){
+        int i= 0; //i is index of last attempted add to the array
+        for(;i<indexArray.length;i++){
+            if(bestIndexes.peek() == null){
+                break;
+            }
             int idx = bestIndexes.poll().index;
             if(episodes.get(idx).getSensorData().isGoal()) {
                 i--;
@@ -72,7 +89,7 @@ public class WeightTable {
             indexArray[i]= idx;
         }
 
-        return indexArray;
+        return Arrays.copyOf(indexArray,i);
     }
 
     /**
@@ -154,6 +171,15 @@ public class WeightTable {
         return (2.0*m)/l - 1;
     }
 
+    /**
+     * finds the index of the goal that happened most previously
+     * to the given index
+     *
+     * @param list the episodes to search in
+     * @param index the index to start the search
+     * @return the index of the most recent goal which occurred
+     *          at or before the given index
+     */
     private int lastGoalIndex(ArrayList<Episode> list, int index) {
         for(int i = index; i>=0; i--) {
             if(list.get(i).getSensorData().isGoal()) return i; //if the episode at i was a goal, return i
@@ -173,16 +199,18 @@ public class WeightTable {
         /**
          * compares one scored index to another
          * since priority queue prioritizes the least,
-         * this comparable works conventionally
+         * this comparable works unconventionally
          *
          * @param si the scoredindex to compare to
-         * @return 1 if this score is greater than si, -1 otherwise
+         * @return -1 if this score is greater than si,
+         *          0 if the scores are equal
+         *          1 if this score is less than si
          */
         @Override
         public int compareTo(ScoredIndex si) {
             if(this.score == si.score) return 0;
 
-            return this.score > si.score ? 1 : -1;
+            return this.score < si.score ? 1 : -1;
         }
     }
 }

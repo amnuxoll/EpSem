@@ -1,0 +1,97 @@
+package agents.juno;
+
+import framework.Episode;
+import framework.EpisodeWeights;
+import framework.Move;
+import framework.SensorData;
+import org.junit.jupiter.api.Test;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
+public class WeightTableTest {
+    @Test
+    public void constructorThrowsException(){
+        assertThrows(IllegalArgumentException.class, () -> new WeightTable(0));
+    }
+
+    @Test
+    public void bestIndicesThrowsException(){
+        WeightTable table= new WeightTable(2);
+
+        ArrayList<Episode> episodes= new ArrayList<>();
+        Move[] moves= {
+                new Move("a"),
+                new Move("b"),
+                new Move("c"),
+        };
+
+        for(int i=0;i<12;i++){
+            episodes.add( new Episode(moves[i%moves.length]));
+        }
+
+        assertThrows(IllegalArgumentException.class, () -> table.bestIndices(null,4));
+        assertThrows(IllegalArgumentException.class, () -> table.bestIndices(episodes,-1));
+    }
+
+    @Test
+    public void bestIndices(){
+        Move a= new Move("a");
+        Move b= new Move("b");
+
+        ArrayList<Episode> episodes= new ArrayList<>();
+
+        episodes.add(makeEp(b,false));
+        episodes.add(makeEp(a,false)); //1: should have matchscore= 0
+        episodes.add(makeEp(a,false)); //2: should have matchscore= -.6
+        episodes.add(makeEp(b,false)); //3: should have matchscore= 0
+        episodes.add(makeEp(a,true)); //4: should have matchscore= -1
+        episodes.add(makeEp(b,true)); //5: most recent goal
+        episodes.add(makeEp(b,false)); //6: should be current window
+        episodes.add(makeEp(b,false)); //7: should be current window
+
+        WeightTable table= new TestWeightTable(2);
+
+        int[] indexes= table.bestIndices(episodes,2);
+
+        //should be in decreaseing order
+        assertArrayEquals(new int[]{3,1}, indexes);
+    }
+
+    private Episode makeEp(Move move, boolean isGoal){
+        Episode ep= new Episode(move);
+        ep.setSensorData(new SensorData(isGoal));
+
+        return ep;
+    }
+
+    public class TestWeightTable extends WeightTable{
+
+        /**
+         * makes a weight table with 'windowSize' rows
+         *
+         * @param windowSize number of rows to store weights for
+         */
+        public TestWeightTable(int windowSize) {
+            super(2);
+            double actionWeight= .3;
+            HashMap<String, Double> sensorWeights= new HashMap<>();
+
+            sensorWeights.put("GOAL",.5);
+
+            for(int i=0;i<2;i++){
+                this.table.set(i,new TestEpisodeWeights(actionWeight,sensorWeights));
+            }
+        }
+    }
+
+    public class TestEpisodeWeights extends EpisodeWeights{
+        public TestEpisodeWeights(double actionWeight, HashMap<String, Double> sensorWeights){
+            this.actionWeight= actionWeight;
+            this.sensorWeights= sensorWeights;
+        }
+    }
+}

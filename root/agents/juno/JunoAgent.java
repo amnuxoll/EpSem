@@ -40,7 +40,7 @@ public class JunoAgent extends MaRzAgent {
             return marzSuggestion;
         }
 
-        int[] bestIndices= weightTable.bestIndices(episodicMemory,lastGoalIndex,NUM_MATCHES);
+        int[] bestIndices= weightTable.bestIndices(episodicMemory,NUM_MATCHES);
 
         Sequence junoSuggestion= shortestSequenceToGoal(bestIndices);
 

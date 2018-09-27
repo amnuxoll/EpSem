@@ -8,8 +8,8 @@ import java.util.HashMap;
  * episode weights contains weights for each component of an episode
  */
 public class EpisodeWeights {
-    private double actionWeight;
-    private HashMap<String, Double> sensorWeights;
+    protected double actionWeight;
+    protected HashMap<String, Double> sensorWeights;
 
     /**
      * initialize moveWeight to 0
