@@ -26,18 +26,35 @@ public class EpisodeWeights {
      */
     public void updateWeights(Episode ep1, Episode ep2, double adjustValue){
         if(ep1.getMove().equals(ep2.getMove())) {
-            actionWeight *= adjustValue;
+            actionWeight= addAndCap(actionWeight, adjustValue, 1);
         }
         else {
-            actionWeight *= -adjustValue;
+            actionWeight= addAndCap(actionWeight, -adjustValue, 1);
         }
 
         for(String sensor : sensorWeights.keySet()) {
             if (episodeSensorsMatch(ep1, ep2, sensor)) {
-                sensorWeights.put(sensor, sensorWeights.get(sensor)*adjustValue);
+                sensorWeights.put(sensor, addAndCap(getSensorWeight(sensor),adjustValue,1));
             }
-            else sensorWeights.put(sensor, sensorWeights.get(sensor)* -adjustValue);
+            else sensorWeights.put(sensor, addAndCap(getSensorWeight(sensor),-adjustValue,1));
         }
+    }
+
+    /**
+     * adds two numbers and keeps them within specified range
+     *
+     * @param x op1
+     * @param y op2
+     * @param cap magnitude of range
+     */
+    private double addAndCap(double x, double y, double cap){
+        cap= Math.abs(cap);
+
+        x+= y;
+
+        if(x > cap) return cap;
+        if(x < -cap) return -cap;
+        return x;
     }
 
     public boolean episodeSensorsMatch(Episode ep1, Episode ep2, String sensor) {
@@ -66,7 +83,21 @@ public class EpisodeWeights {
             return sensorWeights.get(sensorName);
         }
 
-        sensorWeights.put(sensorName,0.0);
+        addSensorWeight(sensorName);
         return 0.0;
+    }
+
+    private void addSensorWeight(String sensorName){
+        sensorWeights.put(sensorName,0.0);
+    }
+
+    @Override
+    public String toString(){
+        String str= Double.toString(actionWeight);
+        for(Double w : sensorWeights.values()){
+            str+= (", "+w.toString());
+        }
+
+        return str;
     }
 }

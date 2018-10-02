@@ -10,7 +10,7 @@ import framework.SensorData;
 import utils.Sequence;
 
 
-import java.util.ArrayList;
+import java.util.*;
 
 public class JunoAgent extends MaRzAgent {
     WeightTable weightTable= null;
@@ -19,7 +19,12 @@ public class JunoAgent extends MaRzAgent {
     private int WINDOW_SIZE= 5;
     private int NUM_MATCHES= 5;
     private int goals= 0;
-    private int marzGoals= 10;
+    private int marzGoals= 5;
+
+    public static int marzCount= 0;
+    public static int junoCount= 0;
+
+    private List<Integer> matchesToTry= new LinkedList<>();
     /**
      * JunoAgent
      *
@@ -27,7 +32,8 @@ public class JunoAgent extends MaRzAgent {
      */
     public JunoAgent(ISuffixNodeBaseProvider nodeProvider) {
         super(nodeProvider);
-
+        marzCount= 0;
+        junoCount= 0;
         this.weightTable= new WeightTable(WINDOW_SIZE);
     }
 
@@ -36,21 +42,30 @@ public class JunoAgent extends MaRzAgent {
     protected Sequence selectNextSequence(){
         Sequence marzSuggestion= super.selectNextSequence();
 
-        if(this.lastGoalIndex <= 0 || goals<marzGoals){
+        if(this.lastGoalIndex <= 0 || goals < marzGoals){
+            marzCount++;
             return marzSuggestion;
         }
 
-        int[] bestIndices= weightTable.bestIndices(episodicMemory,NUM_MATCHES);
+        if(matchesToTry.size() < 1){
+            int[] bestIndices= weightTable.bestIndices(episodicMemory,NUM_MATCHES);
+            for(int val : bestIndices){
+                matchesToTry.add(val);
+            }
+        }
 
-        Sequence junoSuggestion= shortestSequenceToGoal(bestIndices);
+        //Sequence junoSuggestion= shortestSequenceToGoal(bestIndices);
+        Sequence junoSuggestion= sequenceToGoal(matchesToTry.remove(0));
 
         //we will go with the shorter of the two suggested sequences
         if(junoSuggestion.getLength() < marzSuggestion.getLength()){
             //if were going with juno's suggestion, we gotta tell marz
             super.setActiveNode(junoSuggestion);
+            junoCount++;
             return junoSuggestion;
         }
 
+        marzCount++;
         return marzSuggestion;
     }
 
@@ -59,6 +74,7 @@ public class JunoAgent extends MaRzAgent {
     protected void markSuccess(){
         goals++;
         super.markSuccess();
+        matchesToTry.clear();
         weightTable.updateTable(episodicMemory, episodicMemory.size()-currentSequence.getCurrentIndex()-1);
     }
 

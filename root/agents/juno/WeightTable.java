@@ -121,6 +121,10 @@ public class WeightTable {
                 previousGoalIndex = lastGoalIndex(episodes, i);
             }
 
+            if(nextGoalIndex == -1){
+                break;
+            }
+
             Sequence goalSequence2= new Sequence(episodes, i+1,nextGoalIndex+1);
             double attemptSimilarity = getAttemptSimlarity(goalSequence, goalSequence2);
             double actualSimilarity = getActualSimilarity(goalSequence, goalSequence2);
@@ -128,7 +132,10 @@ public class WeightTable {
             double adjustValue = attemptSimilarity*actualSimilarity;
 
             for(int j = 0; j<table.size(); j++) {
-                table.get(j).updateWeights(episodes.get(goalSequenceIndex-j-1), episodes.get(i-j), adjustValue);
+                Episode ep1= episodes.get(goalSequenceIndex-j-1);
+                Episode ep2= episodes.get(i-j);
+
+                table.get(j).updateWeights(ep1, ep2, adjustValue);
             }
         }
 

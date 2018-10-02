@@ -1,5 +1,7 @@
 package framework;
 
+import agents.juno.JunoAgent;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -51,6 +53,9 @@ class TestRun {
             System.out.println("TestRun failed with exception: " + ex.getMessage());
             ex.printStackTrace();
         }
+
+        System.out.println("Marz: "+ JunoAgent.marzCount);
+        System.out.println("Juno: "+JunoAgent.junoCount);
     }
 
     public synchronized void addGoalListener(IGoalListener listener) {
