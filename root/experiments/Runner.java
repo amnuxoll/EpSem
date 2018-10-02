@@ -24,6 +24,16 @@ public class Runner {
             }
     );
 
+    private static TestSuite MarzVJuno = new TestSuite(
+            TestSuiteConfiguration.MEDIUM,
+            new FileResultWriterProvider(),
+            new FSMDescriptionProvider(3, 15, EnumSet.of(FSMDescription.Sensor.EVEN_ODD)),
+            new IAgentProvider[] {
+                    new JunoAgentProvider(new SuffixNodeProvider()),
+                    new MaRzAgentProvider<>(new SuffixNodeProvider())
+            }
+    );
+
     private static TestSuite MaRzMeta = new TestSuite(
             TestSuiteConfiguration.MEDIUM,
             new FileResultWriterProvider(),
@@ -47,7 +57,7 @@ public class Runner {
     public static void main(String[] args) {
         try {
             Services.register(IRandomizer.class, new Randomizer());
-            Runner.JunoFSM.run();
+            Runner.MarzVJuno.run();
         }
         catch (OutOfMemoryError mem){
             mem.printStackTrace();
