@@ -47,15 +47,15 @@ public class JunoAgent extends MaRzAgent {
             return marzSuggestion;
         }
 
-        if(matchesToTry.size() < 1){
+        //if(matchesToTry.size() < 1){
             int[] bestIndices= weightTable.bestIndices(episodicMemory,NUM_MATCHES);
-            for(int val : bestIndices){
-                matchesToTry.add(val);
-            }
-        }
+         //   for(int val : bestIndices){
+         //       matchesToTry.add(val);
+          //  }
+        //}
 
-        //Sequence junoSuggestion= shortestSequenceToGoal(bestIndices);
-        Sequence junoSuggestion= sequenceToGoal(matchesToTry.remove(0));
+        Sequence junoSuggestion= shortestSequenceToGoal(bestIndices);
+        //Sequence junoSuggestion= sequenceToGoal(matchesToTry.remove(0));
 
         //we will go with the shorter of the two suggested sequences
         if(junoSuggestion.getLength() < marzSuggestion.getLength()){
