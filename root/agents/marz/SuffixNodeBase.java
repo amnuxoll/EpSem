@@ -47,6 +47,12 @@ public abstract class SuffixNodeBase<TNodeType extends SuffixNodeBase<TNodeType>
     }
 
     /**
+     * Gets the normalized weight of this node in range [0,1]
+     * @return the weight of this node in range [0,1]
+     */
+    public abstract double getNormalizedWeight();
+
+    /**
      * Splits this node out into its children.
      * @return The set of child nodes.
      */

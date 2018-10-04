@@ -19,7 +19,7 @@ public class FileResultWriterProvider implements IResultWriterProvider {
      */
     public FileResultWriterProvider() {
         Date myDate = new Date();
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
         String dateString = sdf.format(myDate);
         this.timestampDirectory = Paths.get(FileResultWriterProvider.outputRootDirectory, dateString).toString();
     }

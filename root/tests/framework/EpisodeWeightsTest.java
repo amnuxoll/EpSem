@@ -76,6 +76,6 @@ public class EpisodeWeightsTest {
         ep1.setSensorData(new SensorData(true));
         ep2.setSensorData(new SensorData(false));
 
-        assertEquals(ep1.matchScore(ep2, weights), weights.matchScore(ep1, ep2));
+        assertEquals(ep1.matchScore(ep2, weights)/2, weights.matchScore(ep1, ep2));
     }
 }

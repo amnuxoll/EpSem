@@ -38,7 +38,7 @@ public class WeightTable {
      * @return the indexes of the best (at most) 'numMatches' matches to the most recent window of episodes,
      *          which weren't goals
      */
-    public int[] bestIndices(ArrayList<Episode> episodes, int numMatches){
+    public ScoredIndex[] bestIndices(ArrayList<Episode> episodes, int numMatches){
         if(episodes == null){
             throw new IllegalArgumentException("episodes cannot be null");
         }
@@ -75,21 +75,42 @@ public class WeightTable {
         //maybe there werent 'numMatches' sequeunces to check, so we have less match
         numMatches= Math.min(bestIndexes.size(),numMatches);
 
-        int[] indexArray= new int[numMatches];
+        ScoredIndex[] indexArray= new ScoredIndex[numMatches];
         int i= 0; //i is index of last attempted add to the array
         for(;i<indexArray.length;i++){
             if(bestIndexes.peek() == null){
                 break;
             }
-            int idx = bestIndexes.poll().index;
+            ScoredIndex scoredIndex= bestIndexes.poll();
+            int idx = scoredIndex.index;
             if(episodes.get(idx).getSensorData().isGoal()) {
                 i--;
                 continue;
             }
-            indexArray[i]= idx;
+            indexArray[i]= scoredIndex;
         }
 
         return Arrays.copyOf(indexArray,i);
+    }
+
+    /**
+     * updates the weight table after an attempted sequence that didn't hit the goal
+     * takes as parameters the indexes of the episode sequences that matched
+     * when we determined what sequence to try
+     *
+     * @param episodes the episodic memory
+     * @param index1 the index of the first window in the match
+     * @param index2 the index of the second window in the match
+     */
+    public void updateOnFailure(ArrayList<Episode> episodes, int index1, int index2){
+        if(index1 < table.size()-1 || index2 < table.size()-1){
+            throw new IllegalArgumentException("Index is invalid. You are probably not passing correct indicies");
+        }
+
+        for(int i=0; i<table.size();i++){
+            //pass *negative* .5 because we want to reward mismatches
+            table.get(i).updateWeights(episodes.get(index1-i), episodes.get(index2-i), -.5);
+        }
     }
 
     /**
@@ -97,7 +118,7 @@ public class WeightTable {
      * @param episodes the entire episodic memory
      * @param goalSequenceIndex the index at which we reached the goal
      */
-    public void updateTable(ArrayList<Episode> episodes, int goalSequenceIndex){
+    public void updateOnGoal(ArrayList<Episode> episodes, int goalSequenceIndex){
         int previousGoalIndex = lastGoalIndex(episodes, episodes.size()-2);
 
         if(previousGoalIndex<0) return; //return if this is the first time we're hitting a goal
@@ -113,16 +134,16 @@ public class WeightTable {
 
         previousGoalIndex = lastGoalIndex(episodes, startIndex);
 
-        for(int i = startIndex; i>table.size(); i--) {
+        for(int i = startIndex; i>=table.size(); i--) {
 
             if(i-table.size() <= previousGoalIndex) {
                 i = previousGoalIndex -1;
                 nextGoalIndex = previousGoalIndex;
                 previousGoalIndex = lastGoalIndex(episodes, i);
-            }
 
-            if(nextGoalIndex == -1){
-                break;
+                if(i < table.size()-1){
+                    return;
+                }
             }
 
             Sequence goalSequence2= new Sequence(episodes, i+1,nextGoalIndex+1);
@@ -138,8 +159,6 @@ public class WeightTable {
                 table.get(j).updateWeights(ep1, ep2, adjustValue);
             }
         }
-
-
     }
 
     /**
@@ -194,7 +213,7 @@ public class WeightTable {
         return -1; //return -1 if we don't find any goals in the list
     }
 
-    private class ScoredIndex implements Comparable<ScoredIndex>{
+    public class ScoredIndex implements Comparable<ScoredIndex>{
         public int index;
         public double score;
 

@@ -117,7 +117,7 @@ public class MaRzAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> implemen
 		return nextMove;
 	}
 
-	private void markFailure() {
+	protected void markFailure() {
 		if(activeNode == null){
 			return;
 		}
@@ -204,5 +204,9 @@ public class MaRzAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> implemen
 	 */
 	protected void setActiveNode(Sequence newSequence){
 		this.activeNode= suffixTree.findBestMatch(newSequence);
+	}
+
+	protected TSuffixNode getActiveNode() {
+		return activeNode;
 	}
 }// MaRzAgent

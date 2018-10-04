@@ -139,6 +139,11 @@ public class SuffixTreeTest {
         }
 
         @Override
+        public double getNormalizedWeight() {
+            return 0;
+        }
+
+        @Override
         protected boolean canSplit() {
             return true;
         }

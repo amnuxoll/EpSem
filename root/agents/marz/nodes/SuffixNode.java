@@ -80,18 +80,21 @@ public class SuffixNode extends SuffixNodeBase<SuffixNode> {
     protected void updateHeuristic() {
         double gWeight = this.g * G_WEIGHT;
 
-        //special case: avoid divide-by-zero
-        int successCount = this.getSuccessIndices().size();
-        int failCount = this.getFailIndices().size();
-        if (successCount + failCount == 0) {
-            this.f = gWeight;
-        }// if
-        //this is the usual case
-        else {
-            this.f = gWeight + ((double) failCount / ((double) failCount + (double) successCount));
-        }// else
+        this.f= gWeight + getNormalizedWeight();
 
     }// updateHeuristic
+
+    @Override
+    public double getNormalizedWeight(){
+        int successCount = this.getSuccessIndices().size();
+        int failCount = this.getFailIndices().size();
+
+        if (successCount + failCount == 0) {
+            return 0;
+        }// if
+
+        return (double) failCount / ((double) failCount + (double) successCount);
+    }
 
     private void divyIndexes(HashMap<Move, SuffixNode> children, boolean success) {
         List<Integer> parentList = (success ? this.getSuccessIndices() : this.getFailIndices());

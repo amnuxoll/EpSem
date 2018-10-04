@@ -26,17 +26,17 @@ public class EpisodeWeights {
      */
     public void updateWeights(Episode ep1, Episode ep2, double adjustValue){
         if(ep1.getMove().equals(ep2.getMove())) {
-            actionWeight= addAndCap(actionWeight, adjustValue, 1);
+            actionWeight= addAndCap(actionWeight, adjustValue, 0, 1);
         }
         else {
-            actionWeight= addAndCap(actionWeight, -adjustValue, 1);
+            actionWeight= addAndCap(actionWeight, -adjustValue, 0, 1);
         }
 
         for(String sensor : sensorWeights.keySet()) {
             if (episodeSensorsMatch(ep1, ep2, sensor)) {
-                sensorWeights.put(sensor, addAndCap(getSensorWeight(sensor),adjustValue,1));
+                sensorWeights.put(sensor, addAndCap(getSensorWeight(sensor),adjustValue, 0, 1));
             }
-            else sensorWeights.put(sensor, addAndCap(getSensorWeight(sensor),-adjustValue,1));
+            else sensorWeights.put(sensor, addAndCap(getSensorWeight(sensor),-adjustValue, 0, 1));
         }
     }
 
@@ -45,15 +45,14 @@ public class EpisodeWeights {
      *
      * @param x op1
      * @param y op2
-     * @param cap magnitude of range
+     * @param min min value to keep range in
+     * @param max max value to keep range in
      */
-    private double addAndCap(double x, double y, double cap){
-        cap= Math.abs(cap);
-
+    private double addAndCap(double x, double y, double min, double max){
         x+= y;
 
-        if(x > cap) return cap;
-        if(x < -cap) return -cap;
+        if(x > max) return max;
+        if(x < min) return min;
         return x;
     }
 
@@ -71,7 +70,8 @@ public class EpisodeWeights {
      * @return
      */
     public double matchScore(Episode ep1, Episode ep2){
-        return ep1.matchScore(ep2, this);
+        //episode match over highest possible score, which is 1*(sensor size + action weight)
+        return ep1.matchScore(ep2, this)/(sensorWeights.size()+1);
     }
 
     public double getActionWeight() {
