@@ -40,6 +40,13 @@ public class FSMTransitionTableBuilder {
         this.buildTransitionTable();
     }
 
+    public FSMTransitionTableBuilder(HashMap<Move,Integer>[] tableToCopy){
+        this.transitionTable= new HashMap[tableToCopy.length];
+        for(int i=0;i<transitionTable.length;i++){
+            this.transitionTable[i]= (HashMap<Move,Integer>)tableToCopy[i].clone();
+        }
+    }
+
     /**
      * Get the transition table built by this {@link FSMTransitionTableBuilder}.
      * @return The transition table.

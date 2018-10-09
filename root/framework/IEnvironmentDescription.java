@@ -43,4 +43,11 @@ public interface IEnvironmentDescription {
      * @param sensorData The {@link SensorData} to apply sensors to.
      */
     void applySensors(int lastState, Move move, int currentState, SensorData sensorData);
+
+    /**
+     * add a listener for this class to fire an event to
+     *
+     * @param listener The listener to register
+     */
+    void addEnvironmentListener(IEnvironmentListener listener);
 }

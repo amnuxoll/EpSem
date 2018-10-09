@@ -38,7 +38,7 @@ public class Runner {
             TestSuiteConfiguration.MEDIUM,
             new FileResultWriterProvider(),
             new MetaEnvironmentDescriptionProvider(
-                    new FSMDescriptionTweaker(3,15,FSMDescription.Sensor.NO_SENSORS),
+                    new FSMDescriptionTweaker(3,15,FSMDescription.Sensor.NO_SENSORS, 1),
                     MetaConfiguration.DEFAULT),
             new IAgentProvider[] {
                     new MaRzAgentProvider<>(new SuffixNodeProvider())

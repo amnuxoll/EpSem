@@ -6,7 +6,6 @@ import framework.*;
 
 import java.util.EnumSet;
 import java.util.HashMap;
-import java.util.Set;
 
 /**
  * Class FSMDescriptionTweaker gives new FSM environments and 'tweaks' them by randomly swapping two moves in the transition table
@@ -19,16 +18,26 @@ public class FSMDescriptionTweaker implements IEnvironmentDescriptionProvider {
 
     private HashMap<Move, Integer>[] table;
     private FSMTransitionCounterDescription lastDescription = null;
+    private int numSwaps;
 
-    private int alphaSize;;
+    private int alphaSize;
     private int numStates;
     private EnumSet<FSMDescription.Sensor> sensorsToInclude;
 
-    public FSMDescriptionTweaker(int alphaSize, int numStates, EnumSet<FSMDescription.Sensor> sensorsToInclude) {
+    public FSMDescriptionTweaker(int alphaSize, int numStates, EnumSet<FSMDescription.Sensor> sensorsToInclude, int numSwaps) {
+        if (alphaSize < 1)
+            throw new IllegalArgumentException("alphabetSize cannot be less than 1");
+        if (numStates < 1)
+            throw new IllegalArgumentException("numStates cannot be less than 1");
+        if (sensorsToInclude == null)
+            throw new IllegalArgumentException("sensorsToInclude cannot be null");
+        if (numSwaps<0)
+            throw new IllegalArgumentException("numSwaps must not be negative");
 
         this.alphaSize= alphaSize;
         this.numStates= numStates;
         this.sensorsToInclude= sensorsToInclude;
+        this.numSwaps= numSwaps;
     }
 
 
@@ -38,12 +47,13 @@ public class FSMDescriptionTweaker implements IEnvironmentDescriptionProvider {
         if(lastDescription == null) {
             table= new FSMTransitionTableBuilder(alphaSize, numStates).getTransitionTable();
             newDescription = new FSMTransitionCounterDescription(table, sensorsToInclude);
-
         }
         else {
-            tweakTable(1, lastDescription.getSensorTable());
+            //event through the sensor table isn't a transition table it has same form, so use the builder
+            HashMap[] sensorTable= new FSMTransitionTableBuilder(lastDescription.getSensorTable()).getTransitionTable();
+            tweakTable(sensorTable);
             newDescription =
-                    new FSMTransitionCounterDescription(table, sensorsToInclude, lastDescription.getSensorTable());
+                    new FSMTransitionCounterDescription(table, sensorsToInclude, sensorTable);
         }
         lastDescription = newDescription;
         return newDescription;
@@ -51,11 +61,13 @@ public class FSMDescriptionTweaker implements IEnvironmentDescriptionProvider {
 
     /**
      * randomly changes two moves in the transition table
-     * @param numChanges
      */
-    private void tweakTable(int numChanges, HashMap<Move, Integer>[] sensorTable) {
+    private void tweakTable(HashMap<Move, Integer>[] sensorTable) {
+        //make a copy of the old table
+        this.table= new FSMTransitionTableBuilder(table).getTransitionTable();
+
         IRandomizer randomizer = Services.retrieve(IRandomizer.class);
-        for(int i = 0;i<numChanges; i++) {
+        for(int i = 0;i<numSwaps; i++) {
             int stateToSwitch = randomizer.getRandomNumber(table.length); //pick which state whose moves will be swapped
             Move[] moveArray = lastDescription.getMoves();
 

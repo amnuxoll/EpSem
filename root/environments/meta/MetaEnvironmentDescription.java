@@ -1,18 +1,24 @@
 package environments.meta;
 
 import framework.*;
+import org.omg.CORBA.Environment;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
+import java.util.List;
 
 public class MetaEnvironmentDescription implements IEnvironmentDescription {
     private IEnvironmentDescriptionProvider environmentDescriptionProvider;
     private IEnvironmentDescription currDescription;
+
+    private List<IEnvironmentListener> listeners= new ArrayList<>();
 
     //how many transitions the agent took to reach the goal
     private LinkedList<Integer> successQueue= new LinkedList<>();
 
     //number of moves since last goal
     private int transitionCounter= 0;
+    private int numGoals= 0;
     private MetaConfiguration config;
 
     MetaEnvironmentDescription(IEnvironmentDescriptionProvider environmentDescriptionProvider, MetaConfiguration config) {
@@ -63,6 +69,7 @@ public class MetaEnvironmentDescription implements IEnvironmentDescription {
         if(isGoal) {
             //makeNewDescription relies on transitionCounter,
             //so do this first
+            numGoals++;
             makeNewDescription();
             transitionCounter= 0;
         }
@@ -102,10 +109,12 @@ public class MetaEnvironmentDescription implements IEnvironmentDescription {
         int average= averageEnqueuedSuccesses();
 
         //if the average is less than our threshold and we have collected enough data
-        if (average < config.getStepThreshold() && successQueue.size() >= config.getSuccessQueueMaxSize()){
+        if (numGoals%config.getTweakPoint() == 0){
 
             //make a new environment
             currDescription = environmentDescriptionProvider.getEnvironmentDescription();
+            //tell any listeners that we changed the environment
+            fireDataBreakEvent();
             //and clear the queue
             successQueue.clear();
         }
@@ -140,5 +149,20 @@ public class MetaEnvironmentDescription implements IEnvironmentDescription {
      */
     public LinkedList<Integer> getSuccessQueue() {
         return successQueue;
+    }
+
+    @Override
+    public synchronized void addEnvironmentListener(IEnvironmentListener listener) {
+        this.listeners.add(listener);
+    }
+
+    private synchronized void fireDataBreakEvent() {
+        EnvironmentEvent event= new EnvironmentEvent(this, EnvironmentEvent.EventType.DATA_BREAK);
+        for (IEnvironmentListener listener : this.listeners) {
+            //we want like 8 data breaks
+            for(int i=0;i<8;i++) {
+                listener.recieveEvent(event);
+            }
+        }
     }
 }
