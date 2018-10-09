@@ -9,7 +9,7 @@ public class MetaConfiguration {
     private int stepThreshold;
     private int tweakPoint; //number of goals until tweak
 
-    public static final MetaConfiguration DEFAULT = new MetaConfiguration(50);
+    public static final MetaConfiguration DEFAULT = new MetaConfiguration(250);
 
     public MetaConfiguration(int tweakPoint) {
         /*if (successQueueMaxSize < 1) {

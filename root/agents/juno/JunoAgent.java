@@ -4,6 +4,7 @@ import agents.marz.ISuffixNodeBaseProvider;
 import agents.marz.MaRzAgent;
 import framework.Episode;
 import utils.Sequence;
+import agents.juno.WeightTable.ScoredIndex;
 
 
 import java.util.*;
@@ -47,18 +48,18 @@ public class JunoAgent extends MaRzAgent {
             return marzSuggestion;
         }
 
-        WeightTable.ScoredIndex[] bestIndices= weightTable.bestIndices(episodicMemory,NUM_MATCHES);
+        ScoredIndex[] bestIndices= weightTable.bestIndices(episodicMemory,NUM_MATCHES);
         //best matching index is first in array
-        WeightTable.ScoredIndex bestMatch= bestIndices[0];
+        ScoredIndex bestIndexToTry= bestIndexToTry(bestIndices);
 
-        Sequence junoSuggestion= sequenceToGoal(bestMatch.index);
+        Sequence junoSuggestion= sequenceToGoal(bestIndexToTry.index);
 
         //we will go with the most confident of the two suggested sequences
-        if(bestMatch.score > super.getActiveNode().getNormalizedWeight()){
+        if(bestIndexToTry.score > super.getActiveNode().getNormalizedWeight()){
             //if were going with juno's suggestion, we gotta tell marz
             super.setActiveNode(junoSuggestion);
             this.lastSequenceIndex= episodicMemory.size()-1;
-            this.lastMatch= bestMatch;
+            this.lastMatch= bestIndexToTry;
 
             junoCount++;
             return junoSuggestion;
@@ -67,6 +68,22 @@ public class JunoAgent extends MaRzAgent {
         lastMatch= null;
         marzCount++;
         return marzSuggestion;
+    }
+
+    private ScoredIndex bestIndexToTry(ScoredIndex[] indexes){
+        ScoredIndex best= null;
+        double maxScore= -1;
+
+        for(ScoredIndex index : indexes){
+            double score= index.score/sequenceToGoal(index.index).getLength();
+
+            if(score > maxScore){
+                maxScore= score;
+                best= index;
+            }
+        }
+
+        return best;
     }
 
 

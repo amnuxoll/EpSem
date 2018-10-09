@@ -69,7 +69,8 @@ public class WeightTable {
             }
 
             //add this score to priority queue
-            bestIndexes.add(new ScoredIndex(currIndex,sequenceScore));
+            //noramlize score to be in range [0,1]
+            bestIndexes.add(new ScoredIndex(currIndex,sequenceScore/table.size()));
         }
 
         //maybe there werent 'numMatches' sequeunces to check, so we have less match

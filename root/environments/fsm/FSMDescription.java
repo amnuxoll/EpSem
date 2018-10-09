@@ -1,6 +1,7 @@
 package environments.fsm;
 
 import framework.IEnvironmentDescription;
+import framework.IEnvironmentListener;
 import framework.Move;
 import framework.SensorData;
 
@@ -130,7 +131,10 @@ public class FSMDescription implements IEnvironmentDescription {
         sensorData.setSensor(Sensor.EVEN_ODD.toString(), state % 2 == 0);
     }
 
-    /**
+    @Override
+    public void addEnvironmentListener(IEnvironmentListener listener){}
+
+                                       /**
      * Define the available sensors in the environment.
      */
     public enum Sensor {

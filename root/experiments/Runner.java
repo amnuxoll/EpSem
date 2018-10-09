@@ -27,7 +27,9 @@ public class Runner {
     private static TestSuite MarzVJuno = new TestSuite(
             TestSuiteConfiguration.MEDIUM,
             new FileResultWriterProvider(),
-            new FSMDescriptionProvider(3, 15, EnumSet.of(FSMDescription.Sensor.EVEN_ODD)),
+            new MetaEnvironmentDescriptionProvider(
+                    new FSMDescriptionTweaker(3,15,FSMDescription.Sensor.NO_SENSORS, 1),
+                    new MetaConfiguration(100)),
             new IAgentProvider[] {
                     new JunoAgentProvider(new SuffixNodeProvider()),
                     new MaRzAgentProvider<>(new SuffixNodeProvider())
