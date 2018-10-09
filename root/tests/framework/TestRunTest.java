@@ -156,6 +156,11 @@ public class TestRunTest {
         public void applySensors(int lastState, Move move, int currentState, SensorData sensorData) {
             sensorData.setSensor(this.lastMove.getName(), this.lastMove.getName());
         }
+
+        @Override
+        public void addEnvironmentListener(IEnvironmentListener listener) {
+
+        }
     }
 
     private class TestGoalListener implements IGoalListener {

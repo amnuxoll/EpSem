@@ -123,6 +123,11 @@ public class EnvironmentTest {
             this.sensorsApplied = true;
             sensorData.setSensor("sensorsApplied", true);
         }
+
+        @Override
+        public void addEnvironmentListener(IEnvironmentListener listener) {
+
+        }
     }
 
     private class TestRandomizer implements IRandomizer {

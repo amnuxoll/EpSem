@@ -12,12 +12,6 @@ public class MetaConfiguration {
     public static final MetaConfiguration DEFAULT = new MetaConfiguration(250);
 
     public MetaConfiguration(int tweakPoint) {
-        /*if (successQueueMaxSize < 1) {
-            throw new IllegalArgumentException("successQueueMaxSize must be positive");
-        }
-        if (stepThreshold < 1) {
-            throw new IllegalArgumentException("stepThreshold must be positive");
-        }*/
         if(tweakPoint < 1){
             throw new IllegalArgumentException("tweakPoint must be positive");
         }

@@ -282,5 +282,10 @@ public class MetaEnvironmentDescriptionTest {
         public void applySensors(int lastState, Move move, int currState, SensorData sensorData) {
             sensorData.setSensor("sensei", new Integer(2));
         }
+
+        @Override
+        public void addEnvironmentListener(IEnvironmentListener listener) {
+
+        }
     }
 }

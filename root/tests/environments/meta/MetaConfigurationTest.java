@@ -13,8 +13,6 @@ public class MetaConfigurationTest {
     @Test
     public void constructor() {
         assertThrows(IllegalArgumentException.class,
-                () -> new MetaConfiguration(0, 1));
-        assertThrows(IllegalArgumentException.class,
-                () -> new MetaConfiguration(1, 0));
+                () -> new MetaConfiguration(0));
     }
 }
