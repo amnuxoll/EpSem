@@ -3,10 +3,13 @@ package agents.juno;
 import agents.marz.ISuffixNodeBaseProvider;
 import agents.marz.MaRzAgent;
 import framework.Episode;
+import framework.OutputStreamContainer;
+import framework.Services;
 import utils.Sequence;
 import agents.juno.WeightTable.ScoredIndex;
 
 
+import java.io.PrintStream;
 import java.util.*;
 
 public class JunoAgent extends MaRzAgent {
@@ -35,7 +38,7 @@ public class JunoAgent extends MaRzAgent {
         super(nodeProvider);
         marzCount= 0;
         junoCount= 0;
-        this.weightTable= new WeightTable(WINDOW_SIZE);
+        this.weightTable= new WeightTable(1);
     }
 
 
@@ -55,13 +58,18 @@ public class JunoAgent extends MaRzAgent {
         Sequence junoSuggestion= sequenceToGoal(bestIndexToTry.index);
 
         //we will go with the most confident of the two suggested sequences
-        if(bestIndexToTry.score > super.getActiveNode().getNormalizedWeight()){
+        double L_WEIGHT= .05;
+
+        double junoScore= bestIndexToTry.score + junoSuggestion.getLength() * L_WEIGHT;
+        double marzScore= super.getActiveNode().getNormalizedWeight() + marzSuggestion.getLength() * L_WEIGHT;
+        if(junoScore > marzScore){
             //if were going with juno's suggestion, we gotta tell marz
             super.setActiveNode(junoSuggestion);
             this.lastSequenceIndex= episodicMemory.size()-1;
             this.lastMatch= bestIndexToTry;
 
             junoCount++;
+            printInfo(bestIndexToTry);
             return junoSuggestion;
         }
 
@@ -98,11 +106,36 @@ public class JunoAgent extends MaRzAgent {
     protected void markFailure(){
         super.markFailure();
 
+        if(super.getActiveNode() != null){
+            weightTable.setSize(super.getActiveNode().getSuffix().getLength() + 1);
+        }
+
         if(lastMatch != null){
             weightTable.updateOnFailure(episodicMemory, lastMatch.index, lastSequenceIndex);
         }
     }
 
+    private void printInfo(ScoredIndex indexToTry){
+        PrintStream out= new PrintStream(
+                Services.retrieve(OutputStreamContainer.class).get("tableInfo"));
+
+        printEpisodes(indexToTry.index, weightTable.size(), out);
+        printEpisodes(episodicMemory.size()-1, weightTable.size(), out);
+        out.println(weightTable.toString());
+    }
+
+    /**
+     * print episodes ending at index, print count number of them
+     * @param index
+     * @param count
+     */
+    private void printEpisodes(int index, int count, PrintStream out){
+        int i= Math.max(index-count+1, 0);
+        for(; i<= index; i++){
+            out.print(episodicMemory.get(i));
+        }
+        out.println();
+    }
 
     /**
      * finds the shortest sequence to goal given an array of starting indexes

@@ -110,6 +110,11 @@ public class FSMDescription implements IEnvironmentDescription {
         return this.transitionTable.length;
     }
 
+    @Override
+    public int getNumGoalStates(){
+        return 1;
+    }
+
     /**
      * Apply sensor data for the given state to the provided {@link SensorData}.
      * @param lastState The state that was transitioned from.

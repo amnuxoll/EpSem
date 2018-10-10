@@ -20,7 +20,7 @@ import java.util.function.Function;
 public class SuffixNode extends SuffixNodeBase<SuffixNode> {
     // the likeliness to jump back to another node
     // (should be in the range (0.0 - 1.0)
-    private static final double G_WEIGHT = 0.05;
+    public static final double G_WEIGHT = 0.05;
 
     /*--==Instance Variables==--*/
     private int g; // distance from root (ala A* search)

@@ -67,6 +67,11 @@ public class MetaEnvironmentDescriptionProviderTest {
         }
 
         @Override
+        public int getNumGoalStates() {
+            return 1;
+        }
+
+        @Override
         public int getNumStates() {
             return 3;
         }

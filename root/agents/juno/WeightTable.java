@@ -214,6 +214,45 @@ public class WeightTable {
         return -1; //return -1 if we don't find any goals in the list
     }
 
+    @Override
+    public String toString(){
+        String str= "";
+        for(EpisodeWeights weights : table){
+            str+= weights + "\n";
+        }
+
+        return str;
+    }
+
+    /**
+     * tell this weight table to start tracking another episode
+     */
+    public void bumpTableSize(){
+        table.add(new EpisodeWeights());
+    }
+
+    public void setSize(int newSize){
+        this.setSize(newSize, false);
+    }
+
+    public void setSize(int newSize, boolean allowDecrease){
+        if(allowDecrease && newSize < table.size()){
+            int pullNumber= table.size()-newSize;
+            for(int i=0; i < pullNumber; i++){
+                table.remove(table.size()-1);
+            }
+        }
+        else{
+            while(table.size() < newSize){
+                table.add(new EpisodeWeights());
+            }
+        }
+    }
+
+    public int size(){
+        return table.size();
+    }
+
     public class ScoredIndex implements Comparable<ScoredIndex>{
         public int index;
         public double score;

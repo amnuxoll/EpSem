@@ -114,6 +114,11 @@ public class EnvironmentTest {
         }
 
         @Override
+        public int getNumGoalStates() {
+            return 1;
+        }
+
+        @Override
         public int getNumStates() {
             return 42;
         }

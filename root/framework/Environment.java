@@ -49,7 +49,9 @@ class Environment {
      * Resets the {@link Environment} by randomly relocating the current state.
      */
     public void reset() {
-        int nonGoalStateCount = this.environmentDescription.getNumStates();
+        int nonGoalStateCount = this.environmentDescription.getNumStates() -
+                                this.environmentDescription.getNumGoalStates();
+
         this.currentState = Services.retrieve(IRandomizer.class).getRandomNumber(nonGoalStateCount);
     }
 

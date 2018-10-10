@@ -105,10 +105,7 @@ public class Episode {
 
     @Override
     public String toString(){
-        String str= this.move.toString();
-        if(sensorData.isGoal()){
-            str+= "!";
-        }
+        String str= this.move.toString() + sensorData.toString(false);
 
         return str;
     }

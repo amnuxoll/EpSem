@@ -30,6 +30,12 @@ public interface IEnvironmentDescription {
     boolean isGoalState(int state);
 
     /**
+     * Get the number of goal states in this environment description
+     * @return The number of goal states
+     */
+    int getNumGoalStates();
+
+    /**
      * Get the number of states in this environment description.
      * @return The number of states.
      */

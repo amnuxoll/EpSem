@@ -11,6 +11,8 @@ import environments.meta.MetaConfiguration;
 import environments.meta.MetaEnvironmentDescriptionProvider;
 import framework.*;
 
+import java.io.FileOutputStream;
+import java.io.OutputStream;
 import java.util.EnumSet;
 
 public class Runner {
@@ -18,18 +20,25 @@ public class Runner {
     private static TestSuite JunoFSM = new TestSuite(
             TestSuiteConfiguration.QUICK,
             new FileResultWriterProvider(),
-            new FSMDescriptionProvider(3, 15, EnumSet.of(FSMDescription.Sensor.EVEN_ODD)),
+            new FSMDescriptionProvider(3, 10, EnumSet.of(FSMDescription.Sensor.EVEN_ODD)),
             new IAgentProvider[] {
                     new JunoAgentProvider(new SuffixNodeProvider())
+            }
+    );
+
+    private static TestSuite MarzFSM = new TestSuite(
+            TestSuiteConfiguration.QUICK,
+            new FileResultWriterProvider(),
+            new FSMDescriptionProvider(3, 10, EnumSet.of(FSMDescription.Sensor.EVEN_ODD)),
+            new IAgentProvider[] {
+                    new MaRzAgentProvider<>(new SuffixNodeProvider())
             }
     );
 
     private static TestSuite MarzVJuno = new TestSuite(
             TestSuiteConfiguration.MEDIUM,
             new FileResultWriterProvider(),
-            new MetaEnvironmentDescriptionProvider(
-                    new FSMDescriptionTweaker(3,15,FSMDescription.Sensor.NO_SENSORS, 1),
-                    new MetaConfiguration(100)),
+            new FSMDescriptionProvider(3, 30, EnumSet.of(FSMDescription.Sensor.EVEN_ODD)),
             new IAgentProvider[] {
                     new JunoAgentProvider(new SuffixNodeProvider()),
                     new MaRzAgentProvider<>(new SuffixNodeProvider())
@@ -59,6 +68,8 @@ public class Runner {
     public static void main(String[] args) {
         try {
             Services.register(IRandomizer.class, new Randomizer());
+            Services.register(OutputStreamContainer.class,
+                    new OutputStreamContainer("tableInfo", new FileOutputStream("info.txt")));
             Runner.MarzVJuno.run();
         }
         catch (OutOfMemoryError mem){

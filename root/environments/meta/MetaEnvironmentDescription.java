@@ -83,6 +83,9 @@ public class MetaEnvironmentDescription implements IEnvironmentDescription {
     }
 
     @Override
+    public int getNumGoalStates(){ return currDescription.getNumGoalStates(); }
+
+    @Override
     public void applySensors(int lastState, Move move, int currentState, SensorData sensorData) {
         if(sensorData == null) throw new IllegalArgumentException("sensor data cannot be null.");
         if(move == null)
