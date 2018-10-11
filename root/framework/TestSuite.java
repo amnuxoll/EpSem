@@ -1,5 +1,8 @@
 package framework;
 
+import java.io.*;
+import java.nio.file.Paths;
+
 /**
  *
  * @author Zachary Paul Faltersack
@@ -33,6 +36,8 @@ public class TestSuite implements IGoalListener {
 
     public void run() throws Exception {
         System.out.println("Beginning test suite...");
+        writeMetaData(resultWriterProvider.getOutputDirectory());
+
         int numberOfIterations = this.configuration.getNumberOfIterations();
         for (int i = 0; i < this.agentProviders.length; i++) {
             System.out.println("Beginning agent: " + i);
@@ -59,5 +64,48 @@ public class TestSuite implements IGoalListener {
     @Override
     public void goalReceived(GoalEvent event) {
         this.currentResultWriter.logStepsToGoal(event.getStepCountToGoal());
+    }
+
+    private void writeMetaData(String parentDirectory){
+        File file= new File(Paths.get(parentDirectory, "metadata.txt").toString());
+
+        File parentFile = file.getParentFile();
+        if (parentFile != null)
+            parentFile.mkdirs();
+
+        PrintWriter fos= null;
+        try {
+            fos= new PrintWriter(file);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+            return;
+        }
+
+        //information about configuration:
+        fos.println(configuration.getNumberOfGoals() + " goals on " +
+                    configuration.getNumberOfIterations() + " environments");
+
+        fos.println();
+
+        //information about environment provider
+        fos.println("Environment provider type: " + environmentDescriptionProvider.getClass().getName());
+
+        fos.println();
+
+        //information about environment
+        IEnvironmentDescription environment= environmentDescriptionProvider.getEnvironmentDescription();
+        fos.println("Example of possible environment description:");
+        fos.println("\tType: " + environment.getClass().getName());
+        fos.println("\tNumber of moves: " + environment.getMoves().length);
+        fos.println("\tNumber of states: " + environment.getNumStates());
+
+        fos.println();
+
+        //information about agent provider
+        for(int i=0; i < agentProviders.length; i++){
+            fos.println("Agent provider " + i + " type: " + agentProviders[i].getClass().getName());
+        }
+
+        fos.close();
     }
 }

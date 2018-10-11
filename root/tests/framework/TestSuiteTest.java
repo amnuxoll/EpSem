@@ -170,6 +170,11 @@ public class TestSuiteTest {
             this.generatedResultWriters.put(agent, resultWriter);
             return resultWriter;
         }
+
+        @Override
+        public String getOutputDirectory() {
+            return null;
+        }
     }
 
     private class TestResultWriter implements IResultWriter {

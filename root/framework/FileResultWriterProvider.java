@@ -1,5 +1,6 @@
 package framework;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
@@ -36,5 +37,10 @@ public class FileResultWriterProvider implements IResultWriterProvider {
         if (agent == "")
             throw new IllegalArgumentException("agent cannot be empty");
         return new FileResultWriter(Paths.get(this.timestampDirectory,  agent + ".csv").toString());
+    }
+
+    @Override
+    public String getOutputDirectory(){
+        return timestampDirectory;
     }
 }
