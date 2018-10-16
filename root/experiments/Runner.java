@@ -70,7 +70,7 @@ public class Runner {
             Services.register(IRandomizer.class, new Randomizer());
             Services.register(OutputStreamContainer.class,
                     new OutputStreamContainer("tableInfo", new FileOutputStream("info.txt")));
-            Runner.MarzVJuno.run();
+            Runner.MarzFSM.run();
         }
         catch (OutOfMemoryError mem){
             mem.printStackTrace();

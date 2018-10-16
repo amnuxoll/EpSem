@@ -1,5 +1,5 @@
 package framework;
 
 public interface IEnvironmentListener {
-    void recieveEvent(EnvironmentEvent event);
+    void receiveEvent(EnvironmentEvent event);
 }

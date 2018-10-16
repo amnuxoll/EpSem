@@ -1,7 +1,6 @@
 package environments.meta;
 
 import framework.*;
-import org.omg.CORBA.Environment;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -164,7 +163,7 @@ public class MetaEnvironmentDescription implements IEnvironmentDescription {
         for (IEnvironmentListener listener : this.listeners) {
             //we want like 8 data breaks
             for(int i=0;i<8;i++) {
-                listener.recieveEvent(event);
+                listener.receiveEvent(event);
             }
         }
     }
