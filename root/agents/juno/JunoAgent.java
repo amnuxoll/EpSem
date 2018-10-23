@@ -64,7 +64,8 @@ public class JunoAgent extends MaRzAgent {
         double marzScore= super.getActiveNode().getNormalizedWeight() + marzSuggestion.getLength() * L_WEIGHT;
         if(junoScore > marzScore){
             //if were going with juno's suggestion, we gotta tell marz
-            super.setActiveNode(junoSuggestion);
+
+            super.setActiveNode(super.suffixTree.findBestMatch(junoSuggestion));
             this.lastSequenceIndex= episodicMemory.size()-1;
             this.lastMatch= bestIndexToTry;
 

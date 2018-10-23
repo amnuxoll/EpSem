@@ -12,7 +12,6 @@ import environments.meta.MetaEnvironmentDescriptionProvider;
 import framework.*;
 
 import java.io.FileOutputStream;
-import java.io.OutputStream;
 import java.util.EnumSet;
 
 public class Runner {
@@ -29,13 +28,13 @@ public class Runner {
     private static TestSuite MarzFSM = new TestSuite(
             TestSuiteConfiguration.MEDIUM,
             new FileResultWriterProvider(),
-            new FSMDescriptionProvider(3, 10, EnumSet.of(FSMDescription.Sensor.EVEN_ODD)),
+            new FSMDescriptionProvider(3, 30, FSMDescription.Sensor.NO_SENSORS),
             new IAgentProvider[] {
                     new MaRzAgentProvider<>(new SuffixNodeProvider())
             }
     );
 
-    private static TestSuite MarzVJuno = new TestSuite(
+    private static TestSuite JunoVMarz = new TestSuite(
             TestSuiteConfiguration.MEDIUM,
             new FileResultWriterProvider(),
             new FSMDescriptionProvider(3, 30, EnumSet.of(FSMDescription.Sensor.EVEN_ODD)),
@@ -70,7 +69,7 @@ public class Runner {
             Services.register(IRandomizer.class, new Randomizer());
             Services.register(OutputStreamContainer.class,
                     new OutputStreamContainer("tableInfo", new FileOutputStream("info.txt")));
-            Runner.MarzFSM.run();
+            Runner.JunoVMarz.run();
         }
         catch (OutOfMemoryError mem){
             mem.printStackTrace();

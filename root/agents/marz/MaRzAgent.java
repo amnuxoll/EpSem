@@ -31,7 +31,7 @@ public class MaRzAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> implemen
 	 * each permutation has a number associated with it. This is used to track
 	 * the last permutation the agent tried.
 	 */
-	private int lastPermutationIndex = 0;// set to 1 because we hard coded the first
+	private long lastPermutationIndex = 0;// set to 1 because we hard coded the first
 	// permutation to be 'a'
 
 	/**
@@ -64,7 +64,7 @@ public class MaRzAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> implemen
 	/** println for debug messages only */
 	public static void debugPrintln(String s) { if (debug) System.out.println(s); }
 
-	private HashMap<TSuffixNode, Integer> permutationQueues = new HashMap<>();
+	private HashMap<TSuffixNode, Long> permutationQueues = new HashMap<>();
 
 	protected ISuffixNodeBaseProvider<TSuffixNode> nodeProvider;
 
@@ -163,29 +163,18 @@ public class MaRzAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> implemen
 	}// nextPermutation
 
 	protected Sequence selectNextSequence() {
-		//System.out.println("Active Node: " + this.activeNode);
-//		System.out.println("Suffix Tree:");
-//		this.suffixTree.printTree();
+
+		TSuffixNode oldActiveNode= activeNode;
 		TSuffixNode newBestNode = this.suffixTree.findBestNodeToTry();
-//		System.out.println("New best node: " + newBestNode);
-		if (newBestNode != this.activeNode) {
-			if(this.activeNode != null) {
-				this.permutationQueues.put(this.activeNode, this.lastPermutationIndex);
-			}
-			this.activeNode = newBestNode;
-			if (this.permutationQueues.containsKey(this.activeNode))
-				this.lastPermutationIndex = this.permutationQueues.get(this.activeNode);
-			else
-				this.lastPermutationIndex = this.sequenceGenerator.getCanonicalIndex(this.activeNode.getSuffix());
-		}
 
-		Sequence currentSequence;
-		do {
-			currentSequence = this.nextPermutation();
-		} while (!currentSequence.endsWith(this.activeNode.getSuffix()));
-//		System.out.println("Found suffix node: " + this.activeNode + " for sequence: " + this.currentSequence);
+		this.setActiveNode(newBestNode);
 
-		return currentSequence;
+		this.lastPermutationIndex= this.lastPermutationIndex + (long)Math.pow(alphabet.length, this.activeNode.getSuffix().getLength());
+
+		Sequence sequence = this.sequenceGenerator.nextPermutation(lastPermutationIndex);
+		if (!sequence.endsWith(this.activeNode.getSuffix()))
+			throw new RuntimeException("oops, they didn't match.  Has your next permutation index overflowed?");
+		return sequence;
 	}
 
 	private Sequence sequenceSinceLastGoal() {
@@ -200,10 +189,23 @@ public class MaRzAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> implemen
 	 * set Marz's active node to the node in the suffix tree which best
 	 * matches newSequence
 	 *
-	 * @param newSequence the sequence whcih marz will now be trying
+	 * @param newBestNode the sequence whcih marz will now be trying
 	 */
-	protected void setActiveNode(Sequence newSequence){
-		this.activeNode= suffixTree.findBestMatch(newSequence);
+	protected void setActiveNode(TSuffixNode newBestNode){
+
+		if (newBestNode != this.activeNode) {
+			if(this.activeNode != null) {
+				this.permutationQueues.put(this.activeNode, this.lastPermutationIndex);
+			}
+			this.activeNode = newBestNode;
+
+			if(this.activeNode != null) {
+				if (this.permutationQueues.containsKey(this.activeNode))
+					this.lastPermutationIndex = this.permutationQueues.get(this.activeNode);
+				else
+					this.lastPermutationIndex = this.sequenceGenerator.getCanonicalIndex(this.activeNode.getSuffix());
+			}
+		}
 	}
 
 	protected TSuffixNode getActiveNode() {

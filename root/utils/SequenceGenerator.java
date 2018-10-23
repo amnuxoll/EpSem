@@ -34,7 +34,7 @@ public class SequenceGenerator {
      * @param index The index to retrieve the permutation for.
      * @return The Sequence that contains the move permutation.
      */
-    public Sequence nextPermutation(int index) {
+    public Sequence nextPermutation(long index) {
         if (index <= 0) {
             throw new IndexOutOfBoundsException("index must be a positive number.  Has your next permutation index overflowed?");
         }// if
@@ -44,11 +44,13 @@ public class SequenceGenerator {
 
         List<Move> nextSequence = new ArrayList<>();
         if (index <= this.moves.length) {
-            nextSequence.add(this.moves[index - 1]);
+            nextSequence.add(this.moves[(int)index - 1]);
         }// if
         else {
             while (index > 0) {
-                nextSequence.add(0, this.moves[--index % this.moves.length]);
+                index--;
+                long movesIndex= index % this.moves.length;
+                nextSequence.add(0, this.moves[(int)movesIndex]);
                 index /= this.moves.length;
             }// while
         }
@@ -61,7 +63,7 @@ public class SequenceGenerator {
      * @param sequence The sequence to get an ordering for.
      * @return The sequence index.
      */
-    public int getCanonicalIndex(Sequence sequence) {
+    public long getCanonicalIndex(Sequence sequence) {
         if (sequence == null)
             throw new IllegalArgumentException("sequence cannot be null");
         ArrayList<Move> moves = new ArrayList<>(Arrays.asList(sequence.getMoves()));
@@ -72,6 +74,6 @@ public class SequenceGenerator {
             int index = this.moveIndex.get(moves.get(i)) + 1;
             total += Math.pow(this.moves.length, i) * index;
         }
-        return (int)total;
+        return (long)total;
     }
 }
