@@ -19,4 +19,8 @@ public interface IAgent {
      * @throws Exception
      */
     Move getNextMove(SensorData sensorData) throws Exception;
+
+    void fireAgentEvent(AgentEvent.EventType type);
+
+    void addAgentListener(IAgentListener listener);
 }

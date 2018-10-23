@@ -9,6 +9,7 @@ import java.util.EventObject;
  */
 class GoalEvent extends EventObject {
     private int stepCountToGoal;
+    private int decisionCountToGoal;
 
     /**
      * Constructs a prototypical Event.
@@ -16,9 +17,10 @@ class GoalEvent extends EventObject {
      * @param source The object on which the Event initially occurred.
      * @throws IllegalArgumentException if source is null.
      */
-    public GoalEvent(Object source, int stepCountToGoal) {
+    public GoalEvent(Object source, int stepCountToGoal, int decisionsToGoal) {
         super(source);
         this.stepCountToGoal = stepCountToGoal;
+        this.decisionCountToGoal = decisionsToGoal;
     }
 
     /**
@@ -28,4 +30,6 @@ class GoalEvent extends EventObject {
     public int getStepCountToGoal() {
         return this.stepCountToGoal;
     }
+
+    public int getDecisionCountToGoal() { return this.decisionCountToGoal; }
 }

@@ -111,6 +111,16 @@ public class TestSuiteTest {
         public Move getNextMove(SensorData sensorData) throws Exception {
             return new Move("a");
         }
+
+        @Override
+        public void fireAgentEvent(AgentEvent.EventType type) {
+
+        }
+
+        @Override
+        public void addAgentListener(IAgentListener listener) {
+
+        }
     }
 
     private class TestEnvironmentDescriptionProvider implements IEnvironmentDescriptionProvider {

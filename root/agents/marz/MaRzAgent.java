@@ -68,6 +68,8 @@ public class MaRzAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> implemen
 
 	protected ISuffixNodeBaseProvider<TSuffixNode> nodeProvider;
 
+	private ArrayList<IAgentListener> listeners = new ArrayList<>();
+
 	/**
 	 * MaRzAgent
 	 *
@@ -111,10 +113,24 @@ public class MaRzAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> implemen
 		else if (!this.currentSequence.hasNext()) {
 			this.markFailure();
 			this.currentSequence= selectNextSequence();
+			fireAgentEvent(AgentEvent.EventType.DECISION_MADE);
 		}
 		Move nextMove = this.currentSequence.next();
 		episodicMemory.add(new Episode(nextMove));
 		return nextMove;
+	}
+
+	@Override
+	public void fireAgentEvent(AgentEvent.EventType type) {
+		AgentEvent event = new AgentEvent(this, type);
+		for(IAgentListener ial : this.listeners){
+			ial.receiveEvent(event);
+		}
+	}
+
+	@Override
+	public void addAgentListener(IAgentListener listener) {
+		this.listeners.add(listener);
 	}
 
 	protected void markFailure() {

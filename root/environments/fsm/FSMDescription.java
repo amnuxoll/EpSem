@@ -159,4 +159,5 @@ public class FSMDescription implements IEnvironmentDescription {
 
         public static final EnumSet<Sensor> NO_SENSORS = EnumSet.noneOf(Sensor.class);
     }
+
 }

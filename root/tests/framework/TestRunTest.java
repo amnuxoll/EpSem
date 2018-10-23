@@ -127,6 +127,16 @@ public class TestRunTest {
                 this.moveIndex = 0;
             return move;
         }
+
+        @Override
+        public void fireAgentEvent(AgentEvent.EventType type) {
+
+        }
+
+        @Override
+        public void addAgentListener(IAgentListener listener) {
+
+        }
     }
 
     private  class TestEnvironmentDescription implements IEnvironmentDescription {

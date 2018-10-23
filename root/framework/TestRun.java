@@ -10,11 +10,12 @@ import java.util.List;
  * @author Zachary Paul Faltersack
  * @version 0.95
  */
-class TestRun {
+class TestRun implements IAgentListener {
 
     private IAgent agent;
     private IEnvironmentDescription environmentDescription;
     private int numberOfGoalsToFind;
+    private int decisionCount = 0;
 
     private List<IGoalListener> goalListeners = new ArrayList();
 
@@ -26,6 +27,7 @@ class TestRun {
         if (numberOfGoalsToFind < 1)
             throw new IllegalArgumentException("numberOfGoalsToFind cannot be less than 1");
         this.agent = agent;
+        agent.addAgentListener(this);
         this.environmentDescription = environmentDescription;
         this.numberOfGoalsToFind = numberOfGoalsToFind;
     }
@@ -46,6 +48,7 @@ class TestRun {
                     this.fireGoalEvent(moveCount);
                     goalCount++;
                     moveCount = 0;
+                    decisionCount = 0;
                     environment.reset();
                 }
             } while (goalCount < this.numberOfGoalsToFind);
@@ -67,9 +70,15 @@ class TestRun {
     }
 
     private synchronized void fireGoalEvent(int stepsToGoal) {
-        GoalEvent goal = new GoalEvent(this, stepsToGoal);
+        GoalEvent goal = new GoalEvent(this, stepsToGoal, decisionCount);
         for (IGoalListener listener : this.goalListeners) {
             listener.goalReceived(goal);
+        }
+    }
+
+    public void receiveEvent(AgentEvent ae) {
+        if(ae.getType()==AgentEvent.EventType.DECISION_MADE) {
+            decisionCount++;
         }
     }
 }

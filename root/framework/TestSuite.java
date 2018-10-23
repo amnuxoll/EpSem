@@ -15,7 +15,8 @@ public class TestSuite implements IGoalListener {
     private IEnvironmentDescriptionProvider environmentDescriptionProvider;
     private IAgentProvider[] agentProviders;
 
-    private IResultWriter currentResultWriter;
+    private IResultWriter currentStepResultWriter;
+    private IResultWriter currentDecisionResultWriter;
 
     public TestSuite(TestSuiteConfiguration configuration, IResultWriterProvider resultWriterProvider, IEnvironmentDescriptionProvider environmentDescriptionProvider, IAgentProvider[] agentProviders) {
         if (configuration == null)
@@ -41,7 +42,9 @@ public class TestSuite implements IGoalListener {
         int numberOfIterations = this.configuration.getNumberOfIterations();
         for (int i = 0; i < this.agentProviders.length; i++) {
             System.out.println("Beginning agent: " + i);
-            this.currentResultWriter = this.resultWriterProvider.getResultWriter("agent" + i);
+            this.currentStepResultWriter = this.resultWriterProvider.getResultWriter("agent" + i + "_steps");
+            this.currentDecisionResultWriter = this.resultWriterProvider.getResultWriter("agent" + i + "_decisions");
+
             IAgentProvider agentProvider = this.agentProviders[i];
             this.runAgent(agentProvider, numberOfIterations);
         }
@@ -55,15 +58,18 @@ public class TestSuite implements IGoalListener {
             IEnvironmentDescription environmentDescription = this.environmentDescriptionProvider.getEnvironmentDescription();
             TestRun testRun = new TestRun(agent, environmentDescription, this.configuration.getNumberOfGoals());
             testRun.addGoalListener(this);
-            this.currentResultWriter.beginNewRun();
+            this.currentStepResultWriter.beginNewRun();
+            this.currentDecisionResultWriter.beginNewRun();
             testRun.execute();
         }
-        this.currentResultWriter.complete();
+        this.currentStepResultWriter.complete();
+        this.currentDecisionResultWriter.complete();
     }
 
     @Override
     public void goalReceived(GoalEvent event) {
-        this.currentResultWriter.logStepsToGoal(event.getStepCountToGoal());
+        this.currentStepResultWriter.logStepsToGoal(event.getStepCountToGoal());
+        this.currentDecisionResultWriter.logStepsToGoal(event.getDecisionCountToGoal());
     }
 
     private void writeMetaData(String parentDirectory){
@@ -108,4 +114,6 @@ public class TestSuite implements IGoalListener {
 
         fos.close();
     }
+
+
 }
