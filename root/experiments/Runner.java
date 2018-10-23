@@ -29,7 +29,7 @@ public class Runner {
     private static TestSuite MarzFSM = new TestSuite(
             TestSuiteConfiguration.MEDIUM,
             new FileResultWriterProvider(),
-            new FSMDescriptionProvider(3, 30, EnumSet.of(FSMDescription.Sensor.EVEN_ODD)),
+            new FSMDescriptionProvider(3, 10, EnumSet.of(FSMDescription.Sensor.EVEN_ODD)),
             new IAgentProvider[] {
                     new MaRzAgentProvider<>(new SuffixNodeProvider())
             }
@@ -70,7 +70,7 @@ public class Runner {
             Services.register(IRandomizer.class, new Randomizer());
             Services.register(OutputStreamContainer.class,
                     new OutputStreamContainer("tableInfo", new FileOutputStream("info.txt")));
-            Runner.MarzVJuno.run();
+            Runner.MarzFSM.run();
         }
         catch (OutOfMemoryError mem){
             mem.printStackTrace();

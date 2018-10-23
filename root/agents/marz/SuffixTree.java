@@ -85,21 +85,18 @@ public class SuffixTree<TSuffixNode extends SuffixNodeBase<TSuffixNode>> {
     public TSuffixNode findBestMatch(Sequence sequence) {
         if (sequence == null)
             throw new IllegalArgumentException("sequence cannot be null");
-        Sequence bestMatch = null;
         int index = 0;
-        Sequence subsequence;
+        List<Sequence> suffixKeys = Arrays.asList(this.hashFringe.keySet().toArray(new Sequence[0]));
+        Collections.sort(suffixKeys);
         do {
-            subsequence = sequence.getSubsequence(index++);
-            for (Sequence suffixKey : this.hashFringe.keySet())
+            Sequence subsequence = sequence.getSubsequence(index++);
+            for (Sequence suffixKey : suffixKeys)
             {
-                if (subsequence.endsWith(suffixKey) && (bestMatch == null || suffixKey.getLength() >  bestMatch.getLength()))
-                    bestMatch = suffixKey;
+                if (subsequence.endsWith(suffixKey))
+                    return this.hashFringe.get(suffixKey);
             }
         } while (index < sequence.getLength());
-
-        if (bestMatch == null)
-            return null;
-        return this.hashFringe.get(bestMatch);
+        return null;
     }
 
     /**

@@ -12,7 +12,7 @@ import java.util.*;
  * @author Zachary Paul Faltersack
  * @version 0.95
  */
-public class Sequence {
+public class Sequence implements Comparable<Sequence> {
     private Move[] moves;
 
     private int currentIndex = -1;
@@ -192,5 +192,15 @@ public class Sequence {
 
     public int getCurrentIndex() {
         return currentIndex;
+    }
+
+    @Override
+    public int compareTo(Sequence o) {
+        // Sort from longest to shortest
+        if (this.moves.length > o.moves.length)
+            return -1;
+        if (this.moves.length < o.moves.length)
+            return 1;
+        return 0;
     }
 }
