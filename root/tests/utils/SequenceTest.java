@@ -6,6 +6,8 @@ import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
@@ -298,5 +300,30 @@ public class SequenceTest {
         Sequence subsequence = sequence.take(2);
         Sequence expected = new Sequence(new Move[] { new Move("a"), new Move("b") });
         assertEquals(expected, subsequence);
+    }
+
+    // comparable Tests
+    @Test
+    public void comparableSortsByLength()
+    {
+        Sequence length1 = new Sequence(new Move[] { new Move("a")});
+        Sequence length21 = new Sequence(new Move[] { new Move("a"), new Move("b") });
+        Sequence length22 = new Sequence(new Move[] { new Move("c"), new Move("d") });
+        Sequence length3 = new Sequence(new Move[] { new Move("a"), new Move("b"), new Move("c") });
+        Sequence length4 = new Sequence(new Move[] { new Move("a"), new Move("b"), new Move("c"), new Move("d"), });
+        List<Sequence> actual = new ArrayList<>();
+        actual.add(length1);
+        actual.add(length21);
+        actual.add(length22);
+        actual.add(length3);
+        actual.add(length4);
+        Collections.sort(actual);
+        List<Sequence> expected = new ArrayList<>();
+        expected.add(length4);
+        expected.add(length3);
+        expected.add(length21);
+        expected.add(length22);
+        expected.add(length1);
+        assertArrayEquals(expected.toArray(new Sequence[0]), actual.toArray(new Sequence[0]));
     }
 }
