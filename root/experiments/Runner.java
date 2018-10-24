@@ -28,7 +28,7 @@ public class Runner {
     private static TestSuite MarzFSM = new TestSuite(
             TestSuiteConfiguration.MEDIUM,
             new FileResultWriterProvider(),
-            new FSMDescriptionProvider(3, 30, FSMDescription.Sensor.NO_SENSORS),
+            new FSMDescriptionProvider(5, 30, FSMDescription.Sensor.NO_SENSORS),
             new IAgentProvider[] {
                     new MaRzAgentProvider<>(new SuffixNodeProvider())
             }
@@ -37,7 +37,7 @@ public class Runner {
     private static TestSuite JunoVMarz = new TestSuite(
             TestSuiteConfiguration.MEDIUM,
             new FileResultWriterProvider(),
-            new FSMDescriptionProvider(3, 30, EnumSet.of(FSMDescription.Sensor.EVEN_ODD)),
+            new FSMDescriptionProvider(5, 30, EnumSet.of(FSMDescription.Sensor.EVEN_ODD)),
             new IAgentProvider[] {
                     new JunoAgentProvider(new SuffixNodeProvider()),
                     new MaRzAgentProvider<>(new SuffixNodeProvider())
@@ -51,6 +51,18 @@ public class Runner {
                     new FSMDescriptionTweaker(3,15,FSMDescription.Sensor.NO_SENSORS, 1),
                     MetaConfiguration.DEFAULT),
             new IAgentProvider[] {
+                    new MaRzAgentProvider<>(new SuffixNodeProvider())
+            }
+    );
+
+    private static TestSuite MaRzvJunoMeta = new TestSuite(
+            new TestSuiteConfiguration(100, 5000),
+            new FileResultWriterProvider(),
+            new MetaEnvironmentDescriptionProvider(
+                    new FSMDescriptionTweaker(5,30,FSMDescription.Sensor.NO_SENSORS, 1),
+                    MetaConfiguration.DEFAULT),
+            new IAgentProvider[] {
+                    new JunoAgentProvider(new SuffixNodeProvider()),
                     new MaRzAgentProvider<>(new SuffixNodeProvider())
             }
     );
@@ -69,7 +81,7 @@ public class Runner {
             Services.register(IRandomizer.class, new Randomizer());
             Services.register(OutputStreamContainer.class,
                     new OutputStreamContainer("tableInfo", new FileOutputStream("info.txt")));
-            Runner.JunoVMarz.run();
+            Runner.MaRzvJunoMeta.run();
         }
         catch (OutOfMemoryError mem){
             mem.printStackTrace();
