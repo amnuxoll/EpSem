@@ -110,7 +110,7 @@ public class MaRzAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> implemen
 			// if the sequence succeeded then try again!
 			this.currentSequence.reset();
 		}
-		else if (!this.currentSequence.hasNext()) {
+		else if (!this.currentSequence.hasNext() || shouldBail()) {
 			this.markFailure();
 			this.currentSequence= selectNextSequence();
 			fireAgentEvent(AgentEvent.EventType.DECISION_MADE);
@@ -118,6 +118,13 @@ public class MaRzAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> implemen
 		Move nextMove = this.currentSequence.next();
 		episodicMemory.add(new Episode(nextMove));
 		return nextMove;
+	}
+
+	/**
+	 * indicates whether we want to give up on this sequence early
+	 */
+	protected boolean shouldBail() {
+		return false;
 	}
 
 	@Override

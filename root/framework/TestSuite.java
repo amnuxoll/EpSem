@@ -8,7 +8,7 @@ import java.nio.file.Paths;
  * @author Zachary Paul Faltersack
  * @version 0.95
  */
-public class TestSuite implements IGoalListener {
+public class TestSuite implements IGoalListener, IEnvironmentListener {
 
     private TestSuiteConfiguration configuration;
     private IResultWriterProvider resultWriterProvider;
@@ -61,6 +61,12 @@ public class TestSuite implements IGoalListener {
             this.currentStepResultWriter.beginNewRun();
             this.currentDecisionResultWriter.beginNewRun();
             testRun.execute();
+
+            try {
+                Services.retrieve(OutputStreamContainer.class).get("ratioOutputStream").write('\n');
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
         this.currentStepResultWriter.complete();
         this.currentDecisionResultWriter.complete();
@@ -115,5 +121,10 @@ public class TestSuite implements IGoalListener {
         fos.close();
     }
 
-
+    @Override
+    public void receiveEvent(EnvironmentEvent event) {
+        if(event.getEventType() == EnvironmentEvent.EventType.DATA_BREAK){
+            this.currentStepResultWriter.logStepsToGoal(0);
+        }
+    }
 }

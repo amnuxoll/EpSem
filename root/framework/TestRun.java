@@ -1,6 +1,5 @@
 package framework;
 
-import agents.juno.JunoAgent;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -56,9 +55,6 @@ class TestRun implements IAgentListener {
             System.out.println("TestRun failed with exception: " + ex.getMessage());
             ex.printStackTrace();
         }
-
-        System.out.println("Marz: "+ JunoAgent.marzCount);
-        System.out.println("Juno: "+JunoAgent.junoCount);
     }
 
     public synchronized void addGoalListener(IGoalListener listener) {
@@ -76,6 +72,7 @@ class TestRun implements IAgentListener {
         }
     }
 
+    @Override
     public void receiveEvent(AgentEvent ae) {
         if(ae.getType()==AgentEvent.EventType.DECISION_MADE) {
             decisionCount++;

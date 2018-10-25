@@ -54,19 +54,7 @@ public class WeightTable {
         //down the episodic memory,
         //curr index is the index of the most recent episode in the sub-sequence
         for(int currIndex= lastGoalIndex-1; currIndex >= table.size()-1; currIndex-- ){
-            double sequenceScore= 0;
-
-            //compare each episode in the subsequence
-            //to the most recent momories
-            for(int i=0; i < table.size(); i++){
-                //compare the memories we just had
-                //with corresponding episode relative to currIndex
-                Episode recentEpisode= episodes.get(episodes.size()-1-i);
-                Episode windowEpisode= episodes.get(currIndex-i);
-
-                //add this episode's match score to the sequence's match score
-                sequenceScore+= table.get(i).matchScore(recentEpisode,windowEpisode);
-            }
+            double sequenceScore= calculateMatchScore(episodes, episodes.size()-1, currIndex);
 
             //add this score to priority queue
             //noramlize score to be in range [0,1]
@@ -94,6 +82,41 @@ public class WeightTable {
         return Arrays.copyOf(indexArray,i);
     }
 
+    /**
+     * compares windows of episodes using the weight table
+     * calculates a match score of these two windows
+     *
+     * @param episodes list of episodes to look in
+     * @param index1 the index (of most recent episode) of the first window to compare
+     * @param index2 the index of the second window to compare
+     * @return a match score between these two windows
+     */
+    public double calculateMatchScore(ArrayList<Episode> episodes, int index1, int index2) {
+        if(episodes == null){
+            throw new IllegalArgumentException("episodes cannot be null");
+        }
+        if(index1 < table.size()-1 || index2 < table.size()-1){
+            throw new IllegalArgumentException("indexes must be at least the window size -1");
+        }
+        if(index1 >= episodes.size()|| index2 >= episodes.size()){
+            throw new IllegalArgumentException("indexes must be at less than episodes size");
+        }
+
+        double sequenceScore= 0;
+        //compare each episode in the subsequence
+        //to the most recent momories
+        for (int i = 0; i < table.size(); i++) {
+            //compare the memories we just had
+            //with corresponding episode relative to currIndex
+            Episode ep1 = episodes.get(index1 - i);
+            Episode ep2 = episodes.get(index2 - i);
+
+            //add this episode's match score to the sequence's match score
+            sequenceScore += table.get(i).matchScore(ep1, ep2);
+        }
+
+        return sequenceScore;
+    }
     /**
      * updates the weight table after an attempted sequence that didn't hit the goal
      * takes as parameters the indexes of the episode sequences that matched

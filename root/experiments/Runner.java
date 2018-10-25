@@ -1,6 +1,7 @@
 package experiments;
 
 import agents.juno.JunoAgentProvider;
+import agents.juno.JunoConfiguration;
 import agents.marz.MaRzAgentProvider;
 import agents.marz.nodes.SuffixNodeProvider;
 import agents.nsm.NSMAgentProvider;
@@ -17,9 +18,9 @@ import java.util.EnumSet;
 public class Runner {
 
     private static TestSuite JunoFSM = new TestSuite(
-            TestSuiteConfiguration.QUICK,
+            TestSuiteConfiguration.MEDIUM,
             new FileResultWriterProvider(),
-            new FSMDescriptionProvider(3, 10, EnumSet.of(FSMDescription.Sensor.EVEN_ODD)),
+            new FSMDescriptionProvider(3, 30, EnumSet.of(FSMDescription.Sensor.EVEN_ODD)),
             new IAgentProvider[] {
                     new JunoAgentProvider(new SuffixNodeProvider())
             }
@@ -28,7 +29,7 @@ public class Runner {
     private static TestSuite MarzFSM = new TestSuite(
             TestSuiteConfiguration.MEDIUM,
             new FileResultWriterProvider(),
-            new FSMDescriptionProvider(3, 30, FSMDescription.Sensor.NO_SENSORS),
+            new FSMDescriptionProvider(2, 30, FSMDescription.Sensor.NO_SENSORS),
             new IAgentProvider[] {
                     new MaRzAgentProvider<>(new SuffixNodeProvider())
             }
@@ -41,6 +42,26 @@ public class Runner {
             new IAgentProvider[] {
                     new JunoAgentProvider(new SuffixNodeProvider()),
                     new MaRzAgentProvider<>(new SuffixNodeProvider())
+            }
+    );
+
+    private static TestSuite JunoVJunoBail = new TestSuite(
+            TestSuiteConfiguration.MEDIUM,
+            new FileResultWriterProvider(),
+            new FSMDescriptionProvider(3, 30, EnumSet.of(FSMDescription.Sensor.EVEN_ODD)),
+            new IAgentProvider[] {
+                    new JunoAgentProvider(new SuffixNodeProvider()),
+                    new JunoAgentProvider(new SuffixNodeProvider(),
+                            new JunoConfiguration(true, 1))
+            }
+    );
+
+    private static TestSuite JunoBail = new TestSuite(
+            TestSuiteConfiguration.MEDIUM,
+            new FileResultWriterProvider(),
+            new FSMDescriptionProvider(3, 30, EnumSet.of(FSMDescription.Sensor.EVEN_ODD)),
+            new IAgentProvider[] {
+                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, 1)),
             }
     );
 
@@ -67,9 +88,12 @@ public class Runner {
     public static void main(String[] args) {
         try {
             Services.register(IRandomizer.class, new Randomizer());
-            Services.register(OutputStreamContainer.class,
-                    new OutputStreamContainer("tableInfo", new FileOutputStream("info.txt")));
-            Runner.JunoVMarz.run();
+            OutputStreamContainer outputStreamContainer=
+                    new OutputStreamContainer("tableInfo", new FileOutputStream("info.txt"));
+            outputStreamContainer.put("ratioOutputStream", new FileOutputStream("ratios.csv"));
+            Services.register(OutputStreamContainer.class, outputStreamContainer);
+            Runner.JunoBail.run();
+            outputStreamContainer.closeAll();
         }
         catch (OutOfMemoryError mem){
             mem.printStackTrace();

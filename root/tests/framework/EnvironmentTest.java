@@ -75,7 +75,7 @@ public class EnvironmentTest {
         Services.register(IRandomizer.class, randomizer);
         Environment environment = new Environment(description);
         environment.reset();
-        assertEquals(42, randomizer.receivedCeiling);
+        assertEquals(41, randomizer.receivedCeiling);
         assertEquals(7, environment.getCurrentState());
     }
 

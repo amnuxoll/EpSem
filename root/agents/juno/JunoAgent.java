@@ -9,7 +9,7 @@ import utils.Sequence;
 import agents.juno.WeightTable.ScoredIndex;
 
 
-import java.io.PrintStream;
+import java.io.*;
 import java.util.*;
 
 public class JunoAgent extends MaRzAgent {
@@ -21,10 +21,11 @@ public class JunoAgent extends MaRzAgent {
     private int lastSequenceIndex= -1;
 
     //how many episodes we match at a time
-    private int WINDOW_SIZE= 5;
     private int NUM_MATCHES= 5;
     private int goals= 0;
     private int marzGoals= 5;
+
+    private JunoConfiguration config;
 
     public static int marzCount= 0;
     public static int junoCount= 0;
@@ -34,8 +35,9 @@ public class JunoAgent extends MaRzAgent {
      *
      * @param nodeProvider
      */
-    public JunoAgent(ISuffixNodeBaseProvider nodeProvider) {
+    public JunoAgent(ISuffixNodeBaseProvider nodeProvider, JunoConfiguration config) {
         super(nodeProvider);
+        this.config= config;
         marzCount= 0;
         junoCount= 0;
         this.weightTable= new WeightTable(1);
@@ -101,6 +103,10 @@ public class JunoAgent extends MaRzAgent {
         goals++;
         super.markSuccess();
         weightTable.updateOnGoal(episodicMemory, episodicMemory.size()-currentSequence.getCurrentIndex()-1);
+
+        PrintWriter out= new PrintWriter(Services.retrieve(OutputStreamContainer.class).get("ratioOutputStream"), true);
+
+        out.printf("%1f,", (double)junoCount/(junoCount+marzCount));
     }
 
     @Override
@@ -114,6 +120,36 @@ public class JunoAgent extends MaRzAgent {
         if(lastMatch != null){
             weightTable.updateOnFailure(episodicMemory, lastMatch.index, lastSequenceIndex);
         }
+    }
+
+    /**
+     * indicates whether we should bail early
+     * we will do this if we beleive we were wrong
+     * about the position we thought we were in when we
+     * selected the current sequence
+     *
+     * @return whether to give up on the current sequence early
+     */
+    @Override
+    protected boolean shouldBail(){
+        //if we didn't choose the current sequence,
+        //don't interrupt it
+        if(lastMatch == null || !config.getCanBail()){
+            return false;
+        }
+
+        if(currentSequence.getCurrentIndex() >= weightTable.size()){
+            double matchScore= weightTable.calculateMatchScore(episodicMemory,
+                    episodicMemory.size()-1, lastMatch.index + currentSequence.getCurrentIndex());
+
+            //if our match is less than our confidence
+            if(matchScore < config.getBailSlider()*lastMatch.score){
+                return true;
+            }
+        }
+
+        //we haven't had enough time to make a legit comparison
+        return false;
     }
 
     private void printInfo(ScoredIndex indexToTry){

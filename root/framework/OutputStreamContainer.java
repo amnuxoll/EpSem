@@ -1,6 +1,7 @@
 package framework;
 
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.OutputStream;
 import java.util.HashMap;
 
@@ -22,5 +23,15 @@ public class OutputStreamContainer extends HashMap<String, OutputStream>{
         }
 
         return super.get(str);
+    }
+
+    public void closeAll(){
+        for(OutputStream stream: values()){
+            try {
+                stream.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
     }
 }
