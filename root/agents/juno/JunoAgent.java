@@ -140,7 +140,8 @@ public class JunoAgent extends MaRzAgent {
 
         if(currentSequence.getCurrentIndex() >= weightTable.size()){
             double matchScore= weightTable.calculateMatchScore(episodicMemory,
-                    episodicMemory.size()-1, lastMatch.index + currentSequence.getCurrentIndex());
+                    episodicMemory.size()-1,
+                    lastMatch.index + weightTable.size() + currentSequence.getCurrentIndex());
 
             //if our match is less than our confidence
             if(matchScore < config.getBailSlider()*lastMatch.score){
@@ -216,5 +217,10 @@ public class JunoAgent extends MaRzAgent {
         }
 
         return new Sequence(episodicMemory,startIndex,index+1);
+    }
+
+    @Override
+    public String getMetaData(){
+        return "bailSlider= " + config.getBailSlider();
     }
 }

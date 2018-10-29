@@ -116,6 +116,11 @@ public class TestSuite implements IGoalListener, IEnvironmentListener {
         //information about agent provider
         for(int i=0; i < agentProviders.length; i++){
             fos.println("Agent provider " + i + " type: " + agentProviders[i].getClass().getName());
+            IAgent agent= agentProviders[i].getAgent();
+            fos.println("Example of possible agent:");
+            fos.println("\tType: " + agent.getClass().getName());
+            fos.println("\tExtra Data:\n\t\t" + agent.getMetaData());
+            fos.println();
         }
 
         fos.close();

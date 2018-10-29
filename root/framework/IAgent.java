@@ -23,4 +23,8 @@ public interface IAgent {
     void fireAgentEvent(AgentEvent.EventType type);
 
     void addAgentListener(IAgentListener listener);
+
+    default String getMetaData(){
+        return "None";
+    }
 }
