@@ -57,21 +57,21 @@ public class Runner {
     );
 
     private static TestSuite JunoBail = new TestSuite(
-            TestSuiteConfiguration.FULL,
+            new TestSuiteConfiguration(1, 500),
             new FileResultWriterProvider(),
             new FSMDescriptionProvider(4, 40, EnumSet.of(FSMDescription.Sensor.EVEN_ODD)),
             new IAgentProvider[] {
                     new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, 1)),
-                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .9)),
-                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .8)),
-                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .7)),
-                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .6)),
-                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .5)),
-                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .4)),
-                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .3)),
-                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .2)),
-                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .1)),
-                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(false, 0)),
+//                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .9)),
+//                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .8)),
+//                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .7)),
+//                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .6)),
+//                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .5)),
+//                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .4)),
+//                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .3)),
+//                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .2)),
+//                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .1)),
+//                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(false, 0)),
             }
     );
 
@@ -101,6 +101,7 @@ public class Runner {
             OutputStreamContainer outputStreamContainer=
                     new OutputStreamContainer("tableInfo", new FileOutputStream("info.txt"));
             outputStreamContainer.put("ratioOutputStream", new FileOutputStream("ratios.csv"));
+            outputStreamContainer.put("adjustValOutputStream", new FileOutputStream("adjustval.csv"));
             Services.register(OutputStreamContainer.class, outputStreamContainer);
             Runner.JunoBail.run();
             outputStreamContainer.closeAll();

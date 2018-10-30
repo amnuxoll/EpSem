@@ -1,10 +1,9 @@
 package agents.juno;
 
-import framework.Episode;
-import framework.EpisodeWeights;
-import framework.Move;
+import framework.*;
 import utils.Sequence;
 
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.PriorityQueue;
@@ -175,6 +174,9 @@ public class WeightTable {
             double actualSimilarity = getActualSimilarity(goalSequence, goalSequence2);
 
             double adjustValue = attemptSimilarity*actualSimilarity;
+            PrintWriter out = new PrintWriter(Services.retrieve(OutputStreamContainer.class).get("adjustValOutputStream"), true);
+            if(adjustValue != 0) out.printf("%1f, ", adjustValue);
+            //System.out.print(adjustValue+", ");
 
             for(int j = 0; j<table.size(); j++) {
                 Episode ep1= episodes.get(goalSequenceIndex-j-1);
