@@ -27,8 +27,13 @@ public class JunoAgent extends MaRzAgent {
 
     private JunoConfiguration config;
 
-    public static int marzCount= 0;
-    public static int junoCount= 0;
+    private int marzCount= 0;
+    private int junoCount= 0;
+
+    //average of all averages seen so far from the weight table
+    private double prevAverage= 0;
+    //how mature we think our weight table is
+    private double tableMaturity= Double.MAX_VALUE;
 
     /**
      * JunoAgent
@@ -72,7 +77,6 @@ public class JunoAgent extends MaRzAgent {
             this.lastMatch= bestIndexToTry;
 
             junoCount++;
-            printInfo(bestIndexToTry);
             return junoSuggestion;
         }
 
@@ -104,9 +108,14 @@ public class JunoAgent extends MaRzAgent {
         super.markSuccess();
         weightTable.updateOnGoal(episodicMemory, episodicMemory.size()-currentSequence.getCurrentIndex()-1);
 
-        PrintWriter out= new PrintWriter(Services.retrieve(OutputStreamContainer.class).get("ratioOutputStream"), true);
+        //collect data to determine how mature our wight table is
+        double averageEntry= weightTable.averageEntry();
+        double average= ((goals-1)*prevAverage + averageEntry)/goals;
+        this.tableMaturity= Math.abs(average - prevAverage);
 
-        out.printf("%1f,", (double)junoCount/(junoCount+marzCount));
+        PrintStream out= new PrintStream(
+                Services.retrieve(OutputStreamContainer.class).get("tableInfo"));
+        out.println(weightTable.toString(false));
     }
 
     @Override
@@ -134,7 +143,13 @@ public class JunoAgent extends MaRzAgent {
     protected boolean shouldBail(){
         //if we didn't choose the current sequence,
         //don't interrupt it
+        //if we are told to never bail, don't
         if(lastMatch == null || !config.getCanBail()){
+            return false;
+        }
+
+        //if we dont have a mature weight table, don't bail
+        if(tableMaturity > 0.001){
             return false;
         }
 
@@ -159,7 +174,7 @@ public class JunoAgent extends MaRzAgent {
 
         printEpisodes(indexToTry.index, weightTable.size(), out);
         printEpisodes(episodicMemory.size()-1, weightTable.size(), out);
-        out.println(weightTable.toString());
+        out.println(weightTable.toString(false));
     }
 
     /**

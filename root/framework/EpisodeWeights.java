@@ -91,6 +91,30 @@ public class EpisodeWeights {
         sensorWeights.put(sensorName,0.0);
     }
 
+    /**
+     * calculates the average entry in the list
+     * @return the average entry
+     */
+    public double averageEntry(){
+        //return average (+1 for action weight)
+        return sumEntries()/size();
+    }
+
+    public int size(){
+        return sensorWeights.size()+1;
+    }
+
+    public double sumEntries(){
+        double sum= 0;
+        for(Double weight : sensorWeights.values()){
+            sum+= weight;
+        }
+
+        sum+= actionWeight;
+
+        return sum;
+    }
+
     @Override
     public String toString(){
         String str= Double.toString(actionWeight);

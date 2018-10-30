@@ -241,9 +241,13 @@ public class WeightTable {
 
     @Override
     public String toString(){
+        return toString(true);
+    }
+
+    public String toString(boolean includeNewlines){
         String str= "";
         for(EpisodeWeights weights : table){
-            str+= weights + "\n";
+            str+= weights + (includeNewlines ? "\n" : ",");
         }
 
         return str;
@@ -276,6 +280,25 @@ public class WeightTable {
 
     public int size(){
         return table.size();
+    }
+
+    /**
+     * computes the average entry in the table
+     * @return the average entry
+     */
+    public double averageEntry(){
+        double sum= 0;
+        int numEntries= 0;
+        for(EpisodeWeights weights : table){
+            sum+= weights.averageEntry();
+            numEntries+= weights.size();
+        }
+
+        if(numEntries == 0){
+            return 0;
+        }
+
+        return sum/numEntries;
     }
 
     public class ScoredIndex implements Comparable<ScoredIndex>{

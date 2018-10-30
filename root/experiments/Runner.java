@@ -27,9 +27,9 @@ public class Runner {
     );
 
     private static TestSuite MarzFSM = new TestSuite(
-            TestSuiteConfiguration.MEDIUM,
+            TestSuiteConfiguration.FULL,
             new FileResultWriterProvider(),
-            new FSMDescriptionProvider(2, 30, FSMDescription.Sensor.NO_SENSORS),
+            new FSMDescriptionProvider(4, 40, FSMDescription.Sensor.NO_SENSORS),
             new IAgentProvider[] {
                     new MaRzAgentProvider<>(new SuffixNodeProvider())
             }
@@ -38,9 +38,9 @@ public class Runner {
     private static TestSuite JunoVMarz = new TestSuite(
             TestSuiteConfiguration.MEDIUM,
             new FileResultWriterProvider(),
-            new FSMDescriptionProvider(3, 30, EnumSet.of(FSMDescription.Sensor.EVEN_ODD)),
+            new FSMDescriptionProvider(3, 30, FSMDescription.Sensor.NO_SENSORS),
             new IAgentProvider[] {
-                    new JunoAgentProvider(new SuffixNodeProvider()),
+                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .9)),
                     new MaRzAgentProvider<>(new SuffixNodeProvider())
             }
     );
@@ -50,7 +50,7 @@ public class Runner {
             new FileResultWriterProvider(),
             new FSMDescriptionProvider(3, 30, EnumSet.of(FSMDescription.Sensor.EVEN_ODD)),
             new IAgentProvider[] {
-                    new MaRzAgentProvider<>(new SuffixNodeProvider()),
+                    new JunoAgentProvider(new SuffixNodeProvider()),
                     new JunoAgentProvider(new SuffixNodeProvider(),
                             new JunoConfiguration(true, 1))
             }
@@ -103,7 +103,7 @@ public class Runner {
             outputStreamContainer.put("ratioOutputStream", new FileOutputStream("ratios.csv"));
             outputStreamContainer.put("adjustValOutputStream", new FileOutputStream("adjustval.csv"));
             Services.register(OutputStreamContainer.class, outputStreamContainer);
-            Runner.JunoBail.run();
+            Runner.JunoVMarz.run();
             outputStreamContainer.closeAll();
         }
         catch (OutOfMemoryError mem){
