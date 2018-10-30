@@ -29,18 +29,18 @@ public class Runner {
     private static TestSuite MarzFSM = new TestSuite(
             TestSuiteConfiguration.FULL,
             new FileResultWriterProvider(),
-            new FSMDescriptionProvider(4, 40, FSMDescription.Sensor.NO_SENSORS),
+            new FSMDescriptionProvider(8, 40, FSMDescription.Sensor.NO_SENSORS),
             new IAgentProvider[] {
                     new MaRzAgentProvider<>(new SuffixNodeProvider())
             }
     );
 
     private static TestSuite JunoVMarz = new TestSuite(
-            TestSuiteConfiguration.MEDIUM,
+            TestSuiteConfiguration.FULL,
             new FileResultWriterProvider(),
-            new FSMDescriptionProvider(3, 30, FSMDescription.Sensor.NO_SENSORS),
+            new FSMDescriptionProvider(8, 40, EnumSet.of(FSMDescription.Sensor.EVEN_ODD)),
             new IAgentProvider[] {
-                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .9)),
+                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .9, 0.001)),
                     new MaRzAgentProvider<>(new SuffixNodeProvider())
             }
     );
@@ -52,7 +52,7 @@ public class Runner {
             new IAgentProvider[] {
                     new JunoAgentProvider(new SuffixNodeProvider()),
                     new JunoAgentProvider(new SuffixNodeProvider(),
-                            new JunoConfiguration(true, 1))
+                            new JunoConfiguration(true, 1, Double.MAX_VALUE))
             }
     );
 
@@ -61,7 +61,7 @@ public class Runner {
             new FileResultWriterProvider(),
             new FSMDescriptionProvider(4, 40, EnumSet.of(FSMDescription.Sensor.EVEN_ODD)),
             new IAgentProvider[] {
-                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, 1)),
+                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, 1, Double.MAX_VALUE)),
 //                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .9)),
 //                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .8)),
 //                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .7)),

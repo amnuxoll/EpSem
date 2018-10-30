@@ -149,7 +149,7 @@ public class JunoAgent extends MaRzAgent {
         }
 
         //if we dont have a mature weight table, don't bail
-        if(tableMaturity > 0.001){
+        if(tableMaturity > config.getMaturity()){
             return false;
         }
 
