@@ -1,6 +1,7 @@
 package environments.meta;
 
 import framework.*;
+import utils.Sequence;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -156,6 +157,11 @@ public class MetaEnvironmentDescription implements IEnvironmentDescription {
     @Override
     public synchronized void addEnvironmentListener(IEnvironmentListener listener) {
         this.listeners.add(listener);
+    }
+
+    @Override
+    public boolean validateSequence(int state, Sequence sequence) {
+        return currDescription.validateSequence(state, sequence);
     }
 
     private synchronized void fireDataBreakEvent() {

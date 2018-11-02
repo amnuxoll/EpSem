@@ -12,7 +12,10 @@ import environments.meta.MetaConfiguration;
 import environments.meta.MetaEnvironmentDescriptionProvider;
 import framework.*;
 
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.file.Paths;
 import java.util.EnumSet;
 
 public class Runner {
@@ -22,25 +25,25 @@ public class Runner {
             new FileResultWriterProvider(),
             new FSMDescriptionProvider(3, 30, EnumSet.of(FSMDescription.Sensor.EVEN_ODD)),
             new IAgentProvider[] {
-                    new JunoAgentProvider(new SuffixNodeProvider())
+                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .9, .001))
             }
     );
 
     private static TestSuite MarzFSM = new TestSuite(
             TestSuiteConfiguration.FULL,
             new FileResultWriterProvider(),
-            new FSMDescriptionProvider(8, 40, FSMDescription.Sensor.NO_SENSORS),
+            new FSMDescriptionProvider(4, 40, FSMDescription.Sensor.NO_SENSORS),
             new IAgentProvider[] {
                     new MaRzAgentProvider<>(new SuffixNodeProvider())
             }
     );
 
     private static TestSuite JunoVMarz = new TestSuite(
-            TestSuiteConfiguration.FULL,
+            TestSuiteConfiguration.MEDIUM,
             new FileResultWriterProvider(),
-            new FSMDescriptionProvider(8, 40, EnumSet.of(FSMDescription.Sensor.EVEN_ODD)),
+            new FSMDescriptionProvider(3, 30, EnumSet.of(FSMDescription.Sensor.EVEN_ODD)),
             new IAgentProvider[] {
-                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .9, 0.001)),
+                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .9, Double.MAX_VALUE)),
                     new MaRzAgentProvider<>(new SuffixNodeProvider())
             }
     );
@@ -97,13 +100,16 @@ public class Runner {
 
     public static void main(String[] args) {
         try {
+            TestSuite suite= JunoFSM;
+
             Services.register(IRandomizer.class, new Randomizer());
-            OutputStreamContainer outputStreamContainer=
-                    new OutputStreamContainer("tableInfo", new FileOutputStream("info.txt"));
-            outputStreamContainer.put("ratioOutputStream", new FileOutputStream("ratios.csv"));
-            outputStreamContainer.put("adjustValOutputStream", new FileOutputStream("adjustval.csv"));
+
+            String outputPath= suite.getResultWriterProvider().getOutputDirectory();
+            OutputStreamContainer outputStreamContainer= createOutputStreamContainer(outputPath);
             Services.register(OutputStreamContainer.class, outputStreamContainer);
-            Runner.JunoVMarz.run();
+
+            suite.run();
+
             outputStreamContainer.closeAll();
         }
         catch (OutOfMemoryError mem){
@@ -114,6 +120,17 @@ public class Runner {
             System.out.println("Runner failed with exception: " + ex.getMessage());
             ex.printStackTrace();
         }
+    }
+
+    private static OutputStreamContainer createOutputStreamContainer(String outputPath) throws IOException {
+        OutputStreamContainer outputStreamContainer=
+                new OutputStreamContainer(outputPath);
+        outputStreamContainer.put("metaData", "metadata.txt");
+        outputStreamContainer.put("agentDidAGood", "goodRatios.csv");
+        outputStreamContainer.put("goodDecisionBail", "goodDecisionBailRatio.csv");
+        outputStreamContainer.put("badDecisionBail", "badDecisionBailRatio.csv");
+
+        return outputStreamContainer;
     }
 
 }

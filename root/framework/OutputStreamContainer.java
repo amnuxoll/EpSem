@@ -1,28 +1,53 @@
 package framework;
 
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
+import java.io.*;
+import java.nio.file.Paths;
 import java.util.HashMap;
 
 public class OutputStreamContainer extends HashMap<String, OutputStream>{
+    private String parentPath;
+
     /**
-     * contruct a output stream container with an initial pair
-     * @param key the key string
-     * @param val the stream to associate with key
+     * contruct a output stream container with a parent diretory
+     * @param parentPath the path to put all files
      */
-    public OutputStreamContainer(String key, OutputStream val){
+    public OutputStreamContainer(String parentPath){
         super();
-        put(key,val);
+        this.parentPath= parentPath;
     }
 
-    @Override
-    public OutputStream get(Object str){
-        if(super.get(str) == null){
-            super.put((String)str, System.out);
+    public OutputStreamContainer(){
+        this(".");
+    }
+
+    public void write(Object key, String data){
+        if(!super.containsKey(key)){
+            return;
         }
 
-        return super.get(str);
+        try {
+            get(key).write(data.getBytes());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * create a file output stream with the given path
+     *
+     * @param key the key to use for this output stream
+     * @param path the path to the output stream
+     *
+     * @throws IOException if a file output stream could not be created
+     */
+    public void put(String key, String path) throws IOException {
+        path=  Paths.get(this.parentPath, path).toString();
+        File file= new File(path);
+        File parentFile = file.getParentFile();
+        if (parentFile != null)
+            parentFile.mkdirs();
+        file.createNewFile();
+        this.put(key, new FileOutputStream(file));
     }
 
     public void closeAll(){

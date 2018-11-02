@@ -105,15 +105,24 @@ public class MaRzAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> implemen
 			// Very beginning of time so we need to select our very first sequence
 			this.currentSequence = this.nextPermutation();
 		}
-		else if (sensorData.isGoal()) {
-			this.markSuccess();
-			// if the sequence succeeded then try again!
-			this.currentSequence.reset();
-		}
-		else if (!this.currentSequence.hasNext() || shouldBail()) {
-			this.markFailure();
-			this.currentSequence= selectNextSequence();
-			fireAgentEvent(AgentEvent.EventType.DECISION_MADE);
+		else{
+			boolean shouldBail= shouldBail();
+
+			if (sensorData.isGoal()) {
+				this.markSuccess();
+				// if the sequence succeeded then try again!
+				this.currentSequence.reset();
+			}
+			else if (!this.currentSequence.hasNext() || shouldBail) {
+				this.markFailure();
+
+				if(shouldBail){
+					fireAgentEvent(new AgentEvent(this, AgentEvent.EventType.BAILED));
+				}
+
+				this.currentSequence= selectNextSequence();
+				fireAgentEvent(new AgentEvent(this,new Sequence(currentSequence.getMoves())));
+			}
 		}
 		Move nextMove = this.currentSequence.next();
 		episodicMemory.add(new Episode(nextMove));
@@ -127,9 +136,8 @@ public class MaRzAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> implemen
 		return false;
 	}
 
-	@Override
-	public void fireAgentEvent(AgentEvent.EventType type) {
-		AgentEvent event = new AgentEvent(this, type);
+	//@Override
+	public void fireAgentEvent(AgentEvent event) {
 		for(IAgentListener ial : this.listeners){
 			ial.receiveEvent(event);
 		}

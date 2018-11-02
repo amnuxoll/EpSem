@@ -2,6 +2,7 @@ package environments.meta;
 
 import framework.*;
 import org.junit.jupiter.api.Test;
+import utils.Sequence;
 //import org.junit.jupiter.params.ParameterizedTest;
 
 
@@ -291,6 +292,11 @@ public class MetaEnvironmentDescriptionTest {
         @Override
         public void addEnvironmentListener(IEnvironmentListener listener) {
 
+        }
+
+        @Override
+        public boolean validateSequence(int state, Sequence sequence) {
+            return false;
         }
     }
 }

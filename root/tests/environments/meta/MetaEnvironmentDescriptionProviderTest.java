@@ -2,6 +2,7 @@ package environments.meta;
 
 import framework.*;
 import org.junit.jupiter.api.Test;
+import utils.Sequence;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -84,6 +85,11 @@ public class MetaEnvironmentDescriptionProviderTest {
         @Override
         public void addEnvironmentListener(IEnvironmentListener listener) {
 
+        }
+
+        @Override
+        public boolean validateSequence(int state, Sequence sequence) {
+            return false;
         }
     }
 }

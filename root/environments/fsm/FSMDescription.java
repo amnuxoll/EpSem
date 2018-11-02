@@ -4,6 +4,7 @@ import framework.IEnvironmentDescription;
 import framework.IEnvironmentListener;
 import framework.Move;
 import framework.SensorData;
+import utils.Sequence;
 
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -139,7 +140,21 @@ public class FSMDescription implements IEnvironmentDescription {
     @Override
     public void addEnvironmentListener(IEnvironmentListener listener){}
 
-                                       /**
+    @Override
+    public boolean validateSequence(int state, Sequence sequence) {
+        int currentState= state;
+
+        for(Move move : sequence.getMoves()){
+            currentState= transition(currentState, move);
+            if(isGoalState(currentState)){
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Define the available sensors in the environment.
      */
     public enum Sensor {

@@ -1,11 +1,13 @@
 package framework;
 
+import utils.Sequence;
+
 import java.util.EventObject;
 
 public class AgentEvent extends EventObject {
 
     private EventType type;
-    private int numDecisions;
+    private Sequence chosenSequence= null;
 
     /**
      * Constructs a prototypical Event.
@@ -18,9 +20,24 @@ public class AgentEvent extends EventObject {
         this.type = type;
     }
 
+    public AgentEvent(Object source, Sequence chosenSequence){
+        this(source, EventType.DECISION_MADE);
+
+        this.chosenSequence= chosenSequence;
+    }
+
     public enum EventType{
-        DECISION_MADE
+        DECISION_MADE,
+        BAILED
     }
 
     public EventType getType(){ return this.type; }
+
+    public Sequence getChosenSequence(){
+        if(type != EventType.DECISION_MADE){
+            throw new RuntimeException("No chosen sequence");
+        }
+
+        return chosenSequence;
+    }
 }

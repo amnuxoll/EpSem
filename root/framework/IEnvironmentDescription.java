@@ -1,5 +1,7 @@
 package framework;
 
+import utils.Sequence;
+
 /**
  * An IEnvironmentDescription describes an environment shape that {@link Environment} can use to track
  * agent progress during a test run.
@@ -56,4 +58,15 @@ public interface IEnvironmentDescription {
      * @param listener The listener to register
      */
     void addEnvironmentListener(IEnvironmentListener listener);
+
+    /**
+     * tells whether the given sequence will take an agent from
+     * the given state to a goal state
+     *
+     * @param state the state to start in
+     * @param sequence the sequence to validate
+     * @return whether the given sequence will take an agent from
+     *          the given state to a goal state
+     */
+    boolean validateSequence(int state, Sequence sequence);
 }

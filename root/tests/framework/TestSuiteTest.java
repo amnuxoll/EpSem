@@ -1,6 +1,7 @@
 package framework;
 
 import org.junit.jupiter.api.Test;
+import utils.Sequence;
 
 import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -113,11 +114,6 @@ public class TestSuiteTest {
         }
 
         @Override
-        public void fireAgentEvent(AgentEvent.EventType type) {
-
-        }
-
-        @Override
         public void addAgentListener(IAgentListener listener) {
 
         }
@@ -168,6 +164,11 @@ public class TestSuiteTest {
         @Override
         public void addEnvironmentListener(IEnvironmentListener listener) {
 
+        }
+
+        @Override
+        public boolean validateSequence(int state, Sequence sequence) {
+            return false;
         }
     }
 

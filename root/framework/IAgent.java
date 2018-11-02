@@ -20,8 +20,6 @@ public interface IAgent {
      */
     Move getNextMove(SensorData sensorData) throws Exception;
 
-    void fireAgentEvent(AgentEvent.EventType type);
-
     void addAgentListener(IAgentListener listener);
 
     default String getMetaData(){

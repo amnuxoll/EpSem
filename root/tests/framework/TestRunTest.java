@@ -1,6 +1,8 @@
 package framework;
 
 import org.junit.jupiter.api.Test;
+import utils.Sequence;
+
 import java.util.ArrayList;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -129,11 +131,6 @@ public class TestRunTest {
         }
 
         @Override
-        public void fireAgentEvent(AgentEvent.EventType type) {
-
-        }
-
-        @Override
         public void addAgentListener(IAgentListener listener) {
 
         }
@@ -175,6 +172,11 @@ public class TestRunTest {
         @Override
         public void addEnvironmentListener(IEnvironmentListener listener) {
 
+        }
+
+        @Override
+        public boolean validateSequence(int state, Sequence sequence) {
+            return false;
         }
     }
 

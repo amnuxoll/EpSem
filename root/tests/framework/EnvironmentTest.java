@@ -1,6 +1,7 @@
 package framework;
 
 import org.junit.jupiter.api.Test;
+import utils.Sequence;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -132,6 +133,11 @@ public class EnvironmentTest {
         @Override
         public void addEnvironmentListener(IEnvironmentListener listener) {
 
+        }
+
+        @Override
+        public boolean validateSequence(int state, Sequence sequence) {
+            return false;
         }
     }
 

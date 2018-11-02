@@ -113,9 +113,7 @@ public class JunoAgent extends MaRzAgent {
         double average= ((goals-1)*prevAverage + averageEntry)/goals;
         this.tableMaturity= Math.abs(average - prevAverage);
 
-        PrintStream out= new PrintStream(
-                Services.retrieve(OutputStreamContainer.class).get("tableInfo"));
-        out.println(weightTable.toString(false));
+        Services.retrieve(OutputStreamContainer.class).write("tableInfo", weightTable.toString(false));
     }
 
     @Override
@@ -169,25 +167,29 @@ public class JunoAgent extends MaRzAgent {
     }
 
     private void printInfo(ScoredIndex indexToTry){
-        PrintStream out= new PrintStream(
-                Services.retrieve(OutputStreamContainer.class).get("tableInfo"));
+        OutputStreamContainer outputStreamContainer=
+                Services.retrieve(OutputStreamContainer.class);
 
-        printEpisodes(indexToTry.index, weightTable.size(), out);
-        printEpisodes(episodicMemory.size()-1, weightTable.size(), out);
-        out.println(weightTable.toString(false));
+        outputStreamContainer.write("tableInfo", episodesToString(indexToTry.index, weightTable.size()));
+        outputStreamContainer.write("tableInfo", episodesToString(episodicMemory.size()-1, weightTable.size()));
+        outputStreamContainer.write("tableInfo", weightTable.toString(false));
     }
 
     /**
      * print episodes ending at index, print count number of them
-     * @param index
-     * @param count
+     * @param index the index of the first episode to convert to string
+     * @param count the number of episdoes to include
      */
-    private void printEpisodes(int index, int count, PrintStream out){
+    private String episodesToString(int index, int count){
+        String str= "";
+
         int i= Math.max(index-count+1, 0);
         for(; i<= index; i++){
-            out.print(episodicMemory.get(i));
+            str+= episodicMemory.get(i);
         }
-        out.println();
+        str+= "\n";
+
+        return str;
     }
 
     /**

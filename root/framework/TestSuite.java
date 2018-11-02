@@ -62,11 +62,12 @@ public class TestSuite implements IGoalListener, IEnvironmentListener {
             this.currentDecisionResultWriter.beginNewRun();
             testRun.execute();
 
-            try {
-                Services.retrieve(OutputStreamContainer.class).get("ratioOutputStream").write('\n');
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+
+            Services.retrieve(OutputStreamContainer.class).write("ratioOutputStream", "\n");
+            Services.retrieve(OutputStreamContainer.class).write("agentDidAGood", "\n");
+            Services.retrieve(OutputStreamContainer.class).write("agentDidAGoodOverall", "\n");
+            Services.retrieve(OutputStreamContainer.class).write("goodDecisionBail", "\n");
+            Services.retrieve(OutputStreamContainer.class).write("badDecisionBail", "\n");
         }
         this.currentStepResultWriter.complete();
         this.currentDecisionResultWriter.complete();
@@ -79,51 +80,41 @@ public class TestSuite implements IGoalListener, IEnvironmentListener {
     }
 
     private void writeMetaData(String parentDirectory){
-        File file= new File(Paths.get(parentDirectory, "metadata.txt").toString());
-
-        File parentFile = file.getParentFile();
-        if (parentFile != null)
-            parentFile.mkdirs();
-
-        PrintWriter fos= null;
-        try {
-            fos= new PrintWriter(file);
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
+        OutputStreamContainer osc= Services.retrieve(OutputStreamContainer.class);
+        
+        if(!osc.containsKey("metaData")){
             return;
         }
-
+        
         //information about configuration:
-        fos.println(configuration.getNumberOfGoals() + " goals on " +
-                    configuration.getNumberOfIterations() + " environments");
+        osc.write("metaData", configuration.getNumberOfGoals() + " goals on " +
+                    configuration.getNumberOfIterations() + " environments\n");
 
-        fos.println();
+        osc.write("metaData", "\n");
 
         //information about environment provider
-        fos.println("Environment provider type: " + environmentDescriptionProvider.getClass().getName());
+        osc.write("metaData", "Environment provider type: " + environmentDescriptionProvider.getClass().getName() + "\n");
 
-        fos.println();
+        osc.write("metaData", "\n");
 
         //information about environment
         IEnvironmentDescription environment= environmentDescriptionProvider.getEnvironmentDescription();
-        fos.println("Example of possible environment description:");
-        fos.println("\tType: " + environment.getClass().getName());
-        fos.println("\tNumber of moves: " + environment.getMoves().length);
-        fos.println("\tNumber of states: " + environment.getNumStates());
+        osc.write("metaData", "Example of possible environment description:" + "\n");
+        osc.write("metaData", "\tType: " + environment.getClass().getName() + "\n");
+        osc.write("metaData", "\tNumber of moves: " + environment.getMoves().length + "\n");
+        osc.write("metaData", "\tNumber of states: " + environment.getNumStates() + "\n");
 
-        fos.println();
+        osc.write("metaData",  "\n");
 
         //information about agent provider
         for(int i=0; i < agentProviders.length; i++){
-            fos.println("Agent provider " + i + " type: " + agentProviders[i].getClass().getName());
+            osc.write("metaData", "Agent provider " + i + " type: " + agentProviders[i].getClass().getName() + "\n");
             IAgent agent= agentProviders[i].getAgent();
-            fos.println("Example of possible agent:");
-            fos.println("\tType: " + agent.getClass().getName());
-            fos.println("\tExtra Data:\n\t\t" + agent.getMetaData());
-            fos.println();
+            osc.write("metaData", "Example of possible agent:" + "\n");
+            osc.write("metaData", "\tType: " + agent.getClass().getName() + "\n");
+            osc.write("metaData", "\tExtra Data:\n\t\t" + agent.getMetaData() + "\n");
+            osc.write("metaData", "\n");
         }
-
-        fos.close();
     }
 
     @Override
@@ -131,5 +122,9 @@ public class TestSuite implements IGoalListener, IEnvironmentListener {
         if(event.getEventType() == EnvironmentEvent.EventType.DATA_BREAK){
             this.currentStepResultWriter.logStepsToGoal(0);
         }
+    }
+
+    public IResultWriterProvider getResultWriterProvider() {
+        return resultWriterProvider;
     }
 }
