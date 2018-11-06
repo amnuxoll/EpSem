@@ -30,9 +30,9 @@ public class Runner {
     );
 
     private static TestSuite MarzFSM = new TestSuite(
-            TestSuiteConfiguration.FULL,
+            TestSuiteConfiguration.MEDIUM,
             new FileResultWriterProvider(),
-            new FSMDescriptionProvider(4, 40, FSMDescription.Sensor.NO_SENSORS),
+            new FSMDescriptionProvider(3, 30, FSMDescription.Sensor.NO_SENSORS),
             new IAgentProvider[] {
                     new MaRzAgentProvider<>(new SuffixNodeProvider())
             }
@@ -129,6 +129,7 @@ public class Runner {
         outputStreamContainer.put("agentDidAGood", "goodRatios.csv");
         outputStreamContainer.put("goodDecisionBail", "goodDecisionBailRatio.csv");
         outputStreamContainer.put("badDecisionBail", "badDecisionBailRatio.csv");
+        outputStreamContainer.put("properBails", "properBailRatio.csv");
 
         return outputStreamContainer;
     }

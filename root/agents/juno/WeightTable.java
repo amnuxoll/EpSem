@@ -57,7 +57,7 @@ public class WeightTable {
 
             //add this score to priority queue
             //noramlize score to be in range [0,1]
-            bestIndexes.add(new ScoredIndex(currIndex,sequenceScore/table.size()));
+            bestIndexes.add(new ScoredIndex(currIndex,sequenceScore));
         }
 
         //maybe there werent 'numMatches' sequeunces to check, so we have less match
@@ -83,12 +83,13 @@ public class WeightTable {
 
     /**
      * compares windows of episodes using the weight table
-     * calculates a match score of these two windows
+     * calculates a normalized match score of these two windows
+     * in the range [0,1]
      *
      * @param episodes list of episodes to look in
      * @param index1 the index (of most recent episode) of the first window to compare
      * @param index2 the index of the second window to compare
-     * @return a match score between these two windows
+     * @return a normalized match score between these two windows
      */
     public double calculateMatchScore(ArrayList<Episode> episodes, int index1, int index2) {
         if(episodes == null){
@@ -114,7 +115,7 @@ public class WeightTable {
             sequenceScore += table.get(i).matchScore(ep1, ep2);
         }
 
-        return sequenceScore;
+        return sequenceScore/table.size();
     }
     /**
      * updates the weight table after an attempted sequence that didn't hit the goal

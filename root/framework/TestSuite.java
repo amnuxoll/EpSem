@@ -68,6 +68,7 @@ public class TestSuite implements IGoalListener, IEnvironmentListener {
             Services.retrieve(OutputStreamContainer.class).write("agentDidAGoodOverall", "\n");
             Services.retrieve(OutputStreamContainer.class).write("goodDecisionBail", "\n");
             Services.retrieve(OutputStreamContainer.class).write("badDecisionBail", "\n");
+            Services.retrieve(OutputStreamContainer.class).write("properBails", "\n");
         }
         this.currentStepResultWriter.complete();
         this.currentDecisionResultWriter.complete();

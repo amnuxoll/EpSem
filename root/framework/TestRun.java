@@ -19,6 +19,8 @@ class TestRun implements IAgentListener {
     private Environment environment;
     private int numberOfGoalsToFind;
 
+    private int decisionsSinceGoal= 0;
+
     private int decisionCount= 0;
     private int goodDecisionCount= 0;
     private int goodDecisionBailCount= 0;
@@ -61,6 +63,9 @@ class TestRun implements IAgentListener {
                     goalCount++;
                     moveCount = 0;
 
+                    decisionCount+= decisionsSinceGoal;
+                    decisionsSinceGoal= 0;
+
                     environment.reset();
                 }
             } while (goalCount < this.numberOfGoalsToFind);
@@ -79,7 +84,7 @@ class TestRun implements IAgentListener {
     }
 
     private synchronized void fireGoalEvent(int stepsToGoal) {
-        GoalEvent goal = new GoalEvent(this, stepsToGoal, decisionCount);
+        GoalEvent goal = new GoalEvent(this, stepsToGoal, decisionsSinceGoal);
         for (IGoalListener listener : this.goalListeners) {
             listener.goalReceived(goal);
         }
@@ -101,6 +106,10 @@ class TestRun implements IAgentListener {
         data= decisionCount > 0 ?
                 Double.toString((double)badDecisionBailCount/(decisionCount-goodDecisionCount)) : "";
         out.write("badDecisionBail", data +",");
+
+        data= badDecisionBailCount+goodDecisionBailCount > 0 ?
+                    Double.toString((double)badDecisionBailCount/(badDecisionBailCount+goodDecisionBailCount)) : "";
+        out.write("properBails", data + ",");
     }
 
     @Override
@@ -110,7 +119,7 @@ class TestRun implements IAgentListener {
                 currSequenceGood =
                         environmentDescription.validateSequence(environment.getCurrentState(), ae.getChosenSequence());
 
-                decisionCount++;
+                decisionsSinceGoal++;
                 stepsSinceDecision= 0;
 
                 if (currSequenceGood) {
@@ -128,14 +137,5 @@ class TestRun implements IAgentListener {
 
                 break;
         }
-       if(ae.getType()==AgentEvent.EventType.DECISION_MADE) {
-           currSequenceGood = environmentDescription.validateSequence(environment.getCurrentState(), ae.getChosenSequence());
-
-           decisionCount++;
-
-           if (currSequenceGood) {
-               goodDecisionCount++;
-           }
-       }
     }
 }
