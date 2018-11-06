@@ -157,7 +157,7 @@ public class JunoAgent extends MaRzAgent {
                     lastMatch.index + weightTable.size() + currentSequence.getCurrentIndex());
 
             //if our match is less than our confidence
-            if(matchScore > config.getBailSlider()*lastMatch.score){
+            if(matchScore < config.getBailSlider()*lastMatch.score){
                 return true;
             }
         }

@@ -42,6 +42,7 @@ public class TestSuiteTest {
     // run Tests
     @Test
     public void runInitializesAndExecutesSingleAgent() throws Exception {
+        Services.register(IRandomizer.class, new Randomizer());
         TestResultWriterProvider resultWriterProvider = new TestResultWriterProvider();
         TestEnvironmentDescriptionProvider environmentDescriptionProvider = new TestEnvironmentDescriptionProvider();
         IAgentProvider[] agentProviders = new IAgentProvider[] {

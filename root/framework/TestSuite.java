@@ -62,13 +62,15 @@ public class TestSuite implements IGoalListener, IEnvironmentListener {
             this.currentDecisionResultWriter.beginNewRun();
             testRun.execute();
 
-
-            Services.retrieve(OutputStreamContainer.class).write("ratioOutputStream", "\n");
-            Services.retrieve(OutputStreamContainer.class).write("agentDidAGood", "\n");
-            Services.retrieve(OutputStreamContainer.class).write("agentDidAGoodOverall", "\n");
-            Services.retrieve(OutputStreamContainer.class).write("goodDecisionBail", "\n");
-            Services.retrieve(OutputStreamContainer.class).write("badDecisionBail", "\n");
-            Services.retrieve(OutputStreamContainer.class).write("properBails", "\n");
+            OutputStreamContainer osc = Services.retrieve(OutputStreamContainer.class);
+            if (osc != null) {
+                osc.write("ratioOutputStream", "\n");
+                osc.write("agentDidAGood", "\n");
+                osc.write("agentDidAGoodOverall", "\n");
+                osc.write("goodDecisionBail", "\n");
+                osc.write("badDecisionBail", "\n");
+                osc.write("properBails", "\n");
+            }
         }
         this.currentStepResultWriter.complete();
         this.currentDecisionResultWriter.complete();
@@ -82,8 +84,7 @@ public class TestSuite implements IGoalListener, IEnvironmentListener {
 
     private void writeMetaData(String parentDirectory){
         OutputStreamContainer osc= Services.retrieve(OutputStreamContainer.class);
-        
-        if(!osc.containsKey("metaData")){
+        if(osc == null){
             return;
         }
         
