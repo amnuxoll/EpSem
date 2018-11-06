@@ -54,8 +54,8 @@ public class TestSuiteTest {
         assertEquals(this.testConfiguration.getNumberOfIterations(), ((TestAgentProvider)agentProviders[0]).generatedAgents);
         assertEquals(this.testConfiguration.getNumberOfIterations(), environmentDescriptionProvider.generatedEnvironmentDescriptions);
 
-        assertEquals(1, resultWriterProvider.generatedResultWriters.size());
-        TestResultWriter resultWriter = resultWriterProvider.generatedResultWriters.get("agent0");
+        assertEquals(2, resultWriterProvider.generatedResultWriters.size());
+        TestResultWriter resultWriter = resultWriterProvider.generatedResultWriters.get("agent0_steps");
         assertEquals(this.testConfiguration.getNumberOfIterations(), resultWriter.iterationCount);
         assertEquals(this.testConfiguration.getNumberOfIterations() * this.testConfiguration.getNumberOfGoals(), resultWriter.stepsLoggedCount);
         assertTrue(resultWriter.completed);
@@ -77,14 +77,14 @@ public class TestSuiteTest {
         assertEquals(this.testConfiguration.getNumberOfIterations(), ((TestAgentProvider)agentProviders[1]).generatedAgents);
         assertEquals(2 * this.testConfiguration.getNumberOfIterations(), environmentDescriptionProvider.generatedEnvironmentDescriptions);
 
-        assertEquals(2, resultWriterProvider.generatedResultWriters.size());
-        TestResultWriter resultWriter = resultWriterProvider.generatedResultWriters.get("agent0");
+        assertEquals(4, resultWriterProvider.generatedResultWriters.size());
+        TestResultWriter resultWriter = resultWriterProvider.generatedResultWriters.get("agent0_steps");
         assertEquals(this.testConfiguration.getNumberOfIterations(), resultWriter.iterationCount);
         assertEquals(this.testConfiguration.getNumberOfIterations() * this.testConfiguration.getNumberOfGoals(), resultWriter.stepsLoggedCount);
         assertTrue(resultWriter.completed);
         assertEquals(this.testConfiguration.getNumberOfIterations(), resultWriter.iterationCountAtcompleted);
 
-        resultWriter = resultWriterProvider.generatedResultWriters.get("agent1");
+        resultWriter = resultWriterProvider.generatedResultWriters.get("agent1_steps");
         assertEquals(this.testConfiguration.getNumberOfIterations(), resultWriter.iterationCount);
         assertEquals(this.testConfiguration.getNumberOfIterations() * this.testConfiguration.getNumberOfGoals(), resultWriter.stepsLoggedCount);
         assertTrue(resultWriter.completed);
@@ -154,7 +154,7 @@ public class TestSuiteTest {
 
         @Override
         public int getNumStates() {
-            return 1;
+            return 2;
         }
 
         @Override

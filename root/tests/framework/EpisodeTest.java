@@ -147,6 +147,6 @@ public class EpisodeTest {
 
         score = episode1.matchScore(episode2, weights);
 
-        assertEquals(1.5, score);
+        assertEquals(1.0, score);
     }
 }
