@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import utils.Sequence;
 
 import java.util.HashMap;
+import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -53,9 +54,8 @@ public class TestSuiteTest {
 
         assertEquals(this.testConfiguration.getNumberOfIterations(), ((TestAgentProvider)agentProviders[0]).generatedAgents);
         assertEquals(this.testConfiguration.getNumberOfIterations(), environmentDescriptionProvider.generatedEnvironmentDescriptions);
-
-        assertEquals(1, resultWriterProvider.generatedResultWriters.size());
-        TestResultWriter resultWriter = resultWriterProvider.generatedResultWriters.get("agent0");
+        assertEquals(2, resultWriterProvider.generatedResultWriters.size());
+        TestResultWriter resultWriter = resultWriterProvider.generatedResultWriters.get("agent0_steps");
         assertEquals(this.testConfiguration.getNumberOfIterations(), resultWriter.iterationCount);
         assertEquals(this.testConfiguration.getNumberOfIterations() * this.testConfiguration.getNumberOfGoals(), resultWriter.stepsLoggedCount);
         assertTrue(resultWriter.completed);
@@ -64,6 +64,7 @@ public class TestSuiteTest {
 
     @Test
     public void runInitializesAndExecutesMultipleAgent() throws Exception {
+        Services.register(IRandomizer.class, new Randomizer());
         TestResultWriterProvider resultWriterProvider = new TestResultWriterProvider();
         TestEnvironmentDescriptionProvider environmentDescriptionProvider = new TestEnvironmentDescriptionProvider();
         IAgentProvider[] agentProviders = new IAgentProvider[] {
@@ -77,14 +78,14 @@ public class TestSuiteTest {
         assertEquals(this.testConfiguration.getNumberOfIterations(), ((TestAgentProvider)agentProviders[1]).generatedAgents);
         assertEquals(2 * this.testConfiguration.getNumberOfIterations(), environmentDescriptionProvider.generatedEnvironmentDescriptions);
 
-        assertEquals(2, resultWriterProvider.generatedResultWriters.size());
-        TestResultWriter resultWriter = resultWriterProvider.generatedResultWriters.get("agent0");
+        assertEquals(4, resultWriterProvider.generatedResultWriters.size());
+        TestResultWriter resultWriter = resultWriterProvider.generatedResultWriters.get("agent0_steps");
         assertEquals(this.testConfiguration.getNumberOfIterations(), resultWriter.iterationCount);
         assertEquals(this.testConfiguration.getNumberOfIterations() * this.testConfiguration.getNumberOfGoals(), resultWriter.stepsLoggedCount);
         assertTrue(resultWriter.completed);
         assertEquals(this.testConfiguration.getNumberOfIterations(), resultWriter.iterationCountAtcompleted);
 
-        resultWriter = resultWriterProvider.generatedResultWriters.get("agent1");
+        resultWriter = resultWriterProvider.generatedResultWriters.get("agent1_steps");
         assertEquals(this.testConfiguration.getNumberOfIterations(), resultWriter.iterationCount);
         assertEquals(this.testConfiguration.getNumberOfIterations() * this.testConfiguration.getNumberOfGoals(), resultWriter.stepsLoggedCount);
         assertTrue(resultWriter.completed);
@@ -154,7 +155,7 @@ public class TestSuiteTest {
 
         @Override
         public int getNumStates() {
-            return 1;
+            return 2;
         }
 
         @Override
