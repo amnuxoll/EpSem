@@ -73,15 +73,12 @@ public class Episode {
      *
      * @param ep the episode to compare this episode to
      * @param weights the weights to use in the comparison
-     * @return a nomalized weighted match score between this episode and ep
+     * @return a nomalized weighted match score between this episode and ep in range [0,1]
      */
     public double matchScore(Episode ep, EpisodeWeights weights){
         double score= 0;
         if(ep.move == this.move){
             score+= weights.getActionWeight();
-        }
-        else{
-            score-= weights.getActionWeight();
         }
 
         //find match of each sensor
@@ -89,9 +86,6 @@ public class Episode {
             //if sensor values match
             if(this.sensorData.getSensor(sensorName).equals(ep.sensorData.getSensor(sensorName))){
                 score+= weights.getSensorWeight(sensorName);
-            }
-            else{
-                score-= weights.getSensorWeight(sensorName);
             }
         }
 
