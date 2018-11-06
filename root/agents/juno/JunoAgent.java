@@ -23,7 +23,7 @@ public class JunoAgent extends MaRzAgent {
     //how many episodes we match at a time
     private int NUM_MATCHES= 5;
     private int goals= 0;
-    private int marzGoals= 5;
+    private int marzGoals= 0;
 
     private JunoConfiguration config;
 
