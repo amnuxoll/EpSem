@@ -76,19 +76,11 @@ public class WeightTable {
         ScoredIndex[] indexArray= new ScoredIndex[numMatches];
         int i= 0; //i is index of last attempted add to the array
         for(;i<indexArray.length;i++){
-            if(bestIndexes.peek() == null){
-                break;
-            }
             ScoredIndex scoredIndex= bestIndexes.poll();
-            int idx = scoredIndex.index;
-            if(episodes.get(idx).getSensorData().isGoal()) {
-                i--;
-                continue;
-            }
             indexArray[i]= scoredIndex;
         }
 
-        return Arrays.copyOf(indexArray,i);
+        return indexArray;
     }
 
     /**
