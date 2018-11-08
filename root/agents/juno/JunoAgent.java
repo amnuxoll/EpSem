@@ -58,7 +58,7 @@ public class JunoAgent extends MaRzAgent {
             return marzSuggestion;
         }
 
-        ScoredIndex[] bestIndices= weightTable.bestIndices(episodicMemory,NUM_MATCHES);
+        ScoredIndex[] bestIndices= weightTable.bestIndices(episodicMemory, NUM_MATCHES, super.lastGoalIndex);
         //best matching index is first in array
         ScoredIndex bestIndexToTry= bestIndexToTry(bestIndices);
 
@@ -86,6 +86,13 @@ public class JunoAgent extends MaRzAgent {
     }
 
     private ScoredIndex bestIndexToTry(ScoredIndex[] indexes){
+        if(indexes == null){
+            throw new IllegalArgumentException("Indexes cannot be null");
+        }
+        if(indexes.length < 1){
+            throw new IllegalArgumentException("Indexes should not be empty");
+        }
+
         ScoredIndex best= null;
         double maxScore= -1;
 

@@ -21,9 +21,9 @@ import java.util.EnumSet;
 public class Runner {
 
     private static TestSuite JunoFSM = new TestSuite(
-            TestSuiteConfiguration.MEDIUM,
+            TestSuiteConfiguration.QUICK,
             new FileResultWriterProvider(),
-            new FSMDescriptionProvider(3, 30, EnumSet.of(FSMDescription.Sensor.EVEN_ODD)),
+            new FSMDescriptionProvider(5, 20, EnumSet.of(FSMDescription.Sensor.EVEN_ODD)),
             new IAgentProvider[] {
                     new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .7, .003))
             }
