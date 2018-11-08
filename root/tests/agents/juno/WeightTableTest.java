@@ -49,7 +49,7 @@ public class WeightTableTest {
         episodes.add(makeEp(a,false)); //1: should have matchscore= 0
         episodes.add(makeEp(a,false)); //2: should have matchscore= -.6
         episodes.add(makeEp(b,false)); //3: should have matchscore= 0
-        episodes.add(makeEp(a,true)); //4: should have matchscore= -1
+        episodes.add(makeEp(a,false)); //4: should have matchscore= -1
         episodes.add(makeEp(b,true)); //5: most recent goal
         episodes.add(makeEp(b,false)); //6: should be current window
         episodes.add(makeEp(b,false)); //7: should be current window
@@ -58,8 +58,9 @@ public class WeightTableTest {
 
         WeightTable.ScoredIndex[] indexes= table.bestIndices(episodes,2);
 
-        //should be in decreaseing order
-        //assertArrayEquals(new int[]{3,1}, indexes);
+        for(WeightTable.ScoredIndex si : indexes){
+            System.out.println(si.index + " " + si.score);
+        }
     }
 
     @Test

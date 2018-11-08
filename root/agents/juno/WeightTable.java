@@ -54,7 +54,9 @@ public class WeightTable {
         //curr index is the index of the most recent episode in the sub-sequence
         for(int currIndex= lastGoalIndex-1; currIndex >= table.size()-1; currIndex-- ){
             double sequenceScore= calculateMatchScore(episodes, episodes.size()-1, currIndex);
-
+            if(episodes.get(currIndex).getSensorData().isGoal()) {
+                continue;
+            }
             //add this score to priority queue
             //noramlize score to be in range [0,1]
             bestIndexes.add(new ScoredIndex(currIndex,sequenceScore));
@@ -70,15 +72,10 @@ public class WeightTable {
                 break;
             }
             ScoredIndex scoredIndex= bestIndexes.poll();
-            int idx = scoredIndex.index;
-            if(episodes.get(idx).getSensorData().isGoal()) {
-                i--;
-                continue;
-            }
             indexArray[i]= scoredIndex;
         }
 
-        return Arrays.copyOf(indexArray,i);
+        return indexArray;
     }
 
     /**

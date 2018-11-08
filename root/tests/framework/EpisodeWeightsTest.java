@@ -67,9 +67,13 @@ public class EpisodeWeightsTest {
     @Test
     public void matchScoreTest() {
         EpisodeWeights weights = new EpisodeWeights();
-        Move move = new Move("a");
-        Episode ep1 = new Episode(move);
-        Episode ep2 = new Episode(move);
+        Move a = new Move("a");
+        Move b = new Move("b");
+        Episode ep1 = new Episode(a);
+        Episode ep2 = new Episode(a);
+
+        Episode testMismatch = new Episode(b);
+        testMismatch.setSensorData(new SensorData(false));
 
         weights.updateWeights(ep1, ep2, 0.76);
 
