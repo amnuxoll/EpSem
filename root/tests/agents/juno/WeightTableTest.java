@@ -34,8 +34,8 @@ public class WeightTableTest {
             episodes.add( new Episode(moves[i%moves.length]));
         }
 
-        assertThrows(IllegalArgumentException.class, () -> table.bestIndices(null, 4, -1));
-        assertThrows(IllegalArgumentException.class, () -> table.bestIndices(episodes,-1, -1));
+        assertThrows(IllegalArgumentException.class, () -> table.bestIndices(null,4, 0));
+        assertThrows(IllegalArgumentException.class, () -> table.bestIndices(episodes,-1, 0));
     }
 
     @Test

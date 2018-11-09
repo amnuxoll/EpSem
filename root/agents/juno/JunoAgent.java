@@ -53,7 +53,9 @@ public class JunoAgent extends MaRzAgent {
     protected Sequence selectNextSequence(){
         Sequence marzSuggestion= super.selectNextSequence();
 
-        if(this.lastGoalIndex <= 0 || goals < marzGoals){
+        //if we haven't hit a goal yet || if we haven't done enough marz goals || if we haven't done a 'window size'
+        // of moves yet, go with marz
+        if(this.lastGoalIndex <= 0 || goals < marzGoals || lastGoalIndex>episodicMemory.size()-weightTable.size()){
             marzCount++;
             return marzSuggestion;
         }
@@ -113,6 +115,7 @@ public class JunoAgent extends MaRzAgent {
     protected void markSuccess(){
         goals++;
         super.markSuccess();
+        //we pass in the index at which we started the sequence that brought us to the goal *here* vvv
         weightTable.updateOnGoal(episodicMemory, episodicMemory.size()-currentSequence.getCurrentIndex()-1);
 
         //collect data to determine how mature our wight table is

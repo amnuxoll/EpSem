@@ -188,7 +188,6 @@ public class WeightTable {
             Sequence goalSequence2= new Sequence(episodes, i+1,nextGoalIndex+1);
             double attemptSimilarity = getAttemptSimlarity(goalSequence, goalSequence2);
             double actualSimilarity = getActualSimilarity(goalSequence, goalSequence2);
-
             double adjustValue = attemptSimilarity*actualSimilarity;
 
             for(int j = 0; j<table.size(); j++) {
@@ -228,10 +227,6 @@ public class WeightTable {
     private double getActualSimilarity(Sequence goalSequence1, Sequence goalSequence2) {
         int m= Math.min(goalSequence1.getLength(),goalSequence2.getLength());
         int l= Math.max(goalSequence1.getLength(),goalSequence2.getLength());
-
-        int difference = m-l;
-
-        if(difference ==0) return 1;
 
         return (2.0*m)/l - 1;
     }
