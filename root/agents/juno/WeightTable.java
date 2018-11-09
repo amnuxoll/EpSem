@@ -150,25 +150,30 @@ public class WeightTable {
     /**
      * compares goalSequence and pre-goalSequences and updates the table based on matching values and/or mismatching values
      * @param episodes the entire episodic memory
-     * @param goalSequenceIndex the index at which we reached the goal
+     * @param goalSequenceIndex the index at which we started the sequence that brought us to the goal
      */
     public void updateOnGoal(ArrayList<Episode> episodes, int goalSequenceIndex){
+        int preGoalSequenceIndex= goalSequenceIndex - 1;
+
         int previousGoalIndex = lastGoalIndex(episodes, episodes.size()-2);
 
-        if(previousGoalIndex<0) return; //return if this is the first time we're hitting a goal
+        //do nothing if our pregoal sequence contains this goal
+        if(previousGoalIndex > preGoalSequenceIndex - table.size()){
+            return;
+        }
+        //also, if there is no previos goal, do nothing
+        if(previousGoalIndex < 0) return;
 
         Sequence goalSequence = new Sequence(episodes, goalSequenceIndex, episodes.size());
-        if(previousGoalIndex >= goalSequenceIndex-table.size()){
-            return; //don't do anything if the last goalSequence was too short to matter
-        }
 
-        int nextGoalIndex= lastGoalIndex(episodes, episodes.size()-2);
+        int nextGoalIndex= previousGoalIndex;
         //nextGoalIndex is the index of the goal after the current window
         int startIndex = nextGoalIndex-1;
 
         previousGoalIndex = lastGoalIndex(episodes, startIndex);
 
-        for(int i = startIndex; i>=table.size(); i--) {
+        //i is index of sequence we're comparing
+        for(int i = startIndex; i>=table.size()-1; i--) {
 
             if(i-table.size() <= previousGoalIndex) {
                 i = previousGoalIndex -1;
@@ -187,7 +192,7 @@ public class WeightTable {
             double adjustValue = attemptSimilarity*actualSimilarity;
 
             for(int j = 0; j<table.size(); j++) {
-                Episode ep1= episodes.get(goalSequenceIndex-j-1);
+                Episode ep1= episodes.get(preGoalSequenceIndex-j);
                 Episode ep2= episodes.get(i-j);
 
                 table.get(j).updateWeights(ep1, ep2, adjustValue);

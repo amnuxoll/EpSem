@@ -34,8 +34,8 @@ public class WeightTableTest {
             episodes.add( new Episode(moves[i%moves.length]));
         }
 
-        assertThrows(IllegalArgumentException.class, () -> table.bestIndices(null,4));
-        assertThrows(IllegalArgumentException.class, () -> table.bestIndices(episodes,-1));
+        assertThrows(IllegalArgumentException.class, () -> table.bestIndices(null, 4, -1));
+        assertThrows(IllegalArgumentException.class, () -> table.bestIndices(episodes,-1, -1));
     }
 
     @Test
@@ -56,7 +56,7 @@ public class WeightTableTest {
 
         WeightTable table= new TestWeightTable(2);
 
-        WeightTable.ScoredIndex[] indexes= table.bestIndices(episodes,2);
+        WeightTable.ScoredIndex[] indexes= table.bestIndices(episodes,2, 5);
 
         for(WeightTable.ScoredIndex si : indexes){
             System.out.println(si.index + " " + si.score);
