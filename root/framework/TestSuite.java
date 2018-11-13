@@ -70,6 +70,7 @@ public class TestSuite implements IGoalListener, IEnvironmentListener {
                 osc.write("goodDecisionBail", "\n");
                 osc.write("badDecisionBail", "\n");
                 osc.write("properBails", "\n");
+                osc.write("junoRatios", "\n");
             }
         }
         this.currentStepResultWriter.complete();

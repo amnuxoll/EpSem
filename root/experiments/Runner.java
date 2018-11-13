@@ -41,7 +41,7 @@ public class Runner {
     private static TestSuite JunoVMarz = new TestSuite(
             TestSuiteConfiguration.MEDIUM,
             new FileResultWriterProvider(),
-            new FSMDescriptionProvider(3, 30, EnumSet.of(FSMDescription.Sensor.EVEN_ODD)),
+            new FSMDescriptionProvider(3, 30, FSMDescription.Sensor.NO_SENSORS),
             new IAgentProvider[] {
                     new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .7, Double.MAX_VALUE)),
                     new MaRzAgentProvider<>(new SuffixNodeProvider())
@@ -100,7 +100,7 @@ public class Runner {
 
     public static void main(String[] args) {
         try {
-            TestSuite suite= MarzFSM;
+            TestSuite suite= JunoFSM;
 
             Services.register(IRandomizer.class, new Randomizer());
 
@@ -130,6 +130,7 @@ public class Runner {
         outputStreamContainer.put("goodDecisionBail", "goodDecisionBailRatio.csv");
         outputStreamContainer.put("badDecisionBail", "badDecisionBailRatio.csv");
         outputStreamContainer.put("properBails", "properBailRatio.csv");
+        outputStreamContainer.put("junoRatios", "junoRatios.csv");
 
         return outputStreamContainer;
     }

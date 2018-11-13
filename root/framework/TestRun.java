@@ -114,6 +114,10 @@ class TestRun implements IAgentListener {
         data= badDecisionBailCount+goodDecisionBailCount > 0 ?
                     Double.toString((double)badDecisionBailCount/(badDecisionBailCount+goodDecisionBailCount)) : "";
         out.write("properBails", data + ",");
+
+        if(agent instanceof JunoAgent){
+            out.write("junoRatios", ((JunoAgent) agent).getJunoRatio() + "," );
+        }
     }
 
     @Override

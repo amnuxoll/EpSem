@@ -23,7 +23,7 @@ public class JunoAgent extends MaRzAgent {
     //how many episodes we match at a time
     private int NUM_MATCHES= 5;
     private int goals= 0;
-    private int marzGoals= 0;
+    private int marzGoals= 3;
 
     private JunoConfiguration config;
 
@@ -34,6 +34,7 @@ public class JunoAgent extends MaRzAgent {
     private double prevAverage= 0;
     //how mature we think our weight table is
     private double tableMaturity= Double.MAX_VALUE;
+    private int tableSizeOnMatch= -1;
 
     /**
      * JunoAgent
@@ -57,6 +58,8 @@ public class JunoAgent extends MaRzAgent {
         // of moves yet, go with marz
         if(this.lastGoalIndex <= 0 || goals < marzGoals || lastGoalIndex >= episodicMemory.size()-weightTable.size()){
             marzCount++;
+            this.tableSizeOnMatch= -1;
+            lastMatch= null;
             return marzSuggestion;
         }
 
@@ -77,12 +80,14 @@ public class JunoAgent extends MaRzAgent {
             super.setActiveNode(super.suffixTree.findBestMatch(junoSuggestion));
             this.lastSequenceIndex= episodicMemory.size()-1;
             this.lastMatch= bestIndexToTry;
+            this.tableSizeOnMatch= weightTable.size();
 
             junoCount++;
             return junoSuggestion;
         }
 
         lastMatch= null;
+        this.tableSizeOnMatch= -1;
         marzCount++;
         return marzSuggestion;
     }
@@ -130,12 +135,12 @@ public class JunoAgent extends MaRzAgent {
     protected void markFailure(){
         super.markFailure();
 
-        if(super.getActiveNode() != null){
-            weightTable.setSize(super.getActiveNode().getSuffix().getLength() + 1);
-        }
-
         if(lastMatch != null){
             weightTable.updateOnFailure(episodicMemory, lastMatch.index, lastSequenceIndex);
+        }
+
+        if(super.getActiveNode() != null){
+            weightTable.setSize(super.getActiveNode().getSuffix().getLength() + 1);
         }
     }
 
@@ -250,6 +255,19 @@ public class JunoAgent extends MaRzAgent {
         }
 
         return new Sequence(episodicMemory,startIndex,index+1);
+    }
+
+    /**
+     *
+     * @return the ratio of juno desicions to all decisions
+     */
+    public double getJunoRatio(){
+        double total = marzCount + junoCount;
+
+        if(total == 0){
+            return 0;
+        }
+        return (double)junoCount/total;
     }
 
     @Override
