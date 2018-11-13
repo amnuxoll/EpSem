@@ -100,7 +100,7 @@ public class Runner {
 
     public static void main(String[] args) {
         try {
-            TestSuite suite= JunoFSM;
+            TestSuite suite= MarzFSM;
 
             Services.register(IRandomizer.class, new Randomizer());
 

@@ -55,7 +55,7 @@ public class JunoAgent extends MaRzAgent {
 
         //if we haven't hit a goal yet || if we haven't done enough marz goals || if we haven't done a 'window size'
         // of moves yet, go with marz
-        if(this.lastGoalIndex <= 0 || goals < marzGoals || lastGoalIndex>episodicMemory.size()-weightTable.size()){
+        if(this.lastGoalIndex <= 0 || goals < marzGoals || lastGoalIndex >= episodicMemory.size()-weightTable.size()){
             marzCount++;
             return marzSuggestion;
         }
@@ -161,14 +161,20 @@ public class JunoAgent extends MaRzAgent {
             return false;
         }
 
-        if(currentSequence.getCurrentIndex() >= weightTable.size()){
-            double matchScore= weightTable.calculateMatchScore(episodicMemory,
-                    episodicMemory.size()-1,
-                    lastMatch.index + weightTable.size() + currentSequence.getCurrentIndex());
+        //if we've taken enough steps in this sequence to start doing comparisons with
+        //what we expect
+        if(currentSequence.getCurrentIndex() + 1 >= weightTable.size()) {
+            try {
+                double matchScore = weightTable.calculateMatchScore(episodicMemory,
+                        episodicMemory.size() - 1,
+                        lastMatch.index + currentSequence.getCurrentIndex());
 
-            //if our match is less than our confidence
-            if(matchScore < config.getBailSlider()*lastMatch.score){
-                return true;
+                //if our match is less than our confidence
+                if (matchScore < config.getBailSlider() * lastMatch.score) {
+                    return true;
+                }
+            } catch (WindowContainsGoalException wcg) {
+                int x = 4;
             }
         }
 

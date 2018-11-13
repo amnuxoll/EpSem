@@ -105,15 +105,14 @@ public class MaRzAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> implemen
 			// Very beginning of time so we need to select our very first sequence
 			this.currentSequence = this.nextPermutation();
 		}
-		else{
-			boolean shouldBail= shouldBail();
-
-			if (sensorData.isGoal()) {
+		else if (sensorData.isGoal()) {
 				this.markSuccess();
 				// if the sequence succeeded then try again!
 				this.currentSequence.reset();
-			}
-			else if (!this.currentSequence.hasNext() || shouldBail) {
+		}
+		else {
+			boolean shouldBail= shouldBail();
+			if (!this.currentSequence.hasNext() || shouldBail) {
 				this.markFailure();
 
 				if(shouldBail){
@@ -160,11 +159,8 @@ public class MaRzAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> implemen
 	}
 
 	protected void markSuccess() {
-		if(activeNode == null){
-			return;
-		}
-
 		this.lastSuccessfulSequence = this.currentSequence;
+
 		if (this.currentSequence.hasNext()) {
 			// Was partial match so find the best node to update
 			Sequence goalSequence = this.sequenceSinceLastGoal();
@@ -176,10 +172,11 @@ public class MaRzAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> implemen
 			}
 		}
 		//we hit the goal at the end of current sequence
-		else {
+		else if(activeNode != null){
 			this.activeNode.addSuccessIndex(this.episodicMemory.size() - this.activeNode.getSuffix().getLength());
 			this.activeNode.setFoundGoal();
 		}
+
 		this.lastGoalIndex = this.episodicMemory.size() - 1;
 	}
 

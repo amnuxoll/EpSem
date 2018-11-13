@@ -46,7 +46,7 @@ public class WeightTable {
         if(numMatches < 0){
             throw new IllegalArgumentException("numMatches must be non-negative");
         }
-        if(episodes.size() - lastGoalIndex >= table.size()){
+        if(episodes.size() - table.size() <= lastGoalIndex){
             throw new IllegalArgumentException("There has to be a window size of episodes since last goal");
         }
 
@@ -68,6 +68,7 @@ public class WeightTable {
                 //next step (bottom of loop) we currIndex--;
                 currIndex= containsGoal.getGoalIndex();
             }
+            currIndex= currIndex;
         }
 
         //maybe there werent 'numMatches' sequeunces to check, so we have less match
