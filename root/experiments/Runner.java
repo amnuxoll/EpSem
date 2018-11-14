@@ -1,5 +1,6 @@
 package experiments;
 
+import agents.discr.MaRzLearnerProvider;
 import agents.juno.JunoAgentProvider;
 import agents.juno.JunoConfiguration;
 import agents.marz.MaRzAgentProvider;
@@ -30,11 +31,21 @@ public class Runner {
     );
 
     private static TestSuite MarzFSM = new TestSuite(
-            TestSuiteConfiguration.FULL,
+            TestSuiteConfiguration.QUICK,
             new FileResultWriterProvider(),
-            new FSMDescriptionProvider(4, 40, FSMDescription.Sensor.NO_SENSORS),
+            new FSMDescriptionProvider(3, 30, FSMDescription.Sensor.ALL_SENSORS),
             new IAgentProvider[] {
                     new MaRzAgentProvider<>(new SuffixNodeProvider())
+            }
+    );
+
+    private static TestSuite MarzLearnerFSM = new TestSuite(
+            TestSuiteConfiguration.QUICK,
+            new FileResultWriterProvider(),
+            new FSMDescriptionProvider(3, 30, FSMDescription.Sensor.ALL_SENSORS),
+            new IAgentProvider[] {
+                    new MaRzLearnerProvider<>(new SuffixNodeProvider()),
+                    //new MaRzAgentProvider<>(new SuffixNodeProvider())
             }
     );
 
@@ -100,7 +111,7 @@ public class Runner {
 
     public static void main(String[] args) {
         try {
-            TestSuite suite= JunoFSM;
+            TestSuite suite= MarzLearnerFSM;
 
             Services.register(IRandomizer.class, new Randomizer());
 

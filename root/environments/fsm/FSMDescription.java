@@ -131,10 +131,17 @@ public class FSMDescription implements IEnvironmentDescription {
             throw new IllegalArgumentException("sensorData cannot be null");
         if (this.sensorsToInclude.contains(Sensor.EVEN_ODD))
             this.applyEvenOddSensor(currentState, sensorData);
+        if (this.sensorsToInclude.contains(Sensor.NOISE))
+            this.applyNoiseSensor(sensorData);
     }
 
     private void applyEvenOddSensor(int state, SensorData sensorData) {
         sensorData.setSensor(Sensor.EVEN_ODD.toString(), state % 2 == 0);
+    }
+
+    private void applyNoiseSensor(SensorData sensorData)
+    {
+        sensorData.setSensor(Sensor.NOISE.toString(), Math.random());
     }
 
     @Override
