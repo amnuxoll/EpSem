@@ -64,14 +64,14 @@ public class EpisodeWeights {
     }
 
     /**
-     *  c
+     *  compute an normalized match score between two episodes
+     *
      * @param ep1
      * @param ep2
-     * @return
+     * @return a normalized match in range [0,1]
      */
     public double matchScore(Episode ep1, Episode ep2){
-        //episode match over highest possible score, which is 1*(sensor size + action weight)
-        return ep1.matchScore(ep2, this)/(sensorWeights.size()+1);
+        return ep1.matchScore(ep2, this);
     }
 
     public double getActionWeight() {

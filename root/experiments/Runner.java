@@ -26,7 +26,7 @@ public class Runner {
             new FileResultWriterProvider(),
             new FSMDescriptionProvider(3, 30, EnumSet.of(FSMDescription.Sensor.EVEN_ODD)),
             new IAgentProvider[] {
-                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .9, .001))
+                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .7, .003))
             }
     );
 
@@ -52,9 +52,9 @@ public class Runner {
     private static TestSuite JunoVMarz = new TestSuite(
             TestSuiteConfiguration.MEDIUM,
             new FileResultWriterProvider(),
-            new FSMDescriptionProvider(3, 30, EnumSet.of(FSMDescription.Sensor.EVEN_ODD)),
+            new FSMDescriptionProvider(3, 30, FSMDescription.Sensor.NO_SENSORS),
             new IAgentProvider[] {
-                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .9, Double.MAX_VALUE)),
+                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .7, Double.MAX_VALUE)),
                     new MaRzAgentProvider<>(new SuffixNodeProvider())
             }
     );
@@ -76,16 +76,16 @@ public class Runner {
             new FSMDescriptionProvider(4, 40, EnumSet.of(FSMDescription.Sensor.EVEN_ODD)),
             new IAgentProvider[] {
                     new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, 1, Double.MAX_VALUE)),
-//                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .9)),
-//                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .8)),
-//                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .7)),
-//                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .6)),
-//                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .5)),
-//                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .4)),
-//                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .3)),
-//                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .2)),
-//                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .1)),
-//                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(false, 0)),
+                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .9, Double.MAX_VALUE)),
+                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .8, Double.MAX_VALUE)),
+                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .7, Double.MAX_VALUE)),
+                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .6, Double.MAX_VALUE)),
+                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .5, Double.MAX_VALUE)),
+                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .4, Double.MAX_VALUE)),
+                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .3, Double.MAX_VALUE)),
+                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .2, Double.MAX_VALUE)),
+                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .1, Double.MAX_VALUE)),
+                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(false, 0, Double.MAX_VALUE)),
             }
     );
 
@@ -140,6 +140,8 @@ public class Runner {
         outputStreamContainer.put("agentDidAGood", "goodRatios.csv");
         outputStreamContainer.put("goodDecisionBail", "goodDecisionBailRatio.csv");
         outputStreamContainer.put("badDecisionBail", "badDecisionBailRatio.csv");
+        outputStreamContainer.put("properBails", "properBailRatio.csv");
+        outputStreamContainer.put("junoRatios", "junoRatios.csv");
 
         return outputStreamContainer;
     }

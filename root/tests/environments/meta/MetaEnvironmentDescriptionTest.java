@@ -133,10 +133,7 @@ public class MetaEnvironmentDescriptionTest {
 
         //now move it to the goal in less than DEFAULT.stepThreshold moves, DEFAULT.successQueueMaxSize times
         //so that provider should generate another EvironmentDescription
-        for (int i=0;i<MetaConfiguration.DEFAULT.getSuccessQueueMaxSize()-1;i++) {
-            for (int j=0;j<MetaConfiguration.DEFAULT.getStepThreshold()-2;j++) {
-                description.transition(2,new Move("a"));
-            }
+        for (int i=0;i<MetaConfiguration.DEFAULT.getTweakPoint();i++) {
             assertTrue(description.isGoalState(13));
         }
 
@@ -145,37 +142,6 @@ public class MetaEnvironmentDescriptionTest {
 
         //we also should empty the successQueue
         assertEquals(0,description.getSuccessQueue().size());
-    }
-
-    /**
-     * verify that the average moves to goal is correct
-     */
-    @Test
-    public void isGoalStateCorrectAverage() {
-        TestEnvironmentDescriptionProvider provider= new TestEnvironmentDescriptionProvider();
-        MetaEnvironmentDescription description= new MetaEnvironmentDescription(
-                provider,MetaConfiguration.DEFAULT
-        );
-
-        //if hit less than DEFAULT.maxQueueSize goals, our average should be
-        //the mean of the all the tries
-        int average= 0;
-        for (int goals=0;goals<MetaConfiguration.DEFAULT.getSuccessQueueMaxSize()-1;goals++) {
-            int transitionsToGoal= (int)(Math.random()*MetaConfiguration.DEFAULT.getStepThreshold());
-            for (int transitions=0;transitions<transitionsToGoal;transitions++) {
-                description.transition(2,new Move("a"));
-            }
-            assertTrue(description.isGoalState(13));
-            average+= transitionsToGoal;
-        }
-        average/= MetaConfiguration.DEFAULT.getSuccessQueueMaxSize()-1;
-
-        assertEquals(1,provider.numGenerated);
-        assertEquals(average,description.averageEnqueuedSuccesses());
-
-        //now if we hit one more goal, the average should reset
-        assertTrue(description.isGoalState(13));
-        assertEquals(-1,description.averageEnqueuedSuccesses());
     }
 
     /**

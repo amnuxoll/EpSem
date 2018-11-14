@@ -34,18 +34,21 @@ public class WeightTable {
      *
      * @param episodes the list of episodes to look for matches in
      * @param numMatches the number of best matches to return
+     * @param lastGoalIndex the index of the most recent goal -- where to start comparisons
+     *
      * @return the indexes of the best (at most) 'numMatches' matches to the most recent window of episodes,
      *          which weren't goals
      */
-    public ScoredIndex[] bestIndices(ArrayList<Episode> episodes, int numMatches){
+    public ScoredIndex[] bestIndices(ArrayList<Episode> episodes, int numMatches, int lastGoalIndex){
         if(episodes == null){
             throw new IllegalArgumentException("episodes cannot be null");
         }
         if(numMatches < 0){
             throw new IllegalArgumentException("numMatches must be non-negative");
         }
-
-        int lastGoalIndex= lastGoalIndex(episodes, episodes.size()-1);
+        if(episodes.size() - table.size() <= lastGoalIndex){
+            throw new IllegalArgumentException("There has to be a window size of episodes since last goal");
+        }
 
         PriorityQueue<ScoredIndex> bestIndexes= new PriorityQueue<>(numMatches);
 
@@ -53,11 +56,19 @@ public class WeightTable {
         //down the episodic memory,
         //curr index is the index of the most recent episode in the sub-sequence
         for(int currIndex= lastGoalIndex-1; currIndex >= table.size()-1; currIndex-- ){
-            double sequenceScore= calculateMatchScore(episodes, episodes.size()-1, currIndex);
+            try{
+                double sequenceScore= calculateMatchScore(episodes, episodes.size()-1, currIndex);
 
-            //add this score to priority queue
-            //noramlize score to be in range [0,1]
-            bestIndexes.add(new ScoredIndex(currIndex,sequenceScore/table.size()));
+                //add this score to priority queue
+                //noramlize score to be in range [0,1]
+                bestIndexes.add(new ScoredIndex(currIndex,sequenceScore));
+            }
+            catch(WindowContainsGoalException containsGoal){
+                //set curr index to be the location of the goal we collided with
+                //next step (bottom of loop) we currIndex--;
+                currIndex= containsGoal.getGoalIndex();
+            }
+            currIndex= currIndex;
         }
 
         //maybe there werent 'numMatches' sequeunces to check, so we have less match
@@ -66,31 +77,24 @@ public class WeightTable {
         ScoredIndex[] indexArray= new ScoredIndex[numMatches];
         int i= 0; //i is index of last attempted add to the array
         for(;i<indexArray.length;i++){
-            if(bestIndexes.peek() == null){
-                break;
-            }
             ScoredIndex scoredIndex= bestIndexes.poll();
-            int idx = scoredIndex.index;
-            if(episodes.get(idx).getSensorData().isGoal()) {
-                i--;
-                continue;
-            }
             indexArray[i]= scoredIndex;
         }
 
-        return Arrays.copyOf(indexArray,i);
+        return indexArray;
     }
 
     /**
      * compares windows of episodes using the weight table
-     * calculates a match score of these two windows
+     * calculates a normalized match score of these two windows
+     * in the range [0,1]
      *
      * @param episodes list of episodes to look in
      * @param index1 the index (of most recent episode) of the first window to compare
      * @param index2 the index of the second window to compare
-     * @return a match score between these two windows
+     * @return a normalized match score between these two windows
      */
-    public double calculateMatchScore(ArrayList<Episode> episodes, int index1, int index2) {
+    public double calculateMatchScore(ArrayList<Episode> episodes, int index1, int index2){
         if(episodes == null){
             throw new IllegalArgumentException("episodes cannot be null");
         }
@@ -103,18 +107,26 @@ public class WeightTable {
 
         double sequenceScore= 0;
         //compare each episode in the subsequence
-        //to the most recent momories
+        //to the most recent memories
         for (int i = 0; i < table.size(); i++) {
             //compare the memories we just had
             //with corresponding episode relative to currIndex
             Episode ep1 = episodes.get(index1 - i);
             Episode ep2 = episodes.get(index2 - i);
 
+            //check if either of these episodes are goals
+            if(ep1.getSensorData().isGoal()){
+                throw new WindowContainsGoalException(index1-i);
+            }
+            if(ep2.getSensorData().isGoal()){
+                throw new WindowContainsGoalException(index2-i);
+            }
+
             //add this episode's match score to the sequence's match score
             sequenceScore += table.get(i).matchScore(ep1, ep2);
         }
 
-        return sequenceScore;
+        return sequenceScore/table.size();
     }
     /**
      * updates the weight table after an attempted sequence that didn't hit the goal
@@ -139,25 +151,30 @@ public class WeightTable {
     /**
      * compares goalSequence and pre-goalSequences and updates the table based on matching values and/or mismatching values
      * @param episodes the entire episodic memory
-     * @param goalSequenceIndex the index at which we reached the goal
+     * @param goalSequenceIndex the index at which we started the sequence that brought us to the goal
      */
     public void updateOnGoal(ArrayList<Episode> episodes, int goalSequenceIndex){
+        int preGoalSequenceIndex= goalSequenceIndex - 1;
+
         int previousGoalIndex = lastGoalIndex(episodes, episodes.size()-2);
 
-        if(previousGoalIndex<0) return; //return if this is the first time we're hitting a goal
+        //do nothing if our pregoal sequence contains this goal
+        if(previousGoalIndex > preGoalSequenceIndex - table.size()){
+            return;
+        }
+        //also, if there is no previos goal, do nothing
+        if(previousGoalIndex < 0) return;
 
         Sequence goalSequence = new Sequence(episodes, goalSequenceIndex, episodes.size());
-        if(previousGoalIndex >= goalSequenceIndex-table.size()){
-            return; //don't do anything if the last goalSequence was too short to matter
-        }
 
-        int nextGoalIndex= lastGoalIndex(episodes, episodes.size()-2);
+        int nextGoalIndex= previousGoalIndex;
         //nextGoalIndex is the index of the goal after the current window
         int startIndex = nextGoalIndex-1;
 
         previousGoalIndex = lastGoalIndex(episodes, startIndex);
 
-        for(int i = startIndex; i>=table.size(); i--) {
+        //i is index of sequence we're comparing
+        for(int i = startIndex; i>=table.size()-1; i--) {
 
             if(i-table.size() <= previousGoalIndex) {
                 i = previousGoalIndex -1;
@@ -172,11 +189,10 @@ public class WeightTable {
             Sequence goalSequence2= new Sequence(episodes, i+1,nextGoalIndex+1);
             double attemptSimilarity = getAttemptSimlarity(goalSequence, goalSequence2);
             double actualSimilarity = getActualSimilarity(goalSequence, goalSequence2);
-
             double adjustValue = attemptSimilarity*actualSimilarity;
 
             for(int j = 0; j<table.size(); j++) {
-                Episode ep1= episodes.get(goalSequenceIndex-j-1);
+                Episode ep1= episodes.get(preGoalSequenceIndex-j);
                 Episode ep2= episodes.get(i-j);
 
                 table.get(j).updateWeights(ep1, ep2, adjustValue);
@@ -212,10 +228,6 @@ public class WeightTable {
     private double getActualSimilarity(Sequence goalSequence1, Sequence goalSequence2) {
         int m= Math.min(goalSequence1.getLength(),goalSequence2.getLength());
         int l= Math.max(goalSequence1.getLength(),goalSequence2.getLength());
-
-        int difference = m-l;
-
-        if(difference ==0) return 1;
 
         return (2.0*m)/l - 1;
     }

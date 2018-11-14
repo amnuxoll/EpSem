@@ -34,8 +34,8 @@ public class WeightTableTest {
             episodes.add( new Episode(moves[i%moves.length]));
         }
 
-        assertThrows(IllegalArgumentException.class, () -> table.bestIndices(null,4));
-        assertThrows(IllegalArgumentException.class, () -> table.bestIndices(episodes,-1));
+        assertThrows(IllegalArgumentException.class, () -> table.bestIndices(null,4, 0));
+        assertThrows(IllegalArgumentException.class, () -> table.bestIndices(episodes,-1, 0));
     }
 
     @Test
@@ -49,17 +49,18 @@ public class WeightTableTest {
         episodes.add(makeEp(a,false)); //1: should have matchscore= 0
         episodes.add(makeEp(a,false)); //2: should have matchscore= -.6
         episodes.add(makeEp(b,false)); //3: should have matchscore= 0
-        episodes.add(makeEp(a,true)); //4: should have matchscore= -1
+        episodes.add(makeEp(a,false)); //4: should have matchscore= -1
         episodes.add(makeEp(b,true)); //5: most recent goal
         episodes.add(makeEp(b,false)); //6: should be current window
         episodes.add(makeEp(b,false)); //7: should be current window
 
         WeightTable table= new TestWeightTable(2);
 
-        WeightTable.ScoredIndex[] indexes= table.bestIndices(episodes,2);
+        WeightTable.ScoredIndex[] indexes= table.bestIndices(episodes,2, 5);
 
-        //should be in decreaseing order
-        //assertArrayEquals(new int[]{3,1}, indexes);
+        for(WeightTable.ScoredIndex si : indexes){
+            System.out.println(si.index + " " + si.score);
+        }
     }
 
     @Test

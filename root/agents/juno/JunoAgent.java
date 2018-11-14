@@ -23,7 +23,7 @@ public class JunoAgent extends MaRzAgent {
     //how many episodes we match at a time
     private int NUM_MATCHES= 5;
     private int goals= 0;
-    private int marzGoals= 5;
+    private int marzGoals= 3;
 
     private JunoConfiguration config;
 
@@ -34,6 +34,7 @@ public class JunoAgent extends MaRzAgent {
     private double prevAverage= 0;
     //how mature we think our weight table is
     private double tableMaturity= Double.MAX_VALUE;
+    private int tableSizeOnMatch= -1;
 
     /**
      * JunoAgent
@@ -53,12 +54,16 @@ public class JunoAgent extends MaRzAgent {
     protected Sequence selectNextSequence(){
         Sequence marzSuggestion= super.selectNextSequence();
 
-        if(this.lastGoalIndex <= 0 || goals < marzGoals){
+        //if we haven't hit a goal yet || if we haven't done enough marz goals || if we haven't done a 'window size'
+        // of moves yet, go with marz
+        if(this.lastGoalIndex <= 0 || goals < marzGoals || lastGoalIndex >= episodicMemory.size()-weightTable.size()){
             marzCount++;
+            this.tableSizeOnMatch= -1;
+            lastMatch= null;
             return marzSuggestion;
         }
 
-        ScoredIndex[] bestIndices= weightTable.bestIndices(episodicMemory,NUM_MATCHES);
+        ScoredIndex[] bestIndices= weightTable.bestIndices(episodicMemory, NUM_MATCHES, super.lastGoalIndex);
         //best matching index is first in array
         ScoredIndex bestIndexToTry= bestIndexToTry(bestIndices);
 
@@ -75,17 +80,26 @@ public class JunoAgent extends MaRzAgent {
             super.setActiveNode(super.suffixTree.findBestMatch(junoSuggestion));
             this.lastSequenceIndex= episodicMemory.size()-1;
             this.lastMatch= bestIndexToTry;
+            this.tableSizeOnMatch= weightTable.size();
 
             junoCount++;
             return junoSuggestion;
         }
 
         lastMatch= null;
+        this.tableSizeOnMatch= -1;
         marzCount++;
         return marzSuggestion;
     }
 
     private ScoredIndex bestIndexToTry(ScoredIndex[] indexes){
+        if(indexes == null){
+            throw new IllegalArgumentException("Indexes cannot be null");
+        }
+        if(indexes.length < 1){
+            throw new IllegalArgumentException("Indexes should not be empty");
+        }
+
         ScoredIndex best= null;
         double maxScore= -1;
 
@@ -106,6 +120,7 @@ public class JunoAgent extends MaRzAgent {
     protected void markSuccess(){
         goals++;
         super.markSuccess();
+        //we pass in the index at which we started the sequence that brought us to the goal *here* vvv
         weightTable.updateOnGoal(episodicMemory, episodicMemory.size()-currentSequence.getCurrentIndex()-1);
 
         //collect data to determine how mature our wight table is
@@ -120,12 +135,12 @@ public class JunoAgent extends MaRzAgent {
     protected void markFailure(){
         super.markFailure();
 
-        if(super.getActiveNode() != null){
-            weightTable.setSize(super.getActiveNode().getSuffix().getLength() + 1);
-        }
-
         if(lastMatch != null){
             weightTable.updateOnFailure(episodicMemory, lastMatch.index, lastSequenceIndex);
+        }
+
+        if(super.getActiveNode() != null){
+            weightTable.setSize(super.getActiveNode().getSuffix().getLength() + 1);
         }
     }
 
@@ -151,14 +166,20 @@ public class JunoAgent extends MaRzAgent {
             return false;
         }
 
-        if(currentSequence.getCurrentIndex() >= weightTable.size()){
-            double matchScore= weightTable.calculateMatchScore(episodicMemory,
-                    episodicMemory.size()-1,
-                    lastMatch.index + weightTable.size() + currentSequence.getCurrentIndex());
+        //if we've taken enough steps in this sequence to start doing comparisons with
+        //what we expect
+        if(currentSequence.getCurrentIndex() + 1 >= weightTable.size()) {
+            try {
+                double matchScore = weightTable.calculateMatchScore(episodicMemory,
+                        episodicMemory.size() - 1,
+                        lastMatch.index + currentSequence.getCurrentIndex());
 
-            //if our match is less than our confidence
-            if(matchScore < config.getBailSlider()*lastMatch.score){
-                return true;
+                //if our match is less than our confidence
+                if (matchScore < config.getBailSlider() * lastMatch.score) {
+                    return true;
+                }
+            } catch (WindowContainsGoalException wcg) {
+                int x = 4;
             }
         }
 
@@ -234,6 +255,19 @@ public class JunoAgent extends MaRzAgent {
         }
 
         return new Sequence(episodicMemory,startIndex,index+1);
+    }
+
+    /**
+     *
+     * @return the ratio of juno desicions to all decisions
+     */
+    public double getJunoRatio(){
+        double total = marzCount + junoCount;
+
+        if(total == 0){
+            return 0;
+        }
+        return (double)junoCount/total;
     }
 
     @Override
