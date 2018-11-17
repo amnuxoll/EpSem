@@ -90,17 +90,17 @@ public class FileResultWriter implements IResultWriter {
             this.fileWriter.write("\n");
             this.fileWriter.write(this.agent + " Average,");
             // Write out the basic goal sums
-            for (int i = 1; i <= this.maxNumberOfGoals; i++) {
+            for (int i = 2; i <= this.maxNumberOfGoals + 1; i++) {
                 int startRow = 2;
                 int endRow = startRow + this.numberOfRuns - 1;
                 String columnLabel = this.convertToColumn(i);
                 this.fileWriter.write("=average(" + columnLabel + startRow + ":" + columnLabel + endRow + "),");
             }
             this.fileWriter.write("\n");
-            this.fileWriter.write(this.agent + " Smoothed,,,");
+            this.fileWriter.write(this.agent + " Smoothed,,,,");
 
             // Write out the smoothing row
-            for (int i = 4; i <= this.maxNumberOfGoals - 3; i++) {
+            for (int i = 5; i <= this.maxNumberOfGoals - 2; i++) {
                 String leftColumn = this.convertToColumn(i - 3);
                 String rightColumn = this.convertToColumn(i + 3);
                 int row = 2 + this.numberOfRuns;
