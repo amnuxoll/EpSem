@@ -16,4 +16,10 @@ public class MaRzLearnerProvider<TSuffixNode extends SuffixNodeBase<TSuffixNode>
     public IAgent getAgent() {
         return new MaRzLearner<>(super.nodeProvider);
     }
+
+    @Override
+    public String getAlias()
+    {
+        return "MaRzLearnerAgent";
+    }
 }

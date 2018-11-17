@@ -11,4 +11,6 @@ public interface IAgentProvider {
      * @return a new {@link IAgent}.
      */
     IAgent getAgent();
+
+    String getAlias();
 }

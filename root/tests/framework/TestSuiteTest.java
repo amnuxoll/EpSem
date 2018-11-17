@@ -55,7 +55,7 @@ public class TestSuiteTest {
         assertEquals(this.testConfiguration.getNumberOfIterations(), ((TestAgentProvider)agentProviders[0]).generatedAgents);
         assertEquals(this.testConfiguration.getNumberOfIterations(), environmentDescriptionProvider.generatedEnvironmentDescriptions);
         assertEquals(2, resultWriterProvider.generatedResultWriters.size());
-        TestResultWriter resultWriter = resultWriterProvider.generatedResultWriters.get("agent0_steps");
+        TestResultWriter resultWriter = resultWriterProvider.generatedResultWriters.get("agent_Alias_0_steps");
         assertEquals(this.testConfiguration.getNumberOfIterations(), resultWriter.iterationCount);
         assertEquals(this.testConfiguration.getNumberOfIterations() * this.testConfiguration.getNumberOfGoals(), resultWriter.stepsLoggedCount);
         assertTrue(resultWriter.completed);
@@ -79,13 +79,13 @@ public class TestSuiteTest {
         assertEquals(2 * this.testConfiguration.getNumberOfIterations(), environmentDescriptionProvider.generatedEnvironmentDescriptions);
 
         assertEquals(4, resultWriterProvider.generatedResultWriters.size());
-        TestResultWriter resultWriter = resultWriterProvider.generatedResultWriters.get("agent0_steps");
+        TestResultWriter resultWriter = resultWriterProvider.generatedResultWriters.get("agent_Alias_0_steps");
         assertEquals(this.testConfiguration.getNumberOfIterations(), resultWriter.iterationCount);
         assertEquals(this.testConfiguration.getNumberOfIterations() * this.testConfiguration.getNumberOfGoals(), resultWriter.stepsLoggedCount);
         assertTrue(resultWriter.completed);
         assertEquals(this.testConfiguration.getNumberOfIterations(), resultWriter.iterationCountAtcompleted);
 
-        resultWriter = resultWriterProvider.generatedResultWriters.get("agent1_steps");
+        resultWriter = resultWriterProvider.generatedResultWriters.get("agent_Alias_1_steps");
         assertEquals(this.testConfiguration.getNumberOfIterations(), resultWriter.iterationCount);
         assertEquals(this.testConfiguration.getNumberOfIterations() * this.testConfiguration.getNumberOfGoals(), resultWriter.stepsLoggedCount);
         assertTrue(resultWriter.completed);
@@ -100,6 +100,11 @@ public class TestSuiteTest {
         public IAgent getAgent() {
             this.generatedAgents++;
             return new TestAgent();
+        }
+
+        @Override
+        public String getAlias() {
+            return "Alias";
         }
     }
 

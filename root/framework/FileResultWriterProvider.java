@@ -19,10 +19,7 @@ public class FileResultWriterProvider implements IResultWriterProvider {
      * Create an instance of a {@link FileResultWriterProvider}.
      */
     public FileResultWriterProvider() {
-        Date myDate = new Date();
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
-        String dateString = sdf.format(myDate);
-        this.timestampDirectory = Paths.get(FileResultWriterProvider.outputRootDirectory, dateString).toString();
+        this.timestampDirectory = Paths.get(FileResultWriterProvider.outputRootDirectory, this.getTimestamp()).toString();
     }
 
     /**
@@ -36,11 +33,18 @@ public class FileResultWriterProvider implements IResultWriterProvider {
             throw new IllegalArgumentException("agent cannot be null");
         if (agent == "")
             throw new IllegalArgumentException("agent cannot be empty");
-        return new FileResultWriter(Paths.get(this.timestampDirectory,  agent + ".csv").toString());
+        return new FileResultWriter(Paths.get(this.timestampDirectory,  agent + "." + this.getTimestamp() + ".csv").toString());
     }
 
     @Override
     public String getOutputDirectory(){
         return timestampDirectory;
+    }
+
+    private String getTimestamp()
+    {
+        Date myDate = new Date();
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
+        return sdf.format(myDate);
     }
 }

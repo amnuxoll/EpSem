@@ -19,4 +19,10 @@ public class JunoAgentProvider extends MaRzAgentProvider {
 
     @Override
     public IAgent getAgent() {return new JunoAgent(this.nodeProvider, config);}
+
+    @Override
+    public String getAlias()
+    {
+        return "JunoAgent";
+    }
 }

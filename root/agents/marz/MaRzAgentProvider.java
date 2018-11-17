@@ -27,4 +27,9 @@ public class MaRzAgentProvider<TSuffixNode extends SuffixNodeBase<TSuffixNode>> 
     public IAgent getAgent() {
         return new MaRzAgent<>(this.nodeProvider);
     }
+
+    @Override
+    public String getAlias() {
+        return "MaRzAgent";
+    }
 }

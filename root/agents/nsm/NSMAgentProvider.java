@@ -8,4 +8,9 @@ public class NSMAgentProvider implements IAgentProvider {
     public IAgent getAgent() {
         return new NSMAgent();
     }
+
+    @Override
+    public String getAlias() {
+        return "NSMAgent";
+    }
 }

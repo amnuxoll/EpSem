@@ -40,11 +40,21 @@ public class Runner {
     );
 
     private static TestSuite NsmFSM = new TestSuite(
-            TestSuiteConfiguration.QUICK,
+            TestSuiteConfiguration.MEDIUM,
+            new FileResultWriterProvider(),
+            new FSMDescriptionProvider(3, 30, FSMDescription.Sensor.ALL_SENSORS),
+            new IAgentProvider[] {
+                    new NSMAgentProvider()
+            }
+    );
+
+    private static TestSuite NsmVsMaRzFSM = new TestSuite(
+            TestSuiteConfiguration.MEDIUM,
             new FileResultWriterProvider(),
             new FSMDescriptionProvider(3, 30, EnumSet.of(FSMDescription.Sensor.EVEN_ODD)),
             new IAgentProvider[] {
-                    new NSMAgentProvider()
+                    new NSMAgentProvider(),
+                    new MaRzAgentProvider<>(new SuffixNodeProvider())
             }
     );
 
@@ -120,7 +130,7 @@ public class Runner {
 
     public static void main(String[] args) {
         try {
-            TestSuite suite = NsmFSM;
+            TestSuite suite = NsmVsMaRzFSM;
 
             Services.register(IRandomizer.class, new Randomizer());
 

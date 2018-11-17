@@ -26,6 +26,6 @@ public class FileResultWriterProviderTest {
         IResultWriter resultWriter = resultWriterProvider.getResultWriter("myagent");
         assertTrue(resultWriter instanceof FileResultWriter);
         FileResultWriter fileResultWriter = (FileResultWriter)resultWriter;
-        assertTrue(fileResultWriter.getFileName().endsWith("myagent.csv"));
+        assertTrue(fileResultWriter.getFileName().matches("^.*myagent\\.\\d+\\.csv"));
     }
 }
