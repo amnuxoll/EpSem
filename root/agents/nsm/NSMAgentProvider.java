@@ -6,6 +6,6 @@ import framework.IAgentProvider;
 public class NSMAgentProvider implements IAgentProvider {
     @Override
     public IAgent getAgent() {
-        return null;
+        return new NSMAgent();
     }
 }

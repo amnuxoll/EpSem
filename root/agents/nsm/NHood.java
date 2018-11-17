@@ -1,5 +1,7 @@
 package agents.nsm;
 
+import framework.Move;
+
 import java.util.ArrayList;
 import java.util.Collections;
 
@@ -15,13 +17,18 @@ import java.util.Collections;
 public class NHood {
     public final int K_NEAREST = 8;  //max allowed size of neighborhood
 
-    public char command;           // action associated with this neighborhood
+    public Move command;           // action associated with this neighborhood
     public ArrayList<NBor> nbors;  // neigbhors in the hood
     public int shortest = 0;       //length of shortest neighbor
 
-    public NHood(char initCmd) {
-        this.command = initCmd;
+    public NHood(Move initMove) {
+        this.command = initMove;
         nbors = new ArrayList<NBor>();
+    }
+
+    public Move getMove()
+    {
+        return this.command;
     }
 
     /** adds a new neighbor to the neighborhood.
@@ -39,5 +46,24 @@ public class NHood {
         Collections.sort(this.nbors);
         this.shortest = nbors.get(0).len;
     }//addNBor
+
+    public double getQValue()
+    {
+        //Don't calculate for empty neighborhoods
+        if (this.nbors.size() == 0)
+            return 0.0;
+
+        // sum the q-values of each neighbor
+        double total = 0.0;
+        for(NBor nbor : this.nbors)
+        {
+            total += nbor.calculateQValue();
+//            QEpisode qep = episodicMemory.get(nbor.end);
+//            total += qep.qValue;
+        }
+
+        // return the average
+        return (total / (double)this.nbors.size());
+    }
 
 }//class NHood

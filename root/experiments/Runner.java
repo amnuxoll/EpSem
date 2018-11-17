@@ -39,6 +39,15 @@ public class Runner {
             }
     );
 
+    private static TestSuite NsmFSM = new TestSuite(
+            TestSuiteConfiguration.QUICK,
+            new FileResultWriterProvider(),
+            new FSMDescriptionProvider(3, 30, EnumSet.of(FSMDescription.Sensor.EVEN_ODD)),
+            new IAgentProvider[] {
+                    new NSMAgentProvider()
+            }
+    );
+
     private static TestSuite MarzLearnerFSM = new TestSuite(
             TestSuiteConfiguration.QUICK,
             new FileResultWriterProvider(),
@@ -111,7 +120,7 @@ public class Runner {
 
     public static void main(String[] args) {
         try {
-            TestSuite suite= MarzLearnerFSM;
+            TestSuite suite = NsmFSM;
 
             Services.register(IRandomizer.class, new Randomizer());
 
