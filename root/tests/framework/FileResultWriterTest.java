@@ -14,20 +14,29 @@ public class FileResultWriterTest {
 
     @Test
     public void testConstructorNullNameThrowsException() {
-        assertThrows(IllegalArgumentException.class, () -> new FileResultWriter(null));
+        assertThrows(IllegalArgumentException.class, () -> new FileResultWriter(null, "file"));
     }
-
 
     @Test
     public void testConstructorEmptyNameThrowsException() {
-        assertThrows(IllegalArgumentException.class, () -> new FileResultWriter(""));
+        assertThrows(IllegalArgumentException.class, () -> new FileResultWriter("", "file"));
+    }
+
+    @Test
+    public void testConstructorNullFileThrowsException() {
+        assertThrows(IllegalArgumentException.class, () -> new FileResultWriter("agent", null));
+    }
+
+    @Test
+    public void testConstructorEmptyFileThrowsException() {
+        assertThrows(IllegalArgumentException.class, () -> new FileResultWriter("agent", ""));
     }
 
     @Test
     public void testGetFileName() throws Exception {
         String fileName = "output.csv";
         try {
-            FileResultWriter writer = new FileResultWriter(fileName);
+            FileResultWriter writer = new FileResultWriter("agent", fileName);
             assertEquals(fileName, writer.getFileName());
         }
         finally {
@@ -43,7 +52,7 @@ public class FileResultWriterTest {
     public void testLogStepsToGoalSingleStep()throws Exception {
         String fileName = "output.csv";
         try {
-            FileResultWriter writer = new FileResultWriter(fileName);
+            FileResultWriter writer = new FileResultWriter("agent", fileName);
             writer.logStepsToGoal(13);
             try {
                 List<String> lines = Files.readAllLines(Paths.get(fileName));
@@ -66,7 +75,7 @@ public class FileResultWriterTest {
     public void testLogStepsToGoalMultipleSteps() throws Exception {
         String fileName = "output.csv";
         try {
-            FileResultWriter writer = new FileResultWriter(fileName);
+            FileResultWriter writer = new FileResultWriter("agent", fileName);
             writer.logStepsToGoal(13);
             writer.logStepsToGoal(7);
             writer.logStepsToGoal(2);
@@ -92,13 +101,15 @@ public class FileResultWriterTest {
     public void testBeginNewRunSingleRun() throws Exception {
         String fileName = "output.csv";
         try {
-            FileResultWriter writer = new FileResultWriter(fileName);
+            FileResultWriter writer = new FileResultWriter("agent", fileName);
             writer.beginNewRun();
             try {
                 List<String> lines = Files.readAllLines(Paths.get(fileName));
-                assertEquals(1, lines.size());
+                assertEquals(2, lines.size());
                 String firstLine = lines.get(0);
                 assertEquals("", firstLine);
+                String secondLine = lines.get(1);
+                assertEquals("1,", secondLine);
             } catch (IOException ex) {
                 fail(ex.getMessage());
             }
@@ -115,16 +126,21 @@ public class FileResultWriterTest {
     public void testBeginNewRunMultipleRuns()throws Exception {
         String fileName = "output.csv";
         try {
-            FileResultWriter writer = new FileResultWriter(fileName);
+            FileResultWriter writer = new FileResultWriter("agent", fileName);
             writer.beginNewRun();
             writer.beginNewRun();
             writer.beginNewRun();
             writer.beginNewRun();
             try {
                 List<String> lines = Files.readAllLines(Paths.get(fileName));
-                assertEquals(4, lines.size());
+                assertEquals(5, lines.size());
+                int run = 0;
                 for (String line : lines) {
-                    assertEquals("", line);
+                    if (run == 0)
+                        assertEquals("", line);
+                    else
+                        assertEquals(run + ",", line);
+                    run++;
                 }
             } catch (IOException ex) {
                 fail(ex.getMessage());
@@ -142,7 +158,7 @@ public class FileResultWriterTest {
     public void testCompleteFinalizesStandardReportRun()throws Exception {
         String fileName = "output.csv";
         try {
-            FileResultWriter writer = new FileResultWriter(fileName);
+            FileResultWriter writer = new FileResultWriter("agent", fileName);
             for (int runs = 0; runs < 10; runs++) {
                 writer.beginNewRun();
                 for (int goals = 0; goals < 30; goals++) {
@@ -153,18 +169,18 @@ public class FileResultWriterTest {
             try {
                 List<String> expected = Arrays.asList(
                         "",
-                        "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,",
-                        "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,",
-                        "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,",
-                        "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,",
-                        "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,",
-                        "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,",
-                        "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,",
-                        "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,",
-                        "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,",
-                        "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,",
-                        "=average(A2:A11),=average(B2:B11),=average(C2:C11),=average(D2:D11),=average(E2:E11),=average(F2:F11),=average(G2:G11),=average(H2:H11),=average(I2:I11),=average(J2:J11),=average(K2:K11),=average(L2:L11),=average(M2:M11),=average(N2:N11),=average(O2:O11),=average(P2:P11),=average(Q2:Q11),=average(R2:R11),=average(S2:S11),=average(T2:T11),=average(U2:U11),=average(V2:V11),=average(W2:W11),=average(X2:X11),=average(Y2:Y11),=average(Z2:Z11),=average(AA2:AA11),=average(AB2:AB11),=average(AC2:AC11),=average(AD2:AD11),",
-                        ",,,=average(A12:G12),=average(B12:H12),=average(C12:I12),=average(D12:J12),=average(E12:K12),=average(F12:L12),=average(G12:M12),=average(H12:N12),=average(I12:O12),=average(J12:P12),=average(K12:Q12),=average(L12:R12),=average(M12:S12),=average(N12:T12),=average(O12:U12),=average(P12:V12),=average(Q12:W12),=average(R12:X12),=average(S12:Y12),=average(T12:Z12),=average(U12:AA12),=average(V12:AB12),=average(W12:AC12),=average(X12:AD12),,,,"
+                        "1,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,",
+                        "2,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,",
+                        "3,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,",
+                        "4,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,",
+                        "5,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,",
+                        "6,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,",
+                        "7,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,",
+                        "8,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,",
+                        "9,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,",
+                        "10,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,",
+                        "agent Average,=average(A2:A11),=average(B2:B11),=average(C2:C11),=average(D2:D11),=average(E2:E11),=average(F2:F11),=average(G2:G11),=average(H2:H11),=average(I2:I11),=average(J2:J11),=average(K2:K11),=average(L2:L11),=average(M2:M11),=average(N2:N11),=average(O2:O11),=average(P2:P11),=average(Q2:Q11),=average(R2:R11),=average(S2:S11),=average(T2:T11),=average(U2:U11),=average(V2:V11),=average(W2:W11),=average(X2:X11),=average(Y2:Y11),=average(Z2:Z11),=average(AA2:AA11),=average(AB2:AB11),=average(AC2:AC11),=average(AD2:AD11),",
+                        "agent Smoothed,,,=average(A12:G12),=average(B12:H12),=average(C12:I12),=average(D12:J12),=average(E12:K12),=average(F12:L12),=average(G12:M12),=average(H12:N12),=average(I12:O12),=average(J12:P12),=average(K12:Q12),=average(L12:R12),=average(M12:S12),=average(N12:T12),=average(O12:U12),=average(P12:V12),=average(Q12:W12),=average(R12:X12),=average(S12:Y12),=average(T12:Z12),=average(U12:AA12),=average(V12:AB12),=average(W12:AC12),=average(X12:AD12),,,,"
                 );
                 List<String> lines = Files.readAllLines(Paths.get(fileName));
                 assertArrayEquals(expected.toArray(), lines.toArray());

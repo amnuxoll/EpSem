@@ -183,9 +183,9 @@ public class TestSuiteTest {
         public HashMap<String, TestResultWriter> generatedResultWriters = new HashMap<>();
 
         @Override
-        public IResultWriter getResultWriter(String agent) {
+        public IResultWriter getResultWriter(String agent, String file) {
             TestResultWriter resultWriter = new TestResultWriter();
-            this.generatedResultWriters.put(agent, resultWriter);
+            this.generatedResultWriters.put(file, resultWriter);
             return resultWriter;
         }
 

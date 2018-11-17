@@ -25,15 +25,20 @@ public class FileResultWriterProvider implements IResultWriterProvider {
     /**
      * Get an instance of a {@link FileResultWriter} for the given agent.
      * @param agent The name of the agent used to create an output file name.
+     * @param file A component of the output file name.
      * @return an instance of a {@link FileResultWriter}.
      */
     @Override
-    public IResultWriter getResultWriter(String agent) throws Exception {
+    public IResultWriter getResultWriter(String agent, String file) throws Exception {
         if (agent == null)
             throw new IllegalArgumentException("agent cannot be null");
         if (agent == "")
             throw new IllegalArgumentException("agent cannot be empty");
-        return new FileResultWriter(Paths.get(this.timestampDirectory,  agent + "." + this.getTimestamp() + ".csv").toString());
+        if (file == null)
+            throw new IllegalArgumentException("file cannot be null");
+        if (file == "")
+            throw new IllegalArgumentException("file cannot be empty");
+        return new FileResultWriter(agent, Paths.get(this.timestampDirectory,  file + "." + this.getTimestamp() + ".csv").toString());
     }
 
     @Override

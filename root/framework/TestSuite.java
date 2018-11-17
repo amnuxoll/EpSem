@@ -43,8 +43,8 @@ public class TestSuite implements IGoalListener, IEnvironmentListener {
         for (int i = 0; i < this.agentProviders.length; i++) {
             IAgentProvider agentProvider = this.agentProviders[i];
             System.out.println("Beginning agent: " + agentProvider.getAlias() + " " + i);
-            this.currentStepResultWriter = this.resultWriterProvider.getResultWriter("agent_" + agentProvider.getAlias() + "_" + i + "_steps");
-            this.currentDecisionResultWriter = this.resultWriterProvider.getResultWriter("agent_" + agentProvider.getAlias() + "_" + i + "_decisions");
+            this.currentStepResultWriter = this.resultWriterProvider.getResultWriter(agentProvider.getAlias(), "agent_" + agentProvider.getAlias() + "_" + i + "_steps");
+            this.currentDecisionResultWriter = this.resultWriterProvider.getResultWriter(agentProvider.getAlias(), "agent_" + agentProvider.getAlias() + "_" + i + "_decisions");
 
             this.runAgent(agentProvider, numberOfIterations);
         }

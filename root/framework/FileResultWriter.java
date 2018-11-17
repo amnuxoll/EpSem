@@ -16,16 +16,22 @@ public class FileResultWriter implements IResultWriter {
     private int currentNumberOfGoals = 0;
     private int maxNumberOfGoals = 0;
     private int numberOfRuns = 0;
+    private String agent;
 
     /**
      * Create an instance of a {@link FileResultWriter} that writes to the given file path.
      * @param outputFile The path to an output file which will receive the results.
      */
-    public FileResultWriter(String outputFile) throws IOException {
+    public FileResultWriter(String agent, String outputFile) throws IOException {
+        if (agent == null)
+            throw new IllegalArgumentException("agent cannot be null");
+        if (agent == "")
+            throw new IllegalArgumentException("agent cannot be empty");
         if (outputFile == null)
             throw new IllegalArgumentException("outputFile cannot be null");
         if (outputFile == "")
             throw new IllegalArgumentException("outputFile cannot be empty");
+        this.agent = agent;
         this.fileName = outputFile;
         File file = new File(outputFile);
         File parentFile = file.getParentFile();
@@ -68,6 +74,7 @@ public class FileResultWriter implements IResultWriter {
         this.currentNumberOfGoals = 0;
         try {
             this.fileWriter.write("\n");
+            this.fileWriter.write(this.numberOfRuns + ",");
             this.fileWriter.flush();
         } catch (IOException ex) {
             // do anything here?
@@ -81,6 +88,7 @@ public class FileResultWriter implements IResultWriter {
     public void complete() {
         try {
             this.fileWriter.write("\n");
+            this.fileWriter.write(this.agent + " Average,");
             // Write out the basic goal sums
             for (int i = 1; i <= this.maxNumberOfGoals; i++) {
                 int startRow = 2;
@@ -89,7 +97,7 @@ public class FileResultWriter implements IResultWriter {
                 this.fileWriter.write("=average(" + columnLabel + startRow + ":" + columnLabel + endRow + "),");
             }
             this.fileWriter.write("\n");
-            this.fileWriter.write(",,,");
+            this.fileWriter.write(this.agent + " Smoothed,,,");
 
             // Write out the smoothing row
             for (int i = 4; i <= this.maxNumberOfGoals - 3; i++) {

@@ -8,7 +8,7 @@ import java.io.File;
  * @version 0.95
  */
 public interface IResultWriterProvider {
-    IResultWriter getResultWriter(String agent) throws Exception;
+    IResultWriter getResultWriter(String agent, String file) throws Exception;
 
     String getOutputDirectory();
 }

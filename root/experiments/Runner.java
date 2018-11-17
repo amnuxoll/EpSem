@@ -49,7 +49,7 @@ public class Runner {
     );
 
     private static TestSuite NsmVsMaRzFSM = new TestSuite(
-            TestSuiteConfiguration.MEDIUM,
+            TestSuiteConfiguration.QUICK,
             new FileResultWriterProvider(),
             new FSMDescriptionProvider(3, 30, EnumSet.of(FSMDescription.Sensor.EVEN_ODD)),
             new IAgentProvider[] {
