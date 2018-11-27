@@ -77,7 +77,7 @@ public class Episode {
      */
     public double matchScore(Episode ep, EpisodeWeights weights){
         double score= 0;
-        if(ep.move == this.move){
+        if(ep.move.equals(this.move)){
             score+= weights.getActionWeight();
         }
 

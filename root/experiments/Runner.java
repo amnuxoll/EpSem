@@ -24,22 +24,13 @@ public class Runner {
     private static TestSuite JunoFSM = new TestSuite(
             TestSuiteConfiguration.MEDIUM,
             new FileResultWriterProvider(),
-            new FSMDescriptionProvider(3, 30, EnumSet.of(FSMDescription.Sensor.EVEN_ODD)),
+            new FSMDescriptionProvider(2, 6, EnumSet.of(FSMDescription.Sensor.EVEN_ODD)),
             new IAgentProvider[] {
-                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .7, .003))
+                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .7, Double.MAX_VALUE))
             }
     );
 
     private static TestSuite MarzFSM = new TestSuite(
-            TestSuiteConfiguration.QUICK,
-            new FileResultWriterProvider(),
-            new FSMDescriptionProvider(3, 30, FSMDescription.Sensor.ALL_SENSORS),
-            new IAgentProvider[] {
-                    new MaRzAgentProvider<>(new SuffixNodeProvider())
-            }
-    );
-
-    private static TestSuite NsmFSM = new TestSuite(
             TestSuiteConfiguration.MEDIUM,
             new FileResultWriterProvider(),
             new FSMDescriptionProvider(3, 30, FSMDescription.Sensor.ALL_SENSORS),
@@ -71,7 +62,7 @@ public class Runner {
     private static TestSuite JunoVMarz = new TestSuite(
             TestSuiteConfiguration.MEDIUM,
             new FileResultWriterProvider(),
-            new FSMDescriptionProvider(3, 30, FSMDescription.Sensor.NO_SENSORS),
+            new FSMDescriptionProvider(3, 30, EnumSet.of(FSMDescription.Sensor.EVEN_ODD, FSMDescription.Sensor.NOISE)),
             new IAgentProvider[] {
                     new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .7, Double.MAX_VALUE)),
                     new MaRzAgentProvider<>(new SuffixNodeProvider())
@@ -130,10 +121,10 @@ public class Runner {
 
     public static void main(String[] args) {
         try {
-            TestSuite suite = NsmVsMaRzFSM;
+            TestSuite suite= JunoFSM;
 
-            Services.register(IRandomizer.class, new Randomizer());
-
+            Services.register(IRandomizer.class, new Randomizer(541)); //determined seed for debug
+            //Services.register(IRandomizer.class, new Randomizer());
             String outputPath= suite.getResultWriterProvider().getOutputDirectory();
             OutputStreamContainer outputStreamContainer= createOutputStreamContainer(outputPath);
             Services.register(OutputStreamContainer.class, outputStreamContainer);

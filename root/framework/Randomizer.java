@@ -11,7 +11,11 @@ public class Randomizer implements IRandomizer {
     private Random random;
 
     public Randomizer() {
-        this.random = new Random(System.currentTimeMillis());
+        this(System.currentTimeMillis());
+    }
+
+    public Randomizer(long seed){
+        this.random= new Random(seed);
     }
 
     @Override

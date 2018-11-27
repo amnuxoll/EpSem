@@ -1,5 +1,6 @@
 package framework;
 
+import environments.fsm.FSMDescription;
 import framework.Episode;
 
 import java.util.HashMap;
@@ -37,6 +38,12 @@ public class EpisodeWeights {
                 sensorWeights.put(sensor, addAndCap(getSensorWeight(sensor),adjustValue, 0, 1));
             }
             else sensorWeights.put(sensor, addAndCap(getSensorWeight(sensor),-adjustValue, 0, 1));
+        }
+
+        for(String s : ep1.getSensorData().getSensorNames()){
+            if(!sensorWeights.containsKey(s)){
+                sensorWeights.put(s, 0.0);
+            }
         }
     }
 
