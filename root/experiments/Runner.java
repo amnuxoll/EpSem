@@ -32,16 +32,16 @@ public class Runner {
     );
 
     private static TestSuite MarzFSM = new TestSuite(
-            TestSuiteConfiguration.MEDIUM,
+            TestSuiteConfiguration.FULL,
             new FileResultWriterProvider(),
-            new FSMDescriptionProvider(3, 30, FSMDescription.Sensor.ALL_SENSORS),
+            new FSMDescriptionProvider(4, 40, FSMDescription.Sensor.ALL_SENSORS),
             new IAgentProvider[] {
-                    new NSMAgentProvider()
+                    new MaRzAgentProvider<>(new SuffixNodeProvider())
             }
     );
 
     private static TestSuite NsmVsMaRzFSM = new TestSuite(
-            TestSuiteConfiguration.QUICK,
+            TestSuiteConfiguration.FULL,
             new FileResultWriterProvider(),
             new FSMDescriptionProvider(3, 30, EnumSet.of(FSMDescription.Sensor.EVEN_ODD)),
             new IAgentProvider[] {
@@ -60,7 +60,7 @@ public class Runner {
             }
     );
 
-    private static TestSuite JunoVMarz = new TestSuite(
+    private static TestSuite JunoVMarz3_30 = new TestSuite(
             TestSuiteConfiguration.MEDIUM,
             new FileResultWriterProvider(),
             new FSMDescriptionProvider(3, 30, EnumSet.of(FSMDescription.Sensor.EVEN_ODD, FSMDescription.Sensor.NOISE)),
@@ -82,21 +82,11 @@ public class Runner {
     );
 
     private static TestSuite JunoBail = new TestSuite(
-            new TestSuiteConfiguration(1, 500),
+            TestSuiteConfiguration.MEDIUM,
             new FileResultWriterProvider(),
             new FSMDescriptionProvider(4, 40, EnumSet.of(FSMDescription.Sensor.EVEN_ODD)),
             new IAgentProvider[] {
-                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, 1, Double.MAX_VALUE)),
-                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .9, Double.MAX_VALUE)),
-                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .8, Double.MAX_VALUE)),
-                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .7, Double.MAX_VALUE)),
-                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .6, Double.MAX_VALUE)),
-                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .5, Double.MAX_VALUE)),
-                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .4, Double.MAX_VALUE)),
-                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .3, Double.MAX_VALUE)),
-                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .2, Double.MAX_VALUE)),
-                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .1, Double.MAX_VALUE)),
-                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(false, 0, Double.MAX_VALUE)),
+                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, 2, Double.MAX_VALUE))
             }
     );
 
@@ -121,12 +111,25 @@ public class Runner {
     );
 
     public static void main(String[] args) {
-        ArrayList<TestSuite> suitesToRun = new ArrayList<>();
-        suitesToRun.add(JunoVMarz);
-        suitesToRun.add(JunoFSM);
-        suitesToRun.add(JunoVJunoBail);
-        suitesToRun.add(MarzFSM);
-        for(TestSuite suite : suitesToRun) {
+        ArrayList<TestSuite> suites = new ArrayList<>();
+        for(int i : new int[]{20, 40, 80, 160}) {
+            suites.add(new TestSuite(
+                    TestSuiteConfiguration.FULL,
+                    new FileResultWriterProvider(),
+                    new FSMDescriptionProvider(4, i, EnumSet.of(FSMDescription.Sensor.EVEN_ODD)),
+                    new IAgentProvider[]{
+                            new JunoAgentProvider(
+                                    new SuffixNodeProvider(),
+                                    new JunoConfiguration(true, 0.7, Double.MAX_VALUE)
+                            ),
+                            new MaRzAgentProvider<>(new SuffixNodeProvider())
+                    }
+            ));
+        }
+        //TestSuite suite = JunoBail;
+
+        for(TestSuite suite : suites) {
+            System.out.println("beginning suite "+suites.indexOf(suite));
             try {
                 //Services.register(IRandomizer.class, new Randomizer(541)); //determined seed for debug
                 Services.register(IRandomizer.class, new Randomizer());
