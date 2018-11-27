@@ -123,8 +123,8 @@ public class Runner {
         try {
             TestSuite suite= JunoFSM;
 
-            Services.register(IRandomizer.class, new Randomizer(541)); //determined seed for debug
-            //Services.register(IRandomizer.class, new Randomizer());
+            //Services.register(IRandomizer.class, new Randomizer(541)); //determined seed for debug
+            Services.register(IRandomizer.class, new Randomizer());
             String outputPath= suite.getResultWriterProvider().getOutputDirectory();
             OutputStreamContainer outputStreamContainer= createOutputStreamContainer(outputPath);
             Services.register(OutputStreamContainer.class, outputStreamContainer);

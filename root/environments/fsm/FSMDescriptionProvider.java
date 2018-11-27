@@ -49,10 +49,10 @@ public class FSMDescriptionProvider implements IEnvironmentDescriptionProvider {
         Move a = new Move("a");
         Move b = new Move("b");
 
-        transitionTable= debugTT(a,b);
+        //transitionTable= debugTT(a,b);
 
         FSMDescription toReturn = new FSMDescription(transitionTable, this.sensorsToInclude);
-        //toReturn.setShortestSequences(builder.getShortestSequences());
+        toReturn.setShortestSequences(builder.getShortestSequences());
         toReturn.setShortestSequences(builder.getShortestSequences());
         System.out.println("Universal sequence: "+toReturn.getUniversalSequence());
         return toReturn;
