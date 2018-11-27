@@ -17,6 +17,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.EnumSet;
 
 public class Runner {
@@ -120,26 +121,31 @@ public class Runner {
     );
 
     public static void main(String[] args) {
-        try {
-            TestSuite suite= JunoFSM;
+        ArrayList<TestSuite> suitesToRun = new ArrayList<>();
+        suitesToRun.add(JunoVMarz);
+        suitesToRun.add(JunoFSM);
+        suitesToRun.add(JunoVJunoBail);
+        suitesToRun.add(MarzFSM);
+        for(TestSuite suite : suitesToRun) {
+            try {
+                //Services.register(IRandomizer.class, new Randomizer(541)); //determined seed for debug
+                Services.register(IRandomizer.class, new Randomizer());
+                String outputPath = suite.getResultWriterProvider().getOutputDirectory();
+                OutputStreamContainer outputStreamContainer = createOutputStreamContainer(outputPath);
+                Services.register(OutputStreamContainer.class, outputStreamContainer);
 
-            //Services.register(IRandomizer.class, new Randomizer(541)); //determined seed for debug
-            Services.register(IRandomizer.class, new Randomizer());
-            String outputPath= suite.getResultWriterProvider().getOutputDirectory();
-            OutputStreamContainer outputStreamContainer= createOutputStreamContainer(outputPath);
-            Services.register(OutputStreamContainer.class, outputStreamContainer);
+                suite.run();
 
-            suite.run();
-
-            outputStreamContainer.closeAll();
-        }
-        catch (OutOfMemoryError mem){
-            mem.printStackTrace();
-        }
-        catch (Exception ex)
-        {
-            System.out.println("Runner failed with exception: " + ex.getMessage());
-            ex.printStackTrace();
+                outputStreamContainer.closeAll();
+            }
+            catch (OutOfMemoryError mem){
+                mem.printStackTrace();
+            }
+            catch (Exception ex)
+            {
+                System.out.println("Runner failed with exception: " + ex.getMessage());
+                ex.printStackTrace();
+            }
         }
     }
 
