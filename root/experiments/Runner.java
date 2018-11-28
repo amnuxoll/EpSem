@@ -112,12 +112,11 @@ public class Runner {
 
     public static void main(String[] args) {
         ArrayList<TestSuite> suites = new ArrayList<>();
-        for(int i : new int[]{20, 40, 80, 160}) {
-
+        for(int i : new int[]{20, 40, 80 , 160}) {
             suites.add(new TestSuite(
                     TestSuiteConfiguration.FULL,
                     new FileResultWriterProvider(),
-                    new FSMDescriptionProvider(4, i, EnumSet.of(FSMDescription.Sensor.EVEN_ODD)),
+                    new FSMDescriptionProvider(4, i, FSMDescription.Sensor.WITHIN_SENSORS),
                     new IAgentProvider[]{
                             new JunoAgentProvider(
                                     new SuffixNodeProvider(),
@@ -126,14 +125,8 @@ public class Runner {
                             new MaRzAgentProvider<>(new SuffixNodeProvider())
                     }
             ));
-            try {
-                Thread.sleep(2000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
         }
         //TestSuite suite = JunoBail;
-
         for(TestSuite suite : suites) {
             System.out.println("beginning suite "+suites.indexOf(suite));
             try {
