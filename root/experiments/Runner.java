@@ -130,7 +130,7 @@ public class Runner {
 
     public static void main(String[] args) {
         try {
-            TestSuite suite = NsmVsMaRzFSM;
+            TestSuite suite = JunoFSM;
 
             Services.register(IRandomizer.class, new Randomizer());
 

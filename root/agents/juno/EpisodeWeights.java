@@ -1,4 +1,4 @@
-package framework;
+package agents.juno;
 
 import framework.Episode;
 
@@ -71,7 +71,19 @@ public class EpisodeWeights {
      * @return a normalized match in range [0,1]
      */
     public double matchScore(Episode ep1, Episode ep2){
-        return ep1.matchScore(ep2, this);
+        double score= 0;
+        if(ep2.getMove() == ep1.getMove()) {
+            score+= this.getActionWeight();
+        }
+        //find match of each sensor
+        for(String sensorName : ep1.getSensorData().getSensorNames()){
+            //if sensor values match
+            if(ep1.getSensorData().getSensor(sensorName).equals(ep2.getSensorData().getSensor(sensorName))){
+                score+= this.getSensorWeight(sensorName);
+            }
+        }
+        double sum= this.sumEntries();
+        return sum == 0 ? 0 : score/sum;
     }
 
     public double getActionWeight() {

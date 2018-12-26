@@ -3,11 +3,8 @@ package agents.juno;
 import framework.*;
 import utils.Sequence;
 
-import java.io.PrintWriter;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.PriorityQueue;
-import java.util.Queue;
 
 public class WeightTable {
     //table of episode weights

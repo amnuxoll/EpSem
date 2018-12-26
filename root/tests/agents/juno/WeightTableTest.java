@@ -1,7 +1,6 @@
 package agents.juno;
 
 import framework.Episode;
-import framework.EpisodeWeights;
 import framework.Move;
 import framework.SensorData;
 import org.junit.jupiter.api.Test;

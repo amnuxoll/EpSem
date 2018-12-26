@@ -1,5 +1,8 @@
-package framework;
+package agents.juno;
 
+import framework.Episode;
+import framework.Move;
+import framework.SensorData;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -66,20 +69,52 @@ public class EpisodeWeightsTest {
 
     @Test
     public void matchScoreTest() {
-        EpisodeWeights weights = new EpisodeWeights();
-        Move a = new Move("a");
-        Move b = new Move("b");
-        Episode ep1 = new Episode(a);
-        Episode ep2 = new Episode(a);
+        fail("This method requires greater testing");
+//        EpisodeWeights weights = new EpisodeWeights();
+//        Move a = new Move("a");
+//        Move b = new Move("b");
+//        Episode ep1 = new Episode(a);
+//        Episode ep2 = new Episode(a);
+//
+//        Episode testMismatch = new Episode(b);
+//        testMismatch.setSensorData(new SensorData(false));
+//
+//        weights.updateWeights(ep1, ep2, 0.76);
+//
+//        ep1.setSensorData(new SensorData(true));
+//        ep2.setSensorData(new SensorData(false));
 
-        Episode testMismatch = new Episode(b);
-        testMismatch.setSensorData(new SensorData(false));
 
-        weights.updateWeights(ep1, ep2, 0.76);
 
-        ep1.setSensorData(new SensorData(true));
-        ep2.setSensorData(new SensorData(false));
+        //assertEquals(ep1.matchScore(ep2, weights), weights.matchScore(ep1, ep2));
 
-        assertEquals(ep1.matchScore(ep2, weights), weights.matchScore(ep1, ep2));
+//        Move move = new Move("a");
+//        Episode episode1 = new Episode(move);
+//        Episode episode2 = new Episode(move);
+//        SensorData data1 = new SensorData(false);
+//        SensorData data2 = new SensorData(false);
+//        data1.setSensor("sensor", 1);
+//        data2.setSensor("sensor", 1);
+//        episode1.setSensorData(data1);
+//        episode2.setSensorData(data2);
+//
+//        EpisodeWeights weights = new EpisodeWeights();
+//
+//
+//        double score = episode1.matchScore(episode2, weights);
+//        assertEquals(0, score);
+//        weights.updateWeights(episode1, episode2, 0.5);
+//        assertEquals(0.5, weights.getActionWeight());
+//
+//        for(String s : episode1.getSensorData().getSensorNames()) {
+//            assertTrue(weights.episodeSensorsMatch(episode1, episode2, s));
+//            assertTrue(weights.getSensorWeight(s) == 0.5);
+//            assertTrue(episode1.getSensorData().getSensor(s).equals(episode2.getSensorData().getSensor(s)));
+//        }
+//
+//
+//        score = episode1.matchScore(episode2, weights);
+//
+//        assertEquals(1.0, score);
     }
 }
