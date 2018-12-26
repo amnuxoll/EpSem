@@ -64,6 +64,10 @@ public class JunoAgent extends MaRzAgent {
         }
 
         ScoredIndex[] bestIndices= weightTable.bestIndices(episodicMemory, NUM_MATCHES, super.lastGoalIndex);
+        if(bestIndices.length == 0) {
+            marzCount++;
+            return marzSuggestion;
+        }
         //best matching index is first in array
         ScoredIndex bestIndexToTry= bestIndexToTry(bestIndices);
 
@@ -171,8 +175,8 @@ public class JunoAgent extends MaRzAgent {
         if(currentSequence.getCurrentIndex() + 1 >= weightTable.size()) {
             try {
                 double matchScore = weightTable.calculateMatchScore(episodicMemory,
-                        episodicMemory.size() - 1,
-                        lastMatch.index + currentSequence.getCurrentIndex());
+                        episodicMemory.size()-1,
+                        lastMatch.index + currentSequence.getCurrentIndex()+1);
 
                 //if our match is less than our confidence
                 if (matchScore < config.getBailSlider() * lastMatch.score) {
@@ -254,7 +258,7 @@ public class JunoAgent extends MaRzAgent {
             index++;
         }
 
-        return new Sequence(episodicMemory,startIndex,index+1);
+        return new Sequence(episodicMemory,startIndex+1,index+1);
     }
 
     /**

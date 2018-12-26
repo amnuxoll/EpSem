@@ -63,6 +63,27 @@ public class WeightTableTest {
     }
 
     @Test
+    public void testMatchScore(){
+        Move a= new Move("a");
+        Move b= new Move("b");
+
+        ArrayList<Episode> episodes= new ArrayList<>();
+
+        episodes.add(makeEp(b,false));
+        episodes.add(makeEp(a,false)); //1: should have matchscore= 0
+        episodes.add(makeEp(a,false)); //2: should have matchscore= -.6
+        episodes.add(makeEp(b,false)); //3: should have matchscore= 0
+        episodes.add(makeEp(a,false)); //4: should have matchscore= -1
+        episodes.add(makeEp(b,true)); //5: most recent goal
+        episodes.add(makeEp(b,false)); //6: should be current window
+        episodes.add(makeEp(b,false)); //7: should be current window
+
+        WeightTable testWeightTable = new TestWeightTable(2);
+
+        assertEquals(0.8, testWeightTable.calculateMatchScore(episodes,episodes.size()-1, 3));
+    }
+
+    @Test
     public void updateOnFailure(){
         Move a= new Move("a");
         Move b= new Move("b");

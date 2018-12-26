@@ -1,5 +1,6 @@
 package agents.juno;
 
+import environments.fsm.FSMDescription;
 import framework.Episode;
 
 import java.util.HashMap;
@@ -38,6 +39,12 @@ public class EpisodeWeights {
             }
             else sensorWeights.put(sensor, addAndCap(getSensorWeight(sensor),-adjustValue, 0, 1));
         }
+
+        for(String s : ep1.getSensorData().getSensorNames()){
+            if(!sensorWeights.containsKey(s)){
+                sensorWeights.put(s, 0.0);
+            }
+        }
     }
 
     /**
@@ -72,7 +79,7 @@ public class EpisodeWeights {
      */
     public double matchScore(Episode ep1, Episode ep2){
         double score= 0;
-        if(ep2.getMove() == ep1.getMove()) {
+        if(ep2.getMove().equals(ep1.getMove())) {
             score+= this.getActionWeight();
         }
         //find match of each sensor

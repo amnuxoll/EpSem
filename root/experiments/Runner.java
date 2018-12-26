@@ -6,6 +6,7 @@ import agents.juno.JunoConfiguration;
 import agents.marz.MaRzAgentProvider;
 import agents.marz.nodes.SuffixNodeProvider;
 import agents.nsm.NSMAgentProvider;
+//import com.sun.corba.se.spi.orbutil.fsm.FSM;
 import environments.fsm.FSMDescription;
 import environments.fsm.FSMDescriptionProvider;
 import environments.meta.FSMDescriptionTweaker;
@@ -17,6 +18,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.EnumSet;
 
 public class Runner {
@@ -24,32 +26,23 @@ public class Runner {
     private static TestSuite JunoFSM = new TestSuite(
             TestSuiteConfiguration.MEDIUM,
             new FileResultWriterProvider(),
-            new FSMDescriptionProvider(3, 30, EnumSet.of(FSMDescription.Sensor.EVEN_ODD)),
+            new FSMDescriptionProvider(3, 50, EnumSet.of(FSMDescription.Sensor.EVEN_ODD)),
             new IAgentProvider[] {
-                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .7, .003))
+                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .7, Double.MAX_VALUE))
             }
     );
 
     private static TestSuite MarzFSM = new TestSuite(
-            TestSuiteConfiguration.QUICK,
+            TestSuiteConfiguration.FULL,
             new FileResultWriterProvider(),
-            new FSMDescriptionProvider(3, 30, FSMDescription.Sensor.ALL_SENSORS),
+            new FSMDescriptionProvider(4, 40, FSMDescription.Sensor.ALL_SENSORS),
             new IAgentProvider[] {
                     new MaRzAgentProvider<>(new SuffixNodeProvider())
             }
     );
 
-    private static TestSuite NsmFSM = new TestSuite(
-            TestSuiteConfiguration.MEDIUM,
-            new FileResultWriterProvider(),
-            new FSMDescriptionProvider(3, 30, FSMDescription.Sensor.ALL_SENSORS),
-            new IAgentProvider[] {
-                    new NSMAgentProvider()
-            }
-    );
-
     private static TestSuite NsmVsMaRzFSM = new TestSuite(
-            TestSuiteConfiguration.QUICK,
+            TestSuiteConfiguration.FULL,
             new FileResultWriterProvider(),
             new FSMDescriptionProvider(3, 30, EnumSet.of(FSMDescription.Sensor.EVEN_ODD)),
             new IAgentProvider[] {
@@ -68,10 +61,10 @@ public class Runner {
             }
     );
 
-    private static TestSuite JunoVMarz = new TestSuite(
+    private static TestSuite JunoVMarz3_30 = new TestSuite(
             TestSuiteConfiguration.MEDIUM,
             new FileResultWriterProvider(),
-            new FSMDescriptionProvider(3, 30, FSMDescription.Sensor.NO_SENSORS),
+            new FSMDescriptionProvider(3, 30, EnumSet.of(FSMDescription.Sensor.EVEN_ODD, FSMDescription.Sensor.NOISE)),
             new IAgentProvider[] {
                     new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .7, Double.MAX_VALUE)),
                     new MaRzAgentProvider<>(new SuffixNodeProvider())
@@ -90,21 +83,11 @@ public class Runner {
     );
 
     private static TestSuite JunoBail = new TestSuite(
-            new TestSuiteConfiguration(1, 500),
+            TestSuiteConfiguration.MEDIUM,
             new FileResultWriterProvider(),
             new FSMDescriptionProvider(4, 40, EnumSet.of(FSMDescription.Sensor.EVEN_ODD)),
             new IAgentProvider[] {
-                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, 1, Double.MAX_VALUE)),
-                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .9, Double.MAX_VALUE)),
-                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .8, Double.MAX_VALUE)),
-                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .7, Double.MAX_VALUE)),
-                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .6, Double.MAX_VALUE)),
-                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .5, Double.MAX_VALUE)),
-                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .4, Double.MAX_VALUE)),
-                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .3, Double.MAX_VALUE)),
-                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .2, Double.MAX_VALUE)),
-                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .1, Double.MAX_VALUE)),
-                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(false, 0, Double.MAX_VALUE)),
+                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, 2, Double.MAX_VALUE))
             }
     );
 
@@ -129,26 +112,56 @@ public class Runner {
     );
 
     public static void main(String[] args) {
-        try {
-            TestSuite suite = JunoFSM;
-
-            Services.register(IRandomizer.class, new Randomizer());
-
-            String outputPath= suite.getResultWriterProvider().getOutputDirectory();
-            OutputStreamContainer outputStreamContainer= createOutputStreamContainer(outputPath);
-            Services.register(OutputStreamContainer.class, outputStreamContainer);
-
-            suite.run();
-
-            outputStreamContainer.closeAll();
+        ArrayList<TestSuite> suites = new ArrayList<>();
+        EnumSet withinAndEO = FSMDescription.Sensor.WITHIN_SENSORS;
+        withinAndEO.add(FSMDescription.Sensor.EVEN_ODD);
+        EnumSet sensorSets[] = new EnumSet[]{
+                FSMDescription.Sensor.NO_SENSORS,
+                EnumSet.of(FSMDescription.Sensor.EVEN_ODD),
+                EnumSet.of(FSMDescription.Sensor.EVEN_ODD, FSMDescription.Sensor.WITHIN_1),
+                EnumSet.of(FSMDescription.Sensor.EVEN_ODD, FSMDescription.Sensor.WITHIN_1, FSMDescription.Sensor.WITHIN_2),
+                EnumSet.of(FSMDescription.Sensor.EVEN_ODD, FSMDescription.Sensor.WITHIN_1, FSMDescription.Sensor.WITHIN_2, FSMDescription.Sensor.WITHIN_4),
+                EnumSet.of(FSMDescription.Sensor.EVEN_ODD, FSMDescription.Sensor.WITHIN_1, FSMDescription.Sensor.WITHIN_2, FSMDescription.Sensor.WITHIN_4, FSMDescription.Sensor.WITHIN_8),
+                EnumSet.of(FSMDescription.Sensor.EVEN_ODD, FSMDescription.Sensor.WITHIN_1, FSMDescription.Sensor.WITHIN_2, FSMDescription.Sensor.WITHIN_4, FSMDescription.Sensor.WITHIN_8, FSMDescription.Sensor.WITHIN_10),
+                withinAndEO
+        };
+        for(EnumSet i : sensorSets) {
+            suites.add(new TestSuite(
+                    TestSuiteConfiguration.FULL,
+                    new FileResultWriterProvider(),
+                    new FSMDescriptionProvider(4, 40, i),
+                    new IAgentProvider[]{
+                            new JunoAgentProvider(
+                                    new SuffixNodeProvider(),
+                                    new JunoConfiguration(true, 0.7, Double.MAX_VALUE)
+                            )
+                            //new MaRzAgentProvider<>(new SuffixNodeProvider())
+                    }
+            ));
         }
-        catch (OutOfMemoryError mem){
-            mem.printStackTrace();
-        }
-        catch (Exception ex)
-        {
-            System.out.println("Runner failed with exception: " + ex.getMessage());
-            ex.printStackTrace();
+        //TestSuite suite = JunoFSM;
+        for(TestSuite suite : suites) {
+            //System.out.println("beginning suite "+suites.indexOf(suite));
+            try {
+                System.out.println("Beginning suite "+suites.indexOf(suite));
+                //Services.register(IRandomizer.class, new Randomizer(541)); //determined seed for debug
+                Services.register(IRandomizer.class, new Randomizer());
+                String outputPath = suite.getResultWriterProvider().getOutputDirectory();
+                OutputStreamContainer outputStreamContainer = createOutputStreamContainer(outputPath);
+                Services.register(OutputStreamContainer.class, outputStreamContainer);
+
+                suite.run();
+
+                outputStreamContainer.closeAll();
+            }
+            catch (OutOfMemoryError mem){
+                mem.printStackTrace();
+            }
+            catch (Exception ex)
+            {
+                System.out.println("Runner failed with exception: " + ex.getMessage());
+                ex.printStackTrace();
+            }
         }
     }
 

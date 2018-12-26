@@ -188,8 +188,8 @@ public class NSMAgent implements IAgent {
                 }
 
                 //Inform the user of steps that were required
-                System.out.print(episodicMemory.size() - lastSuccess);
-                System.out.print(",");
+                //System.out.print(episodicMemory.size() - lastSuccess);
+                //System.out.print(",");
                 lastSuccess = episodicMemory.size();
             } else {
                 episode.reward = REWARD_FAILURE;

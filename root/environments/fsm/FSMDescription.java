@@ -1,14 +1,9 @@
 package environments.fsm;
 
-import framework.IEnvironmentDescription;
-import framework.IEnvironmentListener;
-import framework.Move;
-import framework.SensorData;
+import framework.*;
 import utils.Sequence;
 
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.Set;
+import java.util.*;
 
 /**
  * An FSMDescription provides information to {@link framework.Environment} for running an experiment.
@@ -17,8 +12,10 @@ import java.util.Set;
  */
 public class FSMDescription implements IEnvironmentDescription {
     private HashMap<Move, Integer>[] transitionTable;
+    private HashMap<Integer, ArrayList<Move>> shortestSequences;
     private Move[] moves;
     private EnumSet<Sensor> sensorsToInclude;
+    private Sequence universalSequence;
 
     /**
      * Create an instance of a {@link FSMDescription}.
@@ -131,17 +128,27 @@ public class FSMDescription implements IEnvironmentDescription {
             throw new IllegalArgumentException("sensorData cannot be null");
         if (this.sensorsToInclude.contains(Sensor.EVEN_ODD))
             this.applyEvenOddSensor(currentState, sensorData);
-        if (this.sensorsToInclude.contains(Sensor.NOISE))
-            this.applyNoiseSensor(sensorData);
+        this.applyWithinNSensors(currentState, sensorData);
+        if(this.sensorsToInclude.contains(Sensor.NOISE)){
+            this.applyNoiseSensor(currentState, sensorData);
+        }
     }
 
     private void applyEvenOddSensor(int state, SensorData sensorData) {
         sensorData.setSensor(Sensor.EVEN_ODD.toString(), state % 2 == 0);
     }
 
-    private void applyNoiseSensor(SensorData sensorData)
-    {
-        sensorData.setSensor(Sensor.NOISE.toString(), Math.random());
+    private void applyNoiseSensor(int state, SensorData sensorData){
+        boolean data = Math.random() > 0.5;
+        sensorData.setSensor(Sensor.NOISE.toString(), data);
+    }
+
+    private void applyWithinNSensors(int state, SensorData sensorData){
+        for(int i = 0; i< 20; i++){
+            if(sensorsToInclude.contains(Sensor.fromString("WITHIN_"+i))){
+                sensorData.setSensor("WITHIN_"+i, shortestSequences.get(state).size()<=i);
+            }
+        }
     }
 
     @Override
@@ -169,6 +176,13 @@ public class FSMDescription implements IEnvironmentDescription {
          * Identifies the sensor that determines if the current state is even or odd.
          */
         EVEN_ODD,
+
+        WITHIN_1,
+        WITHIN_2,
+        WITHIN_4,
+        WITHIN_8,
+        WITHIN_10,
+        WITHIN_20,
         /**
          * Identifies the noise sensor that can randomly be applied to a state.
          */
@@ -180,6 +194,52 @@ public class FSMDescription implements IEnvironmentDescription {
         public static final EnumSet<Sensor> ALL_SENSORS = EnumSet.allOf(Sensor.class);
 
         public static final EnumSet<Sensor> NO_SENSORS = EnumSet.noneOf(Sensor.class);
+
+        public static final EnumSet<Sensor> WITHIN_SENSORS = EnumSet.of(WITHIN_1,
+                WITHIN_2,
+                WITHIN_4,
+                WITHIN_8,
+                WITHIN_10,
+                WITHIN_20);
+
+        public static Sensor fromString(String in){
+            for(Sensor s : Sensor.values()){
+                if(s.toString().equals(in)){
+                    return s;
+                }
+            }
+            return null;
+        }
+    }
+    public void setShortestSequences(HashMap<Integer, ArrayList<Move>> shortestSequences){
+        this.shortestSequences = shortestSequences;
+        this.universalSequence = computeUniversalSequence();
     }
 
+    public Sequence getUniversalSequence(){
+        return this.universalSequence;
+    }
+
+    private Sequence computeUniversalSequence(){
+        ArrayList<Integer> states = new ArrayList<>(this.shortestSequences.keySet());
+        states.sort(new Comparator<Integer>() {
+            @Override
+            public int compare(Integer o1, Integer o2) {
+                return shortestSequences.get(o1).size() - shortestSequences.get(o2).size();
+            }
+        });
+
+        ArrayList<Move> universalSequence = new ArrayList<>();
+        for(Integer i : states){
+            int newState = i;
+            for(Move m : universalSequence){
+                newState = this.transition(newState, m);
+                if(isGoalState(newState)) {
+                    break;
+                }
+            }
+            universalSequence.addAll(shortestSequences.get(newState));
+        }
+        return new Sequence( universalSequence.toArray(new Move[0]));
+    }
 }

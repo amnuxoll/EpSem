@@ -3,7 +3,9 @@ package environments.fsm;
 import framework.IRandomizer;
 import framework.Move;
 import framework.Services;
+import utils.Sequence;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 /**
  * An FSMTransitionTableBuilder is used to build transition tables for a {@link FSMDescription}.
@@ -23,6 +25,8 @@ public class FSMTransitionTableBuilder {
     private int numStates;
     private Move[] moves;
     private HashMap<Move, Integer>[] transitionTable;
+
+    private HashMap<Integer, ArrayList<Move>> shortestSequences;
     private int transitionsDone = 0;
 
     /**
@@ -37,6 +41,11 @@ public class FSMTransitionTableBuilder {
             throw new IllegalArgumentException("numStates cannot be less than 1");
         this.alphabetSize = alphabetSize;
         this.numStates = numStates;
+        this.shortestSequences = new HashMap<>();
+        for(int i = 0; i<numStates-1; i++){
+            shortestSequences.put(i, null);
+        }
+        shortestSequences.put(numStates-1, new ArrayList<>());
         this.buildTransitionTable();
     }
 
@@ -53,6 +62,14 @@ public class FSMTransitionTableBuilder {
      */
     public HashMap<Move, Integer>[] getTransitionTable() {
         return this.transitionTable;
+    }
+
+    /**
+     * Get the hash map from each state to the shortest sequence to the goal from that state
+     * @return the table of shortest sequences
+     */
+    public HashMap<Integer, ArrayList<Move>> getShortestSequences() {
+        return shortestSequences;
     }
 
     private void buildTransitionTable() {
@@ -76,25 +93,35 @@ public class FSMTransitionTableBuilder {
     }
 
     private void pickTransitions(int initGoal, int numOfTransitions) {
-        int row = -1;
+        int initState = -1;
         IRandomizer randomizer = Services.retrieve(IRandomizer.class);
         for(int i = 0; i < numOfTransitions; i++) {
             //check to see if table is full
             if(this.transitionsDone == ((this.transitionTable.length-1)*this.moves.length))
                 return;
-            row = randomizer.getRandomNumber(this.transitionTable.length);
-            int col = randomizer.getRandomNumber(this.moves.length);
+            initState = randomizer.getRandomNumber(this.transitionTable.length);
+            int moveIndex = randomizer.getRandomNumber(this.moves.length);
 
-            if (this.transitionTable[row] != null && this.transitionTable[row].containsKey(this.moves[col])) {
+            if (this.transitionTable[initState] != null && this.transitionTable[initState].containsKey(this.moves[moveIndex])) {
                 i--;
                 continue;
             }
-            HashMap<Move, Integer> rowTransitions = this.transitionTable[row];
+            HashMap<Move, Integer> rowTransitions = this.transitionTable[initState];
             if (rowTransitions == null)
-                this.transitionTable[row] = rowTransitions = new HashMap<>();
-            rowTransitions.put(this.moves[col], initGoal);
+                this.transitionTable[initState] = rowTransitions = new HashMap<>();
+            rowTransitions.put(this.moves[moveIndex], initGoal);
+
+            /**
+             * keeps track of the shortest sequence to goal from each state
+             */
+            ArrayList<Move> currentShortestSequence = shortestSequences.get(initState);
+            if(currentShortestSequence == null || currentShortestSequence.size() > shortestSequences.get(initGoal).size() + 1){
+                ArrayList<Move> initGoalSequence = (ArrayList<Move>)shortestSequences.get(initGoal).clone();
+                initGoalSequence.add(0, moves[moveIndex]);
+                shortestSequences.put(initState, initGoalSequence);
+            }
             this.transitionsDone++;
         }
-        pickTransitions(row, 1);
+        pickTransitions(initState, 1);
     }
 }
