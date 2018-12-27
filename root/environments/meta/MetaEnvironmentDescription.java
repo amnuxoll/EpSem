@@ -61,11 +61,10 @@ public class MetaEnvironmentDescription implements IEnvironmentDescription {
         boolean isGoal= currDescription.isGoalState(state);
 
         if(isGoal) {
-            //makeNewDescription relies on transitionCounter,
-            //so do this first
+            //makeNewDescription relies on transitionCounter, so do this first
             numGoals++;
             makeNewDescription();
-            transitionCounter= 0;
+            transitionCounter = 0;
         }
 
         return isGoal;
@@ -102,21 +101,6 @@ public class MetaEnvironmentDescription implements IEnvironmentDescription {
     //region Public Methods
     /**
      *
-     * @return the average of the number of moves to goal in the successQueue
-     *          or -1 if the queue is empty
-     */
-    public int averageEnqueuedSuccesses(){
-        if(successQueue.size() == 0) return -1;
-
-        int sum= 0;
-        for(Integer tc : successQueue){
-            sum+= tc;
-        }
-        return sum/successQueue.size();
-    }
-
-    /**
-     *
      * @return number of moves since last goal
      */
     public int getTransitionCounter() {
@@ -138,20 +122,16 @@ public class MetaEnvironmentDescription implements IEnvironmentDescription {
      * and update the fsm description is the target threshold is reached
      */
     private void makeNewDescription() {
-        successQueue.add(transitionCounter);
-        while (successQueue.size() > config.getSuccessQueueMaxSize()) {
-            successQueue.remove();
+        this.successQueue.add(this.transitionCounter);
+        while (this.successQueue.size() > this.config.getSuccessQueueMaxSize()) {
+            this.successQueue.remove();
         }
-
-        int average= averageEnqueuedSuccesses();
-
         //if the average is less than our threshold and we have collected enough data
-        if (numGoals%config.getTweakPoint() == 0){
-
+        if (this.numGoals%this.config.getTweakPoint() == 0) {
             //make a new environment
-            currDescription = environmentDescriptionProvider.getEnvironmentDescription();
+            this.currDescription = this.environmentDescriptionProvider.getEnvironmentDescription();
             //and clear the queue
-            successQueue.clear();
+            this.successQueue.clear();
         }
     }
     //endregion

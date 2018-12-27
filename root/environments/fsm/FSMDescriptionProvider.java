@@ -2,8 +2,7 @@ package environments.fsm;
 
 import framework.IEnvironmentDescription;
 import framework.IEnvironmentDescriptionProvider;
-import framework.Move;
-import utils.FSMTransitionTableBuilder;
+
 import java.util.*;
 
 /**
@@ -40,12 +39,8 @@ public class FSMDescriptionProvider implements IEnvironmentDescriptionProvider {
      */
     @Override
     public IEnvironmentDescription getEnvironmentDescription() {
-        HashMap<Move, Integer>[] transitionTable = this.transitionTableBuilder.getTransitionTable();
-        FSMDescription toReturn = new FSMDescription(transitionTable, this.sensorsToInclude);
-        toReturn.setShortestSequences(this.transitionTableBuilder.getShortestSequences());
-        toReturn.setShortestSequences(this.transitionTableBuilder.getShortestSequences());
-        System.out.println("Universal sequence: "+toReturn.getUniversalSequence());
-        return toReturn;
+        FSMTransitionTable transitionTable = this.transitionTableBuilder.getTransitionTable();
+        return new FSMDescription(transitionTable, this.sensorsToInclude);
     }
     //endregion
 }

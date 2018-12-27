@@ -22,7 +22,7 @@ public class MetaEnvironmentDescriptionProvider implements IEnvironmentDescripti
     //region IEnvironmentDescriptionProvider Members
     @Override
     public IEnvironmentDescription getEnvironmentDescription() {
-        return new MetaEnvironmentDescription(environmentDescriptionProvider, config);
+        return new MetaEnvironmentDescription(this.environmentDescriptionProvider, this.config);
     }
     //endregion
 }

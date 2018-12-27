@@ -123,9 +123,6 @@ public class MetaEnvironmentDescriptionTest {
 
         assertEquals(1,provider.numGenerated);
 
-        for (int i=0;i<MetaConfiguration.DEFAULT.getStepThreshold();i++) {
-            description.transition(2,new Move("a"));
-        }
         assertTrue(description.isGoalState(13));
 
         //should not have generated another description yet, because we only hit one goal

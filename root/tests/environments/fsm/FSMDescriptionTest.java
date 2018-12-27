@@ -19,12 +19,12 @@ public class FSMDescriptionTest {
 
     @Test
     public void constructorEmptyTransitionTableThrowsException() {
-        assertThrows(IllegalArgumentException.class, () -> new FSMDescription(new HashMap[0]));
+        assertThrows(IllegalArgumentException.class, () -> new FSMDescription(new FSMTransitionTable(new HashMap[0])));
     }
 
     @Test
     public void constructorNullEnumSetThrowsException() {
-        assertThrows(IllegalArgumentException.class, () -> new FSMDescription(new HashMap[1], null));
+        assertThrows(IllegalArgumentException.class, () -> new FSMDescription(new FSMTransitionTable(new HashMap[1]), null));
     }
 
     @Test
@@ -40,7 +40,7 @@ public class FSMDescriptionTest {
                         transitionSet1,
                         transitionSet2
                 };
-        assertThrows(IllegalArgumentException.class, () -> new FSMDescription(transitionTable));
+        assertThrows(IllegalArgumentException.class, () -> new FSMDescription(new FSMTransitionTable(transitionTable)));
     }
 
     @Test
@@ -57,7 +57,7 @@ public class FSMDescriptionTest {
                         transitionSet1,
                         transitionSet2
                 };
-        assertThrows(IllegalArgumentException.class, () -> new FSMDescription(transitionTable));
+        assertThrows(IllegalArgumentException.class, () -> new FSMDescription(new FSMTransitionTable(transitionTable)));
     }
 
     // getSensorsToInclude Tests
@@ -68,7 +68,7 @@ public class FSMDescriptionTest {
         HashMap<Move, Integer>[] transitionTable = new HashMap[] {
                         transitionSet1
                 };
-        FSMDescription description = new FSMDescription(transitionTable);
+        FSMDescription description = new FSMDescription(new FSMTransitionTable(transitionTable));
         EnumSet<FSMDescription.Sensor> sensors = description.getSensorsToInclude();
         assertFalse(sensors.contains(FSMDescription.Sensor.EVEN_ODD));
         assertFalse(sensors.contains(FSMDescription.Sensor.NOISE));
@@ -81,7 +81,7 @@ public class FSMDescriptionTest {
         HashMap<Move, Integer>[] transitionTable = new HashMap[] {
                         transitionSet1
                 };
-        FSMDescription description = new FSMDescription(transitionTable, EnumSet.of(FSMDescription.Sensor.EVEN_ODD));
+        FSMDescription description = new FSMDescription(new FSMTransitionTable(transitionTable), EnumSet.of(FSMDescription.Sensor.EVEN_ODD));
         EnumSet<FSMDescription.Sensor> sensors = description.getSensorsToInclude();
         assertTrue(sensors.contains(FSMDescription.Sensor.EVEN_ODD));
         assertFalse(sensors.contains(FSMDescription.Sensor.NOISE));
@@ -102,7 +102,7 @@ public class FSMDescriptionTest {
                         transitionSet1,
                         transitionSet2
                 };
-        FSMDescription description = new FSMDescription(transitionTable);
+        FSMDescription description = new FSMDescription(new FSMTransitionTable(transitionTable));
         Move[] expectedMoves = new Move[] {
                         new Move("a"),
                         new Move("b"),
@@ -121,7 +121,7 @@ public class FSMDescriptionTest {
         HashMap<Move, Integer>[] transitionTable = new HashMap[] {
                         transitionSet1
                 };
-        FSMDescription description = new FSMDescription(transitionTable);
+        FSMDescription description = new FSMDescription(new FSMTransitionTable(transitionTable));
         assertThrows(IllegalArgumentException.class, () -> description.transition(-1, new Move("a")));
     }
 
@@ -134,7 +134,7 @@ public class FSMDescriptionTest {
         HashMap<Move, Integer>[] transitionTable = new HashMap[] {
                         transitionSet1
                 };
-        FSMDescription description = new FSMDescription(transitionTable);
+        FSMDescription description = new FSMDescription(new FSMTransitionTable(transitionTable));
         assertThrows(IllegalArgumentException.class, () -> description.transition(1, new Move("a")));
     }
 
@@ -147,7 +147,7 @@ public class FSMDescriptionTest {
         HashMap<Move, Integer>[] transitionTable = new HashMap[] {
                         transitionSet1
                 };
-        FSMDescription description = new FSMDescription(transitionTable);
+        FSMDescription description = new FSMDescription(new FSMTransitionTable(transitionTable));
         assertThrows(IllegalArgumentException.class, () -> description.transition(0, null));
     }
 
@@ -160,7 +160,7 @@ public class FSMDescriptionTest {
         HashMap<Move, Integer>[] transitionTable = new HashMap[] {
                         transitionSet1
                 };
-        FSMDescription description = new FSMDescription(transitionTable);
+        FSMDescription description = new FSMDescription(new FSMTransitionTable(transitionTable));
         assertThrows(IllegalArgumentException.class, () -> description.transition(0, new Move("d")));
     }
 
@@ -173,7 +173,7 @@ public class FSMDescriptionTest {
         HashMap<Move, Integer>[] transitionTable = new HashMap[] {
                         transitionSet1
                 };
-        FSMDescription description = new FSMDescription(transitionTable);
+        FSMDescription description = new FSMDescription(new FSMTransitionTable(transitionTable));
         assertEquals(2, description.transition(0, new Move("b")));
     }
 
@@ -187,7 +187,7 @@ public class FSMDescriptionTest {
         HashMap<Move, Integer>[] transitionTable = new HashMap[] {
                         transitionSet1
                 };
-        FSMDescription description = new FSMDescription(transitionTable);
+        FSMDescription description = new FSMDescription(new FSMTransitionTable(transitionTable));
         assertTrue(description.isGoalState(0));
         assertFalse(description.isGoalState(-1));
         assertFalse(description.isGoalState(1));
@@ -201,7 +201,7 @@ public class FSMDescriptionTest {
         HashMap<Move, Integer>[] transitionTable = new HashMap[] {
                         transitionSet1
                 };
-        FSMDescription description = new FSMDescription(transitionTable);
+        FSMDescription description = new FSMDescription(new FSMTransitionTable(transitionTable));
         assertEquals(1, description.getNumStates());
     }
 
@@ -214,7 +214,7 @@ public class FSMDescriptionTest {
                         transitionSet1,
                         transitionSet1
                 };
-        FSMDescription description = new FSMDescription(transitionTable);
+        FSMDescription description = new FSMDescription(new FSMTransitionTable(transitionTable));
         assertEquals(3, description.getNumStates());
     }
 
@@ -227,7 +227,7 @@ public class FSMDescriptionTest {
         HashMap<Move, Integer>[] transitionTable = new HashMap[] {
                         transitionSet1
                 };
-        FSMDescription description = new FSMDescription(transitionTable);
+        FSMDescription description = new FSMDescription(new FSMTransitionTable(transitionTable));
         assertThrows(IllegalArgumentException.class, () -> description.applySensors(0, null, 1, new SensorData(true)));
     }
 
@@ -238,7 +238,7 @@ public class FSMDescriptionTest {
         HashMap<Move, Integer>[] transitionTable = new HashMap[] {
                         transitionSet1
                 };
-        FSMDescription description = new FSMDescription(transitionTable);
+        FSMDescription description = new FSMDescription(new FSMTransitionTable(transitionTable));
         assertThrows(IllegalArgumentException.class, () -> description.applySensors(0, new Move("a"), 1, null));
     }
 
@@ -249,7 +249,7 @@ public class FSMDescriptionTest {
         HashMap<Move, Integer>[] transitionTable = new HashMap[] {
                         transitionSet1
                 };
-        FSMDescription description = new FSMDescription(transitionTable);
+        FSMDescription description = new FSMDescription(new FSMTransitionTable(transitionTable));
         SensorData sensorData = new SensorData(true);
         description.applySensors(0, new Move("a"),0, sensorData);
         assertFalse(sensorData.hasSensor("Even"));
@@ -262,7 +262,7 @@ public class FSMDescriptionTest {
         HashMap<Move, Integer>[] transitionTable = new HashMap[] {
                         transitionSet1
                 };
-        FSMDescription description = new FSMDescription(transitionTable, EnumSet.of(FSMDescription.Sensor.EVEN_ODD));
+        FSMDescription description = new FSMDescription(new FSMTransitionTable(transitionTable), EnumSet.of(FSMDescription.Sensor.EVEN_ODD));
         SensorData sensorData = new SensorData(true);
         description.applySensors(0, new Move("a"),0, sensorData);
         assertTrue(sensorData.hasSensor("EVEN_ODD"));
@@ -276,7 +276,7 @@ public class FSMDescriptionTest {
         HashMap<Move, Integer>[] transitionTable = new HashMap[] {
                         transitionSet1
                 };
-        FSMDescription description = new FSMDescription(transitionTable, EnumSet.of(FSMDescription.Sensor.EVEN_ODD));
+        FSMDescription description = new FSMDescription(new FSMTransitionTable(transitionTable), EnumSet.of(FSMDescription.Sensor.EVEN_ODD));
         SensorData sensorData = new SensorData(true);
         description.applySensors(0, new Move("a"),1, sensorData);
         assertTrue(sensorData.hasSensor("EVEN_ODD"));

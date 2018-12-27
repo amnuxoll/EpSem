@@ -5,23 +5,21 @@ package environments.meta;
  */
 public class MetaConfiguration {
     //region Static MetaConfigurations
-    public static final MetaConfiguration DEFAULT = new MetaConfiguration(500);
+    public static final MetaConfiguration DEFAULT = new MetaConfiguration(500, 0);
     //endregion
 
     //region Class Variables
     private int successQueueMaxSize;
-    private int stepThreshold;
     private int tweakPoint; //number of goals until tweak
     //endregion
 
     //region Constructors
-    public MetaConfiguration(int tweakPoint) {
+    public MetaConfiguration(int tweakPoint, int successQueueMaxSize) {
         if(tweakPoint < 1){
             throw new IllegalArgumentException("tweakPoint must be positive");
         }
 
         this.successQueueMaxSize = successQueueMaxSize;
-        this.stepThreshold = stepThreshold;
         this.tweakPoint= tweakPoint;
     }
     //endregion
@@ -29,10 +27,6 @@ public class MetaConfiguration {
     //region Public Methods
     public int getSuccessQueueMaxSize() {
         return successQueueMaxSize;
-    }
-
-    public int getStepThreshold() {
-        return stepThreshold;
     }
 
     public int getTweakPoint() {

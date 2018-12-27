@@ -14,7 +14,7 @@ import environments.meta.MetaConfiguration;
 import environments.meta.MetaEnvironmentDescriptionProvider;
 import framework.*;
 import utils.DirectoryUtils;
-import utils.FSMTransitionTableBuilder;
+import environments.fsm.FSMTransitionTableBuilder;
 import utils.Randomizer;
 
 import java.io.File;

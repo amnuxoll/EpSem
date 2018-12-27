@@ -12,11 +12,10 @@ import java.util.*;
  */
 public class FSMDescription implements IEnvironmentDescription {
     //region Class Variables
-    private HashMap<Move, Integer>[] transitionTable;
+    private FSMTransitionTable transitionTable;
     private HashMap<Integer, ArrayList<Move>> shortestSequences;
     private Move[] moves;
     private EnumSet<Sensor> sensorsToInclude;
-    private Sequence universalSequence;
     private HashMap<Move, Integer>[] transitionSensorTable;
     //endregion
 
@@ -25,7 +24,7 @@ public class FSMDescription implements IEnvironmentDescription {
      * Create an instance of a {@link FSMDescription}.
      * @param transitionTable The transition table that indicates the structure of a FSM.
      */
-    public FSMDescription(HashMap<Move, Integer>[] transitionTable) {
+    public FSMDescription(FSMTransitionTable transitionTable) {
         this(transitionTable, EnumSet.noneOf(Sensor.class));
     }
 
@@ -34,30 +33,18 @@ public class FSMDescription implements IEnvironmentDescription {
      * @param transitionTable The transition table that indicates the structure of a FSM.
      * @param sensorsToInclude The sensors to include when navigating the FSM.
      */
-    public FSMDescription(HashMap<Move, Integer>[] transitionTable, EnumSet<Sensor> sensorsToInclude) {
+    public FSMDescription(FSMTransitionTable transitionTable, EnumSet<Sensor> sensorsToInclude) {
         if (transitionTable == null)
             throw new IllegalArgumentException("transitionTable cannot be null");
-        if (transitionTable.length == 0)
-            throw new IllegalArgumentException("transitionTable cannot be empty");
         if (sensorsToInclude == null)
             throw new IllegalArgumentException("sensorsToInclude cannot be null");
         this.transitionTable = transitionTable;
         this.sensorsToInclude = sensorsToInclude;
-        Set<Move> moveSet = this.transitionTable[0].keySet();
-        this.moves = moveSet.toArray(new Move[0]);
-        for (HashMap<Move, Integer> aTransitionTable : this.transitionTable) {
-            moveSet = aTransitionTable.keySet();
-            if (this.moves.length != moveSet.size())
-                throw new IllegalArgumentException("transitionTable is not valid for FSM. All transitions must exist for each state.");
-            for (Move move : this.moves) {
-                if (!moveSet.contains(move))
-                    throw new IllegalArgumentException("transitionTable is not valid for FSM. All transition moves must exist for each state.");
-            }
-        }
+        this.moves = this.transitionTable.getTransitions()[0].keySet().toArray(new Move[0]);
         this.transitionSensorTable = new HashMap[this.getNumStates()];
         for(int i = 0; i < getNumStates(); i++) {
-            this.transitionSensorTable[i] = new HashMap<Move, Integer>(getMoves().length);
-            for(Move m : getMoves()) {
+            this.transitionSensorTable[i] = new HashMap<>(getMoves().length);
+            for (Move m : getMoves()) {
                 this.transitionSensorTable[i].put(m, 0);
             }
         }
@@ -84,11 +71,11 @@ public class FSMDescription implements IEnvironmentDescription {
     public int transition(int currentState, Move move) {
         if (currentState < 0)
             throw new IllegalArgumentException("currentState cannot be less than 0");
-        if (currentState >= this.transitionTable.length)
+        if (currentState >= this.transitionTable.getNumberOfStates())
             throw new IllegalArgumentException("currentState does not exist");
         if (move == null)
             throw new IllegalArgumentException("move cannot be null");
-        HashMap<Move, Integer> transitions = this.transitionTable[currentState];
+        HashMap<Move, Integer> transitions = this.transitionTable.getTransitions()[currentState];
         if (!transitions.containsKey(move))
             throw new IllegalArgumentException("move is invalid for this environment");
         this.transitionSensorTable[currentState].put(move, this.transitionSensorTable[currentState].get(move)+1);
@@ -102,7 +89,7 @@ public class FSMDescription implements IEnvironmentDescription {
      */
     @Override
     public boolean isGoalState(int state) {
-        return state == (this.transitionTable.length - 1);
+        return this.transitionTable.isGoalState(state);
     }
 
     /**
@@ -111,7 +98,7 @@ public class FSMDescription implements IEnvironmentDescription {
      */
     @Override
     public int getNumStates() {
-        return this.transitionTable.length;
+        return this.transitionTable.getNumberOfStates();
     }
 
     @Override
@@ -143,15 +130,13 @@ public class FSMDescription implements IEnvironmentDescription {
 
     @Override
     public boolean validateSequence(int state, Sequence sequence) {
-        int currentState= state;
-
+        int currentState = state;
         for(Move move : sequence.getMoves()){
-            currentState= transition(currentState, move);
-            if(isGoalState(currentState)){
+            currentState = this.transition(currentState, move);
+            if(this.isGoalState(currentState)){
                 return true;
             }
         }
-
         return false;
     }
     //endregion
@@ -164,37 +149,15 @@ public class FSMDescription implements IEnvironmentDescription {
     public EnumSet<Sensor> getSensorsToInclude() {
         return this.sensorsToInclude;
     }
-
-    public void setShortestSequences(HashMap<Integer, ArrayList<Move>> shortestSequences){
-        this.shortestSequences = shortestSequences;
-        this.universalSequence = computeUniversalSequence();
-    }
-
-    public Sequence getUniversalSequence(){
-        return this.universalSequence;
-    }
     //endregion
 
     //region Protected Methods
     protected void tweakTable(int numSwaps, Randomizer randomizer) {
-        for(int i = 0;i<numSwaps; i++) {
-            int stateToSwitch = randomizer.getRandomNumber(this.transitionTable.length); //pick which state whose moves will be swapped
-            //pick two moves from a state's possible moves to exchange
-            //don't allow the selected moves to be the same one
-            int selectedMove1, selectedMove2;
-            do {
-                selectedMove1 = randomizer.getRandomNumber(this.moves.length);
-                selectedMove2 = randomizer.getRandomNumber(this.moves.length);
-            } while(selectedMove1 == selectedMove2 && this.moves.length != 1);
-
-            //save value to temp and put new values in swapped places
-            Integer temp = this.transitionTable[stateToSwitch].get(this.moves[selectedMove1]);
-            this.transitionTable[stateToSwitch].put(this.moves[selectedMove1], this.transitionTable[stateToSwitch].get(this.moves[selectedMove2]));
-            this.transitionTable[stateToSwitch].put(this.moves[selectedMove2], temp);
-
+        for(FSMTransitionTable.Tweak tweak : this.transitionTable.tweakTable(numSwaps, randomizer))
+        {
             //update the sensor table to reflect the "new" transitions
-            this.transitionSensorTable[stateToSwitch].put(this.moves[selectedMove1], 0);
-            this.transitionSensorTable[stateToSwitch].put(this.moves[selectedMove2], 0);
+            this.transitionSensorTable[tweak.state].put(this.moves[tweak.move1], 0);
+            this.transitionSensorTable[tweak.state].put(this.moves[tweak.move2], 0);
         }
     }
     //endregion
@@ -219,29 +182,6 @@ public class FSMDescription implements IEnvironmentDescription {
 
     private void applyTransitionAgeSensor(int lastState, Move move, SensorData sensorData) {
         sensorData.setSensor("Transition age", this.transitionSensorTable[lastState].get(move) <= 5);
-    }
-
-    private Sequence computeUniversalSequence(){
-        ArrayList<Integer> states = new ArrayList<>(this.shortestSequences.keySet());
-        states.sort(new Comparator<Integer>() {
-            @Override
-            public int compare(Integer o1, Integer o2) {
-                return shortestSequences.get(o1).size() - shortestSequences.get(o2).size();
-            }
-        });
-
-        ArrayList<Move> universalSequence = new ArrayList<>();
-        for(Integer i : states){
-            int newState = i;
-            for(Move m : universalSequence){
-                newState = this.transition(newState, m);
-                if(isGoalState(newState)) {
-                    break;
-                }
-            }
-            universalSequence.addAll(shortestSequences.get(newState));
-        }
-        return new Sequence( universalSequence.toArray(new Move[0]));
     }
     //endregion
 

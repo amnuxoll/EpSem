@@ -1,9 +1,8 @@
-package utils;
+package environments.fsm;
 
-import environments.fsm.FSMDescription;
 import framework.Move;
+import utils.Randomizer;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 /**
  * An FSMTransitionTableBuilder is used to build transition tables for a {@link FSMDescription}.
@@ -23,8 +22,6 @@ public class FSMTransitionTableBuilder {
     private int numStates;
     private Move[] moves;
     private HashMap<Move, Integer>[] transitionTable;
-
-    private HashMap<Integer, ArrayList<Move>> shortestSequences;
     private int transitionsDone = 0;
     private Randomizer randomizer;
 
@@ -41,28 +38,15 @@ public class FSMTransitionTableBuilder {
         this.randomizer = randomizer;
         this.alphabetSize = alphabetSize;
         this.numStates = numStates;
-        this.shortestSequences = new HashMap<>();
-        for(int i = 0; i<numStates-1; i++){
-            shortestSequences.put(i, null);
-        }
-        shortestSequences.put(numStates-1, new ArrayList<>());
-        this.buildTransitionTable();
     }
 
     /**
      * Get the transition table built by this {@link FSMTransitionTableBuilder}.
      * @return The transition table.
      */
-    public HashMap<Move, Integer>[] getTransitionTable() {
-        return this.transitionTable;
-    }
-
-    /**
-     * Get the hash map from each state to the shortest sequence to the goal from that state
-     * @return the table of shortest sequences
-     */
-    public HashMap<Integer, ArrayList<Move>> getShortestSequences() {
-        return shortestSequences;
+    public FSMTransitionTable getTransitionTable() {
+        this.buildTransitionTable();
+        return new FSMTransitionTable(this.transitionTable);
     }
 
     private void buildTransitionTable() {
@@ -102,16 +86,6 @@ public class FSMTransitionTableBuilder {
             if (rowTransitions == null)
                 this.transitionTable[initState] = rowTransitions = new HashMap<>();
             rowTransitions.put(this.moves[moveIndex], initGoal);
-
-            /**
-             * keeps track of the shortest sequence to goal from each state
-             */
-            ArrayList<Move> currentShortestSequence = shortestSequences.get(initState);
-            if(currentShortestSequence == null || currentShortestSequence.size() > shortestSequences.get(initGoal).size() + 1){
-                ArrayList<Move> initGoalSequence = (ArrayList<Move>)shortestSequences.get(initGoal).clone();
-                initGoalSequence.add(0, moves[moveIndex]);
-                shortestSequences.put(initState, initGoalSequence);
-            }
             this.transitionsDone++;
         }
         pickTransitions(initState, 1);

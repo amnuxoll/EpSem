@@ -1,7 +1,6 @@
 package environments.fsm;
 
 import org.junit.jupiter.api.Test;
-import utils.FSMTransitionTableBuilder;
 import utils.Randomizer;
 
 import java.util.EnumSet;

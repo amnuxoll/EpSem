@@ -1,7 +1,6 @@
 package environments.fsm;
 
 import framework.IEnvironmentDescription;
-import utils.FSMTransitionTableBuilder;
 import utils.Randomizer;
 import java.util.EnumSet;
 
@@ -30,8 +29,7 @@ public class FSMDescriptionTweakingProvider extends FSMDescriptionProvider {
 
     //region FSMDescriptionProvider Overrides
     @Override
-    public IEnvironmentDescription getEnvironmentDescription()
-    {
+    public IEnvironmentDescription getEnvironmentDescription() {
         if (this.lastDescription == null)
             this.lastDescription = (FSMDescription) super.getEnvironmentDescription();
         else

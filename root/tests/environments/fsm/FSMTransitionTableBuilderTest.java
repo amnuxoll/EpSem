@@ -1,8 +1,10 @@
-package utils;
+package environments.fsm;
 
+import environments.fsm.FSMTransitionTable;
 import framework.Move;
 import org.junit.jupiter.api.Test;
-import utils.FSMTransitionTableBuilder;
+import environments.fsm.FSMTransitionTableBuilder;
+import utils.Randomizer;
 
 import java.util.HashMap;
 
@@ -26,18 +28,18 @@ public class FSMTransitionTableBuilderTest {
     @Test
     public void buildTransitionTableSingleTransitionSingleState() {
         FSMTransitionTableBuilder builder = new FSMTransitionTableBuilder(1, 1, new Randomizer());
-        HashMap[] transitionTable = builder.getTransitionTable();
-        assertEquals(1, transitionTable.length);
-        HashMap<Move, Integer> goalTransitions = transitionTable[0];
+        FSMTransitionTable transitionTable = builder.getTransitionTable();
+        assertEquals(1, transitionTable.getTransitions().length);
+        HashMap<Move, Integer> goalTransitions = transitionTable.getTransitions()[0];
         this.validateGoalTransitions(1, 0, goalTransitions);
     }
 
     @Test
     public void buildTransitionTableMultipleTransitionSingleState() {
         FSMTransitionTableBuilder builder = new FSMTransitionTableBuilder(13, 1, new Randomizer());
-        HashMap[] transitionTable = builder.getTransitionTable();
-        assertEquals(1, transitionTable.length);
-        HashMap<Move, Integer> goalTransitions = transitionTable[0];
+        FSMTransitionTable transitionTable = builder.getTransitionTable();
+        assertEquals(1, transitionTable.getTransitions().length);
+        HashMap<Move, Integer> goalTransitions = transitionTable.getTransitions()[0];
         this.validateGoalTransitions(13, 0, goalTransitions);
     }
 
