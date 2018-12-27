@@ -1,11 +1,9 @@
 package environments.meta;
 
 import framework.*;
-import utils.Sequence;
+import framework.Sequence;
 
-import java.util.ArrayList;
 import java.util.LinkedList;
-import java.util.List;
 
 public class MetaEnvironmentDescription implements IEnvironmentDescription {
     private IEnvironmentDescriptionProvider environmentDescriptionProvider;

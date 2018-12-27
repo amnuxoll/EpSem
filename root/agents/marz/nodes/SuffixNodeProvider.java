@@ -1,7 +1,7 @@
 package agents.marz.nodes;
 
 import agents.marz.ISuffixNodeBaseProvider;
-import utils.Sequence;
+import framework.Sequence;
 import framework.Episode;
 import framework.Move;
 

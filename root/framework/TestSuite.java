@@ -1,5 +1,7 @@
 package framework;
 
+import java.util.ArrayList;
+
 /**
  *
  * @author Zachary Paul Faltersack
@@ -13,7 +15,6 @@ public class TestSuite implements IGoalListener {
     private IAgentProvider[] agentProviders;
 
     private IResultWriter currentStepResultWriter;
-    private IResultWriter currentDecisionResultWriter;
 
     public TestSuite(TestSuiteConfiguration configuration, IResultWriterProvider resultWriterProvider, IEnvironmentDescriptionProvider environmentDescriptionProvider, IAgentProvider[] agentProviders) {
         if (configuration == null)
@@ -34,15 +35,13 @@ public class TestSuite implements IGoalListener {
 
     public void run() throws Exception {
         System.out.println("Beginning test suite...");
-        writeMetaData(resultWriterProvider.getOutputDirectory());
+        writeMetaData();
 
         int numberOfIterations = this.configuration.getNumberOfIterations();
         for (int i = 0; i < this.agentProviders.length; i++) {
             IAgentProvider agentProvider = this.agentProviders[i];
             System.out.println("Beginning agent: " + agentProvider.getAlias() + " " + i);
             this.currentStepResultWriter = this.resultWriterProvider.getResultWriter(agentProvider.getAlias(), "agent_" + agentProvider.getAlias() + "_" + i + "_steps");
-            this.currentDecisionResultWriter = this.resultWriterProvider.getResultWriter(agentProvider.getAlias(), "agent_" + agentProvider.getAlias() + "_" + i + "_decisions");
-
             this.runAgent(agentProvider, numberOfIterations);
         }
     }
@@ -56,60 +55,38 @@ public class TestSuite implements IGoalListener {
             TestRun testRun = new TestRun(agent, environmentDescription, this.configuration.getNumberOfGoals());
             testRun.addGoalListener(this);
             this.currentStepResultWriter.beginNewRun();
-            this.currentDecisionResultWriter.beginNewRun();
             testRun.execute();
-
-            NamedOutput osc = NamedOutput.getInstance();
-            osc.write("ratioOutputStream", "\n");
-            osc.write("agentDidAGood", "\n");
-            osc.write("agentDidAGoodOverall", "\n");
-            osc.write("goodDecisionBail", "\n");
-            osc.write("badDecisionBail", "\n");
-            osc.write("properBails", "\n");
-            osc.write("junoRatios", "\n");
         }
         this.currentStepResultWriter.complete();
-        this.currentDecisionResultWriter.complete();
     }
 
     @Override
     public void goalReceived(GoalEvent event) {
         this.currentStepResultWriter.logStepsToGoal(event.getStepCountToGoal());
-        this.currentDecisionResultWriter.logStepsToGoal(event.getDecisionCountToGoal());
     }
 
-    private void writeMetaData(String parentDirectory){
-        NamedOutput osc = NamedOutput.getInstance();
-        
-        //information about configuration:
-        osc.write("metaData", configuration.getNumberOfGoals() + " goals on " +
-                    configuration.getNumberOfIterations() + " environments\n");
-
-        osc.write("metaData", "\n");
-
-        //information about environment provider
-        osc.write("metaData", "Environment provider type: " + environmentDescriptionProvider.getClass().getName() + "\n");
-
-        osc.write("metaData", "\n");
-
-        //information about environment
+    private void writeMetaData(){
+        StringBuilder metadataBuilder = new StringBuilder();
+        metadataBuilder.append(configuration.getNumberOfGoals() + " goals on " + configuration.getNumberOfIterations() + " environments\n");
+        metadataBuilder.append("\n");
+        metadataBuilder.append("Environment provider type: " + environmentDescriptionProvider.getClass().getName() + "\n");
+        metadataBuilder.append("\n");
         IEnvironmentDescription environment= environmentDescriptionProvider.getEnvironmentDescription();
-        osc.write("metaData", "Example of possible environment description:" + "\n");
-        osc.write("metaData", "\tType: " + environment.getClass().getName() + "\n");
-        osc.write("metaData", "\tNumber of moves: " + environment.getMoves().length + "\n");
-        osc.write("metaData", "\tNumber of states: " + environment.getNumStates() + "\n");
-
-        osc.write("metaData",  "\n");
-
+        metadataBuilder.append("Example of possible environment description:" + "\n");
+        metadataBuilder.append("\tType: " + environment.getClass().getName() + "\n");
+        metadataBuilder.append("\tNumber of moves: " + environment.getMoves().length + "\n");
+        metadataBuilder.append("\tNumber of states: " + environment.getNumStates() + "\n");
+        metadataBuilder.append("\n");
         //information about agent provider
         for(int i=0; i < agentProviders.length; i++){
-            osc.write("metaData", "Agent provider " + i + " type: " + agentProviders[i].getClass().getName() + "\n");
+            metadataBuilder.append("Agent provider " + i + " type: " + agentProviders[i].getClass().getName() + "\n");
             IAgent agent= agentProviders[i].getAgent();
-            osc.write("metaData", "Example of possible agent:" + "\n");
-            osc.write("metaData", "\tType: " + agent.getClass().getName() + "\n");
-            osc.write("metaData", "\tExtra Data:\n\t\t" + agent.getMetaData() + "\n");
-            osc.write("metaData", "\n");
+            metadataBuilder.append("Example of possible agent:" + "\n");
+            metadataBuilder.append("\tType: " + agent.getClass().getName() + "\n");
+            metadataBuilder.append("\tExtra Data:\n\t\t" + agent.getMetaData() + "\n");
+            metadataBuilder.append("\n");
         }
+        NamedOutput.getInstance().write("metaData", metadataBuilder.toString());
     }
 
     public IResultWriterProvider getResultWriterProvider() {

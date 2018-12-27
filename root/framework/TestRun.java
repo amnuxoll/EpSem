@@ -11,22 +11,12 @@ import java.util.List;
  * @author Zachary Paul Faltersack
  * @version 0.95
  */
-class TestRun implements IAgentListener {
+class TestRun {
 
     private IAgent agent;
     private IEnvironmentDescription environmentDescription;
     private Environment environment;
     private int numberOfGoalsToFind;
-
-    private int decisionsSinceGoal= 0;
-
-    private int decisionCount= 0;
-    private int goodDecisionCount= 0;
-    private int goodDecisionBailCount= 0;
-    private int badDecisionBailCount= 0;
-    private int stepsSinceDecision= 0;
-    private boolean currSequenceGood;
-
     private List<IGoalListener> goalListeners = new ArrayList();
 
     public TestRun(IAgent agent, IEnvironmentDescription environmentDescription, int numberOfGoalsToFind) throws IllegalArgumentException {
@@ -40,7 +30,6 @@ class TestRun implements IAgentListener {
         this.environmentDescription = environmentDescription;
         this.environment = new Environment(this.environmentDescription);
         this.agent = agent;
-        agent.addAgentListener(this);
         this.numberOfGoalsToFind = numberOfGoalsToFind;
     }
 
@@ -48,26 +37,22 @@ class TestRun implements IAgentListener {
         try {
             int goalCount = 0;
             int moveCount = 0;
-            this.agent.initialize(this.environmentDescription.getMoves());
+            this.agent.initialize(this.environmentDescription.getMoves(), sequence -> this.environmentDescription.validateSequence(this.environment.getCurrentState(), sequence));
             SensorData sensorData = null;
             do {
                 Move move = this.agent.getNextMove(sensorData);
                 sensorData = environment.tick(move);
-                //System.out.print(move + " -> " + sensorData + "; ");
                 moveCount++;
-                stepsSinceDecision++;
 
                 if (sensorData.isGoal()) {
+                    this.agent.onGoalFound();
                     this.fireGoalEvent(moveCount);
                     goalCount++;
                     moveCount = 0;
-
-                    decisionCount+= decisionsSinceGoal;
-                    decisionsSinceGoal= 0;
-
                     environment.reset();
                 }
             } while (goalCount < this.numberOfGoalsToFind);
+            this.agent.onTestRunComplete();
         } catch (Exception ex) {
             System.out.println("TestRun failed with exception: " + ex.getMessage());
             ex.printStackTrace();
@@ -78,67 +63,10 @@ class TestRun implements IAgentListener {
         this.goalListeners.add(listener);
     }
 
-    public synchronized void removeGoalListener(IGoalListener listener) {
-        this.goalListeners.remove(listener);
-    }
-
     private synchronized void fireGoalEvent(int stepsToGoal) {
-        GoalEvent goal = new GoalEvent(this, stepsToGoal, decisionsSinceGoal);
+        GoalEvent goal = new GoalEvent(this, stepsToGoal);
         for (IGoalListener listener : this.goalListeners) {
             listener.goalReceived(goal);
-        }
-
-        writeGoalData();
-    }
-
-    private void writeGoalData(){
-        NamedOutput out = NamedOutput.getInstance();
-
-        String data= decisionCount > 0 ?
-                Double.toString((double)goodDecisionCount/decisionCount) : "";
-        out.write("agentDidAGood", data + ",");
-
-        data= decisionCount > 0 ?
-                Double.toString((double)goodDecisionBailCount/goodDecisionCount) : "";
-        out.write("goodDecisionBail", data +",");
-
-        data= decisionCount > 0 ?
-                Double.toString((double)badDecisionBailCount/(decisionCount-goodDecisionCount)) : "";
-        out.write("badDecisionBail", data +",");
-
-        data= badDecisionBailCount+goodDecisionBailCount > 0 ?
-                    Double.toString((double)badDecisionBailCount/(badDecisionBailCount+goodDecisionBailCount)) : "";
-        out.write("properBails", data + ",");
-
-        if(agent instanceof JunoAgent){
-            out.write("junoRatios", ((JunoAgent) agent).getJunoRatio() + "," );
-        }
-    }
-
-    @Override
-    public void receiveEvent(AgentEvent ae) {
-        switch(ae.getType()){
-            case DECISION_MADE:
-                currSequenceGood =
-                        environmentDescription.validateSequence(environment.getCurrentState(), ae.getChosenSequence());
-
-                decisionsSinceGoal++;
-                stepsSinceDecision= 0;
-
-                if (currSequenceGood) {
-                    goodDecisionCount++;
-                }
-
-                break;
-            case BAILED:
-                if(currSequenceGood){
-                    goodDecisionBailCount++;
-                }
-                else{
-                    badDecisionBailCount++;
-                }
-
-                break;
         }
     }
 }

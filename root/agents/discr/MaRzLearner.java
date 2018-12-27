@@ -5,10 +5,9 @@ import agents.marz.MaRzAgent;
 import agents.marz.SuffixNodeBase;
 import framework.Episode;
 import framework.Move;
-import framework.SensorData;
 //import javafx.util.Pair;
 import utils.Discriminator;
-import utils.Sequence;
+import framework.Sequence;
 
 import java.util.ArrayList;
 import java.util.HashMap;

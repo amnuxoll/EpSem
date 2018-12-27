@@ -53,7 +53,7 @@ public class NSMAgent implements IAgent {
     private Move[] moves;
 
     @Override
-    public void initialize(Move[] moves)
+    public void initialize(Move[] moves, IIntrospection introspection)
     {
         this.moves = moves;
         informationColumns = 2;
@@ -228,11 +228,6 @@ public class NSMAgent implements IAgent {
         episodicMemory.add(new QEpisode(move));
         return move;
     }//exploreEnvironment
-
-    @Override
-    public void addAgentListener(IAgentListener listener) {
-
-    }
 
     @Override
     public String getMetaData() {

@@ -1,7 +1,4 @@
-package utils;
-
-import framework.Episode;
-import framework.Move;
+package framework;
 
 import java.util.*;
 

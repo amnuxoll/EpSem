@@ -1,7 +1,5 @@
 package framework;
 
-import utils.Sequence;
-
 /**
  * An IEnvironmentDescription describes an environment shape that {@link Environment} can use to track
  * agent progress during a test run.

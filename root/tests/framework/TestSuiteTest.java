@@ -1,11 +1,9 @@
 package framework;
 
 import org.junit.jupiter.api.Test;
-import utils.Sequence;
 
 import java.util.HashMap;
-import java.util.Random;
-import java.util.concurrent.atomic.AtomicInteger;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -109,18 +107,13 @@ public class TestSuiteTest {
     private class TestAgent implements IAgent {
 
         @Override
-        public void initialize(Move[] moves) {
+        public void initialize(Move[] moves, IIntrospection introspection) {
 
         }
 
         @Override
         public Move getNextMove(SensorData sensorData) throws Exception {
             return new Move("a");
-        }
-
-        @Override
-        public void addAgentListener(IAgentListener listener) {
-
         }
     }
 

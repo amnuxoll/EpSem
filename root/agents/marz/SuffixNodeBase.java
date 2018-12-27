@@ -1,6 +1,6 @@
 package agents.marz;
 
-import utils.Sequence;
+import framework.Sequence;
 
 import java.util.ArrayList;
 import java.util.Collections;

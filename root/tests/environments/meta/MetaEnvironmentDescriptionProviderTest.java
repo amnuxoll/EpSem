@@ -2,7 +2,7 @@ package environments.meta;
 
 import framework.*;
 import org.junit.jupiter.api.Test;
-import utils.Sequence;
+import framework.Sequence;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;

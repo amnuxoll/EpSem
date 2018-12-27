@@ -1,6 +1,7 @@
 package utils;
 
 import framework.Move;
+import framework.Sequence;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;

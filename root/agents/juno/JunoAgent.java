@@ -4,7 +4,7 @@ import agents.marz.ISuffixNodeBaseProvider;
 import agents.marz.MaRzAgent;
 import framework.Episode;
 import framework.NamedOutput;
-import utils.Sequence;
+import framework.Sequence;
 import agents.juno.WeightTable.ScoredIndex;
 
 public class JunoAgent extends MaRzAgent {
@@ -184,6 +184,20 @@ public class JunoAgent extends MaRzAgent {
 
         //we haven't had enough time to make a legit comparison
         return false;
+    }
+
+    @Override
+    public void onGoalFound()
+    {
+        super.onGoalFound();
+        NamedOutput.getInstance().write("junoRatios", this.getJunoRatio() + "," );
+    }
+
+    @Override
+    public void onTestRunComplete()
+    {
+        super.onTestRunComplete();
+        NamedOutput.getInstance().write("junoRatios", "\n");
     }
 
     private void printInfo(ScoredIndex indexToTry){

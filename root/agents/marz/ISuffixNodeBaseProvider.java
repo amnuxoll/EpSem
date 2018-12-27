@@ -2,7 +2,7 @@ package agents.marz;
 
 import framework.Episode;
 import framework.Move;
-import utils.Sequence;
+import framework.Sequence;
 
 import java.util.function.Function;
 

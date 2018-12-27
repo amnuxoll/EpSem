@@ -1,7 +1,8 @@
-package utils;
+package framework;
 
 import framework.Episode;
 import framework.Move;
+import framework.Sequence;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;

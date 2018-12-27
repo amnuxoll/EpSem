@@ -1,9 +1,8 @@
 package environments.fsm;
 
 import framework.*;
-import utils.FSMTransitionTableBuilder;
 import utils.Randomizer;
-import utils.Sequence;
+import framework.Sequence;
 
 import java.util.*;
 

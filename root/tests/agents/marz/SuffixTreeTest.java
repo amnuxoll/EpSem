@@ -2,7 +2,7 @@ package agents.marz;
 
 import framework.Move;
 import org.junit.jupiter.api.Test;
-import utils.Sequence;
+import framework.Sequence;
 
 import static org.junit.jupiter.api.Assertions.*;
 

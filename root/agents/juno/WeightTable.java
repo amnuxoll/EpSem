@@ -1,7 +1,7 @@
 package agents.juno;
 
 import framework.*;
-import utils.Sequence;
+import framework.Sequence;
 
 import java.util.ArrayList;
 import java.util.PriorityQueue;

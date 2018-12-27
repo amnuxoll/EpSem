@@ -1,7 +1,7 @@
 package agents.marz;
 
 import framework.*;
-import utils.Sequence;
+import framework.Sequence;
 import utils.SequenceGenerator;
 
 import java.util.*;
@@ -68,7 +68,12 @@ public class MaRzAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> implemen
 
 	protected ISuffixNodeBaseProvider<TSuffixNode> nodeProvider;
 
-	private ArrayList<IAgentListener> listeners = new ArrayList<>();
+	private IIntrospection introspection;
+
+	private int goodDecisionCount = 0;
+	private int goodDecisionBailCount = 0;
+	private int badDecisionBailCount = 0;
+	private int decisionsMadeSinceGoal = 0;
 
 	/**
 	 * MaRzAgent
@@ -83,12 +88,21 @@ public class MaRzAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> implemen
 	 * @param moves An array of {@link Move} representing the moves available to the agent.
 	 */
 	@Override
-	public void initialize(Move[] moves) {
+	public void initialize(Move[] moves, IIntrospection introspection) {
 		this.alphabet = moves;
+		this.introspection = introspection;
 		this.sequenceGenerator = new SequenceGenerator(this.alphabet);
 		this.activeNode = this.nodeProvider.getNode(Sequence.EMPTY, this.alphabet, (index) -> this.episodicMemory.get(index));
 		this.suffixTree = new SuffixTree<>(MaRzAgent.NODE_LIST_SIZE, this.activeNode);
-		this.currentSequence = this.activeNode.getSuffix();
+		this.setCurrentSequence(this.activeNode.getSuffix());
+	}
+
+	private void setCurrentSequence(Sequence sequence)
+	{
+		this.currentSequence = sequence;
+		this.currentSequenceIsGood = this.introspection.validateSequence(this.currentSequence);
+		this.decisionsMade++;
+		this.decisionsMadeSinceGoal++;
 	}
 
 	/**
@@ -103,7 +117,7 @@ public class MaRzAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> implemen
 			episodicMemory.get(episodicMemory.size() - 1).setSensorData(sensorData);
 		if (sensorData == null) {
 			// Very beginning of time so we need to select our very first sequence
-			this.currentSequence = this.nextPermutation();
+			this.setCurrentSequence(this.nextPermutation());
 		}
 		else if (sensorData.isGoal()) {
 				this.markSuccess();
@@ -116,17 +130,24 @@ public class MaRzAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> implemen
 				this.markFailure();
 
 				if(shouldBail){
-					fireAgentEvent(new AgentEvent(this, AgentEvent.EventType.BAILED));
+					if (this.currentSequenceIsGood)
+						this.goodDecisionBailCount++;
+					else
+						this.badDecisionBailCount++;
+//					fireAgentEvent(new AgentEvent(this, AgentEvent.EventType.BAILED));
 				}
 
-				this.currentSequence= selectNextSequence();
-				fireAgentEvent(new AgentEvent(this,new Sequence(currentSequence.getMoves())));
+				this.setCurrentSequence(this.selectNextSequence());
+//				fireAgentEvent(new AgentEvent(this,new Sequence(currentSequence.getMoves())));
 			}
 		}
 		Move nextMove = this.currentSequence.next();
 		episodicMemory.add(new Episode(nextMove));
 		return nextMove;
 	}
+
+	private boolean currentSequenceIsGood = false;
+	private int decisionsMade = 0;
 
 	/**
 	 * indicates whether we want to give up on this sequence early
@@ -135,23 +156,43 @@ public class MaRzAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> implemen
 		return false;
 	}
 
-	//@Override
-	public void fireAgentEvent(AgentEvent event) {
-		for(IAgentListener ial : this.listeners){
-			ial.receiveEvent(event);
-		}
+	@Override
+	public void onGoalFound()
+	{
+		NamedOutput out = NamedOutput.getInstance();
+
+		String data = this.decisionsMade > 0 ? Double.toString((double)this.goodDecisionCount/this.decisionsMade) : "";
+		out.write("agentDidAGood", data + ",");
+
+		data = this.decisionsMade > 0 ? Double.toString((double)this.goodDecisionBailCount/this.goodDecisionCount) : "";
+		out.write("goodDecisionBail", data +",");
+
+		data = this.decisionsMade > 0 ? Double.toString((double)this.badDecisionBailCount/(this.decisionsMade-this.goodDecisionCount)) : "";
+		out.write("badDecisionBail", data +",");
+
+		data = this.badDecisionBailCount+this.goodDecisionBailCount > 0 ? Double.toString((double)this.badDecisionBailCount/(this.badDecisionBailCount+this.goodDecisionBailCount)) : "";
+		out.write("properBails", data + ",");
+
+		this.decisionsMadeSinceGoal = 0;
 	}
 
 	@Override
-	public void addAgentListener(IAgentListener listener) {
-		this.listeners.add(listener);
+	public void onTestRunComplete()
+	{
+		NamedOutput osc = NamedOutput.getInstance();
+		osc.write("agentDidAGood", "\n");
+		osc.write("goodDecisionBail", "\n");
+		osc.write("badDecisionBail", "\n");
+		osc.write("properBails", "\n");
+
+		osc.write("ratioOutputStream", "\n");
+		osc.write("agentDidAGoodOverall", "\n");
 	}
 
 	protected void markFailure() {
-		if(activeNode == null){
+		if (activeNode == null) {
 			return;
 		}
-
 		this.activeNode.addFailIndex(this.episodicMemory.size() - this.activeNode.getSuffix().getLength());
 		if (this.activeNode.canSplit() && this.suffixTree.splitSuffix(this.activeNode.getSuffix())) {
 			this.permutationQueues.remove(this.activeNode);
@@ -191,7 +232,6 @@ public class MaRzAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> implemen
 	}// nextPermutation
 
 	protected Sequence selectNextSequence() {
-
 		TSuffixNode oldActiveNode= activeNode;
 		TSuffixNode newBestNode = this.suffixTree.findBestNodeToTry();
 

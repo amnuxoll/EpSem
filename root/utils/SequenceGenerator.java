@@ -1,7 +1,7 @@
 package utils;
 
 import framework.Move;
-import utils.Sequence;
+import framework.Sequence;
 
 import java.util.*;
 
