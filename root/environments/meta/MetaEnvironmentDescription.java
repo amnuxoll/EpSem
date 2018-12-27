@@ -2,37 +2,35 @@ package environments.meta;
 
 import framework.*;
 import framework.Sequence;
-
 import java.util.LinkedList;
 
 public class MetaEnvironmentDescription implements IEnvironmentDescription {
+    //region Class Variables
     private IEnvironmentDescriptionProvider environmentDescriptionProvider;
     private IEnvironmentDescription currDescription;
-
     //how many transitions the agent took to reach the goal
     private LinkedList<Integer> successQueue= new LinkedList<>();
-
     //number of moves since last goal
     private int transitionCounter= 0;
     private int numGoals= 0;
     private MetaConfiguration config;
+    //endregion
 
+    //region Constructors
     MetaEnvironmentDescription(IEnvironmentDescriptionProvider environmentDescriptionProvider, MetaConfiguration config) {
-
-        if(environmentDescriptionProvider == null){
+        if (environmentDescriptionProvider == null) {
             throw new IllegalArgumentException("environmentDescriptionProvider cannot be null");
         }
-        if(config == null){
+        if (config == null) {
             throw new IllegalArgumentException("config cannot be null");
         }
-
         this.environmentDescriptionProvider = environmentDescriptionProvider;
-
         this.currDescription = environmentDescriptionProvider.getEnvironmentDescription();
-
         this.config= config;
     }
+    //endregion
 
+    //region IEnvironmentDescription Members
     @Override
     public Move[] getMoves() {
         return currDescription.getMoves();
@@ -95,28 +93,13 @@ public class MetaEnvironmentDescription implements IEnvironmentDescription {
         currDescription.applySensors(lastState,move,currentState,sensorData);
     }
 
-    /**
-     * takes the average of the last successQueueSize transition counts
-     * and update the fsm description is the target threshold is reached
-     */
-    private void makeNewDescription() {
-        successQueue.add(transitionCounter);
-        while (successQueue.size() > config.getSuccessQueueMaxSize()) {
-            successQueue.remove();
-        }
-
-        int average= averageEnqueuedSuccesses();
-
-        //if the average is less than our threshold and we have collected enough data
-        if (numGoals%config.getTweakPoint() == 0){
-
-            //make a new environment
-            currDescription = environmentDescriptionProvider.getEnvironmentDescription();
-            //and clear the queue
-            successQueue.clear();
-        }
+    @Override
+    public boolean validateSequence(int state, Sequence sequence) {
+        return currDescription.validateSequence(state, sequence);
     }
+    //endregion
 
+    //region Public Methods
     /**
      *
      * @return the average of the number of moves to goal in the successQueue
@@ -147,9 +130,29 @@ public class MetaEnvironmentDescription implements IEnvironmentDescription {
     public LinkedList<Integer> getSuccessQueue() {
         return successQueue;
     }
+    //endregion
 
-    @Override
-    public boolean validateSequence(int state, Sequence sequence) {
-        return currDescription.validateSequence(state, sequence);
+    //region Private Methods
+    /**
+     * takes the average of the last successQueueSize transition counts
+     * and update the fsm description is the target threshold is reached
+     */
+    private void makeNewDescription() {
+        successQueue.add(transitionCounter);
+        while (successQueue.size() > config.getSuccessQueueMaxSize()) {
+            successQueue.remove();
+        }
+
+        int average= averageEnqueuedSuccesses();
+
+        //if the average is less than our threshold and we have collected enough data
+        if (numGoals%config.getTweakPoint() == 0){
+
+            //make a new environment
+            currDescription = environmentDescriptionProvider.getEnvironmentDescription();
+            //and clear the queue
+            successQueue.clear();
+        }
     }
+    //endregion
 }

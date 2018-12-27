@@ -4,8 +4,6 @@ import framework.IEnvironmentDescription;
 import framework.IEnvironmentDescriptionProvider;
 import framework.Move;
 import utils.FSMTransitionTableBuilder;
-import utils.Randomizer;
-
 import java.util.*;
 
 /**
@@ -14,9 +12,12 @@ import java.util.*;
  * @version 0.95
  */
 public class FSMDescriptionProvider implements IEnvironmentDescriptionProvider {
+    //region Class Variables
     private FSMTransitionTableBuilder transitionTableBuilder;
     private EnumSet<FSMDescription.Sensor> sensorsToInclude;
+    //endregion
 
+    //region Constructors
     /**
      * Create an instance of a {@link FSMDescriptionProvider}.
      * @param transitionTableBuilder The transition table builder for FSMs.
@@ -30,7 +31,9 @@ public class FSMDescriptionProvider implements IEnvironmentDescriptionProvider {
         this.transitionTableBuilder = transitionTableBuilder;
         this.sensorsToInclude = sensorsToInclude;
     }
+    //endregion
 
+    //region IEnvironmentDescriptionProvider Members
     /**
      * Get a new instance of a {@link FSMDescription}.
      * @return The new {@link FSMDescription}.
@@ -44,4 +47,5 @@ public class FSMDescriptionProvider implements IEnvironmentDescriptionProvider {
         System.out.println("Universal sequence: "+toReturn.getUniversalSequence());
         return toReturn;
     }
+    //endregion
 }

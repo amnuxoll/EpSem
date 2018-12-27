@@ -3,12 +3,20 @@ package environments.fsm;
 import framework.IEnvironmentDescription;
 import utils.FSMTransitionTableBuilder;
 import utils.Randomizer;
-
 import java.util.EnumSet;
 
+/**
+ * An FSMDescriptionTweakingProvider generates mutated {@link FSMDescription}s for consecutive test runs.
+ *
+ * @author Zachary Paul Faltersack
+ * @version 0.95
+ */
 public class FSMDescriptionTweakingProvider extends FSMDescriptionProvider {
+    //region Class Variables
     private FSMDescription lastDescription;
+    //endregion
 
+    //region Constructors
     /**
      * Create an instance of a {@link FSMDescriptionProvider}.
      *
@@ -18,7 +26,9 @@ public class FSMDescriptionTweakingProvider extends FSMDescriptionProvider {
     public FSMDescriptionTweakingProvider(FSMTransitionTableBuilder transitionTableBuilder, EnumSet<FSMDescription.Sensor> sensorsToInclude) {
         super(transitionTableBuilder, sensorsToInclude);
     }
+    //endregion
 
+    //region FSMDescriptionProvider Overrides
     @Override
     public IEnvironmentDescription getEnvironmentDescription()
     {
@@ -28,4 +38,5 @@ public class FSMDescriptionTweakingProvider extends FSMDescriptionProvider {
             this.lastDescription.tweakTable(2, new Randomizer());
         return this.lastDescription;
     }
+    //endregion
 }

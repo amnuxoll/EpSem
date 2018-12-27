@@ -3,7 +3,6 @@ package environments.fsm;
 import framework.*;
 import utils.Randomizer;
 import framework.Sequence;
-
 import java.util.*;
 
 /**
@@ -12,13 +11,16 @@ import java.util.*;
  * @version 0.95
  */
 public class FSMDescription implements IEnvironmentDescription {
+    //region Class Variables
     private HashMap<Move, Integer>[] transitionTable;
     private HashMap<Integer, ArrayList<Move>> shortestSequences;
     private Move[] moves;
     private EnumSet<Sensor> sensorsToInclude;
     private Sequence universalSequence;
     private HashMap<Move, Integer>[] transitionSensorTable;
+    //endregion
 
+    //region Constructors
     /**
      * Create an instance of a {@link FSMDescription}.
      * @param transitionTable The transition table that indicates the structure of a FSM.
@@ -60,15 +62,9 @@ public class FSMDescription implements IEnvironmentDescription {
             }
         }
     }
+    //endregion
 
-    /**
-     * Get the sensor data included in this environment.
-     * @return The {@link EnumSet<Sensor>} indicating the active sensors in this environment.
-     */
-    public EnumSet<Sensor> getSensorsToInclude() {
-        return this.sensorsToInclude;
-    }
-
+    //region IEnvironmentDescription Members
     /**
      * Get the {@link Move}s for this environment description.
      * @return The array of valid {@link Move}s.
@@ -145,28 +141,41 @@ public class FSMDescription implements IEnvironmentDescription {
             this.applyTransitionAgeSensor(lastState, move, sensorData);
     }
 
-    private void applyEvenOddSensor(int state, SensorData sensorData) {
-        sensorData.setSensor(Sensor.EVEN_ODD.toString(), state % 2 == 0);
-    }
+    @Override
+    public boolean validateSequence(int state, Sequence sequence) {
+        int currentState= state;
 
-    private void applyNoiseSensor(int state, SensorData sensorData){
-        boolean data = Math.random() > 0.5;
-        sensorData.setSensor(Sensor.NOISE.toString(), data);
-    }
-
-    private void applyWithinNSensors(int state, SensorData sensorData){
-        for(int i = 0; i< 20; i++){
-            if(sensorsToInclude.contains(Sensor.fromString("WITHIN_"+i))){
-                sensorData.setSensor("WITHIN_"+i, shortestSequences.get(state).size()<=i);
+        for(Move move : sequence.getMoves()){
+            currentState= transition(currentState, move);
+            if(isGoalState(currentState)){
+                return true;
             }
         }
+
+        return false;
+    }
+    //endregion
+
+    //region Public Methods
+    /**
+     * Get the sensor data included in this environment.
+     * @return The {@link EnumSet<Sensor>} indicating the active sensors in this environment.
+     */
+    public EnumSet<Sensor> getSensorsToInclude() {
+        return this.sensorsToInclude;
     }
 
-    private void applyTransitionAgeSensor(int lastState, Move move, SensorData sensorData)
-    {
-        sensorData.setSensor("Transition age", this.transitionSensorTable[lastState].get(move) <= 5);
+    public void setShortestSequences(HashMap<Integer, ArrayList<Move>> shortestSequences){
+        this.shortestSequences = shortestSequences;
+        this.universalSequence = computeUniversalSequence();
     }
 
+    public Sequence getUniversalSequence(){
+        return this.universalSequence;
+    }
+    //endregion
+
+    //region Protected Methods
     protected void tweakTable(int numSwaps, Randomizer randomizer) {
         for(int i = 0;i<numSwaps; i++) {
             int stateToSwitch = randomizer.getRandomNumber(this.transitionTable.length); //pick which state whose moves will be swapped
@@ -188,21 +197,55 @@ public class FSMDescription implements IEnvironmentDescription {
             this.transitionSensorTable[stateToSwitch].put(this.moves[selectedMove2], 0);
         }
     }
+    //endregion
 
-    @Override
-    public boolean validateSequence(int state, Sequence sequence) {
-        int currentState= state;
-
-        for(Move move : sequence.getMoves()){
-            currentState= transition(currentState, move);
-            if(isGoalState(currentState)){
-                return true;
-            }
-        }
-
-        return false;
+    //region Private Methods
+    private void applyEvenOddSensor(int state, SensorData sensorData) {
+        sensorData.setSensor(Sensor.EVEN_ODD.toString(), state % 2 == 0);
     }
 
+    private void applyNoiseSensor(int state, SensorData sensorData){
+        boolean data = Math.random() > 0.5;
+        sensorData.setSensor(Sensor.NOISE.toString(), data);
+    }
+
+    private void applyWithinNSensors(int state, SensorData sensorData){
+        for(int i = 0; i< 20; i++){
+            if(sensorsToInclude.contains(Sensor.fromString("WITHIN_"+i))){
+                sensorData.setSensor("WITHIN_"+i, shortestSequences.get(state).size()<=i);
+            }
+        }
+    }
+
+    private void applyTransitionAgeSensor(int lastState, Move move, SensorData sensorData) {
+        sensorData.setSensor("Transition age", this.transitionSensorTable[lastState].get(move) <= 5);
+    }
+
+    private Sequence computeUniversalSequence(){
+        ArrayList<Integer> states = new ArrayList<>(this.shortestSequences.keySet());
+        states.sort(new Comparator<Integer>() {
+            @Override
+            public int compare(Integer o1, Integer o2) {
+                return shortestSequences.get(o1).size() - shortestSequences.get(o2).size();
+            }
+        });
+
+        ArrayList<Move> universalSequence = new ArrayList<>();
+        for(Integer i : states){
+            int newState = i;
+            for(Move m : universalSequence){
+                newState = this.transition(newState, m);
+                if(isGoalState(newState)) {
+                    break;
+                }
+            }
+            universalSequence.addAll(shortestSequences.get(newState));
+        }
+        return new Sequence( universalSequence.toArray(new Move[0]));
+    }
+    //endregion
+
+    //region Enums
     /**
      * Define the available sensors in the environment.
      */
@@ -247,35 +290,5 @@ public class FSMDescription implements IEnvironmentDescription {
             return null;
         }
     }
-    public void setShortestSequences(HashMap<Integer, ArrayList<Move>> shortestSequences){
-        this.shortestSequences = shortestSequences;
-        this.universalSequence = computeUniversalSequence();
-    }
-
-    public Sequence getUniversalSequence(){
-        return this.universalSequence;
-    }
-
-    private Sequence computeUniversalSequence(){
-        ArrayList<Integer> states = new ArrayList<>(this.shortestSequences.keySet());
-        states.sort(new Comparator<Integer>() {
-            @Override
-            public int compare(Integer o1, Integer o2) {
-                return shortestSequences.get(o1).size() - shortestSequences.get(o2).size();
-            }
-        });
-
-        ArrayList<Move> universalSequence = new ArrayList<>();
-        for(Integer i : states){
-            int newState = i;
-            for(Move m : universalSequence){
-                newState = this.transition(newState, m);
-                if(isGoalState(newState)) {
-                    break;
-                }
-            }
-            universalSequence.addAll(shortestSequences.get(newState));
-        }
-        return new Sequence( universalSequence.toArray(new Move[0]));
-    }
+    //endregion
 }
