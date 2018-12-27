@@ -9,7 +9,7 @@ import java.util.List;
  * @author Zachary Paul Faltersack
  * @version 0.95
  */
-class TestRun {
+class TestRun implements IIntrospection {
     //region Class Variables
     private IAgent agent;
     private IEnvironmentDescription environmentDescription;
@@ -39,7 +39,7 @@ class TestRun {
         try {
             int goalCount = 0;
             int moveCount = 0;
-            this.agent.initialize(this.environmentDescription.getMoves(), sequence -> this.environmentDescription.validateSequence(this.environment.getCurrentState(), sequence));
+            this.agent.initialize(this.environmentDescription.getMoves(), this);
             SensorData sensorData = null;
             do {
                 Move move = this.agent.getNextMove(sensorData);
@@ -62,6 +62,13 @@ class TestRun {
 
     public synchronized void addGoalListener(IGoalListener listener) {
         this.goalListeners.add(listener);
+    }
+    //endregion
+
+    //region IIntrospection Members
+    @Override
+    public boolean validateSequence(Sequence sequence) {
+        return this.environmentDescription.validateSequence(this.environment.getCurrentState(), sequence);
     }
     //endregion
 
