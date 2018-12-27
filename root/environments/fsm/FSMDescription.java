@@ -1,6 +1,8 @@
 package environments.fsm;
 
 import framework.*;
+import utils.FSMTransitionTableBuilder;
+import utils.Randomizer;
 import utils.Sequence;
 
 import java.util.*;
@@ -16,6 +18,7 @@ public class FSMDescription implements IEnvironmentDescription {
     private Move[] moves;
     private EnumSet<Sensor> sensorsToInclude;
     private Sequence universalSequence;
+    private HashMap<Move, Integer>[] transitionSensorTable;
 
     /**
      * Create an instance of a {@link FSMDescription}.
@@ -48,6 +51,13 @@ public class FSMDescription implements IEnvironmentDescription {
             for (Move move : this.moves) {
                 if (!moveSet.contains(move))
                     throw new IllegalArgumentException("transitionTable is not valid for FSM. All transition moves must exist for each state.");
+            }
+        }
+        this.transitionSensorTable = new HashMap[this.getNumStates()];
+        for(int i = 0; i < getNumStates(); i++) {
+            this.transitionSensorTable[i] = new HashMap<Move, Integer>(getMoves().length);
+            for(Move m : getMoves()) {
+                this.transitionSensorTable[i].put(m, 0);
             }
         }
     }
@@ -86,6 +96,7 @@ public class FSMDescription implements IEnvironmentDescription {
         HashMap<Move, Integer> transitions = this.transitionTable[currentState];
         if (!transitions.containsKey(move))
             throw new IllegalArgumentException("move is invalid for this environment");
+        this.transitionSensorTable[currentState].put(move, this.transitionSensorTable[currentState].get(move)+1);
         return transitions.get(move);
     }
 
@@ -129,9 +140,10 @@ public class FSMDescription implements IEnvironmentDescription {
         if (this.sensorsToInclude.contains(Sensor.EVEN_ODD))
             this.applyEvenOddSensor(currentState, sensorData);
         this.applyWithinNSensors(currentState, sensorData);
-        if(this.sensorsToInclude.contains(Sensor.NOISE)){
+        if (this.sensorsToInclude.contains(Sensor.NOISE))
             this.applyNoiseSensor(currentState, sensorData);
-        }
+        if (this.sensorsToInclude.contains(Sensor.TRANSITION_AGE))
+            this.applyTransitionAgeSensor(lastState, move, sensorData);
     }
 
     private void applyEvenOddSensor(int state, SensorData sensorData) {
@@ -151,8 +163,32 @@ public class FSMDescription implements IEnvironmentDescription {
         }
     }
 
-    @Override
-    public void addEnvironmentListener(IEnvironmentListener listener){}
+    private void applyTransitionAgeSensor(int lastState, Move move, SensorData sensorData)
+    {
+        sensorData.setSensor("Transition age", this.transitionSensorTable[lastState].get(move) <= 5);
+    }
+
+    protected void tweakTable(int numSwaps, Randomizer randomizer) {
+        for(int i = 0;i<numSwaps; i++) {
+            int stateToSwitch = randomizer.getRandomNumber(this.transitionTable.length); //pick which state whose moves will be swapped
+            //pick two moves from a state's possible moves to exchange
+            //don't allow the selected moves to be the same one
+            int selectedMove1, selectedMove2;
+            do {
+                selectedMove1 = randomizer.getRandomNumber(this.moves.length);
+                selectedMove2 = randomizer.getRandomNumber(this.moves.length);
+            } while(selectedMove1 == selectedMove2 && this.moves.length != 1);
+
+            //save value to temp and put new values in swapped places
+            Integer temp = this.transitionTable[stateToSwitch].get(this.moves[selectedMove1]);
+            this.transitionTable[stateToSwitch].put(this.moves[selectedMove1], this.transitionTable[stateToSwitch].get(this.moves[selectedMove2]));
+            this.transitionTable[stateToSwitch].put(this.moves[selectedMove2], temp);
+
+            //update the sensor table to reflect the "new" transitions
+            this.transitionSensorTable[stateToSwitch].put(this.moves[selectedMove1], 0);
+            this.transitionSensorTable[stateToSwitch].put(this.moves[selectedMove2], 0);
+        }
+    }
 
     @Override
     public boolean validateSequence(int state, Sequence sequence) {
@@ -186,7 +222,8 @@ public class FSMDescription implements IEnvironmentDescription {
         /**
          * Identifies the noise sensor that can randomly be applied to a state.
          */
-        NOISE;
+        NOISE,
+        TRANSITION_AGE;
 
         /**
          * Identifies the complete sensor set for the environment.

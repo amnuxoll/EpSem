@@ -53,13 +53,6 @@ public interface IEnvironmentDescription {
     void applySensors(int lastState, Move move, int currentState, SensorData sensorData);
 
     /**
-     * add a listener for this class to fire an event to
-     *
-     * @param listener The listener to register
-     */
-    void addEnvironmentListener(IEnvironmentListener listener);
-
-    /**
      * tells whether the given sequence will take an agent from
      * the given state to a goal state
      *

@@ -11,8 +11,6 @@ public class MetaEnvironmentDescription implements IEnvironmentDescription {
     private IEnvironmentDescriptionProvider environmentDescriptionProvider;
     private IEnvironmentDescription currDescription;
 
-    private List<IEnvironmentListener> listeners= new ArrayList<>();
-
     //how many transitions the agent took to reach the goal
     private LinkedList<Integer> successQueue= new LinkedList<>();
 
@@ -79,11 +77,11 @@ public class MetaEnvironmentDescription implements IEnvironmentDescription {
 
     @Override
     public int getNumStates() {
-        return currDescription.getNumStates();
+        return this.currDescription.getNumStates();
     }
 
     @Override
-    public int getNumGoalStates(){ return currDescription.getNumGoalStates(); }
+    public int getNumGoalStates(){ return this.currDescription.getNumGoalStates(); }
 
     @Override
     public void applySensors(int lastState, Move move, int currentState, SensorData sensorData) {
@@ -116,8 +114,6 @@ public class MetaEnvironmentDescription implements IEnvironmentDescription {
 
             //make a new environment
             currDescription = environmentDescriptionProvider.getEnvironmentDescription();
-            //tell any listeners that we changed the environment
-            fireDataBreakEvent();
             //and clear the queue
             successQueue.clear();
         }
@@ -155,22 +151,7 @@ public class MetaEnvironmentDescription implements IEnvironmentDescription {
     }
 
     @Override
-    public synchronized void addEnvironmentListener(IEnvironmentListener listener) {
-        this.listeners.add(listener);
-    }
-
-    @Override
     public boolean validateSequence(int state, Sequence sequence) {
         return currDescription.validateSequence(state, sequence);
-    }
-
-    private synchronized void fireDataBreakEvent() {
-        EnvironmentEvent event= new EnvironmentEvent(this, EnvironmentEvent.EventType.DATA_BREAK);
-        for (IEnvironmentListener listener : this.listeners) {
-            //we want like 8 data breaks
-            for(int i=0;i<8;i++) {
-                listener.receiveEvent(event);
-            }
-        }
     }
 }

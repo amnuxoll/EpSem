@@ -1,4 +1,4 @@
-package framework;
+package utils;
 
 import java.util.Random;
 
@@ -7,7 +7,7 @@ import java.util.Random;
  * @author Zachary Paul Faltersack
  * @version 0.95
  */
-public class Randomizer implements IRandomizer {
+public class Randomizer {
     private Random random;
 
     public Randomizer() {
@@ -18,7 +18,6 @@ public class Randomizer implements IRandomizer {
         this.random= new Random(seed);
     }
 
-    @Override
     public int getRandomNumber(int ceiling) {
         return this.random.nextInt(ceiling);
     }

@@ -1,11 +1,8 @@
-package environments.fsm;
+package utils;
 
-import framework.IRandomizer;
 import framework.Move;
-import framework.Randomizer;
-import framework.Services;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import utils.FSMTransitionTableBuilder;
 
 import java.util.HashMap;
 
@@ -14,27 +11,21 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class FSMTransitionTableBuilderTest {
 
-    // test setup/teardown
-    @BeforeEach
-    public void initialize()
-    {
-        Services.register(IRandomizer.class, new Randomizer());
-    }
     // buildTransitionTable Tests
     @Test
     public void constructorAlphabetSizeLessThanOneThrowsException() {
-        assertThrows(IllegalArgumentException.class, () -> new FSMTransitionTableBuilder(0, 1));
+        assertThrows(IllegalArgumentException.class, () -> new FSMTransitionTableBuilder(0, 1, new Randomizer()));
     }
 
     @Test
     public void constructorNumStatesLessThanOneThrowsException() {
-        assertThrows(IllegalArgumentException.class, () -> new FSMTransitionTableBuilder(1, 0));
+        assertThrows(IllegalArgumentException.class, () -> new FSMTransitionTableBuilder(1, 0, new Randomizer()));
     }
 
     // getTransitionTable Tests
     @Test
     public void buildTransitionTableSingleTransitionSingleState() {
-        FSMTransitionTableBuilder builder = new FSMTransitionTableBuilder(1, 1);
+        FSMTransitionTableBuilder builder = new FSMTransitionTableBuilder(1, 1, new Randomizer());
         HashMap[] transitionTable = builder.getTransitionTable();
         assertEquals(1, transitionTable.length);
         HashMap<Move, Integer> goalTransitions = transitionTable[0];
@@ -43,7 +34,7 @@ public class FSMTransitionTableBuilderTest {
 
     @Test
     public void buildTransitionTableMultipleTransitionSingleState() {
-        FSMTransitionTableBuilder builder = new FSMTransitionTableBuilder(13, 1);
+        FSMTransitionTableBuilder builder = new FSMTransitionTableBuilder(13, 1, new Randomizer());
         HashMap[] transitionTable = builder.getTransitionTable();
         assertEquals(1, transitionTable.length);
         HashMap<Move, Integer> goalTransitions = transitionTable[0];

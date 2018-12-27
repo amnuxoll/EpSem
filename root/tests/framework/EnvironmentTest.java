@@ -3,6 +3,7 @@ package framework;
 import org.junit.jupiter.api.Test;
 import utils.Sequence;
 
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -72,12 +73,10 @@ public class EnvironmentTest {
     @Test
     public void resetUsesEnvironmentDescriptionAndRandomizerToSetCurrentState() {
         TestEnvironmentDescription description = new TestEnvironmentDescription();
-        TestRandomizer randomizer = new TestRandomizer();
-        Services.register(IRandomizer.class, randomizer);
         Environment environment = new Environment(description);
+        int previousCurrentState = environment.getCurrentState();
         environment.reset();
-        assertEquals(41, randomizer.receivedCeiling);
-        assertEquals(7, environment.getCurrentState());
+        assertNotEquals(previousCurrentState, environment.getCurrentState());
     }
 
     private class TestEnvironmentDescription implements IEnvironmentDescription {
@@ -131,24 +130,8 @@ public class EnvironmentTest {
         }
 
         @Override
-        public void addEnvironmentListener(IEnvironmentListener listener) {
-
-        }
-
-        @Override
         public boolean validateSequence(int state, Sequence sequence) {
             return false;
-        }
-    }
-
-    private class TestRandomizer implements IRandomizer {
-
-        public int receivedCeiling = -1;
-
-        @Override
-        public int getRandomNumber(int ceiling) {
-            this.receivedCeiling = ceiling;
-            return 7;
         }
     }
 }

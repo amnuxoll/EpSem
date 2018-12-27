@@ -26,7 +26,7 @@ public class SensorData {
         this.data.put(sensorName, sensorValue);
     }
 
-    public Object getSensor(String sensorName)throws IllegalArgumentException {
+    public Object getSensor(String sensorName) throws IllegalArgumentException {
         if (sensorName == null)
             throw new IllegalArgumentException("sensorName cannot be null");
         if (sensorName == "")
@@ -34,7 +34,7 @@ public class SensorData {
         return this.data.get(sensorName);
     }
 
-    public boolean hasSensor(String sensorName)throws IllegalArgumentException {
+    public boolean hasSensor(String sensorName) throws IllegalArgumentException {
         if (sensorName == null)
             throw new IllegalArgumentException("sensorName cannot be null");
         if (sensorName == "")

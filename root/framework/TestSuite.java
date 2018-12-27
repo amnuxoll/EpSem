@@ -8,7 +8,7 @@ import java.nio.file.Paths;
  * @author Zachary Paul Faltersack
  * @version 0.95
  */
-public class TestSuite implements IGoalListener, IEnvironmentListener {
+public class TestSuite implements IGoalListener {
 
     private TestSuiteConfiguration configuration;
     private IResultWriterProvider resultWriterProvider;
@@ -62,16 +62,14 @@ public class TestSuite implements IGoalListener, IEnvironmentListener {
             this.currentDecisionResultWriter.beginNewRun();
             testRun.execute();
 
-            OutputStreamContainer osc = Services.retrieve(OutputStreamContainer.class);
-            if (osc != null) {
-                osc.write("ratioOutputStream", "\n");
-                osc.write("agentDidAGood", "\n");
-                osc.write("agentDidAGoodOverall", "\n");
-                osc.write("goodDecisionBail", "\n");
-                osc.write("badDecisionBail", "\n");
-                osc.write("properBails", "\n");
-                osc.write("junoRatios", "\n");
-            }
+            OutputStreamContainer osc = OutputStreamContainer.getInstance();
+            osc.write("ratioOutputStream", "\n");
+            osc.write("agentDidAGood", "\n");
+            osc.write("agentDidAGoodOverall", "\n");
+            osc.write("goodDecisionBail", "\n");
+            osc.write("badDecisionBail", "\n");
+            osc.write("properBails", "\n");
+            osc.write("junoRatios", "\n");
         }
         this.currentStepResultWriter.complete();
         this.currentDecisionResultWriter.complete();
@@ -84,10 +82,7 @@ public class TestSuite implements IGoalListener, IEnvironmentListener {
     }
 
     private void writeMetaData(String parentDirectory){
-        OutputStreamContainer osc= Services.retrieve(OutputStreamContainer.class);
-        if(osc == null){
-            return;
-        }
+        OutputStreamContainer osc = OutputStreamContainer.getInstance();
         
         //information about configuration:
         osc.write("metaData", configuration.getNumberOfGoals() + " goals on " +
@@ -117,13 +112,6 @@ public class TestSuite implements IGoalListener, IEnvironmentListener {
             osc.write("metaData", "\tType: " + agent.getClass().getName() + "\n");
             osc.write("metaData", "\tExtra Data:\n\t\t" + agent.getMetaData() + "\n");
             osc.write("metaData", "\n");
-        }
-    }
-
-    @Override
-    public void receiveEvent(EnvironmentEvent event) {
-        if(event.getEventType() == EnvironmentEvent.EventType.DATA_BREAK){
-            this.currentStepResultWriter.logStepsToGoal(0);
         }
     }
 

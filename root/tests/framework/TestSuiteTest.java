@@ -43,7 +43,6 @@ public class TestSuiteTest {
     // run Tests
     @Test
     public void runInitializesAndExecutesSingleAgent() throws Exception {
-        Services.register(IRandomizer.class, new Randomizer());
         TestResultWriterProvider resultWriterProvider = new TestResultWriterProvider();
         TestEnvironmentDescriptionProvider environmentDescriptionProvider = new TestEnvironmentDescriptionProvider();
         IAgentProvider[] agentProviders = new IAgentProvider[] {
@@ -64,7 +63,6 @@ public class TestSuiteTest {
 
     @Test
     public void runInitializesAndExecutesMultipleAgent() throws Exception {
-        Services.register(IRandomizer.class, new Randomizer());
         TestResultWriterProvider resultWriterProvider = new TestResultWriterProvider();
         TestEnvironmentDescriptionProvider environmentDescriptionProvider = new TestEnvironmentDescriptionProvider();
         IAgentProvider[] agentProviders = new IAgentProvider[] {
@@ -165,11 +163,6 @@ public class TestSuiteTest {
 
         @Override
         public void applySensors(int lastState, Move move, int currentState, SensorData sensorData) {
-
-        }
-
-        @Override
-        public void addEnvironmentListener(IEnvironmentListener listener) {
 
         }
 

@@ -93,11 +93,7 @@ class TestRun implements IAgentListener {
     }
 
     private void writeGoalData(){
-        OutputStreamContainer out= Services.retrieve(OutputStreamContainer.class);
-
-        if(out == null){
-            return;
-        }
+        OutputStreamContainer out = OutputStreamContainer.getInstance();
 
         String data= decisionCount > 0 ?
                 Double.toString((double)goodDecisionCount/decisionCount) : "";

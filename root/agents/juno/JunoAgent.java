@@ -4,13 +4,8 @@ import agents.marz.ISuffixNodeBaseProvider;
 import agents.marz.MaRzAgent;
 import framework.Episode;
 import framework.OutputStreamContainer;
-import framework.Services;
 import utils.Sequence;
 import agents.juno.WeightTable.ScoredIndex;
-
-
-import java.io.*;
-import java.util.*;
 
 public class JunoAgent extends MaRzAgent {
     private WeightTable weightTable= null;
@@ -132,7 +127,7 @@ public class JunoAgent extends MaRzAgent {
         double average= ((goals-1)*prevAverage + averageEntry)/goals;
         this.tableMaturity= Math.abs(average - prevAverage);
 
-        Services.retrieve(OutputStreamContainer.class).write("tableInfo", weightTable.toString(false));
+        OutputStreamContainer.getInstance().write("tableInfo", weightTable.toString(false));
     }
 
     @Override
@@ -192,9 +187,7 @@ public class JunoAgent extends MaRzAgent {
     }
 
     private void printInfo(ScoredIndex indexToTry){
-        OutputStreamContainer outputStreamContainer=
-                Services.retrieve(OutputStreamContainer.class);
-
+        OutputStreamContainer outputStreamContainer = OutputStreamContainer.getInstance();
         outputStreamContainer.write("tableInfo", episodesToString(indexToTry.index, weightTable.size()));
         outputStreamContainer.write("tableInfo", episodesToString(episodicMemory.size()-1, weightTable.size()));
         outputStreamContainer.write("tableInfo", weightTable.toString(false));

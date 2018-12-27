@@ -83,11 +83,6 @@ public class MetaEnvironmentDescriptionProviderTest {
         }
 
         @Override
-        public void addEnvironmentListener(IEnvironmentListener listener) {
-
-        }
-
-        @Override
         public boolean validateSequence(int state, Sequence sequence) {
             return false;
         }

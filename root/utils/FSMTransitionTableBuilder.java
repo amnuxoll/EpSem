@@ -1,9 +1,7 @@
-package environments.fsm;
+package utils;
 
-import framework.IRandomizer;
+import environments.fsm.FSMDescription;
 import framework.Move;
-import framework.Services;
-import utils.Sequence;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -28,17 +26,19 @@ public class FSMTransitionTableBuilder {
 
     private HashMap<Integer, ArrayList<Move>> shortestSequences;
     private int transitionsDone = 0;
+    private Randomizer randomizer;
 
     /**
      * Create a {@link FSMTransitionTableBuilder}.
      * @param alphabetSize The number of moves to allow from each state.
      * @param numStates The number of states in the FSM.
      */
-    public FSMTransitionTableBuilder(int alphabetSize, int numStates) {
+    public FSMTransitionTableBuilder(int alphabetSize, int numStates, Randomizer randomizer) {
         if (alphabetSize < 1)
             throw new IllegalArgumentException("alphabetSize cannot be less than 1");
         if (numStates < 1)
             throw new IllegalArgumentException("numStates cannot be less than 1");
+        this.randomizer = randomizer;
         this.alphabetSize = alphabetSize;
         this.numStates = numStates;
         this.shortestSequences = new HashMap<>();
@@ -47,13 +47,6 @@ public class FSMTransitionTableBuilder {
         }
         shortestSequences.put(numStates-1, new ArrayList<>());
         this.buildTransitionTable();
-    }
-
-    public FSMTransitionTableBuilder(HashMap<Move,Integer>[] tableToCopy){
-        this.transitionTable= new HashMap[tableToCopy.length];
-        for(int i=0;i<transitionTable.length;i++){
-            this.transitionTable[i]= (HashMap<Move,Integer>)tableToCopy[i].clone();
-        }
     }
 
     /**
@@ -89,18 +82,17 @@ public class FSMTransitionTableBuilder {
         int maxTransitionsToGoal = (int)(transitionTable.length * moves.length * 0.04);
         if (maxTransitionsToGoal == 0)
             maxTransitionsToGoal = 1;
-        this.pickTransitions(numStates - 1, Services.retrieve(IRandomizer.class).getRandomNumber(maxTransitionsToGoal) + 1);
+        this.pickTransitions(numStates - 1, this.randomizer.getRandomNumber(maxTransitionsToGoal) + 1);
     }
 
     private void pickTransitions(int initGoal, int numOfTransitions) {
         int initState = -1;
-        IRandomizer randomizer = Services.retrieve(IRandomizer.class);
         for(int i = 0; i < numOfTransitions; i++) {
             //check to see if table is full
             if(this.transitionsDone == ((this.transitionTable.length-1)*this.moves.length))
                 return;
-            initState = randomizer.getRandomNumber(this.transitionTable.length);
-            int moveIndex = randomizer.getRandomNumber(this.moves.length);
+            initState = this.randomizer.getRandomNumber(this.transitionTable.length);
+            int moveIndex = this.randomizer.getRandomNumber(this.moves.length);
 
             if (this.transitionTable[initState] != null && this.transitionTable[initState].containsKey(this.moves[moveIndex])) {
                 i--;
