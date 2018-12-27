@@ -9,6 +9,7 @@
       <root url="jar://$PROJECT_DIR$/dependencies/junit-platform-console-standalone-1.3.0-RC1.jar!/" />
       <root url="jar://$PROJECT_DIR$/dependencies/apiguardian-api-1.0.0.jar!/" />
       <root url="jar://$PROJECT_DIR$/dependencies/junit-platform-launcher-1.0.0.jar!/" />
+      <root url="jar://$PROJECT_DIR$/dependencies/gson-2.8.5.jar!/" />
     </CLASSES>
     <JAVADOC />
     <SOURCES />
