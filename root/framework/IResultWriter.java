@@ -1,5 +1,7 @@
 package framework;
 
+import java.io.IOException;
+
 /**
  *
  * @author Zachary Paul Faltersack
@@ -7,10 +9,10 @@ package framework;
  */
 public interface IResultWriter {
     //region Methods
-    void beginNewRun();
+    void beginNewRun() throws IOException;
 
-    void logResult(String result);
+    void logResult(String result) throws IOException;
 
-    void complete();
+    void complete() throws IOException;
     //endregion
 }

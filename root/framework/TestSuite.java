@@ -1,5 +1,6 @@
 package framework;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -39,28 +40,32 @@ public class TestSuite implements IGoalListener {
      * @param resultWriterProvider The {@link IResultWriterProvider} used to generate {@link IResultWriter}s.
      * @throws Exception
      */
-    public void run(IResultWriterProvider resultWriterProvider) throws Exception {
-        NamedOutput namedOutput = NamedOutput.getInstance();
-        namedOutput.write("framework", "Beginning test suite...");
-        this.writeMetaData();
+    public void run(IResultWriterProvider resultWriterProvider) {
+        try {
+            NamedOutput namedOutput = NamedOutput.getInstance();
+            namedOutput.write("framework", "Beginning test suite...");
+            this.writeMetaData();
 
-        int numberOfIterations = this.configuration.getNumberOfIterations();
-        for (int i = 0; i < this.agentProviders.length; i++) {
-            IAgentProvider agentProvider = this.agentProviders[i];
-            namedOutput.write("framework", "Beginning agent: " + agentProvider.getAlias() + " " + i);
-            for (int j = 0; j < numberOfIterations; j++) {
-                namedOutput.write("framework", "");
-                namedOutput.write("framework", "Beginning iteration: " + j);
-                IAgent agent = agentProvider.getAgent();
-                if (j == 0)
-                    this.generateResultWriters(resultWriterProvider, agentProvider.getAlias(), j, agent.getResultTypes());
-                IEnvironmentDescription environmentDescription = this.environmentDescriptionProvider.getEnvironmentDescription();
-                TestRun testRun = new TestRun(agent, environmentDescription, this.configuration.getNumberOfGoals());
-                testRun.addGoalListener(this);
-                this.beginAgentTestRun();
-                testRun.execute();
+            int numberOfIterations = this.configuration.getNumberOfIterations();
+            for (int i = 0; i < this.agentProviders.length; i++) {
+                IAgentProvider agentProvider = this.agentProviders[i];
+                namedOutput.write("framework", "Beginning agent: " + agentProvider.getAlias() + " " + i);
+                for (int j = 0; j < numberOfIterations; j++) {
+                    namedOutput.write("framework", "");
+                    namedOutput.write("framework", "Beginning iteration: " + j);
+                    IAgent agent = agentProvider.getAgent();
+                    if (j == 0)
+                        this.generateResultWriters(resultWriterProvider, agentProvider.getAlias(), j, agent.getResultTypes());
+                    IEnvironmentDescription environmentDescription = this.environmentDescriptionProvider.getEnvironmentDescription();
+                    TestRun testRun = new TestRun(agent, environmentDescription, this.configuration.getNumberOfGoals());
+                    testRun.addGoalListener(this);
+                    this.beginAgentTestRun();
+                    testRun.execute();
+                }
+                this.completeAgentTestRuns();
             }
-            this.completeAgentTestRuns();
+        } catch(Exception ex) {
+            NamedOutput.getInstance().write("framework", ex);
         }
     }
     //endregion
@@ -71,7 +76,7 @@ public class TestSuite implements IGoalListener {
      * @param event The event to receive.
      */
     @Override
-    public void goalReceived(GoalEvent event) {
+    public void goalReceived(GoalEvent event) throws IOException {
         this.resultWriters.get("steps").logResult(event.getStepCountToGoal());
         for (Map.Entry<String, String> result : event.getAgentResults().entrySet())
         {
@@ -81,14 +86,14 @@ public class TestSuite implements IGoalListener {
     //endregion
 
     //region Private Methods
-    private void beginAgentTestRun() {
+    private void beginAgentTestRun() throws IOException {
         for (IResultWriter writer : this.resultWriters.values())
         {
             writer.beginNewRun();
         }
     }
 
-    private void completeAgentTestRuns() {
+    private void completeAgentTestRuns() throws IOException {
         for (IResultWriter writer : this.resultWriters.values())
         {
             writer.complete();

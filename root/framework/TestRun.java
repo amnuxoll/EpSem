@@ -1,8 +1,6 @@
 package framework;
 
-
-import utils.ExceptionStackTraceToString;
-
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -58,9 +56,7 @@ class TestRun {
             } while (goalCount < this.numberOfGoalsToFind);
             this.agent.onTestRunComplete();
         } catch (Exception ex) {
-            NamedOutput namedOutput = NamedOutput.getInstance();
-            namedOutput.write("framework", "TestRun failed with exception: " + ex.getMessage());
-            namedOutput.write("framework", ExceptionStackTraceToString.getString(ex));
+            NamedOutput.getInstance().write("framework", ex);
         }
     }
 
@@ -70,7 +66,7 @@ class TestRun {
     //endregion
 
     //region Private Methods
-    private synchronized void fireGoalEvent(int stepsToGoal) {
+    private synchronized void fireGoalEvent(int stepsToGoal) throws IOException {
         GoalEvent goal = new GoalEvent(this, stepsToGoal, this.agent.getResultWriterData());
         for (IGoalListener listener : this.goalListeners) {
             listener.goalReceived(goal);

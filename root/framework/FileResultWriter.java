@@ -1,7 +1,5 @@
 package framework;
 
-import utils.ExceptionStackTraceToString;
-
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -63,66 +61,52 @@ public class FileResultWriter implements IResultWriter {
      * @param result The step count to the last located goal.
      */
     @Override
-    public void logResult(String result) {
+    public void logResult(String result) throws IOException {
         this.currentNumberOfResults++;
-        try {
-            this.fileWriter.write(result + ",");
-            this.fileWriter.flush();
-        } catch (IOException ex) {
-            // do anything here?
-        }
+        this.fileWriter.write(result + ",");
+        this.fileWriter.flush();
     }
 
     /**
      * Begin a new batch of attempts to locate the goal.
      */
     @Override
-    public void beginNewRun() {
+    public void beginNewRun() throws IOException {
         this.numberOfRuns++;
         this.maxNumberOfResults = Math.max(this.maxNumberOfResults, this.currentNumberOfResults);
         this.currentNumberOfResults = 0;
-        try {
-            this.fileWriter.write("\n");
-            this.fileWriter.write(this.numberOfRuns + ",");
-            this.fileWriter.flush();
-        } catch (IOException ex) {
-            // do anything here?
-        }
+        this.fileWriter.write("\n");
+        this.fileWriter.write(this.numberOfRuns + ",");
+        this.fileWriter.flush();
     }
 
     /**
      * Complete the result file by adding in the sum and smoothing rows and closing the file.
      */
     @Override
-    public void complete() {
-        try {
-            this.fileWriter.write("\n");
-            this.fileWriter.write(this.agent + " Average,");
-            // Write out the basic goal sums
-            for (int i = 2; i <= this.maxNumberOfResults + 1; i++) {
-                int startRow = 2;
-                int endRow = startRow + this.numberOfRuns - 1;
-                String columnLabel = this.convertToColumn(i);
-                this.fileWriter.write("=average(" + columnLabel + startRow + ":" + columnLabel + endRow + "),");
-            }
-            this.fileWriter.write("\n");
-            this.fileWriter.write(this.agent + " Smoothed,,,,");
-
-            // Write out the smoothing row
-            for (int i = 5; i <= this.maxNumberOfResults - 2; i++) {
-                String leftColumn = this.convertToColumn(i - 3);
-                String rightColumn = this.convertToColumn(i + 3);
-                int row = 2 + this.numberOfRuns;
-
-                this.fileWriter.write("=average(" + leftColumn + row + ":" + rightColumn + row + "),");
-            }
-            this.fileWriter.write(",,,");
-            this.fileWriter.close();
-        } catch (IOException ex) {
-            NamedOutput namedOutput = NamedOutput.getInstance();
-            namedOutput.write("framework", "TestRun failed with exception: " + ex.getMessage());
-            namedOutput.write("framework", ExceptionStackTraceToString.getString(ex));
+    public void complete() throws IOException {
+        this.fileWriter.write("\n");
+        this.fileWriter.write(this.agent + " Average,");
+        // Write out the basic goal sums
+        for (int i = 2; i <= this.maxNumberOfResults + 1; i++) {
+            int startRow = 2;
+            int endRow = startRow + this.numberOfRuns - 1;
+            String columnLabel = this.convertToColumn(i);
+            this.fileWriter.write("=average(" + columnLabel + startRow + ":" + columnLabel + endRow + "),");
         }
+        this.fileWriter.write("\n");
+        this.fileWriter.write(this.agent + " Smoothed,,,,");
+
+        // Write out the smoothing row
+        for (int i = 5; i <= this.maxNumberOfResults - 2; i++) {
+            String leftColumn = this.convertToColumn(i - 3);
+            String rightColumn = this.convertToColumn(i + 3);
+            int row = 2 + this.numberOfRuns;
+
+            this.fileWriter.write("=average(" + leftColumn + row + ":" + rightColumn + row + "),");
+        }
+        this.fileWriter.write(",,,");
+        this.fileWriter.close();
     }
     //endregion
 

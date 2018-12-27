@@ -1,12 +1,7 @@
 package framework;
 
 import utils.DirectoryUtils;
-
-import java.io.File;
-import java.io.IOException;
 import java.nio.file.Paths;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 
 /**
  * A FileResultWriterProvider will generate {@link FileResultWriter}s bound to specific output directories.

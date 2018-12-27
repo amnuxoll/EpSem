@@ -1,5 +1,7 @@
 package framework;
 
+import java.io.IOException;
+
 /**
  *
  * @author Zachary Paul Faltersack
@@ -11,6 +13,6 @@ interface IGoalListener {
      * Callback for receiving a goal {@link GoalEvent}.
      * @param event The event to receive.
      */
-    void goalReceived(GoalEvent event);
+    void goalReceived(GoalEvent event) throws IOException;
     //endregion
 }

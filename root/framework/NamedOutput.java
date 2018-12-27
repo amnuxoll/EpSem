@@ -1,5 +1,6 @@
 package framework;
 
+import utils.ExceptionUtils;
 import java.io.*;
 import java.util.HashMap;
 
@@ -36,17 +37,25 @@ public class NamedOutput {
 
         try {
             this.outputStreams.get(key).write(data.getBytes());
-        } catch (IOException e) {
-            e.printStackTrace();
+        } catch (IOException ex) {
+            // To avoid any possible exception recursion we'll print internal errors directly to std out.
+            ex.printStackTrace();
         }
+    }
+
+    public void write(String key, Exception exception)
+    {
+        this.write(key, "Exception logged: " + exception.getMessage());
+        this.write(key, ExceptionUtils.getString(exception));
     }
 
     public void closeAll(){
         for(OutputStream stream: this.outputStreams.values()){
             try {
                 stream.close();
-            } catch (IOException e) {
-                e.printStackTrace();
+            } catch (IOException ex) {
+                // To avoid any possible exception recursion we'll print internal errors directly to std out.
+                ex.printStackTrace();
             }
         }
     }
