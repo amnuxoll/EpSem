@@ -3,7 +3,6 @@ package framework;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -114,7 +113,7 @@ public class TestRunTest {
         private int moveIndex = 0;
 
         @Override
-        public void initialize(Move[] moves, IIntrospection introspection) {
+        public void initialize(Move[] moves, IIntrospector introspector) {
             this.moves = moves;
         }
 

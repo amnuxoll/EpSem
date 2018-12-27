@@ -102,7 +102,7 @@ public class TestSuiteTest {
     private class TestAgent implements IAgent {
 
         @Override
-        public void initialize(Move[] moves, IIntrospection introspection) {
+        public void initialize(Move[] moves, IIntrospector introspector) {
 
         }
 

@@ -9,7 +9,7 @@ import java.util.List;
  * @author Zachary Paul Faltersack
  * @version 0.95
  */
-class TestRun implements IIntrospection {
+class TestRun implements IIntrospector {
     //region Class Variables
     private IAgent agent;
     private IEnvironmentDescription environmentDescription;
@@ -65,7 +65,7 @@ class TestRun implements IIntrospection {
     }
     //endregion
 
-    //region IIntrospection Members
+    //region IIntrospector Members
     @Override
     public boolean validateSequence(Sequence sequence) {
         return this.environmentDescription.validateSequence(this.environment.getCurrentState(), sequence);

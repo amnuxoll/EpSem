@@ -2,8 +2,6 @@ package agents.nsm;
 
 import framework.*;
 
-import java.io.FileWriter;
-import java.io.IOException;
 import java.util.*;
 
 /**
@@ -53,7 +51,7 @@ public class NSMAgent implements IAgent {
     private Move[] moves;
 
     @Override
-    public void initialize(Move[] moves, IIntrospection introspection)
+    public void initialize(Move[] moves, IIntrospector introspector)
     {
         this.moves = moves;
         informationColumns = 2;

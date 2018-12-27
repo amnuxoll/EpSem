@@ -47,7 +47,7 @@ public class MaRzAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> implemen
 	private Move[] alphabet;
 	private HashMap<TSuffixNode, Long> permutationQueues = new HashMap<>();
 	private ISuffixNodeBaseProvider<TSuffixNode> nodeProvider;
-	private IIntrospection introspection;
+	private IIntrospector introspector;
 	private int goodDecisionCount = 0;
 	private int goodDecisionBailCount = 0;
 	private int badDecisionBailCount = 0;
@@ -72,9 +72,9 @@ public class MaRzAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> implemen
 	 * @param moves An array of {@link Move} representing the moves available to the agent.
 	 */
 	@Override
-	public void initialize(Move[] moves, IIntrospection introspection) {
+	public void initialize(Move[] moves, IIntrospector introspector) {
 		this.alphabet = moves;
-		this.introspection = introspection;
+		this.introspector = introspector;
 		this.sequenceGenerator = new SequenceGenerator(this.alphabet);
 		this.activeNode = this.nodeProvider.getNode(Sequence.EMPTY, this.alphabet, (index) -> this.episodicMemory.get(index));
 		this.suffixTree = new SuffixTree<>(MaRzAgent.NODE_LIST_SIZE, this.activeNode);
@@ -246,7 +246,7 @@ public class MaRzAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> implemen
 
 	private void setCurrentSequence(Sequence sequence) {
 		this.currentSequence = sequence;
-		this.currentSequenceIsGood = this.introspection.validateSequence(this.currentSequence);
+		this.currentSequenceIsGood = this.introspector.validateSequence(this.currentSequence);
 		this.decisionsMade++;
 		this.decisionsMadeSinceGoal++;
 	}
