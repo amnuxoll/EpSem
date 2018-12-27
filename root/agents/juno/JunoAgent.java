@@ -7,7 +7,6 @@ import agents.juno.WeightTable.ScoredIndex;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 
 public class JunoAgent extends MaRzAgent {
@@ -48,18 +47,18 @@ public class JunoAgent extends MaRzAgent {
     }
 
     @Override
-    public String[] getResultTypes()
+    public String[] getStatisticTypes()
     {
-        String[] items = super.getResultTypes();
+        String[] items = super.getStatisticTypes();
         ArrayList<String> itemsList = new ArrayList<>(Arrays.asList(items));
         itemsList.add("junoRatios");
         return itemsList.toArray(new String[0]);
     }
 
     @Override
-    public HashMap<String, String> getResultWriterData()
+    public HashMap<String, String> getStatistics()
     {
-        HashMap<String, String> results = super.getResultWriterData();
+        HashMap<String, String> results = super.getStatistics();
         results.put("junoRatios", Double.toString(this.getJunoRatio()));
         return results;
     }
@@ -300,7 +299,7 @@ public class JunoAgent extends MaRzAgent {
     }
 
     @Override
-    public String getMetaData(){
+    public String toString(){
         return "bailSlider= " + config.getBailSlider();
     }
 }

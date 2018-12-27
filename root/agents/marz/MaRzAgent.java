@@ -98,7 +98,7 @@ public class MaRzAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> implemen
 	}
 
 	@Override
-	public String[] getResultTypes()
+	public String[] getStatisticTypes()
 	{
 		return new String[] {
 				"agentDidAGood",
@@ -109,7 +109,7 @@ public class MaRzAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> implemen
 	}
 
 	@Override
-	public HashMap<String, String> getResultWriterData()
+	public HashMap<String, String> getStatistics()
 	{
 		HashMap<String, String> results = new HashMap<>();
 		results.put("agentDidAGood", this.decisionsMade > 0 ? Double.toString((double)this.goodDecisionCount/this.decisionsMade) : "");

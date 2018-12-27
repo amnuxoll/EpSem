@@ -114,11 +114,6 @@ public class TestRunTest {
         private int moveIndex = 0;
 
         @Override
-        public String[] getResultTypes() {
-            return new String[0];
-        }
-
-        @Override
         public void initialize(Move[] moves, IIntrospection introspection) {
             this.moves = moves;
         }
@@ -133,11 +128,6 @@ public class TestRunTest {
             if (this.moveIndex >= this.moves.length)
                 this.moveIndex = 0;
             return move;
-        }
-
-        @Override
-        public HashMap<String, String> getResultWriterData() {
-            return null;
         }
     }
 

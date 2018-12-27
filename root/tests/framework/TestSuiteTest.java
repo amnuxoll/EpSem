@@ -102,24 +102,15 @@ public class TestSuiteTest {
     private class TestAgent implements IAgent {
 
         @Override
-        public String[] getResultTypes() {
-            return new String[0];
-        }
-
-        @Override
         public void initialize(Move[] moves, IIntrospection introspection) {
 
         }
 
         @Override
-        public Move getNextMove(SensorData sensorData) throws Exception {
+        public Move getNextMove(SensorData sensorData) {
             return new Move("a");
         }
 
-        @Override
-        public HashMap<String, String> getResultWriterData() {
-            return null;
-        }
     }
 
     private class TestEnvironmentDescriptionProvider implements IEnvironmentDescriptionProvider {

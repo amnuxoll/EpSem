@@ -22,15 +22,11 @@ public interface IAgent {
      * @throws Exception
      */
     Move getNextMove(SensorData sensorData) throws Exception;
-
-    String[] getResultTypes();
-    HashMap<String, String> getResultWriterData();
     //endregion
 
-    //region Defaulted Methods
-    default String getMetaData(){
-        return "None";
-    }
+    //region Defaulted Methods for gathering statistics
+    default String[] getStatisticTypes() { return new String[0]; };
+    default HashMap<String, String> getStatistics() { return new HashMap<>(); };
     default void onGoalFound() { };
     default void onTestRunComplete() { };
     //endregion

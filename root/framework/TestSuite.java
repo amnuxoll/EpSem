@@ -55,7 +55,7 @@ public class TestSuite implements IGoalListener {
                     namedOutput.write("framework", "Beginning iteration: " + j);
                     IAgent agent = agentProvider.getAgent();
                     if (j == 0)
-                        this.generateResultWriters(resultWriterProvider, agentProvider.getAlias(), j, agent.getResultTypes());
+                        this.generateResultWriters(resultWriterProvider, agentProvider.getAlias(), j, agent.getStatisticTypes());
                     IEnvironmentDescription environmentDescription = this.environmentDescriptionProvider.getEnvironmentDescription();
                     TestRun testRun = new TestRun(agent, environmentDescription, this.configuration.getNumberOfGoals());
                     testRun.addGoalListener(this);
@@ -128,7 +128,7 @@ public class TestSuite implements IGoalListener {
             IAgent agent= agentProviders[i].getAgent();
             metadataBuilder.append("Example of possible agent:" + "\n");
             metadataBuilder.append("\tType: " + agent.getClass().getName() + "\n");
-            metadataBuilder.append("\tExtra Data:\n\t\t" + agent.getMetaData() + "\n");
+            metadataBuilder.append("\tExtra Data:\n\t\t" + agent + "\n");
             metadataBuilder.append("\n");
         }
         NamedOutput.getInstance().write("metaData", metadataBuilder.toString());

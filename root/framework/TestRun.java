@@ -74,7 +74,7 @@ class TestRun implements IIntrospection {
 
     //region Private Methods
     private synchronized void fireGoalEvent(int stepsToGoal) throws IOException {
-        GoalEvent goal = new GoalEvent(this, stepsToGoal, this.agent.getResultWriterData());
+        GoalEvent goal = new GoalEvent(this, stepsToGoal, this.agent.getStatistics());
         for (IGoalListener listener : this.goalListeners) {
             listener.goalReceived(goal);
         }
