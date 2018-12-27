@@ -1,22 +1,21 @@
 package framework;
 
 import java.io.*;
-import java.nio.file.Paths;
 import java.util.HashMap;
 
-public class OutputStreamContainer {
-    private static OutputStreamContainer instance = new OutputStreamContainer();
+public class NamedOutput {
+    private static NamedOutput instance = new NamedOutput();
 
     private HashMap<String, OutputStream> outputStreams = new HashMap<>();
 
-    private OutputStreamContainer() { }
+    private NamedOutput() { }
 
-    public static OutputStreamContainer getInstance()
+    public static NamedOutput getInstance()
     {
         return instance;
     }
 
-    public void configureOutput(String key, OutputStream stream)
+    public void configure(String key, OutputStream stream)
     {
         this.outputStreams.put(key, stream);
     }

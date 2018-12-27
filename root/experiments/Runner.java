@@ -148,11 +148,11 @@ public class Runner {
                 System.out.println("Beginning suite "+suites.indexOf(suite));
                 //Services.register(IRandomizer.class, new Randomizer(541)); //determined seed for debug
                 String outputPath = suite.getResultWriterProvider().getOutputDirectory();
-                OutputStreamContainer outputStreamContainer = createOutputStreamContainer(outputPath);
+                NamedOutput namedOutput = createOutputStreamContainer(outputPath);
 
                 suite.run();
 
-                outputStreamContainer.closeAll();
+                namedOutput.closeAll();
             }
             catch (OutOfMemoryError mem){
                 mem.printStackTrace();
@@ -165,15 +165,15 @@ public class Runner {
         }
     }
 
-    private static OutputStreamContainer createOutputStreamContainer(String outputPath) throws IOException {
-        OutputStreamContainer outputStreamContainer = OutputStreamContainer.getInstance();
-        outputStreamContainer.configureOutput("metaData", Runner.getFileOutputStream(outputPath, "metadata.txt"));
-        outputStreamContainer.configureOutput("agentDidAGood", Runner.getFileOutputStream(outputPath, "goodRatios.csv"));
-        outputStreamContainer.configureOutput("goodDecisionBail", Runner.getFileOutputStream(outputPath, "goodDecisionBailRatio.csv"));
-        outputStreamContainer.configureOutput("badDecisionBail", Runner.getFileOutputStream(outputPath, "badDecisionBailRatio.csv"));
-        outputStreamContainer.configureOutput("properBails", Runner.getFileOutputStream(outputPath, "properBailRatio.csv"));
-        outputStreamContainer.configureOutput("junoRatios", Runner.getFileOutputStream(outputPath, "junoRatios.csv"));
-        return outputStreamContainer;
+    private static NamedOutput createOutputStreamContainer(String outputPath) throws IOException {
+        NamedOutput namedOutput = NamedOutput.getInstance();
+        namedOutput.configure("metaData", Runner.getFileOutputStream(outputPath, "metadata.txt"));
+        namedOutput.configure("agentDidAGood", Runner.getFileOutputStream(outputPath, "goodRatios.csv"));
+        namedOutput.configure("goodDecisionBail", Runner.getFileOutputStream(outputPath, "goodDecisionBailRatio.csv"));
+        namedOutput.configure("badDecisionBail", Runner.getFileOutputStream(outputPath, "badDecisionBailRatio.csv"));
+        namedOutput.configure("properBails", Runner.getFileOutputStream(outputPath, "properBailRatio.csv"));
+        namedOutput.configure("junoRatios", Runner.getFileOutputStream(outputPath, "junoRatios.csv"));
+        return namedOutput;
     }
 
     private static FileOutputStream getFileOutputStream(String directory, String filename) throws IOException {

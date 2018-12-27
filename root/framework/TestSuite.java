@@ -1,8 +1,5 @@
 package framework;
 
-import java.io.*;
-import java.nio.file.Paths;
-
 /**
  *
  * @author Zachary Paul Faltersack
@@ -62,7 +59,7 @@ public class TestSuite implements IGoalListener {
             this.currentDecisionResultWriter.beginNewRun();
             testRun.execute();
 
-            OutputStreamContainer osc = OutputStreamContainer.getInstance();
+            NamedOutput osc = NamedOutput.getInstance();
             osc.write("ratioOutputStream", "\n");
             osc.write("agentDidAGood", "\n");
             osc.write("agentDidAGoodOverall", "\n");
@@ -82,7 +79,7 @@ public class TestSuite implements IGoalListener {
     }
 
     private void writeMetaData(String parentDirectory){
-        OutputStreamContainer osc = OutputStreamContainer.getInstance();
+        NamedOutput osc = NamedOutput.getInstance();
         
         //information about configuration:
         osc.write("metaData", configuration.getNumberOfGoals() + " goals on " +

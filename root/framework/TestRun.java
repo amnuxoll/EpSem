@@ -2,7 +2,6 @@ package framework;
 
 
 import agents.juno.JunoAgent;
-import agents.marz.MaRzAgent;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -93,7 +92,7 @@ class TestRun implements IAgentListener {
     }
 
     private void writeGoalData(){
-        OutputStreamContainer out = OutputStreamContainer.getInstance();
+        NamedOutput out = NamedOutput.getInstance();
 
         String data= decisionCount > 0 ?
                 Double.toString((double)goodDecisionCount/decisionCount) : "";
