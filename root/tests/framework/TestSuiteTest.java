@@ -107,6 +107,11 @@ public class TestSuiteTest {
     private class TestAgent implements IAgent {
 
         @Override
+        public String[] getResultTypes() {
+            return new String[0];
+        }
+
+        @Override
         public void initialize(Move[] moves, IIntrospection introspection) {
 
         }
@@ -114,6 +119,11 @@ public class TestSuiteTest {
         @Override
         public Move getNextMove(SensorData sensorData) throws Exception {
             return new Move("a");
+        }
+
+        @Override
+        public HashMap<String, String> getResultWriterData() {
+            return null;
         }
     }
 
@@ -188,7 +198,7 @@ public class TestSuiteTest {
         public int iterationCountAtcompleted = 0;
 
         @Override
-        public void logStepsToGoal(int stepsToGoal) {
+        public void logResult(String result) {
             this.stepsLoggedCount++;
         }
 

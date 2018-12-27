@@ -2,10 +2,13 @@ package agents.juno;
 
 import agents.marz.ISuffixNodeBaseProvider;
 import agents.marz.MaRzAgent;
-import framework.Episode;
-import framework.NamedOutput;
-import framework.Sequence;
+import framework.*;
 import agents.juno.WeightTable.ScoredIndex;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
 
 public class JunoAgent extends MaRzAgent {
     private WeightTable weightTable= null;
@@ -42,6 +45,23 @@ public class JunoAgent extends MaRzAgent {
         marzCount= 0;
         junoCount= 0;
         this.weightTable= new WeightTable(1);
+    }
+
+    @Override
+    public String[] getResultTypes()
+    {
+        String[] items = super.getResultTypes();
+        ArrayList<String> itemsList = new ArrayList<>(Arrays.asList(items));
+        itemsList.add("junoRatios");
+        return itemsList.toArray(new String[0]);
+    }
+
+    @Override
+    public HashMap<String, String> getResultWriterData()
+    {
+        HashMap<String, String> results = super.getResultWriterData();
+        results.put("junoRatios", Double.toString(this.getJunoRatio()));
+        return results;
     }
 
 
@@ -190,14 +210,12 @@ public class JunoAgent extends MaRzAgent {
     public void onGoalFound()
     {
         super.onGoalFound();
-        NamedOutput.getInstance().write("junoRatios", this.getJunoRatio() + "," );
     }
 
     @Override
     public void onTestRunComplete()
     {
         super.onTestRunComplete();
-        NamedOutput.getInstance().write("junoRatios", "\n");
     }
 
     private void printInfo(ScoredIndex indexToTry){

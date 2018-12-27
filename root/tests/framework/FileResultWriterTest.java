@@ -53,7 +53,7 @@ public class FileResultWriterTest {
         String fileName = "output.csv";
         try {
             FileResultWriter writer = new FileResultWriter("agent", fileName);
-            writer.logStepsToGoal(13);
+            writer.logResult(Integer.toString(13));
             try {
                 List<String> lines = Files.readAllLines(Paths.get(fileName));
                 assertEquals(1, lines.size());
@@ -76,10 +76,10 @@ public class FileResultWriterTest {
         String fileName = "output.csv";
         try {
             FileResultWriter writer = new FileResultWriter("agent", fileName);
-            writer.logStepsToGoal(13);
-            writer.logStepsToGoal(7);
-            writer.logStepsToGoal(2);
-            writer.logStepsToGoal(15);
+            writer.logResult(Integer.toString(13));
+            writer.logResult(Integer.toString(7));
+            writer.logResult(Integer.toString(2));
+            writer.logResult(Integer.toString(15));
             try {
                 List<String> lines = Files.readAllLines(Paths.get(fileName));
                 assertEquals(1, lines.size());
@@ -162,7 +162,7 @@ public class FileResultWriterTest {
             for (int runs = 0; runs < 10; runs++) {
                 writer.beginNewRun();
                 for (int goals = 0; goals < 30; goals++) {
-                    writer.logStepsToGoal(goals);
+                    writer.logResult(Integer.toString(goals));
                 }
             }
             writer.complete();

@@ -1,6 +1,7 @@
 package framework;
 
-import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  *
@@ -13,8 +14,7 @@ public class TestSuite implements IGoalListener {
     private IResultWriterProvider resultWriterProvider;
     private IEnvironmentDescriptionProvider environmentDescriptionProvider;
     private IAgentProvider[] agentProviders;
-
-    private IResultWriter currentStepResultWriter;
+    private HashMap<String, IResultWriter> resultWriters;
 
     public TestSuite(TestSuiteConfiguration configuration, IResultWriterProvider resultWriterProvider, IEnvironmentDescriptionProvider environmentDescriptionProvider, IAgentProvider[] agentProviders) {
         if (configuration == null)
@@ -34,35 +34,63 @@ public class TestSuite implements IGoalListener {
     }
 
     public void run() throws Exception {
-        System.out.println("Beginning test suite...");
+        NamedOutput namedOutput = NamedOutput.getInstance();
+        namedOutput.write("framework", "Beginning test suite...");
         writeMetaData();
 
         int numberOfIterations = this.configuration.getNumberOfIterations();
         for (int i = 0; i < this.agentProviders.length; i++) {
             IAgentProvider agentProvider = this.agentProviders[i];
-            System.out.println("Beginning agent: " + agentProvider.getAlias() + " " + i);
-            this.currentStepResultWriter = this.resultWriterProvider.getResultWriter(agentProvider.getAlias(), "agent_" + agentProvider.getAlias() + "_" + i + "_steps");
-            this.runAgent(agentProvider, numberOfIterations);
+            namedOutput.write("framework", "Beginning agent: " + agentProvider.getAlias() + " " + i);
+            for (int j = 0; j < numberOfIterations; j++) {
+                namedOutput.write("framework", "");
+                namedOutput.write("framework", "Beginning iteration: " + j);
+                IAgent agent = agentProvider.getAgent();
+                if (j == 0)
+                    this.generateResultWriters(agentProvider.getAlias(), j, agent.getResultTypes());
+                IEnvironmentDescription environmentDescription = this.environmentDescriptionProvider.getEnvironmentDescription();
+                TestRun testRun = new TestRun(agent, environmentDescription, this.configuration.getNumberOfGoals());
+                testRun.addGoalListener(this);
+                this.beginNewRuns();
+                testRun.execute();
+            }
+            this.completeTestRun();
         }
-    }
-
-    private void runAgent(IAgentProvider agentProvider, int numberOfIterations) {
-        for (int i = 0; i < numberOfIterations; i++) {
-            System.out.println();
-            System.out.println("Beginning iteration: " + i);
-            IAgent agent = agentProvider.getAgent();
-            IEnvironmentDescription environmentDescription = this.environmentDescriptionProvider.getEnvironmentDescription();
-            TestRun testRun = new TestRun(agent, environmentDescription, this.configuration.getNumberOfGoals());
-            testRun.addGoalListener(this);
-            this.currentStepResultWriter.beginNewRun();
-            testRun.execute();
-        }
-        this.currentStepResultWriter.complete();
     }
 
     @Override
     public void goalReceived(GoalEvent event) {
-        this.currentStepResultWriter.logStepsToGoal(event.getStepCountToGoal());
+        this.resultWriters.get("steps").logResult(event.getStepCountToGoal());
+        for (Map.Entry<String, String> result : event.getAgentResults().entrySet())
+        {
+            this.resultWriters.get(result.getKey()).logResult(result.getValue());
+        }
+    }
+
+    private void beginNewRuns()
+    {
+        for (IResultWriter writer : this.resultWriters.values())
+        {
+            writer.beginNewRun();
+        }
+    }
+
+    private void completeTestRun()
+    {
+        for (IResultWriter writer : this.resultWriters.values())
+        {
+            writer.complete();
+        }
+        this.resultWriters.clear();
+    }
+
+    private void generateResultWriters(String agentAlias, int agentIndex, String[] resultTypes) throws Exception {
+        this.resultWriters = new HashMap<>();
+        this.resultWriters.put("steps", this.resultWriterProvider.getResultWriter(agentAlias, "agent_" + agentAlias + "_" + agentIndex + "_steps"));
+        for (String resultType : resultTypes)
+        {
+            this.resultWriters.put(resultType, this.resultWriterProvider.getResultWriter(agentAlias, "agent_" + agentAlias + "_" + agentIndex + "_" + resultType));
+        }
     }
 
     private void writeMetaData(){

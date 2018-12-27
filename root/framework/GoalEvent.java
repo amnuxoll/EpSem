@@ -1,6 +1,7 @@
 package framework;
 
 import java.util.EventObject;
+import java.util.HashMap;
 
 /**
  * A GoalEvent is used to indicate that a goal was located while traversing an {@link Environment}.
@@ -8,7 +9,9 @@ import java.util.EventObject;
  * @version 0.95
  */
 class GoalEvent extends EventObject {
-    private int stepCountToGoal;
+    private String stepCountToGoal;
+
+    private HashMap<String, String> agentResults;
 
     /**
      * Constructs a prototypical Event.
@@ -16,16 +19,21 @@ class GoalEvent extends EventObject {
      * @param source The object on which the Event initially occurred.
      * @throws IllegalArgumentException if source is null.
      */
-    public GoalEvent(Object source, int stepCountToGoal) {
+    public GoalEvent(Object source, int stepCountToGoal, HashMap<String, String> agentResults) {
         super(source);
-        this.stepCountToGoal = stepCountToGoal;
+        this.stepCountToGoal = Integer.toString(stepCountToGoal);
+        this.agentResults = agentResults;
     }
 
     /**
      * Get the number of steps taken before the goal was reached.
      * @return the number of steps.
      */
-    public int getStepCountToGoal() {
+    public String getStepCountToGoal() {
         return this.stepCountToGoal;
+    }
+
+    public HashMap<String, String> getAgentResults() {
+        return this.agentResults;
     }
 }

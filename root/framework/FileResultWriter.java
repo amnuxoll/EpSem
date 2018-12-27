@@ -1,5 +1,7 @@
 package framework;
 
+import utils.ExceptionStackTraceToString;
+
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -13,8 +15,8 @@ import java.io.IOException;
 public class FileResultWriter implements IResultWriter {
     private String fileName;
     private FileWriter fileWriter;
-    private int currentNumberOfGoals = 0;
-    private int maxNumberOfGoals = 0;
+    private int currentNumberOfResults = 0;
+    private int maxNumberOfResults = 0;
     private int numberOfRuns = 0;
     private String agent;
 
@@ -51,13 +53,13 @@ public class FileResultWriter implements IResultWriter {
 
     /**
      * Log the number of steps taken to reach the last goal.
-     * @param stepsToGoal The step count to the last located goal.
+     * @param result The step count to the last located goal.
      */
     @Override
-    public void logStepsToGoal(int stepsToGoal) {
-        this.currentNumberOfGoals++;
+    public void logResult(String result) {
+        this.currentNumberOfResults++;
         try {
-            this.fileWriter.write(stepsToGoal + ",");
+            this.fileWriter.write(result + ",");
             this.fileWriter.flush();
         } catch (IOException ex) {
             // do anything here?
@@ -70,8 +72,8 @@ public class FileResultWriter implements IResultWriter {
     @Override
     public void beginNewRun() {
         this.numberOfRuns++;
-        this.maxNumberOfGoals = Math.max(this.maxNumberOfGoals, this.currentNumberOfGoals);
-        this.currentNumberOfGoals = 0;
+        this.maxNumberOfResults = Math.max(this.maxNumberOfResults, this.currentNumberOfResults);
+        this.currentNumberOfResults = 0;
         try {
             this.fileWriter.write("\n");
             this.fileWriter.write(this.numberOfRuns + ",");
@@ -90,7 +92,7 @@ public class FileResultWriter implements IResultWriter {
             this.fileWriter.write("\n");
             this.fileWriter.write(this.agent + " Average,");
             // Write out the basic goal sums
-            for (int i = 2; i <= this.maxNumberOfGoals + 1; i++) {
+            for (int i = 2; i <= this.maxNumberOfResults + 1; i++) {
                 int startRow = 2;
                 int endRow = startRow + this.numberOfRuns - 1;
                 String columnLabel = this.convertToColumn(i);
@@ -100,7 +102,7 @@ public class FileResultWriter implements IResultWriter {
             this.fileWriter.write(this.agent + " Smoothed,,,,");
 
             // Write out the smoothing row
-            for (int i = 5; i <= this.maxNumberOfGoals - 2; i++) {
+            for (int i = 5; i <= this.maxNumberOfResults - 2; i++) {
                 String leftColumn = this.convertToColumn(i - 3);
                 String rightColumn = this.convertToColumn(i + 3);
                 int row = 2 + this.numberOfRuns;
@@ -110,7 +112,9 @@ public class FileResultWriter implements IResultWriter {
             this.fileWriter.write(",,,");
             this.fileWriter.close();
         } catch (IOException ex) {
-            System.out.println("FileResultWriter failed with exception: " + ex.getMessage());
+            NamedOutput namedOutput = NamedOutput.getInstance();
+            namedOutput.write("framework", "TestRun failed with exception: " + ex.getMessage());
+            namedOutput.write("framework", ExceptionStackTraceToString.getString(ex));
         }
     }
 

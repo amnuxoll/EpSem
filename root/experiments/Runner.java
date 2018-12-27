@@ -168,11 +168,11 @@ public class Runner {
     private static NamedOutput createOutputStreamContainer(String outputPath) throws IOException {
         NamedOutput namedOutput = NamedOutput.getInstance();
         namedOutput.configure("metaData", Runner.getFileOutputStream(outputPath, "metadata.txt"));
-        namedOutput.configure("agentDidAGood", Runner.getFileOutputStream(outputPath, "goodRatios.csv"));
-        namedOutput.configure("goodDecisionBail", Runner.getFileOutputStream(outputPath, "goodDecisionBailRatio.csv"));
-        namedOutput.configure("badDecisionBail", Runner.getFileOutputStream(outputPath, "badDecisionBailRatio.csv"));
-        namedOutput.configure("properBails", Runner.getFileOutputStream(outputPath, "properBailRatio.csv"));
-        namedOutput.configure("junoRatios", Runner.getFileOutputStream(outputPath, "junoRatios.csv"));
+//        namedOutput.configure("agentDidAGood", Runner.getFileOutputStream(outputPath, "goodRatios.csv"));
+//        namedOutput.configure("goodDecisionBail", Runner.getFileOutputStream(outputPath, "goodDecisionBailRatio.csv"));
+//        namedOutput.configure("badDecisionBail", Runner.getFileOutputStream(outputPath, "badDecisionBailRatio.csv"));
+//        namedOutput.configure("properBails", Runner.getFileOutputStream(outputPath, "properBailRatio.csv"));
+//        namedOutput.configure("junoRatios", Runner.getFileOutputStream(outputPath, "junoRatios.csv"));
         return namedOutput;
     }
 

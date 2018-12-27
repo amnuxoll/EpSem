@@ -53,6 +53,11 @@ public class NSMAgent implements IAgent {
     private Move[] moves;
 
     @Override
+    public String[] getResultTypes() {
+        return new String[0];
+    }
+
+    @Override
     public void initialize(Move[] moves, IIntrospection introspection)
     {
         this.moves = moves;
@@ -228,6 +233,11 @@ public class NSMAgent implements IAgent {
         episodicMemory.add(new QEpisode(move));
         return move;
     }//exploreEnvironment
+
+    @Override
+    public HashMap<String, String> getResultWriterData() {
+        return new HashMap<>();
+    }
 
     @Override
     public String getMetaData() {

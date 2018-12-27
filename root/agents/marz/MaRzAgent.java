@@ -97,6 +97,28 @@ public class MaRzAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> implemen
 		this.setCurrentSequence(this.activeNode.getSuffix());
 	}
 
+	@Override
+	public String[] getResultTypes()
+	{
+		return new String[] {
+				"agentDidAGood",
+				"goodDecisionBail",
+				"badDecisionBail",
+				"properBails"
+		};
+	}
+
+	@Override
+	public HashMap<String, String> getResultWriterData()
+	{
+		HashMap<String, String> results = new HashMap<>();
+		results.put("agentDidAGood", this.decisionsMade > 0 ? Double.toString((double)this.goodDecisionCount/this.decisionsMade) : "");
+		results.put("goodDecisionBail", this.decisionsMade > 0 ? Double.toString((double)this.goodDecisionBailCount/this.goodDecisionCount) : "");
+		results.put("badDecisionBail", this.decisionsMade > 0 ? Double.toString((double)this.badDecisionBailCount/(this.decisionsMade-this.goodDecisionCount)) : "");
+		results.put("properBails", this.badDecisionBailCount+this.goodDecisionBailCount > 0 ? Double.toString((double)this.badDecisionBailCount/(this.badDecisionBailCount+this.goodDecisionBailCount)) : "");
+		return results;
+	}
+
 	private void setCurrentSequence(Sequence sequence)
 	{
 		this.currentSequence = sequence;
@@ -134,11 +156,9 @@ public class MaRzAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> implemen
 						this.goodDecisionBailCount++;
 					else
 						this.badDecisionBailCount++;
-//					fireAgentEvent(new AgentEvent(this, AgentEvent.EventType.BAILED));
 				}
 
 				this.setCurrentSequence(this.selectNextSequence());
-//				fireAgentEvent(new AgentEvent(this,new Sequence(currentSequence.getMoves())));
 			}
 		}
 		Move nextMove = this.currentSequence.next();
@@ -159,34 +179,13 @@ public class MaRzAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> implemen
 	@Override
 	public void onGoalFound()
 	{
-		NamedOutput out = NamedOutput.getInstance();
 
-		String data = this.decisionsMade > 0 ? Double.toString((double)this.goodDecisionCount/this.decisionsMade) : "";
-		out.write("agentDidAGood", data + ",");
-
-		data = this.decisionsMade > 0 ? Double.toString((double)this.goodDecisionBailCount/this.goodDecisionCount) : "";
-		out.write("goodDecisionBail", data +",");
-
-		data = this.decisionsMade > 0 ? Double.toString((double)this.badDecisionBailCount/(this.decisionsMade-this.goodDecisionCount)) : "";
-		out.write("badDecisionBail", data +",");
-
-		data = this.badDecisionBailCount+this.goodDecisionBailCount > 0 ? Double.toString((double)this.badDecisionBailCount/(this.badDecisionBailCount+this.goodDecisionBailCount)) : "";
-		out.write("properBails", data + ",");
-
-		this.decisionsMadeSinceGoal = 0;
 	}
 
 	@Override
 	public void onTestRunComplete()
 	{
-		NamedOutput osc = NamedOutput.getInstance();
-		osc.write("agentDidAGood", "\n");
-		osc.write("goodDecisionBail", "\n");
-		osc.write("badDecisionBail", "\n");
-		osc.write("properBails", "\n");
 
-		osc.write("ratioOutputStream", "\n");
-		osc.write("agentDidAGoodOverall", "\n");
 	}
 
 	protected void markFailure() {

@@ -2,6 +2,7 @@ package framework;
 
 
 import agents.juno.JunoAgent;
+import utils.ExceptionStackTraceToString;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -54,8 +55,9 @@ class TestRun {
             } while (goalCount < this.numberOfGoalsToFind);
             this.agent.onTestRunComplete();
         } catch (Exception ex) {
-            System.out.println("TestRun failed with exception: " + ex.getMessage());
-            ex.printStackTrace();
+            NamedOutput namedOutput = NamedOutput.getInstance();
+            namedOutput.write("framework", "TestRun failed with exception: " + ex.getMessage());
+            namedOutput.write("framework", ExceptionStackTraceToString.getString(ex));
         }
     }
 
@@ -64,7 +66,7 @@ class TestRun {
     }
 
     private synchronized void fireGoalEvent(int stepsToGoal) {
-        GoalEvent goal = new GoalEvent(this, stepsToGoal);
+        GoalEvent goal = new GoalEvent(this, stepsToGoal, this.agent.getResultWriterData());
         for (IGoalListener listener : this.goalListeners) {
             listener.goalReceived(goal);
         }

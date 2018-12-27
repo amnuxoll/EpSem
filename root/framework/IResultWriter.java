@@ -9,7 +9,7 @@ public interface IResultWriter {
 
     void beginNewRun();
 
-    void logStepsToGoal(int stepsToGoal);
+    void logResult(String result);
 
     void complete();
 }
