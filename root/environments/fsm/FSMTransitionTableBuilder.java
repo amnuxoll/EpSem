@@ -20,10 +20,8 @@ import java.util.HashMap;
 public class FSMTransitionTableBuilder {
     private int alphabetSize;
     private int numStates;
-    private Move[] moves;
-    private HashMap<Move, Integer>[] transitionTable;
-    private int transitionsDone = 0;
     private Randomizer randomizer;
+    private Move[] moves;
 
     /**
      * Create a {@link FSMTransitionTableBuilder}.
@@ -38,6 +36,11 @@ public class FSMTransitionTableBuilder {
         this.randomizer = randomizer;
         this.alphabetSize = alphabetSize;
         this.numStates = numStates;
+        this.moves = new Move[alphabetSize];
+        for(int i = 0; i < moves.length; ++i) {
+            char next = (char)('a' + i);
+            moves[i] = new Move(next  + "");
+        }
     }
 
     /**
@@ -45,49 +48,45 @@ public class FSMTransitionTableBuilder {
      * @return The transition table.
      */
     public FSMTransitionTable getTransitionTable() {
-        this.buildTransitionTable();
-        return new FSMTransitionTable(this.transitionTable);
+        HashMap<Move, Integer>[] transitions = this.buildTransitionTable();
+        return new FSMTransitionTable(transitions);
     }
 
-    private void buildTransitionTable() {
-        this.moves = new Move[alphabetSize];
-        for(int i = 0; i < moves.length; ++i) {
-            char next = (char)('a' + i);
-            moves[i] = new Move(next  + "");
-        }
-        this.transitionTable = new HashMap[numStates];
+    private HashMap<Move, Integer>[] buildTransitionTable() {
+        HashMap<Move, Integer>[] transitions = new HashMap[this.numStates];
         // All goal state transitions should loop back to the goal state
         HashMap<Move, Integer> goalStateTransitions = new HashMap<>();
         for (Move move : this.moves) {
-            goalStateTransitions.put(move, numStates - 1);
+            goalStateTransitions.put(move, this.numStates - 1);
         }
-        transitionTable[numStates - 1] = goalStateTransitions;
+        transitions[this.numStates - 1] = goalStateTransitions;
 
-        int maxTransitionsToGoal = (int)(transitionTable.length * moves.length * 0.04);
+        int maxTransitionsToGoal = (int)(transitions.length * this.moves.length * 0.04);
         if (maxTransitionsToGoal == 0)
             maxTransitionsToGoal = 1;
-        this.pickTransitions(numStates - 1, this.randomizer.getRandomNumber(maxTransitionsToGoal) + 1);
+        this.pickTransitions(transitions,this.numStates - 1, this.randomizer.getRandomNumber(maxTransitionsToGoal) + 1, 0);
+        return transitions;
     }
 
-    private void pickTransitions(int initGoal, int numOfTransitions) {
+    private void pickTransitions(HashMap<Move, Integer>[] transitions, int initGoal, int numOfTransitions, int transitionsDone) {
         int initState = -1;
         for(int i = 0; i < numOfTransitions; i++) {
             //check to see if table is full
-            if(this.transitionsDone == ((this.transitionTable.length-1)*this.moves.length))
+            if(transitionsDone == ((transitions.length-1)*this.moves.length))
                 return;
-            initState = this.randomizer.getRandomNumber(this.transitionTable.length);
+            initState = this.randomizer.getRandomNumber(transitions.length);
             int moveIndex = this.randomizer.getRandomNumber(this.moves.length);
 
-            if (this.transitionTable[initState] != null && this.transitionTable[initState].containsKey(this.moves[moveIndex])) {
+            if (transitions[initState] != null && transitions[initState].containsKey(this.moves[moveIndex])) {
                 i--;
                 continue;
             }
-            HashMap<Move, Integer> rowTransitions = this.transitionTable[initState];
+            HashMap<Move, Integer> rowTransitions = transitions[initState];
             if (rowTransitions == null)
-                this.transitionTable[initState] = rowTransitions = new HashMap<>();
+                transitions[initState] = rowTransitions = new HashMap<>();
             rowTransitions.put(this.moves[moveIndex], initGoal);
-            this.transitionsDone++;
+            transitionsDone++;
         }
-        pickTransitions(initState, 1);
+        this.pickTransitions(transitions, initState, 1, transitionsDone);
     }
 }

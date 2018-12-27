@@ -13,7 +13,6 @@ import java.util.*;
 public class FSMDescription implements IEnvironmentDescription {
     //region Class Variables
     private FSMTransitionTable transitionTable;
-    private HashMap<Integer, ArrayList<Move>> shortestSequences;
     private Move[] moves;
     private EnumSet<Sensor> sensorsToInclude;
     private HashMap<Move, Integer>[] transitionSensorTable;
@@ -43,7 +42,7 @@ public class FSMDescription implements IEnvironmentDescription {
         this.moves = this.transitionTable.getTransitions()[0].keySet().toArray(new Move[0]);
         this.transitionSensorTable = new HashMap[this.getNumStates()];
         for(int i = 0; i < getNumStates(); i++) {
-            this.transitionSensorTable[i] = new HashMap<>(getMoves().length);
+            this.transitionSensorTable[i] = new HashMap<>(this.moves.length);
             for (Move m : getMoves()) {
                 this.transitionSensorTable[i].put(m, 0);
             }
@@ -175,7 +174,7 @@ public class FSMDescription implements IEnvironmentDescription {
     private void applyWithinNSensors(int state, SensorData sensorData){
         for(int i = 0; i< 20; i++){
             if(sensorsToInclude.contains(Sensor.fromString("WITHIN_"+i))){
-                sensorData.setSensor("WITHIN_"+i, shortestSequences.get(state).size()<=i);
+                sensorData.setSensor("WITHIN_" + i, this.transitionTable.getShortestSequences().get(state).size() <= i);
             }
         }
     }

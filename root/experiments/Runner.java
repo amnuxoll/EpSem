@@ -138,13 +138,26 @@ public class Runner {
         )
         //new MaRzAgentProvider<>(new SuffixNodeProvider())
     });
+
+    private static TestSuite TempExperiment = new TestSuite(
+            TestSuiteConfiguration.QUICK,
+            new IEnvironmentDescriptionProvider[] {
+                    new FSMDescriptionProvider(new FSMTransitionTableBuilder(3, 10, new Randomizer()), FSMDescription.Sensor.NO_SENSORS),
+                    new MetaEnvironmentDescriptionProvider(new FSMDescriptionTweakingProvider(new FSMTransitionTableBuilder(2, 15, new Randomizer()), EnumSet.of(FSMDescription.Sensor.EVEN_ODD)), new MetaConfiguration(100, 0))
+            },
+            new IAgentProvider[] {
+                    new NSMAgentProvider(),
+                    new MaRzAgentProvider<>(new SuffixNodeProvider())
+            }
+    );
     //endregion
 
     //region Main
     public static void main(String[] args) {
         try {
-            IResultWriterProvider resultWriterProvider = Runner.initializeOutput();
-            Runner.HAndPMasterSuite.run(resultWriterProvider);
+            String outputDirectory = DirectoryUtils.generateNewOutputDirectory();
+            Runner.initializeOutput(outputDirectory);
+            Runner.TempExperiment.run(new FileResultWriterProvider(outputDirectory));
         } catch (OutOfMemoryError mem) {
             mem.printStackTrace();
         } catch (Exception ex) {
@@ -157,8 +170,7 @@ public class Runner {
     //endregion
 
     //region Private Static Methods
-    private static IResultWriterProvider initializeOutput() throws IOException {
-        String outputDirectory = DirectoryUtils.generateNewOutputDirectory();
+    private static void initializeOutput(String outputDirectory) throws IOException {
         NamedOutput namedOutput = NamedOutput.getInstance();
         namedOutput.configure("metadata", Runner.getFileOutputStream(outputDirectory, "metadata.txt"));
 //        namedOutput.configure("agentDidAGood", Runner.getFileOutputStream(outputPath, "goodRatios.csv"));
@@ -166,7 +178,6 @@ public class Runner {
 //        namedOutput.configure("badDecisionBail", Runner.getFileOutputStream(outputPath, "badDecisionBailRatio.csv"));
 //        namedOutput.configure("properBails", Runner.getFileOutputStream(outputPath, "properBailRatio.csv"));
 //        namedOutput.configure("junoRatios", Runner.getFileOutputStream(outputPath, "junoRatios.csv"));
-        return new FileResultWriterProvider(outputDirectory);
     }
 
     private static FileOutputStream getFileOutputStream(String directory, String filename) throws IOException {

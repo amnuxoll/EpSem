@@ -41,7 +41,8 @@ public class FSMTransitionTable {
     public HashMap<Integer, ArrayList<Move>> getShortestSequences() {
         if (this.shortestSequences == null)
         {
-            // calculate them
+            // TODO for real
+            this.shortestSequences = new HashMap<>();
         }
         return this.shortestSequences;
     }
