@@ -5,19 +5,31 @@ import agents.marz.MaRzAgent;
 import agents.marz.SuffixNodeBase;
 import framework.Episode;
 import framework.Move;
-//import javafx.util.Pair;
 import utils.Discriminator;
 import framework.Sequence;
+import utils.Semsode;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 
+/**
+ *
+ * @author Zachary Paul Faltersack
+ * @version 0.95
+ */
 public class MaRzLearner<TSuffixNode extends SuffixNodeBase<TSuffixNode>> extends MaRzAgent<TSuffixNode> {
-
+    //region Class Variables
     private Discriminator discriminator = new Discriminator();
+    private ArrayList<Integer> goalIndices = new ArrayList<>();
+    private int learnerWindow = 2; // start at 2 because we want one extra sensorData
+    private Sequence goalSequence = null;
+    private HashMap<Semsode, Move> goalSemsodes = new HashMap<>();
+    private HashSet<Move> goalMoves = new HashSet<>();
+    //endregion
 
+    //region Constructors
     /**
      * MaRzAgent
      *
@@ -26,9 +38,9 @@ public class MaRzLearner<TSuffixNode extends SuffixNodeBase<TSuffixNode>> extend
     public MaRzLearner(ISuffixNodeBaseProvider<TSuffixNode> nodeProvider) {
         super(nodeProvider);
     }
+    //endregion
 
-    private ArrayList<Integer> goalIndices = new ArrayList<>();
-
+    //region MaRzAgent<TSuffixNode> Overrides
     @Override
     protected void markSuccess() {
         // We'll get inconsistent data if we allow this case through due to the fact that a goal sensor triggers a wormhole event.
@@ -57,8 +69,6 @@ public class MaRzLearner<TSuffixNode extends SuffixNodeBase<TSuffixNode>> extend
         this.goalSequence = null;
     }
 
-    private int learnerWindow = 2; // start at 2 because we want one extra sensorData
-
     @Override
     protected Sequence selectNextSequence() {
         if (this.goalSequence == null)
@@ -66,8 +76,6 @@ public class MaRzLearner<TSuffixNode extends SuffixNodeBase<TSuffixNode>> extend
         super.setActiveNode(super.suffixTree.findBestMatch(this.goalSequence));
         return this.goalSequence;
     }
-
-    private Sequence goalSequence = null;
 
     @Override
     protected boolean shouldBail() {
@@ -86,12 +94,10 @@ public class MaRzLearner<TSuffixNode extends SuffixNodeBase<TSuffixNode>> extend
         }
         return false;
     }
+    //endregion
 
-    private HashMap<Semsode, Move> goalSemsodes = new HashMap<>();
-    private HashSet<Move> goalMoves = new HashSet<>();
-
-    private void generateGoalSemsodes()
-    {
+    //region Private Methods
+    private void generateGoalSemsodes() {
         this.goalSemsodes.clear();
         this.goalMoves.clear();
         for (int goalIndex : this.goalIndices)
@@ -109,39 +115,5 @@ public class MaRzLearner<TSuffixNode extends SuffixNodeBase<TSuffixNode>> extend
             }
         }
     }
-
-    private class Semsode
-    {
-        private Episode[] episodes;
-
-        public Semsode(Episode[] episodes)
-        {
-            this.episodes = episodes;
-        }
-
-        public boolean matches(ArrayList<Episode> episodicMemory, Discriminator discriminator)
-        {
-            if (!discriminator.match(episodes[0].getSensorData(), episodicMemory.get(episodicMemory.size() - this.episodes.length).getSensorData()))
-                return false;
-            for (int i = 1; i < this.episodes.length; i++)
-            {
-                Episode episode = episodicMemory.get(episodicMemory.size() - (this.episodes.length - i));
-                if (!episode.getMove().equals(this.episodes[i].getMove()))
-                    return false;
-                if (!discriminator.match(episode.getSensorData(), this.episodes[i].getSensorData()))
-                    return false;
-            }
-            return true;
-        }
-
-        @Override
-        public String toString() {
-            String me = "";
-            for (Episode episode : this.episodes)
-            {
-                me += episode;
-            }
-            return me;
-        }
-    }
+    //endregion
 }
