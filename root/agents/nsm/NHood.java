@@ -1,7 +1,6 @@
 package agents.nsm;
 
 import framework.Move;
-
 import java.util.ArrayList;
 import java.util.Collections;
 
@@ -15,17 +14,24 @@ import java.util.Collections;
  * taken next.
  */
 public class NHood {
+    //region Static Variables
     public final int K_NEAREST = 8;  //max allowed size of neighborhood
+    //endregion
 
+    //region Class Variables
     public Move command;           // action associated with this neighborhood
     public ArrayList<NBor> nbors;  // neigbhors in the hood
     public int shortest = 0;       //length of shortest neighbor
+    //endregion
 
+    //region Constructors
     public NHood(Move initMove) {
         this.command = initMove;
         nbors = new ArrayList<NBor>();
     }
+    //endregion
 
+    //region Public Methods
     public Move getMove()
     {
         return this.command;
@@ -47,8 +53,7 @@ public class NHood {
         this.shortest = nbors.get(0).len;
     }//addNBor
 
-    public double getQValue()
-    {
+    public double getQValue() {
         //Don't calculate for empty neighborhoods
         if (this.nbors.size() == 0)
             return 0.0;
@@ -65,5 +70,5 @@ public class NHood {
         // return the average
         return (total / (double)this.nbors.size());
     }
-
+    //endregion
 }//class NHood
