@@ -9,15 +9,22 @@ import java.util.Map.Entry;
  * @version 0.95
  */
 public class SensorData {
+    //region Static Variables
     private static final String goalSensor = "GOAL";
+    //endregion
 
+    //region Class Variables
     private HashMap<String, Object> data;
+    //endregion
 
+    //region Constructors
     public SensorData(boolean isGoal) {
         this.data = new HashMap<>();
         this.data.put(SensorData.goalSensor, isGoal);
     }
+    //endregion
 
+    //region Public Methods
     public void setSensor(String sensorName, Object sensorValue) throws IllegalArgumentException {
         if (sensorName == null)
             throw new IllegalArgumentException("sensorName cannot be null");
@@ -44,40 +51,6 @@ public class SensorData {
 
     public boolean isGoal() {
         return ((boolean)this.data.get(SensorData.goalSensor));
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (o == this) {
-            return true;
-        }
-        if (!(o instanceof SensorData)) {
-            return false;
-        }
-        SensorData sensorData = (SensorData)o;
-        if (this.data.size() != sensorData.data.size())
-            return false;
-        for (String key : this.data.keySet()) {
-            if (sensorData.data.containsKey(key) == false)
-                return false;
-            if (this.data.get(key) != sensorData.data.get(key))
-                return false;
-        }
-        return true;
-    }
-
-    @Override
-    public int hashCode() {
-        int hashcode = 0;
-        for(Entry<String, Object> entry : this.data.entrySet()) {
-            hashcode += Objects.hash(entry.getKey(), entry.getValue());
-        }
-        return hashcode;
-    }
-
-    @Override
-    public String toString() {
-        return this.toString(false);
     }
 
     public String toString(boolean includeSensorLabels) {
@@ -115,4 +88,41 @@ public class SensorData {
     public Set<String> getSensorNames(){
         return data.keySet();
     }
+    //endregion
+
+    //region Object Overrides
+    @Override
+    public boolean equals(Object o) {
+        if (o == this) {
+            return true;
+        }
+        if (!(o instanceof SensorData)) {
+            return false;
+        }
+        SensorData sensorData = (SensorData)o;
+        if (this.data.size() != sensorData.data.size())
+            return false;
+        for (String key : this.data.keySet()) {
+            if (sensorData.data.containsKey(key) == false)
+                return false;
+            if (this.data.get(key) != sensorData.data.get(key))
+                return false;
+        }
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        int hashcode = 0;
+        for(Entry<String, Object> entry : this.data.entrySet()) {
+            hashcode += Objects.hash(entry.getKey(), entry.getValue());
+        }
+        return hashcode;
+    }
+
+    @Override
+    public String toString() {
+        return this.toString(false);
+    }
+    //endregion
 }

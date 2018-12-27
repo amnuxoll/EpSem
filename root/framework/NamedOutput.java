@@ -4,17 +4,26 @@ import java.io.*;
 import java.util.HashMap;
 
 public class NamedOutput {
+    //region Static Variables
     private static NamedOutput instance = new NamedOutput();
+    //endregion
 
+    //region Class Variables
     private HashMap<String, OutputStream> outputStreams = new HashMap<>();
+    //endregion
 
+    //region Constructors
     private NamedOutput() { }
+    //endregion
 
+    //region Public Static Methods
     public static NamedOutput getInstance()
     {
         return instance;
     }
+    //endregion
 
+    //region Public Methods
     public void configure(String key, OutputStream stream)
     {
         this.outputStreams.put(key, stream);
@@ -41,4 +50,5 @@ public class NamedOutput {
             }
         }
     }
+    //endregion
 }

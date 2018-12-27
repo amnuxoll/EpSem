@@ -6,6 +6,7 @@ package framework;
  * @version 0.95
  */
 public interface IAgentProvider {
+    //region Methods
     /**
      * Get a new {@link IAgent}.
      * @return a new {@link IAgent}.
@@ -13,4 +14,5 @@ public interface IAgentProvider {
     IAgent getAgent();
 
     String getAlias();
+    //endregion
 }

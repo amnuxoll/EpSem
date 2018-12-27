@@ -15,27 +15,22 @@ public class TestSuiteTest {
     // constructor Tests
     @Test
     public void constructorNullTestSuiteConfigurationThrowsException() {
-        assertThrows(IllegalArgumentException.class,() -> new TestSuite(null, new TestResultWriterProvider(), new TestEnvironmentDescriptionProvider(), new IAgentProvider[] { new TestAgentProvider() }));
-    }
-
-    @Test
-    public void constructorNullResultWriterProviderThrowsException() {
-        assertThrows(IllegalArgumentException.class,() -> new TestSuite(this.testConfiguration, null, new TestEnvironmentDescriptionProvider(), new IAgentProvider[] { new TestAgentProvider() }));
+        assertThrows(IllegalArgumentException.class,() -> new TestSuite(null, new TestEnvironmentDescriptionProvider(), new IAgentProvider[] { new TestAgentProvider() }));
     }
 
     @Test
     public void constructorNullEnvironmentDescriptionProviderThrowsException() {
-        assertThrows(IllegalArgumentException.class,() -> new TestSuite(this.testConfiguration, new TestResultWriterProvider(), null, new IAgentProvider[] { new TestAgentProvider() }));
+        assertThrows(IllegalArgumentException.class,() -> new TestSuite(this.testConfiguration, null, new IAgentProvider[] { new TestAgentProvider() }));
     }
 
     @Test
     public void constructorNullAgentProvidersThrowsException() {
-        assertThrows(IllegalArgumentException.class,() -> new TestSuite(this.testConfiguration, new TestResultWriterProvider(), new TestEnvironmentDescriptionProvider(), null));
+        assertThrows(IllegalArgumentException.class,() -> new TestSuite(this.testConfiguration, new TestEnvironmentDescriptionProvider(), null));
     }
 
     @Test
     public void constructorEmptyAgentProvidersThrowsException() {
-        assertThrows(IllegalArgumentException.class,() -> new TestSuite(this.testConfiguration, new TestResultWriterProvider(), new TestEnvironmentDescriptionProvider(), new IAgentProvider[0]));
+        assertThrows(IllegalArgumentException.class,() -> new TestSuite(this.testConfiguration, new TestEnvironmentDescriptionProvider(), new IAgentProvider[0]));
     }
 
     // run Tests
@@ -46,8 +41,8 @@ public class TestSuiteTest {
         IAgentProvider[] agentProviders = new IAgentProvider[] {
                         new TestAgentProvider()
                 };
-        TestSuite testSuite = new TestSuite(this.testConfiguration, resultWriterProvider, environmentDescriptionProvider, agentProviders);
-        testSuite.run();
+        TestSuite testSuite = new TestSuite(this.testConfiguration, environmentDescriptionProvider, agentProviders);
+        testSuite.run(resultWriterProvider);
 
         assertEquals(this.testConfiguration.getNumberOfIterations(), ((TestAgentProvider)agentProviders[0]).generatedAgents);
         assertEquals(this.testConfiguration.getNumberOfIterations(), environmentDescriptionProvider.generatedEnvironmentDescriptions);
@@ -67,8 +62,8 @@ public class TestSuiteTest {
                         new TestAgentProvider(),
                         new TestAgentProvider()
                 };
-        TestSuite testSuite = new TestSuite(this.testConfiguration, resultWriterProvider, environmentDescriptionProvider, agentProviders);
-        testSuite.run();
+        TestSuite testSuite = new TestSuite(this.testConfiguration, environmentDescriptionProvider, agentProviders);
+        testSuite.run(resultWriterProvider);
 
         assertEquals(this.testConfiguration.getNumberOfIterations(), ((TestAgentProvider)agentProviders[0]).generatedAgents);
         assertEquals(this.testConfiguration.getNumberOfIterations(), ((TestAgentProvider)agentProviders[1]).generatedAgents);
@@ -183,11 +178,6 @@ public class TestSuiteTest {
             TestResultWriter resultWriter = new TestResultWriter();
             this.generatedResultWriters.put(file, resultWriter);
             return resultWriter;
-        }
-
-        @Override
-        public String getOutputDirectory() {
-            return null;
         }
     }
 

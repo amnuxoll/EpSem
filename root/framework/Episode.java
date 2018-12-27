@@ -1,7 +1,5 @@
 package framework;
 
-import agents.juno.EpisodeWeights;
-
 import java.util.Objects;
 
 /**
@@ -11,9 +9,12 @@ import java.util.Objects;
  * @version 0.95
  */
 public class Episode {
+    //region Class Variables
     private Move move;
     private SensorData sensorData;
+    //endregion
 
+    //region Constructors
     /**
      * Create an Episode.
      * @param move The {@link Move} associated with the episode.
@@ -23,7 +24,9 @@ public class Episode {
             throw new IllegalArgumentException("move cannot be null");
         this.move = move;
     }
+    //endregion
 
+    //region Public Methods
     public void setSensorData(SensorData sensorData) {
         if (sensorData == null)
             throw new IllegalArgumentException("sensorData cannot be null");
@@ -45,7 +48,9 @@ public class Episode {
     public SensorData getSensorData() {
         return this.sensorData;
     }
+    //endregion
 
+    //region Object Overrides
     /**
      * Determine if another object equals this {@link Episode}.
      * @param o The other object to compare with.
@@ -80,4 +85,5 @@ public class Episode {
 
         return str;
     }
+    //endregion
 }

@@ -9,10 +9,12 @@ import java.util.HashMap;
  * @version 0.95
  */
 class GoalEvent extends EventObject {
+    //region Class Variables
     private String stepCountToGoal;
-
     private HashMap<String, String> agentResults;
+    //endregion
 
+    //region Constructors
     /**
      * Constructs a prototypical Event.
      *
@@ -24,7 +26,9 @@ class GoalEvent extends EventObject {
         this.stepCountToGoal = Integer.toString(stepCountToGoal);
         this.agentResults = agentResults;
     }
+    //endregion
 
+    //region Public Methods
     /**
      * Get the number of steps taken before the goal was reached.
      * @return the number of steps.
@@ -36,4 +40,5 @@ class GoalEvent extends EventObject {
     public HashMap<String, String> getAgentResults() {
         return this.agentResults;
     }
+    //endregion
 }

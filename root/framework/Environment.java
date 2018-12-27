@@ -9,9 +9,12 @@ import java.util.Random;
  * @version 0.95
  */
 class Environment {
+    //region Class Variables
     private IEnvironmentDescription environmentDescription;
     private int currentState;
+    //endregion
 
+    //region Constructors
     /**
      * Create an environment based on the provided environmentDescription.
      * @param environmentDescription A {@link IEnvironmentDescription} that {@link Environment} can use to track an agent's progress.
@@ -22,7 +25,9 @@ class Environment {
         this.currentState = 0;
         this.environmentDescription = environmentDescription;
     }
+    //endregion
 
+    //region Public Methods
     /**
      * Get the moves allowed in this {@link Environment} instance.
      * @return An array of {@link Move} that is valid in this {@link Environment}.
@@ -63,4 +68,5 @@ class Environment {
     public int getCurrentState() {
         return this.currentState;
     }
+    //endregion
 }

@@ -7,7 +7,7 @@ package framework;
  * @version 0.95
  */
 public interface IEnvironmentDescription {
-
+    //region Methods
     /**
      * Get the valid moves for this environment description.
      * @return an array of {@link Move} for this environment description.
@@ -60,4 +60,5 @@ public interface IEnvironmentDescription {
      *          the given state to a goal state
      */
     boolean validateSequence(int state, Sequence sequence);
+    //endregion
 }

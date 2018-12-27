@@ -13,13 +13,16 @@ import java.io.IOException;
  * @version 0.95
  */
 public class FileResultWriter implements IResultWriter {
+    //region Class Variables
     private String fileName;
     private FileWriter fileWriter;
     private int currentNumberOfResults = 0;
     private int maxNumberOfResults = 0;
     private int numberOfRuns = 0;
     private String agent;
+    //endregion
 
+    //region Constructors
     /**
      * Create an instance of a {@link FileResultWriter} that writes to the given file path.
      * @param outputFile The path to an output file which will receive the results.
@@ -42,7 +45,9 @@ public class FileResultWriter implements IResultWriter {
         file.createNewFile();
         this.fileWriter = new FileWriter(file);
     }
+    //endregion
 
+    //region Public Methods
     /**
      * Get the name of the output file for this {@link FileResultWriter} instance.
      * @return The path of the output file.
@@ -50,7 +55,9 @@ public class FileResultWriter implements IResultWriter {
     public String getFileName() {
         return this.fileName;
     }
+    //endregion
 
+    //region IResultWriter Members
     /**
      * Log the number of steps taken to reach the last goal.
      * @param result The step count to the last located goal.
@@ -117,7 +124,9 @@ public class FileResultWriter implements IResultWriter {
             namedOutput.write("framework", ExceptionStackTraceToString.getString(ex));
         }
     }
+    //endregion
 
+    //region Private Methods
     private String convertToColumn(int column) {
         if (column <= 0)
             return "";
@@ -125,5 +134,5 @@ public class FileResultWriter implements IResultWriter {
         int right = column % 26;
         return this.convertToColumn(column / 26) + (char)(((int)'A') + right);
     }
-
+    //endregion
 }

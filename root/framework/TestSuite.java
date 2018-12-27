@@ -9,18 +9,17 @@ import java.util.Map;
  * @version 0.95
  */
 public class TestSuite implements IGoalListener {
-
+    //region Class Variables
     private TestSuiteConfiguration configuration;
-    private IResultWriterProvider resultWriterProvider;
     private IEnvironmentDescriptionProvider environmentDescriptionProvider;
     private IAgentProvider[] agentProviders;
     private HashMap<String, IResultWriter> resultWriters;
+    //endregion
 
-    public TestSuite(TestSuiteConfiguration configuration, IResultWriterProvider resultWriterProvider, IEnvironmentDescriptionProvider environmentDescriptionProvider, IAgentProvider[] agentProviders) {
+    //region Constructors
+    public TestSuite(TestSuiteConfiguration configuration, IEnvironmentDescriptionProvider environmentDescriptionProvider, IAgentProvider[] agentProviders) {
         if (configuration == null)
             throw new IllegalArgumentException("configuration cannot be null.");
-        if (resultWriterProvider == null)
-            throw new IllegalArgumentException("resultWriterProvider cannot be null");
         if (environmentDescriptionProvider == null)
             throw new IllegalArgumentException("environmentDescriptionProvider cannot be null.");
         if (agentProviders == null)
@@ -28,15 +27,22 @@ public class TestSuite implements IGoalListener {
         if (agentProviders.length == 0)
             throw new IllegalArgumentException("agentProviders cannot be empty.");
         this.configuration = configuration;
-        this.resultWriterProvider = resultWriterProvider;
         this.environmentDescriptionProvider = environmentDescriptionProvider;
         this.agentProviders = agentProviders;
     }
+    //endregion
 
-    public void run() throws Exception {
+    //region Public Methods
+    /**
+     * Executes the test suite and writes all result data to the provided {@code resultWriterProvider}.
+     *
+     * @param resultWriterProvider The {@link IResultWriterProvider} used to generate {@link IResultWriter}s.
+     * @throws Exception
+     */
+    public void run(IResultWriterProvider resultWriterProvider) throws Exception {
         NamedOutput namedOutput = NamedOutput.getInstance();
         namedOutput.write("framework", "Beginning test suite...");
-        writeMetaData();
+        this.writeMetaData();
 
         int numberOfIterations = this.configuration.getNumberOfIterations();
         for (int i = 0; i < this.agentProviders.length; i++) {
@@ -47,17 +53,23 @@ public class TestSuite implements IGoalListener {
                 namedOutput.write("framework", "Beginning iteration: " + j);
                 IAgent agent = agentProvider.getAgent();
                 if (j == 0)
-                    this.generateResultWriters(agentProvider.getAlias(), j, agent.getResultTypes());
+                    this.generateResultWriters(resultWriterProvider, agentProvider.getAlias(), j, agent.getResultTypes());
                 IEnvironmentDescription environmentDescription = this.environmentDescriptionProvider.getEnvironmentDescription();
                 TestRun testRun = new TestRun(agent, environmentDescription, this.configuration.getNumberOfGoals());
                 testRun.addGoalListener(this);
-                this.beginNewRuns();
+                this.beginAgentTestRun();
                 testRun.execute();
             }
-            this.completeTestRun();
+            this.completeAgentTestRuns();
         }
     }
+    //endregion
 
+    //region IGoalListener Members
+    /**
+     * Callback for receiving a goal {@link GoalEvent}.
+     * @param event The event to receive.
+     */
     @Override
     public void goalReceived(GoalEvent event) {
         this.resultWriters.get("steps").logResult(event.getStepCountToGoal());
@@ -66,17 +78,17 @@ public class TestSuite implements IGoalListener {
             this.resultWriters.get(result.getKey()).logResult(result.getValue());
         }
     }
+    //endregion
 
-    private void beginNewRuns()
-    {
+    //region Private Methods
+    private void beginAgentTestRun() {
         for (IResultWriter writer : this.resultWriters.values())
         {
             writer.beginNewRun();
         }
     }
 
-    private void completeTestRun()
-    {
+    private void completeAgentTestRuns() {
         for (IResultWriter writer : this.resultWriters.values())
         {
             writer.complete();
@@ -84,12 +96,12 @@ public class TestSuite implements IGoalListener {
         this.resultWriters.clear();
     }
 
-    private void generateResultWriters(String agentAlias, int agentIndex, String[] resultTypes) throws Exception {
+    private void generateResultWriters(IResultWriterProvider resultWriterProvider, String agentAlias, int agentIndex, String[] resultTypes) throws Exception {
         this.resultWriters = new HashMap<>();
-        this.resultWriters.put("steps", this.resultWriterProvider.getResultWriter(agentAlias, "agent_" + agentAlias + "_" + agentIndex + "_steps"));
+        this.resultWriters.put("steps", resultWriterProvider.getResultWriter(agentAlias, "agent_" + agentAlias + "_" + agentIndex + "_steps"));
         for (String resultType : resultTypes)
         {
-            this.resultWriters.put(resultType, this.resultWriterProvider.getResultWriter(agentAlias, "agent_" + agentAlias + "_" + agentIndex + "_" + resultType));
+            this.resultWriters.put(resultType, resultWriterProvider.getResultWriter(agentAlias, "agent_" + agentAlias + "_" + agentIndex + "_" + resultType));
         }
     }
 
@@ -116,8 +128,5 @@ public class TestSuite implements IGoalListener {
         }
         NamedOutput.getInstance().write("metaData", metadataBuilder.toString());
     }
-
-    public IResultWriterProvider getResultWriterProvider() {
-        return resultWriterProvider;
-    }
+    //endregion
 }

@@ -13,6 +13,7 @@ import environments.fsm.FSMDescriptionTweakingProvider;
 import environments.meta.MetaConfiguration;
 import environments.meta.MetaEnvironmentDescriptionProvider;
 import framework.*;
+import utils.DirectoryUtils;
 import utils.FSMTransitionTableBuilder;
 import utils.Randomizer;
 
@@ -27,7 +28,6 @@ public class Runner {
 
     private static TestSuite JunoFSM = new TestSuite(
             TestSuiteConfiguration.MEDIUM,
-            new FileResultWriterProvider(),
             new FSMDescriptionProvider(new FSMTransitionTableBuilder(3, 50, new Randomizer()), EnumSet.of(FSMDescription.Sensor.EVEN_ODD)),
             new IAgentProvider[] {
                     new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .7, Double.MAX_VALUE))
@@ -36,7 +36,6 @@ public class Runner {
 
     private static TestSuite MarzFSM = new TestSuite(
             TestSuiteConfiguration.FULL,
-            new FileResultWriterProvider(),
             new FSMDescriptionProvider(new FSMTransitionTableBuilder(4, 40, new Randomizer()), FSMDescription.Sensor.ALL_SENSORS),
             new IAgentProvider[] {
                     new MaRzAgentProvider<>(new SuffixNodeProvider())
@@ -45,7 +44,6 @@ public class Runner {
 
     private static TestSuite NsmVsMaRzFSM = new TestSuite(
             TestSuiteConfiguration.FULL,
-            new FileResultWriterProvider(),
             new FSMDescriptionProvider(new FSMTransitionTableBuilder(3, 30, new Randomizer()), EnumSet.of(FSMDescription.Sensor.EVEN_ODD)),
             new IAgentProvider[] {
                     new NSMAgentProvider(),
@@ -55,7 +53,6 @@ public class Runner {
 
     private static TestSuite MarzLearnerFSM = new TestSuite(
             TestSuiteConfiguration.QUICK,
-            new FileResultWriterProvider(),
             new FSMDescriptionProvider(new FSMTransitionTableBuilder(3, 30, new Randomizer()), FSMDescription.Sensor.ALL_SENSORS),
             new IAgentProvider[] {
                     new MaRzLearnerProvider<>(new SuffixNodeProvider()),
@@ -65,7 +62,6 @@ public class Runner {
 
     private static TestSuite JunoVMarz3_30 = new TestSuite(
             TestSuiteConfiguration.MEDIUM,
-            new FileResultWriterProvider(),
             new FSMDescriptionProvider(new FSMTransitionTableBuilder(3, 30, new Randomizer()), EnumSet.of(FSMDescription.Sensor.EVEN_ODD, FSMDescription.Sensor.NOISE)),
             new IAgentProvider[] {
                     new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .7, Double.MAX_VALUE)),
@@ -75,7 +71,6 @@ public class Runner {
 
     private static TestSuite JunoVJunoBail = new TestSuite(
             TestSuiteConfiguration.MEDIUM,
-            new FileResultWriterProvider(),
             new FSMDescriptionProvider(new FSMTransitionTableBuilder(3, 30, new Randomizer()), EnumSet.of(FSMDescription.Sensor.EVEN_ODD)),
             new IAgentProvider[] {
                     new JunoAgentProvider(new SuffixNodeProvider()),
@@ -86,7 +81,6 @@ public class Runner {
 
     private static TestSuite JunoBail = new TestSuite(
             TestSuiteConfiguration.MEDIUM,
-            new FileResultWriterProvider(),
             new FSMDescriptionProvider(new FSMTransitionTableBuilder(4, 40, new Randomizer()), EnumSet.of(FSMDescription.Sensor.EVEN_ODD)),
             new IAgentProvider[] {
                     new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, 2, Double.MAX_VALUE))
@@ -95,7 +89,6 @@ public class Runner {
 
     private static TestSuite MaRzMeta = new TestSuite(
             TestSuiteConfiguration.MEDIUM,
-            new FileResultWriterProvider(),
             new MetaEnvironmentDescriptionProvider(
                     new FSMDescriptionTweakingProvider(new FSMTransitionTableBuilder(3,15, new Randomizer()),FSMDescription.Sensor.NO_SENSORS), // 1 numswap
                     MetaConfiguration.DEFAULT),
@@ -106,7 +99,6 @@ public class Runner {
 
     private static TestSuite Suite2 = new TestSuite(
             TestSuiteConfiguration.FULL,
-            new FileResultWriterProvider(),
             new MetaEnvironmentDescriptionProvider(new FSMDescriptionProvider(new FSMTransitionTableBuilder(2, 5, new Randomizer()), EnumSet.of(FSMDescription.Sensor.EVEN_ODD)), MetaConfiguration.DEFAULT),
             new IAgentProvider[] {
                     new NSMAgentProvider()
@@ -130,7 +122,6 @@ public class Runner {
         for(EnumSet i : sensorSets) {
             suites.add(new TestSuite(
                     TestSuiteConfiguration.FULL,
-                    new FileResultWriterProvider(),
                     new FSMDescriptionProvider(new FSMTransitionTableBuilder(4, 40, new Randomizer()), i),
                     new IAgentProvider[]{
                             new JunoAgentProvider(
@@ -146,13 +137,10 @@ public class Runner {
             //System.out.println("beginning suite "+suites.indexOf(suite));
             try {
                 System.out.println("Beginning suite "+suites.indexOf(suite));
-                //Services.register(IRandomizer.class, new Randomizer(541)); //determined seed for debug
-                String outputPath = suite.getResultWriterProvider().getOutputDirectory();
-                NamedOutput namedOutput = createOutputStreamContainer(outputPath);
+                IResultWriterProvider resultWriterProvider = Runner.initializeOutput();
+                suite.run(resultWriterProvider);
 
-                suite.run();
-
-                namedOutput.closeAll();
+                NamedOutput.getInstance().closeAll();
             }
             catch (OutOfMemoryError mem){
                 mem.printStackTrace();
@@ -165,15 +153,16 @@ public class Runner {
         }
     }
 
-    private static NamedOutput createOutputStreamContainer(String outputPath) throws IOException {
+    private static IResultWriterProvider initializeOutput() throws IOException {
+        String outputDirectory = DirectoryUtils.generateNewOutputDirectory();
         NamedOutput namedOutput = NamedOutput.getInstance();
-        namedOutput.configure("metaData", Runner.getFileOutputStream(outputPath, "metadata.txt"));
+        namedOutput.configure("metaData", Runner.getFileOutputStream(outputDirectory, "metadata.txt"));
 //        namedOutput.configure("agentDidAGood", Runner.getFileOutputStream(outputPath, "goodRatios.csv"));
 //        namedOutput.configure("goodDecisionBail", Runner.getFileOutputStream(outputPath, "goodDecisionBailRatio.csv"));
 //        namedOutput.configure("badDecisionBail", Runner.getFileOutputStream(outputPath, "badDecisionBailRatio.csv"));
 //        namedOutput.configure("properBails", Runner.getFileOutputStream(outputPath, "properBailRatio.csv"));
 //        namedOutput.configure("junoRatios", Runner.getFileOutputStream(outputPath, "junoRatios.csv"));
-        return namedOutput;
+        return new FileResultWriterProvider(outputDirectory);
     }
 
     private static FileOutputStream getFileOutputStream(String directory, String filename) throws IOException {

@@ -8,8 +8,7 @@ import java.util.HashMap;
  * @version 0.95
  */
 public interface IAgent {
-    String[] getResultTypes();
-
+    //region Methods
     /**
      * Set the available {@link Move}s for the agent in the current environment.
      * @param moves An array of {@link Move} representing the moves available to the agent.
@@ -24,11 +23,15 @@ public interface IAgent {
      */
     Move getNextMove(SensorData sensorData) throws Exception;
 
+    String[] getResultTypes();
     HashMap<String, String> getResultWriterData();
+    //endregion
 
+    //region Defaulted Methods
     default String getMetaData(){
         return "None";
     }
     default void onGoalFound() { };
     default void onTestRunComplete() { };
+    //endregion
 }

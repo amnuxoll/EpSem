@@ -6,8 +6,11 @@ package framework;
  * @version 0.95
  */
 public class Move {
+    //region Class Variables
     private String name;
+    //endregion
 
+    //region Constructors
     public Move(String name) throws IllegalArgumentException {
         if (name == null)
             throw new IllegalArgumentException("name cannot be null");
@@ -15,11 +18,15 @@ public class Move {
             throw new IllegalArgumentException("name cannot be empty");
         this.name = name;
     }
+    //endregion
 
+    //region Public Methods
     public String getName() {
         return this.name;
     }
+    //endregion
 
+    //region Object Overrides
     @Override
     public String toString() {
         return this.name;
@@ -41,4 +48,5 @@ public class Move {
     public int hashCode() {
         return this.name.hashCode();
     }
+    //endregion
 }

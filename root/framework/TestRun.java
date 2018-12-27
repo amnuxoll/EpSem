@@ -1,7 +1,6 @@
 package framework;
 
 
-import agents.juno.JunoAgent;
 import utils.ExceptionStackTraceToString;
 
 import java.util.ArrayList;
@@ -13,13 +12,15 @@ import java.util.List;
  * @version 0.95
  */
 class TestRun {
-
+    //region Class Variables
     private IAgent agent;
     private IEnvironmentDescription environmentDescription;
-    private Environment environment;
     private int numberOfGoalsToFind;
+    private Environment environment;
     private List<IGoalListener> goalListeners = new ArrayList();
+    //endregion
 
+    //region Constructors
     public TestRun(IAgent agent, IEnvironmentDescription environmentDescription, int numberOfGoalsToFind) throws IllegalArgumentException {
         if (agent == null)
             throw new IllegalArgumentException("agent cannot be null");
@@ -33,7 +34,9 @@ class TestRun {
         this.agent = agent;
         this.numberOfGoalsToFind = numberOfGoalsToFind;
     }
+    //endregion
 
+    //region Public Methods
     public void execute() {
         try {
             int goalCount = 0;
@@ -64,11 +67,14 @@ class TestRun {
     public synchronized void addGoalListener(IGoalListener listener) {
         this.goalListeners.add(listener);
     }
+    //endregion
 
+    //region Private Methods
     private synchronized void fireGoalEvent(int stepsToGoal) {
         GoalEvent goal = new GoalEvent(this, stepsToGoal, this.agent.getResultWriterData());
         for (IGoalListener listener : this.goalListeners) {
             listener.goalReceived(goal);
         }
     }
+    //endregion
 }

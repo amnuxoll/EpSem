@@ -10,12 +10,16 @@ import java.util.*;
  * @version 0.95
  */
 public class Sequence implements Comparable<Sequence> {
-    private Move[] moves;
-
-    private int currentIndex = -1;
-
+    //region Static Sequences
     public static final Sequence EMPTY = new Sequence(new Move[0]);
+    //endregion
 
+    //region Class Variables
+    private Move[] moves;
+    private int currentIndex = -1;
+    //endregion
+
+    //region Constructors
     /**
      * Create an instance of a Sequence.
      * @param moves The moves in the sequence.
@@ -45,7 +49,9 @@ public class Sequence implements Comparable<Sequence> {
             moves[i-start]= episodes.get(i).getMove();
         }
     }
+    //endregion
 
+    //region Public Methods
     /**
      * Determines whether or not this sequence ends with the provided sequence.
      * @param sequence the sequent to check as a suffix.
@@ -155,6 +161,24 @@ public class Sequence implements Comparable<Sequence> {
         this.currentIndex = -1;
     }
 
+    public int getCurrentIndex() {
+        return currentIndex;
+    }
+    //endregion
+
+    //region Comparable<Sequence> Members
+    @Override
+    public int compareTo(Sequence o) {
+        // Sort from longest to shortest
+        if (this.moves.length > o.moves.length)
+            return -1;
+        if (this.moves.length < o.moves.length)
+            return 1;
+        return 0;
+    }
+    //endregion
+
+    //region Object Overrides
     @Override
     public boolean equals(Object o) {
         if (o == this) {
@@ -186,18 +210,5 @@ public class Sequence implements Comparable<Sequence> {
         }
         return representation.toString();
     }
-
-    public int getCurrentIndex() {
-        return currentIndex;
-    }
-
-    @Override
-    public int compareTo(Sequence o) {
-        // Sort from longest to shortest
-        if (this.moves.length > o.moves.length)
-            return -1;
-        if (this.moves.length < o.moves.length)
-            return 1;
-        return 0;
-    }
+    //endregion
 }
