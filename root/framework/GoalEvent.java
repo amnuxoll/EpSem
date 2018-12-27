@@ -11,7 +11,7 @@ import java.util.HashMap;
 class GoalEvent extends EventObject {
     //region Class Variables
     private String stepCountToGoal;
-    private HashMap<String, String> agentResults;
+    private HashMap<String, String> agentStatistics;
     //endregion
 
     //region Constructors
@@ -21,10 +21,10 @@ class GoalEvent extends EventObject {
      * @param source The object on which the Event initially occurred.
      * @throws IllegalArgumentException if source is null.
      */
-    public GoalEvent(Object source, int stepCountToGoal, HashMap<String, String> agentResults) {
+    public GoalEvent(Object source, int stepCountToGoal, HashMap<String, String> agentStatistics) {
         super(source);
         this.stepCountToGoal = Integer.toString(stepCountToGoal);
-        this.agentResults = agentResults;
+        this.agentStatistics = agentStatistics;
     }
     //endregion
 
@@ -37,8 +37,8 @@ class GoalEvent extends EventObject {
         return this.stepCountToGoal;
     }
 
-    public HashMap<String, String> getAgentResults() {
-        return this.agentResults;
+    public HashMap<String, String> getAgentStatistics() {
+        return this.agentStatistics;
     }
     //endregion
 }

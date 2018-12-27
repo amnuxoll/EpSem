@@ -1,7 +1,6 @@
 package agents.marz;
 
 import framework.Sequence;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -14,12 +13,15 @@ import java.util.List;
  * @version 0.95
  */
 public abstract class SuffixNodeBase<TNodeType extends SuffixNodeBase<TNodeType>> {
+    //region Class Variables
     protected double f; // the current overall potential of this suffix (f = g + h)
     private Sequence suffix;
     private ArrayList<Integer> successIndexList = new ArrayList<>();
     private ArrayList<Integer> failsIndexList = new ArrayList<>();
     private boolean foundGoal = false;
+    //endregion
 
+    //region Constructors
     /**
      * Create an instance of a SuffixNodeBase
      * @param suffix The suffix for this node.
@@ -28,7 +30,9 @@ public abstract class SuffixNodeBase<TNodeType extends SuffixNodeBase<TNodeType>
         this.suffix = suffix;
         this.f = 0.0;
     }
+    //endregion
 
+    //region Public Methods
     /**
      * Gets the suffix for this node.
      * @return The sequence that contains the suffix of this node.
@@ -46,6 +50,34 @@ public abstract class SuffixNodeBase<TNodeType extends SuffixNodeBase<TNodeType>
         return this.f;
     }
 
+    public void setFoundGoal() {
+        this.foundGoal = true;
+    }
+
+    public void addSuccessIndex(int index) {
+        this.successIndexList.add(index);
+    }
+
+    public void addFailIndex(int index) {
+        this.failsIndexList.add(index)
+        ;   }
+    //endregion
+
+    //region Protected Methods
+    protected boolean getFoundGoal() {
+        return this.foundGoal;
+    }
+
+    protected List<Integer> getSuccessIndices() {
+        return Collections.unmodifiableList(this.successIndexList);
+    }
+
+    protected List<Integer> getFailIndices() {
+        return Collections.unmodifiableList(this.failsIndexList);
+    }
+    //endregion
+
+    //region Abstract Methods
     /**
      * Gets the normalized weight of this node in range [0,1]
      * @return the weight of this node in range [0,1]
@@ -64,28 +96,5 @@ public abstract class SuffixNodeBase<TNodeType extends SuffixNodeBase<TNodeType>
     protected abstract void updateHeuristic();
 
     protected abstract boolean canSplit();
-
-    public void setFoundGoal() {
-        this.foundGoal = true;
-    }
-
-    protected boolean getFoundGoal() {
-        return this.foundGoal;
-    }
-
-    public void addSuccessIndex(int index) {
-        this.successIndexList.add(index);
-    }
-
-    public void addFailIndex(int index) {
-        this.failsIndexList.add(index)
-;   }
-
-    protected List<Integer> getSuccessIndices() {
-        return Collections.unmodifiableList(this.successIndexList);
-    }
-
-    protected List<Integer> getFailIndices() {
-        return Collections.unmodifiableList(this.failsIndexList);
-    }
+    //endregion
 }

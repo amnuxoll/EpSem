@@ -12,13 +12,17 @@ import framework.IAgentProvider;
  * @version 0.95
  */
 public class MaRzAgentProvider<TSuffixNode extends SuffixNodeBase<TSuffixNode>> implements IAgentProvider {
-
+    //region Class Variables
     protected ISuffixNodeBaseProvider<TSuffixNode> nodeProvider;
+    //endregion
 
+    //region Constructors
     public MaRzAgentProvider(ISuffixNodeBaseProvider<TSuffixNode> nodeProvider) {
         this.nodeProvider = nodeProvider;
     }
+    //endregion
 
+    //region IAgentProvider Members
     /**
      * Gets a MaRz agent.
      * @return the {@link MaRzAgent}.
@@ -32,4 +36,5 @@ public class MaRzAgentProvider<TSuffixNode extends SuffixNodeBase<TSuffixNode>> 
     public String getAlias() {
         return "MaRzAgent";
     }
+    //endregion
 }

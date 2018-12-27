@@ -78,7 +78,7 @@ public class TestSuite implements IGoalListener {
     @Override
     public void goalReceived(GoalEvent event) throws IOException {
         this.resultWriters.get("steps").logResult(event.getStepCountToGoal());
-        for (Map.Entry<String, String> result : event.getAgentResults().entrySet())
+        for (Map.Entry<String, String> result : event.getAgentStatistics().entrySet())
         {
             this.resultWriters.get(result.getKey()).logResult(result.getValue());
         }

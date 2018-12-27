@@ -1,7 +1,6 @@
 package agents.marz;
 
 import framework.Sequence;
-
 import java.util.*;
 
 /**
@@ -12,12 +11,13 @@ import java.util.*;
  * @version 0.95
  */
 public class SuffixTree<TSuffixNode extends SuffixNodeBase<TSuffixNode>> {
-
+    //region Class Variables
     /** hash table of all nodes on the fringe of our search */
     private HashMap<Sequence, TSuffixNode> hashFringe = new HashMap<>();
-
     private int maxSize;
+    //endregion
 
+    //region Constructors
     /**
      * Create an instance of a SuffixTree with a given size and root node.
      * @param maxSize The max allowed size of this tree.
@@ -31,7 +31,9 @@ public class SuffixTree<TSuffixNode extends SuffixNodeBase<TSuffixNode>> {
         this.maxSize = maxSize;
         this.addNode(rootNode);
     }
+    //endregion
 
+    //region Public Methods
     /**
      * Split the node with the given suffix.
      * @param sequence The suffix to split.
@@ -106,6 +108,14 @@ public class SuffixTree<TSuffixNode extends SuffixNodeBase<TSuffixNode>> {
         return this.hashFringe.containsKey(suffix);
     }
 
+    public void printTree() {
+        for (TSuffixNode node : this.hashFringe.values()) {
+            System.out.println("Node: " + node);
+        }
+    }
+    //endregion
+
+    //region Private Methods
     private void addNode(TSuffixNode node) {
         // Erase worst node in the hashFringe once we hit our Constant limit
         while (hashFringe.size() > this.maxSize) {
@@ -128,10 +138,5 @@ public class SuffixTree<TSuffixNode extends SuffixNodeBase<TSuffixNode>> {
         }
         return worstSequence;
     }// findWorstNodeToTry
-
-    public void printTree() {
-        for (TSuffixNode node : this.hashFringe.values()) {
-            System.out.println("Node: " + node);
-        }
-    }
+    //endregion
 }

@@ -4,11 +4,9 @@ import framework.Sequence;
 import agents.marz.SuffixNodeBase;
 import framework.Episode;
 import framework.Move;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.function.Function;
-
 
 /**
  * SuffixNode
@@ -18,15 +16,19 @@ import java.util.function.Function;
  * @version 0.95
  */
 public class SuffixNode extends SuffixNodeBase<SuffixNode> {
+    //region Static Variables
     // the likeliness to jump back to another node
     // (should be in the range (0.0 - 1.0)
     public static final double G_WEIGHT = 0.05;
+    //endregion
 
-    /*--==Instance Variables==--*/
+    //region Class Variables
     private int g; // distance from root (ala A* search)
     private Move[] possibleMoves;
     private Function<Integer, Episode> lookupEpisode;
+    //endregion
 
+    //region Constructors
     /**
      * SuffixNode default ctor inits variables for a root node.
      *
@@ -41,7 +43,9 @@ public class SuffixNode extends SuffixNodeBase<SuffixNode> {
         this.possibleMoves = possibleMoves;
         this.lookupEpisode = lookupEpisode;
     }// ctor
+    //endregion
 
+    //region SuffixNodeBase<SuffixNode> Overrides
     @Override
     public SuffixNode[] split() {
         HashMap<Move, SuffixNode> children = new HashMap<>();
@@ -95,7 +99,9 @@ public class SuffixNode extends SuffixNodeBase<SuffixNode> {
 
         return (double) failCount / ((double) failCount + (double) successCount);
     }
+    //endregion
 
+    //region Private Methods
     private void divyIndexes(HashMap<Move, SuffixNode> children, boolean success) {
         List<Integer> parentList = (success ? this.getSuccessIndices() : this.getFailIndices());
         for (int parentIndex : parentList) {
@@ -117,7 +123,9 @@ public class SuffixNode extends SuffixNodeBase<SuffixNode> {
                 children.get(move).addFailIndex(index);
         }// for
     }//divyIndexes
+    //endregion
 
+    //region Object Overrides
     /**
      * toString
      *
@@ -128,4 +136,5 @@ public class SuffixNode extends SuffixNodeBase<SuffixNode> {
         this.updateHeuristic();
         return this.getSuffix().toString() + "_" + this.f;
     }
+    //endregion
 }
