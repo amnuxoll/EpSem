@@ -4,12 +4,12 @@ import agents.marz.ISuffixNodeBaseProvider;
 import agents.marz.MaRzAgent;
 import framework.*;
 import agents.juno.WeightTable.ScoredIndex;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 
 public class JunoAgent extends MaRzAgent {
+    //region Class Variables
     private WeightTable weightTable= null;
 
     //the window of episodes we matched before trying our sequence
@@ -32,7 +32,9 @@ public class JunoAgent extends MaRzAgent {
     //how mature we think our weight table is
     private double tableMaturity= Double.MAX_VALUE;
     private int tableSizeOnMatch= -1;
+    //endregion
 
+    //region Constructors
     /**
      * JunoAgent
      *
@@ -45,7 +47,9 @@ public class JunoAgent extends MaRzAgent {
         junoCount= 0;
         this.weightTable= new WeightTable(1);
     }
+    //endregion
 
+    //region MaRzAgent Overrides
     @Override
     public String[] getStatisticTypes()
     {
@@ -62,7 +66,6 @@ public class JunoAgent extends MaRzAgent {
         results.put("junoRatios", Double.toString(this.getJunoRatio()));
         return results;
     }
-
 
     @Override
     protected Sequence selectNextSequence(){
@@ -109,30 +112,6 @@ public class JunoAgent extends MaRzAgent {
         marzCount++;
         return marzSuggestion;
     }
-
-    private ScoredIndex bestIndexToTry(ScoredIndex[] indexes){
-        if(indexes == null){
-            throw new IllegalArgumentException("Indexes cannot be null");
-        }
-        if(indexes.length < 1){
-            throw new IllegalArgumentException("Indexes should not be empty");
-        }
-
-        ScoredIndex best= null;
-        double maxScore= -1;
-
-        for(ScoredIndex index : indexes){
-            double score= index.score/sequenceToGoal(index.index).getLength();
-
-            if(score > maxScore){
-                maxScore= score;
-                best= index;
-            }
-        }
-
-        return best;
-    }
-
 
     @Override
     protected void markSuccess(){
@@ -216,6 +195,31 @@ public class JunoAgent extends MaRzAgent {
     {
         super.onTestRunComplete();
     }
+    //endregion
+
+    //region Private Methods
+    private ScoredIndex bestIndexToTry(ScoredIndex[] indexes){
+        if(indexes == null){
+            throw new IllegalArgumentException("Indexes cannot be null");
+        }
+        if(indexes.length < 1){
+            throw new IllegalArgumentException("Indexes should not be empty");
+        }
+
+        ScoredIndex best= null;
+        double maxScore= -1;
+
+        for(ScoredIndex index : indexes){
+            double score= index.score/sequenceToGoal(index.index).getLength();
+
+            if(score > maxScore){
+                maxScore= score;
+                best= index;
+            }
+        }
+
+        return best;
+    }
 
     private void printInfo(ScoredIndex indexToTry){
         NamedOutput namedOutput = NamedOutput.getInstance();
@@ -289,7 +293,7 @@ public class JunoAgent extends MaRzAgent {
      *
      * @return the ratio of juno desicions to all decisions
      */
-    public double getJunoRatio(){
+    private double getJunoRatio(){
         double total = marzCount + junoCount;
 
         if(total == 0){
@@ -297,9 +301,12 @@ public class JunoAgent extends MaRzAgent {
         }
         return (double)junoCount/total;
     }
+    //endregion
 
+    //region Object Overrides
     @Override
     public String toString(){
         return "bailSlider= " + config.getBailSlider();
     }
+    //endregion
 }

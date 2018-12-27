@@ -2,15 +2,17 @@ package agents.juno;
 
 import framework.*;
 import framework.Sequence;
-
 import java.util.ArrayList;
 import java.util.PriorityQueue;
 
 public class WeightTable {
+    //region Class Variables
     //table of episode weights
     //indexed where 0 is most recent episode
     protected ArrayList<EpisodeWeights> table;
+    //endregion
 
+    //region Constructors
     /**
      * makes a weight table with 'windowSize' rows
      * @param windowSize number of rows to store weights for
@@ -24,7 +26,9 @@ public class WeightTable {
             table.add(new EpisodeWeights());
         }
     }
+    //endregion
 
+    //region Public Methods
     /**
      * finds the indexes of the windows that best match the most
      * recent window
@@ -125,6 +129,7 @@ public class WeightTable {
 
         return sequenceScore/table.size();
     }
+
     /**
      * updates the weight table after an attempted sequence that didn't hit the goal
      * takes as parameters the indexes of the episode sequences that matched
@@ -197,59 +202,6 @@ public class WeightTable {
         }
     }
 
-    /**
-     * gets the similarity of the 'attempts' after the pre-goal sequence and the window
-     * @param goalSequence1
-     * @param goalSequence2
-     * @return
-     */
-    private double getAttemptSimlarity(Sequence goalSequence1, Sequence goalSequence2){
-        int m= Math.min(goalSequence1.getLength(),goalSequence2.getLength());
-        int i = 0;
-        Move[] gs1Moves = goalSequence1.getMoves();
-        Move[] gs2Moves = goalSequence2.getMoves();
-
-        for(; i<m; i++) {
-            if(gs1Moves[i] != gs2Moves[i]) break;
-        }
-
-        return (double) i/m;
-    }
-
-    /**
-     * gets the similarity between what we've done after the pre-goal sequence and the window
-     * @param goalSequence1
-     * @param goalSequence2
-     * @return
-     */
-    private double getActualSimilarity(Sequence goalSequence1, Sequence goalSequence2) {
-        int m= Math.min(goalSequence1.getLength(),goalSequence2.getLength());
-        int l= Math.max(goalSequence1.getLength(),goalSequence2.getLength());
-
-        return (2.0*m)/l - 1;
-    }
-
-    /**
-     * finds the index of the goal that happened most previously
-     * to the given index
-     *
-     * @param list the episodes to search in
-     * @param index the index to start the search
-     * @return the index of the most recent goal which occurred
-     *          at or before the given index
-     */
-    private int lastGoalIndex(ArrayList<Episode> list, int index) {
-        for(int i = index; i>=0; i--) {
-            if(list.get(i).getSensorData().isGoal()) return i; //if the episode at i was a goal, return i
-        }
-        return -1; //return -1 if we don't find any goals in the list
-    }
-
-    @Override
-    public String toString(){
-        return toString(true);
-    }
-
     public String toString(boolean includeNewlines){
         String str= "";
         for(EpisodeWeights weights : table){
@@ -306,16 +258,80 @@ public class WeightTable {
 
         return sum/numEntries;
     }
+    //endregion
 
-    public class ScoredIndex implements Comparable<ScoredIndex>{
+    //region Private Methods
+    /**
+     * gets the similarity of the 'attempts' after the pre-goal sequence and the window
+     * @param goalSequence1
+     * @param goalSequence2
+     * @return
+     */
+    private double getAttemptSimlarity(Sequence goalSequence1, Sequence goalSequence2){
+        int m= Math.min(goalSequence1.getLength(),goalSequence2.getLength());
+        int i = 0;
+        Move[] gs1Moves = goalSequence1.getMoves();
+        Move[] gs2Moves = goalSequence2.getMoves();
+
+        for(; i<m; i++) {
+            if(gs1Moves[i] != gs2Moves[i]) break;
+        }
+
+        return (double) i/m;
+    }
+
+    /**
+     * gets the similarity between what we've done after the pre-goal sequence and the window
+     * @param goalSequence1
+     * @param goalSequence2
+     * @return
+     */
+    private double getActualSimilarity(Sequence goalSequence1, Sequence goalSequence2) {
+        int m= Math.min(goalSequence1.getLength(),goalSequence2.getLength());
+        int l= Math.max(goalSequence1.getLength(),goalSequence2.getLength());
+
+        return (2.0*m)/l - 1;
+    }
+
+    /**
+     * finds the index of the goal that happened most previously
+     * to the given index
+     *
+     * @param list the episodes to search in
+     * @param index the index to start the search
+     * @return the index of the most recent goal which occurred
+     *          at or before the given index
+     */
+    private int lastGoalIndex(ArrayList<Episode> list, int index) {
+        for(int i = index; i>=0; i--) {
+            if(list.get(i).getSensorData().isGoal()) return i; //if the episode at i was a goal, return i
+        }
+        return -1; //return -1 if we don't find any goals in the list
+    }
+    //endregion
+
+    //region Object Overrides
+    @Override
+    public String toString(){
+        return toString(true);
+    }
+    //endregion
+
+    //region Nested Classes
+    public class ScoredIndex implements Comparable<ScoredIndex> {
+        //region Class Variables
         public int index;
         public double score;
+        //endregion
 
+        //region Constructors
         public ScoredIndex(int index, double score) {
             this.index = index;
             this.score = score;
         }
+        //endregion
 
+        //region Comparable<ScoredIndex> Members
         /**
          * compares one scored index to another
          * since priority queue prioritizes the least,
@@ -332,5 +348,7 @@ public class WeightTable {
 
             return this.score < si.score ? 1 : -1;
         }
+        //endregion
     }
+    //endregion
 }

@@ -5,18 +5,22 @@ import agents.marz.MaRzAgentProvider;
 import framework.IAgent;
 
 public class JunoAgentProvider extends MaRzAgentProvider {
-
+    //region Class Variables
     private JunoConfiguration config;
+    //endregion
+
+    //region Constructors
     public JunoAgentProvider(ISuffixNodeBaseProvider nodeProvider, JunoConfiguration config) {
         super(nodeProvider);
         this.config= config;
     }
 
     public JunoAgentProvider(ISuffixNodeBaseProvider nodeProvider) {
-        super(nodeProvider);
-        this.config= JunoConfiguration.DEFAULT;
+        this(nodeProvider, JunoConfiguration.DEFAULT);
     }
+    //endregion
 
+    //region MaRzAgentProvider Overrides
     @Override
     public IAgent getAgent() {return new JunoAgent(this.nodeProvider, config);}
 
@@ -25,4 +29,5 @@ public class JunoAgentProvider extends MaRzAgentProvider {
     {
         return "JunoAgent";
     }
+    //endregion
 }

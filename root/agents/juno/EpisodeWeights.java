@@ -1,17 +1,18 @@
 package agents.juno;
 
-import environments.fsm.FSMDescription;
 import framework.Episode;
-
 import java.util.HashMap;
 
 /**
  * episode weights contains weights for each component of an episode
  */
 public class EpisodeWeights {
+    //region Class Variables
     protected double actionWeight;
     protected HashMap<String, Double> sensorWeights;
+    //endregion
 
+    //region Constructors
     /**
      * initialize moveWeight to 0
      */
@@ -19,7 +20,9 @@ public class EpisodeWeights {
         actionWeight= 0.0;
         sensorWeights= new HashMap<>();
     }
+    //endregion
 
+    //region Public Methods
     /**
      * updates the episode weights based on how well these episodes match
      * @param ep1
@@ -45,22 +48,6 @@ public class EpisodeWeights {
                 sensorWeights.put(s, 0.0);
             }
         }
-    }
-
-    /**
-     * adds two numbers and keeps them within specified range
-     *
-     * @param x op1
-     * @param y op2
-     * @param min min value to keep range in
-     * @param max max value to keep range in
-     */
-    private double addAndCap(double x, double y, double min, double max){
-        x+= y;
-
-        if(x > max) return max;
-        if(x < min) return min;
-        return x;
     }
 
     public boolean episodeSensorsMatch(Episode ep1, Episode ep2, String sensor) {
@@ -106,10 +93,6 @@ public class EpisodeWeights {
         return 0.0;
     }
 
-    private void addSensorWeight(String sensorName){
-        sensorWeights.put(sensorName,0.0);
-    }
-
     /**
      * calculates the average entry in the list
      * @return the average entry
@@ -133,7 +116,31 @@ public class EpisodeWeights {
 
         return sum;
     }
+    //endregion
 
+    //region Private Methods
+    /**
+     * adds two numbers and keeps them within specified range
+     *
+     * @param x op1
+     * @param y op2
+     * @param min min value to keep range in
+     * @param max max value to keep range in
+     */
+    private double addAndCap(double x, double y, double min, double max){
+        x+= y;
+
+        if(x > max) return max;
+        if(x < min) return min;
+        return x;
+    }
+
+    private void addSensorWeight(String sensorName){
+        sensorWeights.put(sensorName,0.0);
+    }
+    //endregion
+
+    //region Object Overrides
     @Override
     public String toString(){
         String str= Double.toString(actionWeight);
@@ -143,4 +150,5 @@ public class EpisodeWeights {
 
         return str;
     }
+    //endregion
 }
