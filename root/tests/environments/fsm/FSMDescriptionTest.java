@@ -24,7 +24,7 @@ public class FSMDescriptionTest {
 
     @Test
     public void constructorNullEnumSetThrowsException() {
-        assertThrows(IllegalArgumentException.class, () -> new FSMDescription(new FSMTransitionTable(new HashMap[1]), null));
+        assertThrows(IllegalArgumentException.class, () -> new FSMDescription(new FSMTransitionTable(new HashMap[0]), null));
     }
 
     @Test

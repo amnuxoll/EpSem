@@ -44,6 +44,11 @@ public class MetaEnvironmentDescriptionProviderTest {
             return new TestEnvironmentDescription();
         }
 
+        @Override
+        public String getAlias() {
+            return "alias";
+        }
+
     }
 
     private class TestEnvironmentDescription implements  IEnvironmentDescription {

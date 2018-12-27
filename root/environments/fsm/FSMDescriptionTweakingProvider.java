@@ -36,5 +36,11 @@ public class FSMDescriptionTweakingProvider extends FSMDescriptionProvider {
             this.lastDescription.tweakTable(2, new Randomizer());
         return this.lastDescription;
     }
+
+    @Override
+    public String getAlias()
+    {
+        return "FSMTweaker";
+    }
     //endregion
 }

@@ -3,6 +3,7 @@ package framework;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Function;
 
 /**
  *
@@ -12,23 +13,25 @@ import java.util.Map;
 public class TestSuite implements IGoalListener {
     //region Class Variables
     private TestSuiteConfiguration configuration;
-    private IEnvironmentDescriptionProvider environmentDescriptionProvider;
+    private IEnvironmentDescriptionProvider[] environmentDescriptionProviders;
     private IAgentProvider[] agentProviders;
     private HashMap<String, IResultWriter> resultWriters;
     //endregion
 
     //region Constructors
-    public TestSuite(TestSuiteConfiguration configuration, IEnvironmentDescriptionProvider environmentDescriptionProvider, IAgentProvider[] agentProviders) {
+    public TestSuite(TestSuiteConfiguration configuration, IEnvironmentDescriptionProvider[] environmentDescriptionProviders, IAgentProvider[] agentProviders) {
         if (configuration == null)
             throw new IllegalArgumentException("configuration cannot be null.");
-        if (environmentDescriptionProvider == null)
-            throw new IllegalArgumentException("environmentDescriptionProvider cannot be null.");
+        if (environmentDescriptionProviders == null)
+            throw new IllegalArgumentException("environmentDescriptionProviders cannot be null.");
+        if (environmentDescriptionProviders.length == 0)
+            throw new IllegalArgumentException("environmentDescriptionProviders cannot be empty.");
         if (agentProviders == null)
             throw new IllegalArgumentException("agentProviders cannot be null.");
         if (agentProviders.length == 0)
             throw new IllegalArgumentException("agentProviders cannot be empty.");
         this.configuration = configuration;
-        this.environmentDescriptionProvider = environmentDescriptionProvider;
+        this.environmentDescriptionProviders = environmentDescriptionProviders;
         this.agentProviders = agentProviders;
     }
     //endregion
@@ -47,22 +50,24 @@ public class TestSuite implements IGoalListener {
             this.writeMetaData();
 
             int numberOfIterations = this.configuration.getNumberOfIterations();
-            for (int i = 0; i < this.agentProviders.length; i++) {
-                IAgentProvider agentProvider = this.agentProviders[i];
-                namedOutput.write("framework", "Beginning agent: " + agentProvider.getAlias() + " " + i);
-                for (int j = 0; j < numberOfIterations; j++) {
-                    namedOutput.write("framework", "");
-                    namedOutput.write("framework", "Beginning iteration: " + j);
-                    IAgent agent = agentProvider.getAgent();
-                    if (j == 0)
-                        this.generateResultWriters(resultWriterProvider, agentProvider.getAlias(), j, agent.getStatisticTypes());
-                    IEnvironmentDescription environmentDescription = this.environmentDescriptionProvider.getEnvironmentDescription();
-                    TestRun testRun = new TestRun(agent, environmentDescription, this.configuration.getNumberOfGoals());
-                    testRun.addGoalListener(this);
-                    this.beginAgentTestRun();
-                    testRun.execute();
+            for (int environmentIndex = 0; environmentIndex < this.environmentDescriptionProviders.length; environmentIndex++) {
+                for (int agentIndex = 0; agentIndex < this.agentProviders.length; agentIndex++) {
+                    IAgentProvider agentProvider = this.agentProviders[agentIndex];
+                    namedOutput.write("framework", "Beginning agent: " + agentProvider.getAlias() + " " + agentIndex);
+                    for (int numberOfMachines = 0; numberOfMachines < numberOfIterations; numberOfMachines++) {
+                        namedOutput.write("framework", "");
+                        namedOutput.write("framework", "Beginning iteration: " + numberOfMachines);
+                        IAgent agent = agentProvider.getAgent();
+                        IEnvironmentDescription environmentDescription = this.environmentDescriptionProviders[environmentIndex].getEnvironmentDescription();
+                        if (numberOfMachines == 0)
+                            this.generateResultWriters(resultWriterProvider, this.environmentDescriptionProviders[environmentIndex].getAlias(), environmentIndex, agentProvider.getAlias(), agentIndex, agent.getStatisticTypes());
+                        TestRun testRun = new TestRun(agent, environmentDescription, this.configuration.getNumberOfGoals());
+                        testRun.addGoalListener(this);
+                        this.beginAgentTestRun();
+                        testRun.execute();
+                    }
+                    this.completeAgentTestRuns();
                 }
-                this.completeAgentTestRuns();
             }
         } catch(Exception ex) {
             NamedOutput.getInstance().write("framework", ex);
@@ -87,51 +92,45 @@ public class TestSuite implements IGoalListener {
 
     //region Private Methods
     private void beginAgentTestRun() throws IOException {
-        for (IResultWriter writer : this.resultWriters.values())
-        {
+        for (IResultWriter writer : this.resultWriters.values()) {
             writer.beginNewRun();
         }
     }
 
     private void completeAgentTestRuns() throws IOException {
-        for (IResultWriter writer : this.resultWriters.values())
-        {
+        for (IResultWriter writer : this.resultWriters.values()) {
             writer.complete();
         }
         this.resultWriters.clear();
     }
 
-    private void generateResultWriters(IResultWriterProvider resultWriterProvider, String agentAlias, int agentIndex, String[] resultTypes) throws Exception {
+    private void generateResultWriters(IResultWriterProvider resultWriterProvider, String environmentAlias, int environmentIndex, String agentAlias, int agentIndex, String[] resultTypes) throws Exception {
+        Function<String, String> generateFileName = name -> "env_" + environmentAlias + "_" + environmentIndex +  "_agent_" + agentAlias + "_" + agentIndex + "_" + name;
         this.resultWriters = new HashMap<>();
-        this.resultWriters.put("steps", resultWriterProvider.getResultWriter(agentAlias, "agent_" + agentAlias + "_" + agentIndex + "_steps"));
-        for (String resultType : resultTypes)
-        {
-            this.resultWriters.put(resultType, resultWriterProvider.getResultWriter(agentAlias, "agent_" + agentAlias + "_" + agentIndex + "_" + resultType));
+        this.resultWriters.put("steps", resultWriterProvider.getResultWriter(agentAlias, generateFileName.apply("steps")));
+        for (String resultType : resultTypes) {
+            this.resultWriters.put(resultType, resultWriterProvider.getResultWriter(agentAlias, generateFileName.apply(resultType)));
         }
     }
 
     private void writeMetaData(){
         StringBuilder metadataBuilder = new StringBuilder();
-        metadataBuilder.append(configuration.getNumberOfGoals() + " goals on " + configuration.getNumberOfIterations() + " environments\n");
+        metadataBuilder.append("== CONFIGURATION ==\n");
+        metadataBuilder.append("Goal Count: " + configuration.getNumberOfGoals() + "\n");
+        metadataBuilder.append("Number of Machines: " + configuration.getNumberOfIterations() + "\n");
         metadataBuilder.append("\n");
-        metadataBuilder.append("Environment provider type: " + environmentDescriptionProvider.getClass().getName() + "\n");
-        metadataBuilder.append("\n");
-        IEnvironmentDescription environment= environmentDescriptionProvider.getEnvironmentDescription();
-        metadataBuilder.append("Example of possible environment description:" + "\n");
-        metadataBuilder.append("\tType: " + environment.getClass().getName() + "\n");
-        metadataBuilder.append("\tNumber of moves: " + environment.getMoves().length + "\n");
-        metadataBuilder.append("\tNumber of states: " + environment.getNumStates() + "\n");
-        metadataBuilder.append("\n");
-        //information about agent provider
-        for(int i=0; i < agentProviders.length; i++){
-            metadataBuilder.append("Agent provider " + i + " type: " + agentProviders[i].getClass().getName() + "\n");
-            IAgent agent= agentProviders[i].getAgent();
-            metadataBuilder.append("Example of possible agent:" + "\n");
-            metadataBuilder.append("\tType: " + agent.getClass().getName() + "\n");
-            metadataBuilder.append("\tExtra Data:\n\t\t" + agent + "\n");
-            metadataBuilder.append("\n");
+        metadataBuilder.append("== ENVIRONMENTS ==\n");
+        for (IEnvironmentDescriptionProvider environmentDescriptionProvider : this.environmentDescriptionProviders) {
+            metadataBuilder.append("Environment provider type: " + environmentDescriptionProvider.getClass().getName() + "\n");
+            metadataBuilder.append("With Alias: " + environmentDescriptionProvider.getAlias() + "\n");
         }
-        NamedOutput.getInstance().write("metaData", metadataBuilder.toString());
+        metadataBuilder.append("\n");
+        metadataBuilder.append("== AGENTS ==\n");
+        for (IAgentProvider agentProvider : this.agentProviders) {
+            metadataBuilder.append("Agent provider type: " + agentProvider.getClass().getName() + "\n");
+            metadataBuilder.append("With Alias: " + agentProvider.getAlias() + "\n");
+        }
+        NamedOutput.getInstance().write("metadata", metadataBuilder.toString());
     }
     //endregion
 }

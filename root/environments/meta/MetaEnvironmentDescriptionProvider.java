@@ -24,5 +24,10 @@ public class MetaEnvironmentDescriptionProvider implements IEnvironmentDescripti
     public IEnvironmentDescription getEnvironmentDescription() {
         return new MetaEnvironmentDescription(this.environmentDescriptionProvider, this.config);
     }
+
+    @Override
+    public String getAlias() {
+        return "MetaEnvironmentDescription{" + this.environmentDescriptionProvider.getAlias() + "}";
+    }
     //endregion
 }

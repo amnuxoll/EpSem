@@ -42,5 +42,10 @@ public class FSMDescriptionProvider implements IEnvironmentDescriptionProvider {
         FSMTransitionTable transitionTable = this.transitionTableBuilder.getTransitionTable();
         return new FSMDescription(transitionTable, this.sensorsToInclude);
     }
+
+    @Override
+    public String getAlias() {
+        return "FSMDescription";
+    }
     //endregion
 }

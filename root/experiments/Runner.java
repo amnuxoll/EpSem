@@ -6,7 +6,6 @@ import agents.juno.JunoConfiguration;
 import agents.marz.MaRzAgentProvider;
 import agents.marz.nodes.SuffixNodeProvider;
 import agents.nsm.NSMAgentProvider;
-//import com.sun.corba.se.spi.orbutil.fsm.FSM;
 import environments.fsm.FSMDescription;
 import environments.fsm.FSMDescriptionProvider;
 import environments.fsm.FSMDescriptionTweakingProvider;
@@ -16,7 +15,6 @@ import framework.*;
 import utils.DirectoryUtils;
 import environments.fsm.FSMTransitionTableBuilder;
 import utils.Randomizer;
-
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -25,10 +23,12 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 
 public class Runner {
-
+    //region TestSuites
     private static TestSuite JunoFSM = new TestSuite(
             TestSuiteConfiguration.MEDIUM,
-            new FSMDescriptionProvider(new FSMTransitionTableBuilder(3, 50, new Randomizer()), EnumSet.of(FSMDescription.Sensor.EVEN_ODD)),
+            new IEnvironmentDescriptionProvider[] {
+                new FSMDescriptionProvider(new FSMTransitionTableBuilder(3, 50, new Randomizer()), EnumSet.of(FSMDescription.Sensor.EVEN_ODD))
+            },
             new IAgentProvider[] {
                     new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .7, Double.MAX_VALUE))
             }
@@ -36,7 +36,9 @@ public class Runner {
 
     private static TestSuite MarzFSM = new TestSuite(
             TestSuiteConfiguration.FULL,
-            new FSMDescriptionProvider(new FSMTransitionTableBuilder(4, 40, new Randomizer()), FSMDescription.Sensor.ALL_SENSORS),
+            new IEnvironmentDescriptionProvider[] {
+                    new FSMDescriptionProvider(new FSMTransitionTableBuilder(4, 40, new Randomizer()), FSMDescription.Sensor.ALL_SENSORS),
+            },
             new IAgentProvider[] {
                     new MaRzAgentProvider<>(new SuffixNodeProvider())
             }
@@ -44,7 +46,9 @@ public class Runner {
 
     private static TestSuite NsmVsMaRzFSM = new TestSuite(
             TestSuiteConfiguration.FULL,
-            new FSMDescriptionProvider(new FSMTransitionTableBuilder(3, 30, new Randomizer()), EnumSet.of(FSMDescription.Sensor.EVEN_ODD)),
+            new IEnvironmentDescriptionProvider[] {
+                    new FSMDescriptionProvider(new FSMTransitionTableBuilder(3, 30, new Randomizer()), EnumSet.of(FSMDescription.Sensor.EVEN_ODD)),
+            },
             new IAgentProvider[] {
                     new NSMAgentProvider(),
                     new MaRzAgentProvider<>(new SuffixNodeProvider())
@@ -53,7 +57,9 @@ public class Runner {
 
     private static TestSuite MarzLearnerFSM = new TestSuite(
             TestSuiteConfiguration.QUICK,
-            new FSMDescriptionProvider(new FSMTransitionTableBuilder(3, 30, new Randomizer()), FSMDescription.Sensor.ALL_SENSORS),
+            new IEnvironmentDescriptionProvider[] {
+                    new FSMDescriptionProvider(new FSMTransitionTableBuilder(3, 30, new Randomizer()), FSMDescription.Sensor.ALL_SENSORS),
+            },
             new IAgentProvider[] {
                     new MaRzLearnerProvider<>(new SuffixNodeProvider()),
                     //new MaRzAgentProvider<>(new SuffixNodeProvider())
@@ -62,7 +68,9 @@ public class Runner {
 
     private static TestSuite JunoVMarz3_30 = new TestSuite(
             TestSuiteConfiguration.MEDIUM,
-            new FSMDescriptionProvider(new FSMTransitionTableBuilder(3, 30, new Randomizer()), EnumSet.of(FSMDescription.Sensor.EVEN_ODD, FSMDescription.Sensor.NOISE)),
+            new IEnvironmentDescriptionProvider[] {
+                    new FSMDescriptionProvider(new FSMTransitionTableBuilder(3, 30, new Randomizer()), EnumSet.of(FSMDescription.Sensor.EVEN_ODD, FSMDescription.Sensor.NOISE)),
+            },
             new IAgentProvider[] {
                     new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, .7, Double.MAX_VALUE)),
                     new MaRzAgentProvider<>(new SuffixNodeProvider())
@@ -71,7 +79,9 @@ public class Runner {
 
     private static TestSuite JunoVJunoBail = new TestSuite(
             TestSuiteConfiguration.MEDIUM,
-            new FSMDescriptionProvider(new FSMTransitionTableBuilder(3, 30, new Randomizer()), EnumSet.of(FSMDescription.Sensor.EVEN_ODD)),
+            new IEnvironmentDescriptionProvider[] {
+                    new FSMDescriptionProvider(new FSMTransitionTableBuilder(3, 30, new Randomizer()), EnumSet.of(FSMDescription.Sensor.EVEN_ODD)),
+            },
             new IAgentProvider[] {
                     new JunoAgentProvider(new SuffixNodeProvider()),
                     new JunoAgentProvider(new SuffixNodeProvider(),
@@ -81,7 +91,9 @@ public class Runner {
 
     private static TestSuite JunoBail = new TestSuite(
             TestSuiteConfiguration.MEDIUM,
-            new FSMDescriptionProvider(new FSMTransitionTableBuilder(4, 40, new Randomizer()), EnumSet.of(FSMDescription.Sensor.EVEN_ODD)),
+            new IEnvironmentDescriptionProvider[] {
+                    new FSMDescriptionProvider(new FSMTransitionTableBuilder(4, 40, new Randomizer()), EnumSet.of(FSMDescription.Sensor.EVEN_ODD)),
+            },
             new IAgentProvider[] {
                     new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, 2, Double.MAX_VALUE))
             }
@@ -89,9 +101,11 @@ public class Runner {
 
     private static TestSuite MaRzMeta = new TestSuite(
             TestSuiteConfiguration.MEDIUM,
-            new MetaEnvironmentDescriptionProvider(
+            new IEnvironmentDescriptionProvider[] {
+                    new MetaEnvironmentDescriptionProvider(
                     new FSMDescriptionTweakingProvider(new FSMTransitionTableBuilder(3,15, new Randomizer()),FSMDescription.Sensor.NO_SENSORS), // 1 numswap
                     MetaConfiguration.DEFAULT),
+            },
             new IAgentProvider[] {
                     new MaRzAgentProvider<>(new SuffixNodeProvider())
             }
@@ -99,64 +113,54 @@ public class Runner {
 
     private static TestSuite Suite2 = new TestSuite(
             TestSuiteConfiguration.FULL,
-            new MetaEnvironmentDescriptionProvider(new FSMDescriptionProvider(new FSMTransitionTableBuilder(2, 5, new Randomizer()), EnumSet.of(FSMDescription.Sensor.EVEN_ODD)), MetaConfiguration.DEFAULT),
+            new IEnvironmentDescriptionProvider[] {
+                    new MetaEnvironmentDescriptionProvider(new FSMDescriptionProvider(new FSMTransitionTableBuilder(2, 5, new Randomizer()), EnumSet.of(FSMDescription.Sensor.EVEN_ODD)), MetaConfiguration.DEFAULT),
+            },
             new IAgentProvider[] {
                     new NSMAgentProvider()
             }
     );
 
-    public static void main(String[] args) {
-        ArrayList<TestSuite> suites = new ArrayList<>();
-        EnumSet withinAndEO = FSMDescription.Sensor.WITHIN_SENSORS;
-        withinAndEO.add(FSMDescription.Sensor.EVEN_ODD);
-        EnumSet sensorSets[] = new EnumSet[]{
-                FSMDescription.Sensor.NO_SENSORS,
-                EnumSet.of(FSMDescription.Sensor.EVEN_ODD),
-                EnumSet.of(FSMDescription.Sensor.EVEN_ODD, FSMDescription.Sensor.WITHIN_1),
-                EnumSet.of(FSMDescription.Sensor.EVEN_ODD, FSMDescription.Sensor.WITHIN_1, FSMDescription.Sensor.WITHIN_2),
-                EnumSet.of(FSMDescription.Sensor.EVEN_ODD, FSMDescription.Sensor.WITHIN_1, FSMDescription.Sensor.WITHIN_2, FSMDescription.Sensor.WITHIN_4),
-                EnumSet.of(FSMDescription.Sensor.EVEN_ODD, FSMDescription.Sensor.WITHIN_1, FSMDescription.Sensor.WITHIN_2, FSMDescription.Sensor.WITHIN_4, FSMDescription.Sensor.WITHIN_8),
-                EnumSet.of(FSMDescription.Sensor.EVEN_ODD, FSMDescription.Sensor.WITHIN_1, FSMDescription.Sensor.WITHIN_2, FSMDescription.Sensor.WITHIN_4, FSMDescription.Sensor.WITHIN_8, FSMDescription.Sensor.WITHIN_10),
-                withinAndEO
-        };
-        for(EnumSet i : sensorSets) {
-            suites.add(new TestSuite(
-                    TestSuiteConfiguration.FULL,
-                    new FSMDescriptionProvider(new FSMTransitionTableBuilder(4, 40, new Randomizer()), i),
-                    new IAgentProvider[]{
-                            new JunoAgentProvider(
-                                    new SuffixNodeProvider(),
-                                    new JunoConfiguration(true, 0.7, Double.MAX_VALUE)
-                            )
-                            //new MaRzAgentProvider<>(new SuffixNodeProvider())
-                    }
-            ));
-        }
-        //TestSuite suite = JunoFSM;
-        for(TestSuite suite : suites) {
-            //System.out.println("beginning suite "+suites.indexOf(suite));
-            try {
-                System.out.println("Beginning suite "+suites.indexOf(suite));
-                IResultWriterProvider resultWriterProvider = Runner.initializeOutput();
-                suite.run(resultWriterProvider);
+    private static TestSuite HAndPMasterSuite = new TestSuite(
+            TestSuiteConfiguration.FULL,
+            new IEnvironmentDescriptionProvider[]{
+                    new FSMDescriptionProvider(new FSMTransitionTableBuilder(4, 40, new Randomizer()), FSMDescription.Sensor.NO_SENSORS),
+                    new FSMDescriptionProvider(new FSMTransitionTableBuilder(4, 40, new Randomizer()), EnumSet.of(FSMDescription.Sensor.EVEN_ODD)),
+                    new FSMDescriptionProvider(new FSMTransitionTableBuilder(4, 40, new Randomizer()), EnumSet.of(FSMDescription.Sensor.EVEN_ODD, FSMDescription.Sensor.WITHIN_1)),
+                    new FSMDescriptionProvider(new FSMTransitionTableBuilder(4, 40, new Randomizer()), EnumSet.of(FSMDescription.Sensor.EVEN_ODD, FSMDescription.Sensor.WITHIN_1, FSMDescription.Sensor.WITHIN_2)),
+                    new FSMDescriptionProvider(new FSMTransitionTableBuilder(4, 40, new Randomizer()), EnumSet.of(FSMDescription.Sensor.EVEN_ODD, FSMDescription.Sensor.WITHIN_1, FSMDescription.Sensor.WITHIN_2, FSMDescription.Sensor.WITHIN_4)),
+                    new FSMDescriptionProvider(new FSMTransitionTableBuilder(4, 40, new Randomizer()), EnumSet.of(FSMDescription.Sensor.EVEN_ODD, FSMDescription.Sensor.WITHIN_1, FSMDescription.Sensor.WITHIN_2, FSMDescription.Sensor.WITHIN_4, FSMDescription.Sensor.WITHIN_8)),
+                    new FSMDescriptionProvider(new FSMTransitionTableBuilder(4, 40, new Randomizer()), EnumSet.of(FSMDescription.Sensor.EVEN_ODD, FSMDescription.Sensor.WITHIN_1, FSMDescription.Sensor.WITHIN_2, FSMDescription.Sensor.WITHIN_4, FSMDescription.Sensor.WITHIN_8, FSMDescription.Sensor.WITHIN_10)),
+                    new FSMDescriptionProvider(new FSMTransitionTableBuilder(4, 40, new Randomizer()), EnumSet.of(FSMDescription.Sensor.WITHIN_1,FSMDescription.Sensor.WITHIN_2,FSMDescription.Sensor.WITHIN_4,FSMDescription.Sensor.WITHIN_8,FSMDescription.Sensor.WITHIN_10,FSMDescription.Sensor.WITHIN_20, FSMDescription.Sensor.EVEN_ODD)),
+            },
+            new IAgentProvider[] {
+                    new JunoAgentProvider(new SuffixNodeProvider(), new JunoConfiguration(true, 0.7, Double.MAX_VALUE)
+        )
+        //new MaRzAgentProvider<>(new SuffixNodeProvider())
+    });
+    //endregion
 
-                NamedOutput.getInstance().closeAll();
-            }
-            catch (OutOfMemoryError mem){
-                mem.printStackTrace();
-            }
-            catch (Exception ex)
-            {
-                System.out.println("Runner failed with exception: " + ex.getMessage());
-                ex.printStackTrace();
-            }
+    //region Main
+    public static void main(String[] args) {
+        try {
+            IResultWriterProvider resultWriterProvider = Runner.initializeOutput();
+            Runner.HAndPMasterSuite.run(resultWriterProvider);
+        } catch (OutOfMemoryError mem) {
+            mem.printStackTrace();
+        } catch (Exception ex) {
+            System.out.println("Runner failed with exception: " + ex.getMessage());
+            ex.printStackTrace();
+        } finally {
+            NamedOutput.getInstance().closeAll();
         }
     }
+    //endregion
 
+    //region Private Static Methods
     private static IResultWriterProvider initializeOutput() throws IOException {
         String outputDirectory = DirectoryUtils.generateNewOutputDirectory();
         NamedOutput namedOutput = NamedOutput.getInstance();
-        namedOutput.configure("metaData", Runner.getFileOutputStream(outputDirectory, "metadata.txt"));
+        namedOutput.configure("metadata", Runner.getFileOutputStream(outputDirectory, "metadata.txt"));
 //        namedOutput.configure("agentDidAGood", Runner.getFileOutputStream(outputPath, "goodRatios.csv"));
 //        namedOutput.configure("goodDecisionBail", Runner.getFileOutputStream(outputPath, "goodDecisionBailRatio.csv"));
 //        namedOutput.configure("badDecisionBail", Runner.getFileOutputStream(outputPath, "badDecisionBailRatio.csv"));
@@ -174,5 +178,5 @@ public class Runner {
         file.createNewFile();
         return new FileOutputStream(file);
     }
-
+    //endregion
 }

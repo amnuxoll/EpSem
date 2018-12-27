@@ -12,5 +12,7 @@ public interface IEnvironmentDescriptionProvider {
      * @return The new {@link IEnvironmentDescription}.
      */
     IEnvironmentDescription getEnvironmentDescription();
+
+    String getAlias();
     //endregion
 }
