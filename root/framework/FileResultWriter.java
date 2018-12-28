@@ -12,7 +12,7 @@ import java.io.IOException;
  */
 public class FileResultWriter implements IResultWriter {
     //region Class Variables
-    private String fileName;
+    private File file;
     private FileWriter fileWriter;
     private int currentNumberOfResults = 0;
     private int maxNumberOfResults = 0;
@@ -25,22 +25,15 @@ public class FileResultWriter implements IResultWriter {
      * Create an instance of a {@link FileResultWriter} that writes to the given file path.
      * @param outputFile The path to an output file which will receive the results.
      */
-    public FileResultWriter(String agent, String outputFile) throws IOException {
+    public FileResultWriter(String agent, File outputFile) throws IOException {
         if (agent == null)
             throw new IllegalArgumentException("agent cannot be null");
         if (agent == "")
             throw new IllegalArgumentException("agent cannot be empty");
         if (outputFile == null)
             throw new IllegalArgumentException("outputFile cannot be null");
-        if (outputFile == "")
-            throw new IllegalArgumentException("outputFile cannot be empty");
         this.agent = agent;
-        this.fileName = outputFile;
-        File file = new File(outputFile);
-        File parentFile = file.getParentFile();
-        if (parentFile != null)
-            parentFile.mkdirs();
-        file.createNewFile();
+        this.file = outputFile;
         this.fileWriter = new FileWriter(file);
     }
     //endregion
@@ -51,7 +44,7 @@ public class FileResultWriter implements IResultWriter {
      * @return The path of the output file.
      */
     public String getFileName() {
-        return this.fileName;
+        return this.file.getAbsolutePath();
     }
     //endregion
 
@@ -106,6 +99,12 @@ public class FileResultWriter implements IResultWriter {
             this.fileWriter.write("=average(" + leftColumn + row + ":" + rightColumn + row + "),");
         }
         this.fileWriter.write(",,,");
+        this.fileWriter.close();
+    }
+    //endregion
+
+    //region Public Methods
+    public void closeFile() throws IOException {
         this.fileWriter.close();
     }
     //endregion

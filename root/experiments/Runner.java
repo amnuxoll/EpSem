@@ -155,7 +155,7 @@ public class Runner {
     //region Main
     public static void main(String[] args) {
         try {
-            String outputDirectory = DirectoryUtils.generateNewOutputDirectory();
+            File outputDirectory = DirectoryUtils.generateNewOutputDirectory();
             Runner.initializeOutput(outputDirectory);
             Runner.TempExperiment.run(new FileResultWriterProvider(outputDirectory));
         } catch (OutOfMemoryError mem) {
@@ -170,24 +170,9 @@ public class Runner {
     //endregion
 
     //region Private Static Methods
-    private static void initializeOutput(String outputDirectory) throws IOException {
+    private static void initializeOutput(File outputDirectory) throws IOException {
         NamedOutput namedOutput = NamedOutput.getInstance();
-        namedOutput.configure("metadata", Runner.getFileOutputStream(outputDirectory, "metadata.txt"));
-//        namedOutput.configure("agentDidAGood", Runner.getFileOutputStream(outputPath, "goodRatios.csv"));
-//        namedOutput.configure("goodDecisionBail", Runner.getFileOutputStream(outputPath, "goodDecisionBailRatio.csv"));
-//        namedOutput.configure("badDecisionBail", Runner.getFileOutputStream(outputPath, "badDecisionBailRatio.csv"));
-//        namedOutput.configure("properBails", Runner.getFileOutputStream(outputPath, "properBailRatio.csv"));
-//        namedOutput.configure("junoRatios", Runner.getFileOutputStream(outputPath, "junoRatios.csv"));
-    }
-
-    private static FileOutputStream getFileOutputStream(String directory, String filename) throws IOException {
-        String path =  Paths.get(directory, filename).toString();
-        File file= new File(path);
-        File parentFile = file.getParentFile();
-        if (parentFile != null)
-            parentFile.mkdirs();
-        file.createNewFile();
-        return new FileOutputStream(file);
+        namedOutput.configure("metadata", new FileOutputStream(new File(outputDirectory, "metadata.txt")));
     }
     //endregion
 }

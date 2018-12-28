@@ -8,14 +8,19 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 
+/**
+ *
+ * @author Zachary Paul Faltersack
+ * @version 0.95
+ */
 public class Discriminator {
-
+    //region Class Variables
     private String[] sensors;
-
     private HashMap<Move, Match> matchingMaps = new HashMap<>();
+    //endregion
 
-    public void add(SensorData sensor, Move move)
-    {
+    //region Public Methods
+    public void add(SensorData sensor, Move move) {
         if (this.sensors == null)
             this.sensors = sensor.getSensorNames().toArray(new String[0]);
         if (this.matchingMaps.containsKey(move))
@@ -24,8 +29,7 @@ public class Discriminator {
             this.matchingMaps.put(move, new Match(sensor));
     }
 
-    public boolean match(SensorData sensor1, SensorData sensor2)
-    {
+    public boolean match(SensorData sensor1, SensorData sensor2) {
         for (String sensorName : this.sensors)
         {
             if (this.matters(sensorName) && !sensor1.getSensor(sensorName).equals(sensor2.getSensor(sensorName)))
@@ -34,8 +38,7 @@ public class Discriminator {
         return true;
     }
 
-    private boolean matters(String sensorName)
-    {
+    private boolean matters(String sensorName) {
         for (Match match : this.matchingMaps.values())
         {
             if (match.isConsistent(sensorName) == false)
@@ -43,10 +46,11 @@ public class Discriminator {
         }
         return true;
     }
+    //endregion
 
+    //region Object Overrides
     @Override
-    public String toString()
-    {
+    public String toString() {
         String me = "";
         for (Map.Entry entry : this.matchingMaps.entrySet())
         {
@@ -54,17 +58,18 @@ public class Discriminator {
         }
         return me;
     }
+    //endregion
 
-    private class Match
-    {
+    //region Nested Classes
+    private class Match {
+        //region Class Variables
         private double tolerance = 0.25;
-
         private HashMap<String, Consistency> consistencyMapping;
-
         private SensorData sensorData;
+        //endregion
 
-        public Match(SensorData sensorData)
-        {
+        //region Constructors
+        public Match(SensorData sensorData) {
             this.sensorData = sensorData;
             this.consistencyMapping = new HashMap<>();
             for (String sensor : this.sensorData.getSensorNames())
@@ -74,9 +79,10 @@ public class Discriminator {
                 this.consistencyMapping.put(sensor, consistency);
             }
         }
+        //endregion
 
-        public void update(SensorData toMatch)
-        {
+        //region Public Methods
+        public void update(SensorData toMatch) {
             for (String sensor : toMatch.getSensorNames())
             {
                 if (this.consistencyMapping.containsKey(sensor))
@@ -93,14 +99,14 @@ public class Discriminator {
             }
         }
 
-        public boolean isConsistent(String sensorName)
-        {
+        public boolean isConsistent(String sensorName) {
             return this.consistencyMapping.get(sensorName).calculate() < this.tolerance;
         }
+        //endregion
 
+        //region Object Overrides
         @Override
-        public String toString()
-        {
+        public String toString() {
             String me = "";
             for (Map.Entry<String, Consistency> entry : this.consistencyMapping.entrySet())
             {
@@ -108,16 +114,23 @@ public class Discriminator {
             }
             return me;
         }
+        //endregion
 
-        private class Consistency
-        {
+        //region Nested Classes
+        private class Consistency {
+            //region Class Variables
             public HashSet<Object> distinctValues = new HashSet<>();
             public int total = 1;
+            //endregion
 
+            //region Public Methods
             public double calculate()
             {
                 return (double)this.distinctValues.size() / this.total;
             }
+            //endregion
         }
+        //endregion
     }
+    //endregion
 }

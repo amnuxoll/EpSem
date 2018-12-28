@@ -1,6 +1,8 @@
 package framework;
 
 import utils.DirectoryUtils;
+
+import java.io.File;
 import java.nio.file.Paths;
 
 /**
@@ -10,14 +12,14 @@ import java.nio.file.Paths;
  */
 public class FileResultWriterProvider implements IResultWriterProvider {
     //region Class Variables
-    private String timestampDirectory;
+    private File timestampDirectory;
     //endregion
 
     //region Constructors
     /**
      * Create an instance of a {@link FileResultWriterProvider}.
      */
-    public FileResultWriterProvider(String directory) {
+    public FileResultWriterProvider(File directory) {
         this.timestampDirectory = directory;
     }
     //endregion
@@ -39,7 +41,7 @@ public class FileResultWriterProvider implements IResultWriterProvider {
             throw new IllegalArgumentException("file cannot be null");
         if (file == "")
             throw new IllegalArgumentException("file cannot be empty");
-        return new FileResultWriter(agent, Paths.get(this.timestampDirectory,  file + "." + DirectoryUtils.getTimestamp() + ".csv").toString());
+        return new FileResultWriter(agent, new File(this.timestampDirectory,  file + "." + DirectoryUtils.getTimestamp() + ".csv"));
     }
     //endregion
 }

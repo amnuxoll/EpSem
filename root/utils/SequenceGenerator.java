@@ -13,9 +13,12 @@ import java.util.*;
  * @version 0.95
  */
 public class SequenceGenerator {
+    //region Class Variables
     private Move[] moves;
     private HashMap<Move, Integer> moveIndex = new HashMap<>();
+    //endregion
 
+    //region Constructors
     /**
      * Create an instance of a SequenceGenerator based on the given moves.
      * @param moves The Move[] to build sequences from.
@@ -28,7 +31,9 @@ public class SequenceGenerator {
             this.moveIndex.put(this.moves[i], i);
         }
     }
+    //endregion
 
+    //region Public Methods
     /**
      * Gets the permutation at the given index.
      * @param index The index to retrieve the permutation for.
@@ -76,4 +81,5 @@ public class SequenceGenerator {
         }
         return (long)total;
     }
+    //endregion
 }
