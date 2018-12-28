@@ -1,6 +1,8 @@
 package agents.nsm;
 
 import framework.*;
+import utils.EpisodicMemory;
+
 import java.util.*;
 
 /**
@@ -35,11 +37,9 @@ public class NSMAgent implements IAgent {
     //region Class Variables
     protected HashMap<Move, NHood> nhoods;
     protected double randChance = INIT_RAND_CHANCE;  //how frequently the agent make a random move
-    protected ArrayList<QEpisode> episodicMemory;
+    protected EpisodicMemory<QEpisode> episodicMemory;
     protected int Successes = 0;
     private Move[] moves;
-    //Used to print steps to success for each goal at the console for teh HOO-maans
-    int lastSuccess = 0;
     //endregion
 
     //region Constructors
@@ -55,16 +55,14 @@ public class NSMAgent implements IAgent {
     public void initialize(Move[] moves, IIntrospector introspector) {
         this.moves = moves;
         informationColumns = 2;
-
         nhoods = new HashMap<>();
-        episodicMemory = new ArrayList<>();
-        episodicMemory.clear();
+        episodicMemory = new EpisodicMemory<>();
     }
 
     @Override
     public Move getNextMove(SensorData sensorData) {
-        if (episodicMemory.size() > 0) {
-            QEpisode episode = episodicMemory.get(episodicMemory.size() - 1);
+        if (episodicMemory.any()) {
+            QEpisode episode = episodicMemory.current();
             episode.setSensorData(sensorData);
 
             if (sensorData.isGoal()) {
@@ -73,11 +71,6 @@ public class NSMAgent implements IAgent {
                 if (randChance > MIN_RAND_CHANCE) {
                     randChance *= RAND_DECREASE;
                 }
-
-                //Inform the user of steps that were required
-                //System.out.print(episodicMemory.size() - lastSuccess);
-                //System.out.print(",");
-                lastSuccess = episodicMemory.size();
             } else {
                 episode.reward = REWARD_FAILURE;
             }
@@ -136,14 +129,14 @@ public class NSMAgent implements IAgent {
             episodicMemory.add(new QEpisode(move));
 
             //find the kNN
-            for(int i = 0; i <= episodicMemory.size() - 2; ++i) {
+            for(int i = 0; i <= episodicMemory.currentIndex() - 1; ++i) {
                 int matchLen = matchedMemoryStringLength(i);
                 if ((matchLen > 0) && ((nHood.shortest <= matchLen) || (nHood.nbors.size() < nHood.K_NEAREST))) {
                     nHood.addNBor(new NBor(i, matchLen, this.episodicMemory.get(i)));
                 }
             }//for
 
-            episodicMemory.remove(episodicMemory.size() - 1);
+            episodicMemory.trim(1);
         }//for
     }//populateNHoods
 
@@ -159,7 +152,7 @@ public class NSMAgent implements IAgent {
      */
     private int matchedMemoryStringLength(int endOfStringIndex) {
         int length = 0;
-        int indexOfMatchingAction = episodicMemory.size() - 1;
+        int indexOfMatchingAction = episodicMemory.currentIndex();
         if (!episodicMemory.get(indexOfMatchingAction).getMove().equals(episodicMemory.get(endOfStringIndex).getMove()))
             return 0;
         endOfStringIndex--;
@@ -211,7 +204,7 @@ public class NSMAgent implements IAgent {
             //Update all the root's predecessors that participated in the match
             for(int j = 1; j < nbor.len; ++j)
             {
-                QEpisode prevEp = episodicMemory.get(episodicMemory.size() - j);
+                QEpisode prevEp = episodicMemory.getFromOffset(j);
                 prevEp.updateQValue(prevUtility);
                 prevUtility = prevEp.qValue;
             }

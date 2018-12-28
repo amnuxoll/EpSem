@@ -9,7 +9,7 @@ import java.util.Collections;
  *
  * is a public container class for defining a "neighborhood" in episodic
  * memory.  Specifically this a set of k sequences that have the longest
- * match to the current sequene ending with the last episode (which
+ * match to the current sequene ending with the current episode (which
  * represents the present moment) presuming that a specific action will be
  * taken next.
  */

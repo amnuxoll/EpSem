@@ -4,6 +4,8 @@ import agents.marz.ISuffixNodeBaseProvider;
 import agents.marz.MaRzAgent;
 import framework.*;
 import agents.juno.WeightTable.ScoredIndex;
+import utils.EpisodeUtils;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -73,7 +75,7 @@ public class JunoAgent extends MaRzAgent {
 
         //if we haven't hit a goal yet || if we haven't done enough marz goals || if we haven't done a 'window size'
         // of moves yet, go with marz
-        if(this.lastGoalIndex <= 0 || goals < marzGoals || lastGoalIndex >= episodicMemory.size()-weightTable.size()){
+        if(this.lastGoalIndex <= 0 || goals < marzGoals || lastGoalIndex >= episodicMemory.length() - weightTable.size()){
             marzCount++;
             this.tableSizeOnMatch= -1;
             lastMatch= null;
@@ -99,7 +101,7 @@ public class JunoAgent extends MaRzAgent {
             //if were going with juno's suggestion, we gotta tell marz
 
             super.setActiveNode(super.suffixTree.findBestMatch(junoSuggestion));
-            this.lastSequenceIndex= episodicMemory.size()-1;
+            this.lastSequenceIndex= episodicMemory.currentIndex();
             this.lastMatch= bestIndexToTry;
             this.tableSizeOnMatch= weightTable.size();
 
@@ -118,7 +120,7 @@ public class JunoAgent extends MaRzAgent {
         goals++;
         super.markSuccess();
         //we pass in the index at which we started the sequence that brought us to the goal *here* vvv
-        weightTable.updateOnGoal(episodicMemory, episodicMemory.size()-currentSequence.getCurrentIndex()-1);
+        weightTable.updateOnGoal(episodicMemory, episodicMemory.currentIndex() - currentSequence.getCurrentIndex());
 
         //collect data to determine how mature our wight table is
         double averageEntry= weightTable.averageEntry();
@@ -168,7 +170,7 @@ public class JunoAgent extends MaRzAgent {
         if(currentSequence.getCurrentIndex() + 1 >= weightTable.size()) {
             try {
                 double matchScore = weightTable.calculateMatchScore(episodicMemory,
-                        episodicMemory.size()-1,
+                        episodicMemory.currentIndex(),
                         lastMatch.index + currentSequence.getCurrentIndex()+1);
 
                 //if our match is less than our confidence
@@ -224,12 +226,12 @@ public class JunoAgent extends MaRzAgent {
     private void printInfo(ScoredIndex indexToTry){
         NamedOutput namedOutput = NamedOutput.getInstance();
         namedOutput.write("tableInfo", episodesToString(indexToTry.index, weightTable.size()));
-        namedOutput.write("tableInfo", episodesToString(episodicMemory.size()-1, weightTable.size()));
+        namedOutput.write("tableInfo", episodesToString(episodicMemory.currentIndex(), weightTable.size()));
         namedOutput.write("tableInfo", weightTable.toString(false));
     }
 
     /**
-     * print episodes ending at index, print count number of them
+     * print episodes ending at index, print length number of them
      * @param index the index of the first episode to convert to string
      * @param count the number of episdoes to include
      */
@@ -278,15 +280,14 @@ public class JunoAgent extends MaRzAgent {
      */
     private Sequence sequenceToGoal(int startIndex){
         int index= startIndex;
-        while(!((Episode)episodicMemory.get(index)).getSensorData().isGoal()){
-            if(index == episodicMemory.size()-1){
+        while(!episodicMemory.get(index).getSensorData().isGoal()){
+            if(index == episodicMemory.currentIndex()){
                 return null;
             }
-
             index++;
         }
-
-        return new Sequence(episodicMemory,startIndex+1,index+1);
+        Move[] moves = EpisodeUtils.selectMoves(episodicMemory.subset(startIndex + 1, index + 1));
+        return new Sequence(moves);
     }
 
     /**

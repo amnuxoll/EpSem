@@ -29,26 +29,6 @@ public class Sequence implements Comparable<Sequence> {
             throw new IllegalArgumentException("moves cannot be null");
         this.moves = moves;
     }
-
-    /**
-     * Create an instance of sequence representing the sequence
-     * that a list of episodes followed
-     * @param episodes the list of episodes
-     * @param start the inclusive index to start the sequence
-     * @param end the exclusive index to end the sequence
-     */
-    public Sequence(List<Episode> episodes, int start, int end) {
-        if(episodes == null) throw new IllegalArgumentException("Can't have null episodes");
-        if(end > episodes.size()) throw new IllegalArgumentException("Can't go past the end of your memory.");
-        if(start < 0) throw new IllegalArgumentException("Can't start before the beginning of your memory.");
-        if(start > end) throw new IllegalArgumentException("Can't start after the end.");
-
-        this.moves= new Move[end-start];
-
-        for(int i=start; i<end; i++){
-            moves[i-start]= episodes.get(i).getMove();
-        }
-    }
     //endregion
 
     //region Public Methods

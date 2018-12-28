@@ -2,6 +2,8 @@ package agents.marz;
 
 import framework.*;
 import framework.Sequence;
+import utils.EpisodeUtils;
+import utils.EpisodicMemory;
 import utils.SequenceGenerator;
 import java.util.*;
 
@@ -26,7 +28,7 @@ public class MaRzAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> implemen
 	//region Class Variables
 	protected Sequence currentSequence = null;
 	protected int lastGoalIndex = 0;
-	protected ArrayList<Episode> episodicMemory = new ArrayList<>();
+	protected EpisodicMemory<Episode> episodicMemory = new EpisodicMemory<>();
 	protected SuffixTree<TSuffixNode> suffixTree;
 
 	/** this is the node we're currently using to search with */
@@ -34,12 +36,12 @@ public class MaRzAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> implemen
 
 	/**
 	 * each permutation has a number associated with it. This is used to track
-	 * the last permutation the agent tried.
+	 * the current permutation the agent tried.
 	 */
 	private long lastPermutationIndex = 0;
 
 	/**
-	 * the last sequence that was successful (used for reporting and not
+	 * the current sequence that was successful (used for reporting and not
 	 * required for the algorithm)
 	 */
 	private Sequence lastSuccessfulSequence = null;
@@ -84,13 +86,13 @@ public class MaRzAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> implemen
 	/**
 	 * Gets a subsequent move based on the provided sensorData.
 	 *
-	 * @param sensorData The {@link SensorData} from the last move.
+	 * @param sensorData The {@link SensorData} from the current move.
 	 * @return the next Move to try.
 	 */
 	@Override
 	public Move getNextMove(SensorData sensorData) {
-		if (episodicMemory.size() > 0)
-			episodicMemory.get(episodicMemory.size() - 1).setSensorData(sensorData);
+		if (episodicMemory.any())
+			episodicMemory.current().setSensorData(sensorData);
 		if (sensorData == null) {
 			// Very beginning of time so we need to select our very first sequence
 			this.setCurrentSequence(this.nextPermutation());
@@ -160,10 +162,10 @@ public class MaRzAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> implemen
 	}
 
 	protected void markFailure() {
-		if (activeNode == null) {
+		if (this.activeNode == null) {
 			return;
 		}
-		this.activeNode.addFailIndex(this.episodicMemory.size() - this.activeNode.getSuffix().getLength());
+		this.activeNode.addFailIndex(this.episodicMemory.length() - this.activeNode.getSuffix().getLength());
 		if (this.activeNode.canSplit() && this.suffixTree.splitSuffix(this.activeNode.getSuffix())) {
 			this.permutationQueues.remove(this.activeNode);
 		}// if
@@ -174,21 +176,21 @@ public class MaRzAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> implemen
 
 		if (this.currentSequence.hasNext()) {
 			// Was partial match so find the best node to update
-			Sequence goalSequence = this.sequenceSinceLastGoal();
+			Move[] moves = EpisodeUtils.selectMoves(this.episodicMemory.subset(this.lastGoalIndex + 1));
+			Sequence goalSequence = new Sequence(moves);
 			TSuffixNode node = this.suffixTree.findBestMatch(goalSequence);
 			// This will happen if we find the goal in fewer moves than a suffix that would exist in the fringe of our tree.
 			if (node != null) {
-				int index = this.episodicMemory.size() - node.getSuffix().getLength();
-				node.addSuccessIndex(index);
+				node.addSuccessIndex(this.episodicMemory.length() - node.getSuffix().getLength());
 			}
 		}
 		//we hit the goal at the end of current sequence
-		else if(activeNode != null){
-			this.activeNode.addSuccessIndex(this.episodicMemory.size() - this.activeNode.getSuffix().getLength());
+		else if (this.activeNode != null) {
+			this.activeNode.addSuccessIndex(this.episodicMemory.length() - this.activeNode.getSuffix().getLength());
 			this.activeNode.setFoundGoal();
 		}
 
-		this.lastGoalIndex = this.episodicMemory.size() - 1;
+		this.lastGoalIndex = this.episodicMemory.currentIndex();
 	}
 
 	protected Sequence selectNextSequence() {
@@ -249,14 +251,6 @@ public class MaRzAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> implemen
 		this.currentSequenceIsGood = this.introspector.validateSequence(this.currentSequence);
 		this.decisionsMade++;
 		this.decisionsMadeSinceGoal++;
-	}
-
-	private Sequence sequenceSinceLastGoal() {
-		List<Move> moves = new ArrayList<>();
-		for (int i = this.lastGoalIndex + 1; i < this.episodicMemory.size(); i++) {
-			moves.add(this.episodicMemory.get(i).getMove());
-		}
-		return new Sequence(moves.toArray(new Move[0]));
 	}
 	//endregion
 }// MaRzAgent

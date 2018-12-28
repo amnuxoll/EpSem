@@ -3,7 +3,6 @@ package agents.discr;
 import agents.marz.ISuffixNodeBaseProvider;
 import agents.marz.MaRzAgent;
 import agents.marz.SuffixNodeBase;
-import framework.Episode;
 import framework.Move;
 import utils.Discriminator;
 import framework.Sequence;
@@ -45,12 +44,12 @@ public class MaRzLearner<TSuffixNode extends SuffixNodeBase<TSuffixNode>> extend
     protected void markSuccess() {
         // We'll get inconsistent data if we allow this case through due to the fact that a goal sensor triggers a wormhole event.
         // This is a definite weakness of the algorithm right now
-        if (!this.episodicMemory.get(this.episodicMemory.size() - 2).getSensorData().isGoal()) {
-            this.discriminator.add(this.episodicMemory.get(this.episodicMemory.size() - 2).getSensorData(), this.episodicMemory.get(this.episodicMemory.size() - 1).getMove());
+        if (!this.episodicMemory.getFromOffset(2).getSensorData().isGoal()) {
+            this.discriminator.add(this.episodicMemory.getFromOffset(2).getSensorData(), this.episodicMemory.current().getMove());
             System.out.println(this.discriminator);
         }
-        this.goalIndices.add(this.episodicMemory.size() - 1);
-        if (!this.goalMoves.contains(this.episodicMemory.get(this.episodicMemory.size() - 1).getMove()))
+        this.goalIndices.add(this.episodicMemory.currentIndex());
+        if (!this.goalMoves.contains(this.episodicMemory.current().getMove()))
             this.generateGoalSemsodes();
         if (this.goalSequence != null)
             System.out.println("My sequence worked.");
@@ -105,12 +104,8 @@ public class MaRzLearner<TSuffixNode extends SuffixNodeBase<TSuffixNode>> extend
             Move goalMove = this.episodicMemory.get(goalIndex).getMove();
             if (!goalMoves.contains(goalMove))
             {
-                ArrayList<Episode> episodes = new ArrayList<>();
-                for (int i = goalIndex - learnerWindow; i < goalIndex; i++)
-                {
-                    episodes.add(this.episodicMemory.get(i));
-                }
-                this.goalSemsodes.put(new Semsode(episodes.toArray(new Episode[0])), goalMove);
+                Semsode semsode = new Semsode(this.episodicMemory.subset(goalIndex - learnerWindow, goalIndex));
+                this.goalSemsodes.put(semsode, goalMove);
                 goalMoves.add(goalMove);
             }
         }

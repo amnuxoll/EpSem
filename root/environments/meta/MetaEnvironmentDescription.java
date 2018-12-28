@@ -10,7 +10,7 @@ public class MetaEnvironmentDescription implements IEnvironmentDescription {
     private IEnvironmentDescription currDescription;
     //how many transitions the agent took to reach the goal
     private LinkedList<Integer> successQueue= new LinkedList<>();
-    //number of moves since last goal
+    //number of moves since current goal
     private int transitionCounter= 0;
     private int numGoals= 0;
     private MetaConfiguration config;
@@ -101,7 +101,7 @@ public class MetaEnvironmentDescription implements IEnvironmentDescription {
     //region Public Methods
     /**
      *
-     * @return number of moves since last goal
+     * @return number of moves since current goal
      */
     public int getTransitionCounter() {
         return transitionCounter;
@@ -109,7 +109,7 @@ public class MetaEnvironmentDescription implements IEnvironmentDescription {
 
     /**
      *
-     * @return the last several number of moves it took to reach the goal
+     * @return the current several number of moves it took to reach the goal
      */
     public LinkedList<Integer> getSuccessQueue() {
         return successQueue;
@@ -118,7 +118,7 @@ public class MetaEnvironmentDescription implements IEnvironmentDescription {
 
     //region Private Methods
     /**
-     * takes the average of the last successQueueSize transition counts
+     * takes the average of the current successQueueSize transition counts
      * and update the fsm description is the target threshold is reached
      */
     private void makeNewDescription() {

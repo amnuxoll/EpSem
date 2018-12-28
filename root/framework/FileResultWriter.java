@@ -57,8 +57,8 @@ public class FileResultWriter implements IResultWriter {
 
     //region IResultWriter Members
     /**
-     * Log the number of steps taken to reach the last goal.
-     * @param result The step count to the last located goal.
+     * Log the number of steps taken to reach the current goal.
+     * @param result The step length to the current located goal.
      */
     @Override
     public void logResult(String result) throws IOException {

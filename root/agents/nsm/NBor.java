@@ -4,12 +4,12 @@ package agents.nsm;
  * class NBor
  *
  * describes a "neighbor", specifically a sequence that matches the current
- * sequence ending with the last episode (which represents the present
+ * sequence ending with the current episode (which represents the present
  * moment) presuming that a specific action will be taken next.
  */
 public class NBor implements Comparable<NBor> {
     //region Class Variables
-    public int end;  // index of the last episode of the sequence
+    public int end;  // index of the current episode of the sequence
     public int begin; // index of the first episode of the sequence
     public int len;  //length of the sequence
     private QEpisode qEpisode;

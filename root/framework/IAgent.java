@@ -17,7 +17,7 @@ public interface IAgent {
 
     /**
      * Get the next move based on the provided sensorData.
-     * @param sensorData The {@link SensorData} from the last move.
+     * @param sensorData The {@link SensorData} from the current move.
      * @return the next {@link Move} to attempt.
      * @throws Exception
      */

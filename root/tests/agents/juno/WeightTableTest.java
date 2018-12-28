@@ -4,8 +4,8 @@ import framework.Episode;
 import framework.Move;
 import framework.SensorData;
 import org.junit.jupiter.api.Test;
+import utils.EpisodicMemory;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -22,7 +22,7 @@ public class WeightTableTest {
     public void bestIndicesThrowsException(){
         WeightTable table= new WeightTable(2);
 
-        ArrayList<Episode> episodes= new ArrayList<>();
+        EpisodicMemory<Episode> episodes= new EpisodicMemory<>();
         Move[] moves= {
                 new Move("a"),
                 new Move("b"),
@@ -42,7 +42,7 @@ public class WeightTableTest {
         Move a= new Move("a");
         Move b= new Move("b");
 
-        ArrayList<Episode> episodes= new ArrayList<>();
+        EpisodicMemory<Episode> episodes= new EpisodicMemory<>();
 
         episodes.add(makeEp(b,false));
         episodes.add(makeEp(a,false)); //1: should have matchscore= 0
@@ -67,7 +67,7 @@ public class WeightTableTest {
         Move a= new Move("a");
         Move b= new Move("b");
 
-        ArrayList<Episode> episodes= new ArrayList<>();
+        EpisodicMemory<Episode> episodes= new EpisodicMemory<>();
 
         episodes.add(makeEp(b,false));
         episodes.add(makeEp(a,false)); //1: should have matchscore= 0
@@ -80,7 +80,7 @@ public class WeightTableTest {
 
         WeightTable testWeightTable = new TestWeightTable(2);
 
-        assertEquals(0.8, testWeightTable.calculateMatchScore(episodes,episodes.size()-1, 3));
+        assertEquals(0.8, testWeightTable.calculateMatchScore(episodes,episodes.currentIndex(), 3));
     }
 
     @Test
@@ -88,7 +88,7 @@ public class WeightTableTest {
         Move a= new Move("a");
         Move b= new Move("b");
 
-        ArrayList<Episode> episodes= new ArrayList<>();
+        EpisodicMemory<Episode> episodes= new EpisodicMemory<>();
 
         episodes.add(makeEp(b,false));
         episodes.add(makeEp(a,false));

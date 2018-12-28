@@ -1,7 +1,6 @@
 package utils;
 
 import framework.Episode;
-import java.util.ArrayList;
 
 /**
  *
@@ -21,12 +20,12 @@ public class Semsode {
     //endregion
 
     //region Public Methods
-    public boolean matches(ArrayList<Episode> episodicMemory, Discriminator discriminator) {
-        if (!discriminator.match(episodes[0].getSensorData(), episodicMemory.get(episodicMemory.size() - this.episodes.length).getSensorData()))
+    public boolean matches(EpisodicMemory<Episode> episodicMemory, Discriminator discriminator) {
+        if (!discriminator.match(episodes[0].getSensorData(), episodicMemory.getFromOffset(this.episodes.length).getSensorData()))
             return false;
         for (int i = 1; i < this.episodes.length; i++)
         {
-            Episode episode = episodicMemory.get(episodicMemory.size() - (this.episodes.length - i));
+            Episode episode = episodicMemory.getFromOffset(this.episodes.length - i);
             if (!episode.getMove().equals(this.episodes[i].getMove()))
                 return false;
             if (!discriminator.match(episode.getSensorData(), this.episodes[i].getSensorData()))

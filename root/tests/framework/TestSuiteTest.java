@@ -46,8 +46,8 @@ public class TestSuiteTest {
 
         assertEquals(this.testConfiguration.getNumberOfIterations(), ((TestAgentProvider)agentProviders[0]).generatedAgents);
         assertEquals(this.testConfiguration.getNumberOfIterations(), environmentDescriptionProvider.generatedEnvironmentDescriptions);
-        assertEquals(2, resultWriterProvider.generatedResultWriters.size());
-        TestResultWriter resultWriter = resultWriterProvider.generatedResultWriters.get("agent_Alias_0_steps");
+        assertEquals(1, resultWriterProvider.generatedResultWriters.size());
+        TestResultWriter resultWriter = resultWriterProvider.generatedResultWriters.get("env_EnvAlias_0_agent_AgAlias_0_steps");
         assertEquals(this.testConfiguration.getNumberOfIterations(), resultWriter.iterationCount);
         assertEquals(this.testConfiguration.getNumberOfIterations() * this.testConfiguration.getNumberOfGoals(), resultWriter.stepsLoggedCount);
         assertTrue(resultWriter.completed);
@@ -69,14 +69,14 @@ public class TestSuiteTest {
         assertEquals(this.testConfiguration.getNumberOfIterations(), ((TestAgentProvider)agentProviders[1]).generatedAgents);
         assertEquals(2 * this.testConfiguration.getNumberOfIterations(), environmentDescriptionProvider.generatedEnvironmentDescriptions);
 
-        assertEquals(4, resultWriterProvider.generatedResultWriters.size());
-        TestResultWriter resultWriter = resultWriterProvider.generatedResultWriters.get("agent_Alias_0_steps");
+        assertEquals(2, resultWriterProvider.generatedResultWriters.size());
+        TestResultWriter resultWriter = resultWriterProvider.generatedResultWriters.get("env_EnvAlias_0_agent_AgAlias_0_steps");
         assertEquals(this.testConfiguration.getNumberOfIterations(), resultWriter.iterationCount);
         assertEquals(this.testConfiguration.getNumberOfIterations() * this.testConfiguration.getNumberOfGoals(), resultWriter.stepsLoggedCount);
         assertTrue(resultWriter.completed);
         assertEquals(this.testConfiguration.getNumberOfIterations(), resultWriter.iterationCountAtcompleted);
 
-        resultWriter = resultWriterProvider.generatedResultWriters.get("agent_Alias_1_steps");
+        resultWriter = resultWriterProvider.generatedResultWriters.get("env_EnvAlias_0_agent_AgAlias_1_steps");
         assertEquals(this.testConfiguration.getNumberOfIterations(), resultWriter.iterationCount);
         assertEquals(this.testConfiguration.getNumberOfIterations() * this.testConfiguration.getNumberOfGoals(), resultWriter.stepsLoggedCount);
         assertTrue(resultWriter.completed);
@@ -95,7 +95,7 @@ public class TestSuiteTest {
 
         @Override
         public String getAlias() {
-            return "Alias";
+            return "AgAlias";
         }
     }
 
@@ -124,7 +124,7 @@ public class TestSuiteTest {
 
         @Override
         public String getAlias() {
-            return "alias";
+            return "EnvAlias";
         }
     }
 
