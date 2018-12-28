@@ -6,7 +6,7 @@ import java.util.Arrays;
 import java.util.stream.Collectors;
 
 /**
- *
+ * Provides helper methods for operating against {@link Episode}.
  * @author Zachary Paul Faltersack
  * @version 0.95
  */
