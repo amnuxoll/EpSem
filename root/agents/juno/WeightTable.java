@@ -119,10 +119,10 @@ public class WeightTable {
             Episode ep2 = episodes.get(index2 - i);
 
             //check if either of these episodes are goals
-            if(ep1.getSensorData().isGoal()){
+            if(ep1.hitGoal()){
                 throw new WindowContainsGoalException(index1-i);
             }
-            if(ep2.getSensorData().isGoal()){
+            if(ep2.hitGoal()){
                 throw new WindowContainsGoalException(index2-i);
             }
 

@@ -70,7 +70,7 @@ public class EpisodicMemory<TEpisode extends Episode> {
         // When episodes get added they do not yet have sensorData. This is added after the action has been taken
         // and there's something to introduce.
         for(int i = startIndex; i >= 0; i--) {
-            if(this.episodicMemory.get(i).getSensorData().isGoal())
+            if(this.episodicMemory.get(i).hitGoal())
                 return i;
         }
         return -1;

@@ -48,6 +48,11 @@ public class Episode {
     public SensorData getSensorData() {
         return this.sensorData;
     }
+
+    public boolean hitGoal()
+    {
+        return this.sensorData.isGoal();
+    }
     //endregion
 
     //region Object Overrides

@@ -3,6 +3,7 @@ package agents.discr;
 import agents.marz.ISuffixNodeBaseProvider;
 import agents.marz.MaRzAgent;
 import agents.marz.SuffixNodeBase;
+import framework.Episode;
 import framework.Move;
 import utils.Discriminator;
 import framework.Sequence;
@@ -44,8 +45,9 @@ public class MaRzLearner<TSuffixNode extends SuffixNodeBase<TSuffixNode>> extend
     protected void markSuccess() {
         // We'll get inconsistent data if we allow this case through due to the fact that a goal sensor triggers a wormhole event.
         // This is a definite weakness of the algorithm right now
-        if (!this.episodicMemory.getFromOffset(2).getSensorData().isGoal()) {
-            this.discriminator.add(this.episodicMemory.getFromOffset(2).getSensorData(), this.episodicMemory.current().getMove());
+        Episode episode = this.episodicMemory.getFromOffset(2);
+        if (!episode.hitGoal()) {
+            this.discriminator.add(episode.getSensorData(), this.episodicMemory.current().getMove());
             System.out.println(this.discriminator);
         }
         this.goalIndices.add(this.episodicMemory.currentIndex());

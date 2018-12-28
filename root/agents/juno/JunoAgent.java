@@ -280,7 +280,7 @@ public class JunoAgent extends MaRzAgent {
      */
     private Sequence sequenceToGoal(int startIndex){
         int index= startIndex;
-        while(!episodicMemory.get(index).getSensorData().isGoal()){
+        while(!episodicMemory.get(index).hitGoal()){
             if(index == episodicMemory.currentIndex()){
                 return null;
             }

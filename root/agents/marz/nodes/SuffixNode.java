@@ -112,7 +112,7 @@ public class SuffixNode extends SuffixNodeBase<SuffixNode> {
 
             Episode episode = this.lookupEpisode.apply(index);
             //If we've backed into the previous goal then we can't match either
-            if ((this.getSuffix().getLength() > 0) && episode.getSensorData().isGoal()) {
+            if ((this.getSuffix().getLength() > 0) && episode.hitGoal()) {
                 continue;
             }// if
 
