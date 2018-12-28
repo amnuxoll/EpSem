@@ -133,13 +133,24 @@ public class MaRzAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> implemen
 	}
 
 	@Override
-	public HashMap<String, String> getStatistics() {
-		HashMap<String, String> results = new HashMap<>();
-		results.put("agentDidAGood", this.decisionsMade > 0 ? Double.toString((double)this.goodDecisionCount/this.decisionsMade) : "");
-		results.put("goodDecisionBail", this.decisionsMade > 0 ? Double.toString((double)this.goodDecisionBailCount/this.goodDecisionCount) : "");
-		results.put("badDecisionBail", this.decisionsMade > 0 ? Double.toString((double)this.badDecisionBailCount/(this.decisionsMade-this.goodDecisionCount)) : "");
-		results.put("properBails", this.badDecisionBailCount+this.goodDecisionBailCount > 0 ? Double.toString((double)this.badDecisionBailCount/(this.badDecisionBailCount+this.goodDecisionBailCount)) : "");
-		return results;
+	public ArrayList<Datum> getData() {
+		ArrayList<Datum> data = new ArrayList<>();
+		if (this.decisionsMade > 0) {
+			data.add(new Datum("agentDidAGood", (double)this.goodDecisionCount/this.decisionsMade));
+			data.add(new Datum("goodDecisionBail", (double)this.goodDecisionBailCount/this.goodDecisionCount));
+			data.add(new Datum("badDecisionBail", (double)this.badDecisionBailCount/(this.decisionsMade-this.goodDecisionCount)));
+		} else {
+			data.add(new Datum("agentDidAGood", ""));
+			data.add(new Datum("goodDecisionBail", ""));
+			data.add(new Datum("badDecisionBail", ""));
+		}
+
+		if (this.badDecisionBailCount+this.goodDecisionBailCount > 0) {
+			data.add(new Datum("properBails", (double)this.badDecisionBailCount/(this.badDecisionBailCount+this.goodDecisionBailCount)));
+		} else {
+			data.add(new Datum("properBails", ""));
+		}
+		return data;
 	}
 
 	@Override

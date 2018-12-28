@@ -1,6 +1,6 @@
 package framework;
 
-import java.util.HashMap;
+import java.util.ArrayList;
 
 /**
  * An IAgent is an implementation of an agent in this test framework.
@@ -26,7 +26,7 @@ public interface IAgent {
 
     //region Defaulted Methods for gathering statistics
     default String[] getStatisticTypes() { return new String[0]; };
-    default HashMap<String, String> getStatistics() { return new HashMap<>(); };
+    default ArrayList<Datum> getData() { return new ArrayList<>(); };
     default void onGoalFound() { };
     default void onTestRunComplete() { };
     //endregion

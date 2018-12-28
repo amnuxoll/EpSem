@@ -1,5 +1,6 @@
 package framework;
 
+import java.util.ArrayList;
 import java.util.EventObject;
 import java.util.HashMap;
 
@@ -11,7 +12,7 @@ import java.util.HashMap;
 class GoalEvent extends EventObject {
     //region Class Variables
     private String stepCountToGoal;
-    private HashMap<String, String> agentStatistics;
+    private ArrayList<Datum> agentData;
     //endregion
 
     //region Constructors
@@ -21,10 +22,10 @@ class GoalEvent extends EventObject {
      * @param source The object on which the Event initially occurred.
      * @throws IllegalArgumentException if source is null.
      */
-    public GoalEvent(Object source, int stepCountToGoal, HashMap<String, String> agentStatistics) {
+    public GoalEvent(Object source, int stepCountToGoal, ArrayList<Datum> agentData) {
         super(source);
         this.stepCountToGoal = Integer.toString(stepCountToGoal);
-        this.agentStatistics = agentStatistics;
+        this.agentData = agentData;
     }
     //endregion
 
@@ -37,8 +38,8 @@ class GoalEvent extends EventObject {
         return this.stepCountToGoal;
     }
 
-    public HashMap<String, String> getAgentStatistics() {
-        return this.agentStatistics;
+    public ArrayList<Datum> getAgentData() {
+        return this.agentData;
     }
     //endregion
 }

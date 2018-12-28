@@ -62,11 +62,11 @@ public class JunoAgent extends MaRzAgent {
     }
 
     @Override
-    public HashMap<String, String> getStatistics()
+    public ArrayList<Datum> getData()
     {
-        HashMap<String, String> results = super.getStatistics();
-        results.put("junoRatios", Double.toString(this.getJunoRatio()));
-        return results;
+        ArrayList<Datum> data = super.getData();
+        data.add(new Datum("junoRatios", this.getJunoRatio()));
+        return data;
     }
 
     @Override
