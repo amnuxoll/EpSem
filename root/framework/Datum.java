@@ -13,16 +13,18 @@ public class Datum {
 
     //region Constructors
     public Datum(String statistic, int datum) {
-        this.statistic = statistic;
-        this.datum = Integer.toString(datum);
+        this(statistic, Integer.toString(datum));
     }
 
     public Datum(String statistic, double datum) {
-        this.statistic = statistic;
-        this.datum = Double.toString(datum);
+        this(statistic, Double.toString(datum));
     }
 
     public Datum(String statistic, String datum) {
+        if (statistic == null || statistic == "")
+            throw new IllegalArgumentException("Statistic requires a name.");
+        if (datum == null)
+            datum = "";
         if (datum.contains(","))
             throw new IllegalArgumentException("Commas will be poorly handled by the CSV result writer.");
         this.statistic = statistic;

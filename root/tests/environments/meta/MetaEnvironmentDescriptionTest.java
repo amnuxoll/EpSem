@@ -83,123 +83,9 @@ public class MetaEnvironmentDescriptionTest {
         MetaEnvironmentDescription description= new MetaEnvironmentDescription(
                 provider,MetaConfiguration.DEFAULT
         );
-
-        assertTrue(description.isGoalState(13));
-        assertFalse(description.isGoalState(10));
+        fail("come back to this");
     }
 
-    /**
-     * check that the transition counter gets reset when the goal state is hit
-     */
-    @Test
-    public void isGoalStateTransitionCounter() {
-        TestEnvironmentDescriptionProvider provider= new TestEnvironmentDescriptionProvider();
-        MetaEnvironmentDescription description= new MetaEnvironmentDescription(
-                provider,MetaConfiguration.DEFAULT
-        );
-
-        //get the right number of transition
-        for (int i=0;i<3;i++) {
-            description.transition(1,new Move("a"));
-        }
-
-        assertEquals(3,description.getTransitionCounter());
-        assertFalse(description.isGoalState(12));
-        assertEquals(3,description.getTransitionCounter());
-        assertTrue(description.isGoalState(13));
-        assertEquals(0,description.getTransitionCounter());
-    }
-
-    /**
-     * test that, only under the correct conditions, the meta description makes
-     * a new environment
-     */
-    @Test
-    public void isGoalStateNewEnvironment() {
-        TestEnvironmentDescriptionProvider provider= new TestEnvironmentDescriptionProvider();
-        MetaEnvironmentDescription description= new MetaEnvironmentDescription(
-                provider,MetaConfiguration.DEFAULT
-        );
-
-        assertEquals(1,provider.numGenerated);
-
-        assertTrue(description.isGoalState(13));
-
-        //should not have generated another description yet, because we only hit one goal
-        assertEquals(1,provider.numGenerated);
-
-        //now move it to the goal in less than DEFAULT.stepThreshold moves, DEFAULT.successQueueMaxSize times
-        //so that provider should generate another EvironmentDescription
-        for (int i=0;i<MetaConfiguration.DEFAULT.getTweakPoint();i++) {
-            assertTrue(description.isGoalState(13));
-        }
-
-        //now we should have generated another description
-        assertEquals(2,provider.numGenerated);
-
-        //we also should empty the successQueue
-        assertEquals(0,description.getSuccessQueue().size());
-    }
-
-    /**
-     * test that the meta description has the correct number of states.
-     * it should match the description which the provider provides
-     */
-    @Test
-    public void getNumStates() {
-        TestEnvironmentDescriptionProvider provider= new TestEnvironmentDescriptionProvider();
-        MetaEnvironmentDescription description= new MetaEnvironmentDescription(
-                provider,MetaConfiguration.DEFAULT
-        );
-
-        assertEquals(3,description.getNumStates());
-    }
-
-
-    /**
-     * test that the meta environment has the same functionality for applying sensors
-     * as it's current environment
-     */
-    @Test
-    public void applySensors() {
-        TestEnvironmentDescriptionProvider provider= new TestEnvironmentDescriptionProvider();
-        MetaEnvironmentDescription description= new MetaEnvironmentDescription(
-                provider,MetaConfiguration.DEFAULT
-        );
-
-        SensorData data = new SensorData(description.isGoalState(13));
-        description.applySensors(2,new Move("a"), 2, data);
-        assertTrue(data.isGoal());
-        assertTrue(data.hasSensor("sensei"));
-        assertEquals(2,data.getSensor("sensei"));
-    }
-
-    /**
-     * tests whether applySensors throws IllegalArgumentException properly
-     */
-    @Test
-    public void applysSensorsExceptions() {
-        TestEnvironmentDescriptionProvider provider= new TestEnvironmentDescriptionProvider();
-        MetaEnvironmentDescription description= new MetaEnvironmentDescription(
-                provider,MetaConfiguration.DEFAULT
-        );
-
-        Move move= new Move("a");
-        SensorData data= new SensorData(false);
-
-        assertThrows(IllegalArgumentException.class,
-                () -> description.applySensors(2, move, 2, null));
-        assertThrows(IllegalArgumentException.class,
-                () -> description.applySensors(2, null, 2, data));
-        assertThrows(IllegalArgumentException.class,
-                () -> description.applySensors(-1 ,move, 2, data));
-        assertThrows(IllegalArgumentException.class,
-                () -> description.applySensors(4, move, 2, data));
-        assertThrows(IllegalArgumentException.class,
-                () -> description.applySensors(2, move, -1, data));
-        assertThrows(IllegalArgumentException.class,
-                () -> description.applySensors(2, move, 4, data));
-    }
     /**
     *  Mock Classes
     *
@@ -221,7 +107,7 @@ public class MetaEnvironmentDescriptionTest {
 
     }
 
-    private class TestEnvironmentDescription implements  IEnvironmentDescription{
+    private class TestEnvironmentDescription implements  IEnvironmentDescription {
 
         @Override
         public Move[] getMoves() {
@@ -233,33 +119,14 @@ public class MetaEnvironmentDescriptionTest {
         }
 
         @Override
-        public int transition(int currentState, Move move) {
-            return 42;
+        public TransitionResult transition(int currentState, Move move) {
+            return null;
         }
 
         @Override
-        public boolean isGoalState(int state) {
-            return state == 13;
+        public int getRandomState() {
+            return 0;
         }
 
-        @Override
-        public int getNumGoalStates() {
-            return 1;
-        }
-
-        @Override
-        public int getNumStates() {
-            return 3;
-        }
-
-        @Override
-        public void applySensors(int lastState, Move move, int currState, SensorData sensorData) {
-            sensorData.setSensor("sensei", new Integer(2));
-        }
-
-        @Override
-        public boolean validateSequence(int state, Sequence sequence) {
-            return false;
-        }
     }
 }

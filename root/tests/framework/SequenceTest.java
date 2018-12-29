@@ -1,28 +1,22 @@
 package framework;
 
-import framework.Episode;
-import framework.Move;
-import framework.Sequence;
 import org.junit.jupiter.api.Test;
-
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class SequenceTest {
-
-    // constructor Tests
+    //region constructor Tests
     @Test
     public void constructorNullMovesThrowsException() {
         assertThrows(IllegalArgumentException.class, () -> new Sequence(null));
     }
+    //endregion
 
-    // endsWith Tests
+    //region endsWith Tests
     @Test
     public void endsWithNullSequenceThrowsException() {
         Sequence sequence = new Sequence(new Move[0]);
@@ -56,8 +50,19 @@ public class SequenceTest {
         Sequence master = new Sequence(new Move[] { new Move("a"), new Move("b"), new Move("c")});
         assertTrue(master.endsWith(toTest));
     }
+    //endregion
 
-    // getSubsequence Tests
+    //region getMoves Tests
+    @Test
+    public void getMoves()
+    {
+        Move[] moves = new Move[] { new Move("one"), new Move("two") };
+        Sequence sequence = new Sequence(moves);
+        assertSame(moves, sequence.getMoves());
+    }
+    //endregion
+
+    //region getSubsequence Tests
     @Test
     public void getSubsequenceIndexLessThanZeroThrowsException() {
         Sequence sequence = new Sequence(new Move[] { new Move("a"), new Move("b"), new Move("c")});
@@ -94,8 +99,9 @@ public class SequenceTest {
         Sequence expected = new Sequence(new Move[0]);
         assertEquals(expected, subsequence);
     }
+    //endregion
 
-    // getLength Tests
+    //region getLength Tests
     @Test
     public void getLengthGivesEmptySequenceLength() {
         Sequence sequence = new Sequence(new Move[0]);
@@ -107,8 +113,9 @@ public class SequenceTest {
         Sequence sequence = new Sequence(new Move[5]);
         assertEquals(5, sequence.getLength());
     }
+    //endregion
 
-    // buildChildSequence Tests
+    //region buildChildSequence Tests
     @Test
     public void buildChildSequenceNullMoveThrowsException() {
         Sequence sequence = new Sequence(new Move[0]);
@@ -130,8 +137,9 @@ public class SequenceTest {
         Sequence expected = new Sequence(new Move[] { new Move("c"), new Move("b"), new Move("a")});
         assertEquals(expected, childSequence);
     }
+    //endregion
 
-    // hasNext Tests
+    //region hasNext Tests
     @Test
     public void hasNextFalseForEmptySequence() {
         Sequence sequence = new Sequence(new Move[0]);
@@ -143,14 +151,14 @@ public class SequenceTest {
         Sequence sequence = new Sequence(new Move[] { new Move("a")});
         assertTrue(sequence.hasNext());
     }
+    //endregion
 
-    // next Tests
+    //region next Tests
     @Test
     public void nextNoNextItemThrowsException() {
         Sequence sequence = new Sequence(new Move[0]);
         assertThrows(RuntimeException.class, () -> sequence.next());
     }
-
 
     @Test
     public void nextReturnsNextItem() {
@@ -158,8 +166,9 @@ public class SequenceTest {
         Move move = sequence.next();
         assertEquals(new Move("a"), move);
     }
+    //endregion
 
-    // iteration Integration Tests
+    //region reset (iteration Integration) Tests
     @Test
     public void iterationIntegration() {
         Move a = new Move("a");
@@ -188,8 +197,22 @@ public class SequenceTest {
         assertEquals(c, sequence.next());
         assertFalse(sequence.hasNext());
     }
+    //endregion
 
-    // equals Tests
+    //region getCurrentIndex Tests
+    @Test
+    public void getCurrentIndex()
+    {
+
+        Move[] moves = new Move[] { new Move("one"), new Move("two") };
+        Sequence sequence = new Sequence(moves);
+        assertEquals(-1, sequence.getCurrentIndex());
+        sequence.next();
+        assertEquals(0, sequence.getCurrentIndex());
+    }
+    //endregion
+
+    //region equals Tests
     @Test
     public void equalsAreEqual() {
         Sequence sequence1 = new Sequence(new Move[] { new Move("a"), new Move("b"), new Move("c") });
@@ -222,16 +245,18 @@ public class SequenceTest {
         Sequence sequence1 = new Sequence(new Move[] { new Move("b"), new Move("c") });
         assertFalse(sequence1.equals(new Move("a")));
     }
+    //endregion
 
-    // hashcode Tests
+    //region hashcode Tests
     @Test
     public void hashCodeSameForEqualSequences() {
         Sequence sequence1 = new Sequence(new Move[] { new Move("a"), new Move("b"), new Move("c") });
         Sequence sequence2 = new Sequence(new Move[] { new Move("a"), new Move("b"), new Move("c") });
         assertEquals(sequence1.hashCode(), sequence2.hashCode());
     }
+    //endregion
 
-    // take Tests
+    //region take Tests
     @Test
     public void takeLengthLessThanZeroThrowsException() {
         Sequence sequence = new Sequence(new Move[0]);
@@ -265,11 +290,11 @@ public class SequenceTest {
         Sequence expected = new Sequence(new Move[] { new Move("a"), new Move("b") });
         assertEquals(expected, subsequence);
     }
+    //endregion
 
-    // comparable Tests
+    //region comparable Tests
     @Test
-    public void comparableSortsByLength()
-    {
+    public void comparableSortsByLength() {
         Sequence length1 = new Sequence(new Move[] { new Move("a")});
         Sequence length21 = new Sequence(new Move[] { new Move("a"), new Move("b") });
         Sequence length22 = new Sequence(new Move[] { new Move("c"), new Move("d") });
@@ -290,4 +315,5 @@ public class SequenceTest {
         expected.add(length1);
         assertArrayEquals(expected.toArray(new Sequence[0]), actual.toArray(new Sequence[0]));
     }
+    //endregion
 }

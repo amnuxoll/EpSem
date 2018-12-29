@@ -1,8 +1,9 @@
 package framework;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.Map;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
@@ -16,10 +17,15 @@ public class TestSuite implements IGoalListener {
     private IEnvironmentDescriptionProvider[] environmentDescriptionProviders;
     private IAgentProvider[] agentProviders;
     private HashMap<String, IResultWriter> resultWriters;
+    private Consumer<File> beforeRun;
     //endregion
 
     //region Constructors
     public TestSuite(TestSuiteConfiguration configuration, IEnvironmentDescriptionProvider[] environmentDescriptionProviders, IAgentProvider[] agentProviders) {
+        this(configuration, environmentDescriptionProviders, agentProviders, file -> { });
+    }
+
+    public TestSuite(TestSuiteConfiguration configuration, IEnvironmentDescriptionProvider[] environmentDescriptionProviders, IAgentProvider[] agentProviders, Consumer<File> beforeRun) {
         if (configuration == null)
             throw new IllegalArgumentException("configuration cannot be null.");
         if (environmentDescriptionProviders == null)
@@ -33,6 +39,7 @@ public class TestSuite implements IGoalListener {
         this.configuration = configuration;
         this.environmentDescriptionProviders = environmentDescriptionProviders;
         this.agentProviders = agentProviders;
+        this.beforeRun = beforeRun;
     }
     //endregion
 
@@ -45,6 +52,7 @@ public class TestSuite implements IGoalListener {
      */
     public void run(IResultWriterProvider resultWriterProvider) {
         try {
+            this.beforeRun.accept(resultWriterProvider.getOutputDirectory());
             NamedOutput namedOutput = NamedOutput.getInstance();
             namedOutput.write("framework", "Beginning test suite...\n");
             this.writeMetaData();

@@ -16,6 +16,7 @@ import utils.DirectoryUtils;
 import environments.fsm.FSMTransitionTableBuilder;
 import utils.Randomizer;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Paths;
@@ -148,6 +149,14 @@ public class Runner {
             new IAgentProvider[] {
                     new NSMAgentProvider(),
                     new MaRzAgentProvider<>(new SuffixNodeProvider())
+            },
+            file -> {
+                NamedOutput namedOutput = NamedOutput.getInstance();
+                try {
+                    namedOutput.configure("metadata", new FileOutputStream(new File(file, "metadata.txt")));
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                }
             }
     );
     //endregion
@@ -156,7 +165,6 @@ public class Runner {
     public static void main(String[] args) {
         try {
             File outputDirectory = DirectoryUtils.generateNewOutputDirectory();
-            Runner.initializeOutput(outputDirectory);
             Runner.TempExperiment.run(new FileResultWriterProvider(outputDirectory));
         } catch (OutOfMemoryError mem) {
             mem.printStackTrace();
@@ -166,13 +174,6 @@ public class Runner {
         } finally {
             NamedOutput.getInstance().closeAll();
         }
-    }
-    //endregion
-
-    //region Private Static Methods
-    private static void initializeOutput(File outputDirectory) throws IOException {
-        NamedOutput namedOutput = NamedOutput.getInstance();
-        namedOutput.configure("metadata", new FileOutputStream(new File(outputDirectory, "metadata.txt")));
     }
     //endregion
 }

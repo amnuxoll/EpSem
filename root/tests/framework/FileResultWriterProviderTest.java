@@ -4,35 +4,70 @@ import org.junit.jupiter.api.Test;
 
 import java.io.File;
 
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class FileResultWriterProviderTest {
+    //region Class Variables
     private File outputDirectory = new File("outputdirectory");
+    //endregion
 
-    // getResultWriter Tests
+    //region Constructor Tests
+    @Test
+    public void constructorNullDirectoryThrowsException() {
+        assertThrows(IllegalArgumentException.class, () -> new FileResultWriterProvider(null));
+    }
+
+    @Test
+    public void constructorFileNotADirectoryThrowsException() {
+        assertThrows(IllegalArgumentException.class, () -> new FileResultWriterProvider(new File("output.txt")));
+    }
+    //endregion
+
+    //region getResultWriter Tests
     @Test
     public void getResultWriterNullAgentThrowsException() {
-        FileResultWriterProvider resultWriterProvider = new FileResultWriterProvider(this.outputDirectory);
-        assertThrows(IllegalArgumentException.class, () -> resultWriterProvider.getResultWriter(null, "file"));
+        try {
+            this.outputDirectory.mkdirs();
+            FileResultWriterProvider resultWriterProvider = new FileResultWriterProvider(this.outputDirectory);
+            assertThrows(IllegalArgumentException.class, () -> resultWriterProvider.getResultWriter(null, "file"));
+        } finally {
+            this.outputDirectory.delete();
+        }
     }
 
     @Test
     public void getResultWriterEmptyAgentThrowsException() {
-        FileResultWriterProvider resultWriterProvider = new FileResultWriterProvider(this.outputDirectory);
-        assertThrows(IllegalArgumentException.class, () -> resultWriterProvider.getResultWriter("", "file"));
+        try {
+            this.outputDirectory.mkdirs();
+            FileResultWriterProvider resultWriterProvider = new FileResultWriterProvider(this.outputDirectory);
+            assertThrows(IllegalArgumentException.class, () -> resultWriterProvider.getResultWriter("", "file"));
+        } finally {
+            this.outputDirectory.delete();
+        }
     }
 
     @Test
     public void getResultWriterNullFileThrowsException() {
-        FileResultWriterProvider resultWriterProvider = new FileResultWriterProvider(this.outputDirectory);
-        assertThrows(IllegalArgumentException.class, () -> resultWriterProvider.getResultWriter("agent", null));
+        try {
+            this.outputDirectory.mkdirs();
+            FileResultWriterProvider resultWriterProvider = new FileResultWriterProvider(this.outputDirectory);
+            assertThrows(IllegalArgumentException.class, () -> resultWriterProvider.getResultWriter("agent", null));
+        } finally {
+            this.outputDirectory.delete();
+        }
     }
 
     @Test
     public void getResultWriterEmptyFileThrowsException() {
-        FileResultWriterProvider resultWriterProvider = new FileResultWriterProvider(this.outputDirectory);
-        assertThrows(IllegalArgumentException.class, () -> resultWriterProvider.getResultWriter("agent", ""));
+        try {
+            this.outputDirectory.mkdirs();
+            FileResultWriterProvider resultWriterProvider = new FileResultWriterProvider(this.outputDirectory);
+            assertThrows(IllegalArgumentException.class, () -> resultWriterProvider.getResultWriter("agent", ""));
+        } finally {
+            this.outputDirectory.delete();
+        }
     }
 
     @Test
@@ -43,13 +78,26 @@ public class FileResultWriterProviderTest {
             IResultWriter resultWriter = resultWriterProvider.getResultWriter("myagent", "myagent");
             assertTrue(resultWriter instanceof FileResultWriter);
             FileResultWriter fileResultWriter = (FileResultWriter) resultWriter;
-            assertTrue(fileResultWriter.getFileName().matches("^.*myagent\\.\\d+\\.csv"));
+            File file = this.outputDirectory.listFiles()[0];
+            assertTrue(file.getName().matches("^.*myagent\\.\\d+\\.csv"));
             fileResultWriter.closeFile();
+            file.delete();
         } finally {
-            for (File file : this.outputDirectory.listFiles()) {
-                file.delete();
-            }
             this.outputDirectory.delete();
         }
     }
+    //endregion
+
+    //region getOutputDirectory Tests
+    @Test
+    public void getOutputDirectory() {
+        try {
+            this.outputDirectory.mkdirs();
+            FileResultWriterProvider resultWriterProvider = new FileResultWriterProvider(this.outputDirectory);
+            assertSame(this.outputDirectory, resultWriterProvider.getOutputDirectory());
+        } finally {
+            this.outputDirectory.delete();
+        }
+    }
+    //endregion
 }

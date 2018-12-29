@@ -8,26 +8,26 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TestRunTest {
-
-    // constructor Tests
+    //region constructor Tests
     @Test
-    public void testConstructorNullAgentThrowsException() {
+    public void constructorNullAgentThrowsException() {
         assertThrows(IllegalArgumentException.class, () -> new TestRun(null, new TestEnvironmentDescription(), 1));
     }
 
     @Test
-    public void testConstructorNullEnvironmentDescriptionThrowsException() {
+    public void constructorNullEnvironmentDescriptionThrowsException() {
         assertThrows(IllegalArgumentException.class, () -> new TestRun(new TestAgent(), null, 1));
     }
 
     @Test
-    public void testConstructorNumberOfGoalsToFindLessThan1ThrowsException() {
+    public void constructorNumberOfGoalsToFindLessThan1ThrowsException() {
         assertThrows(IllegalArgumentException.class, () -> new TestRun(new TestAgent(), new TestEnvironmentDescription(), 0));
     }
+    //endregion
 
-    // execute Tests
+    //region execute Tests
     @Test
-    public void testExecuteInitializesAgentWithMoves() {
+    public void executeInitializesAgentWithMoves() {
         TestAgent agent = new TestAgent();
         TestEnvironmentDescription environmentDescription = new TestEnvironmentDescription();
         TestRun testRun = new TestRun(agent, environmentDescription, 1);
@@ -36,7 +36,7 @@ public class TestRunTest {
     }
 
     @Test
-    public void testExecuteMarshalsCallsBetweenAgentAndEnvironmentSingleGoalWithResultWriter() {
+    public void executeMarshalsCallsBetweenAgentAndEnvironmentSingleGoalWithResultWriter() {
         TestAgent agent = new TestAgent();
         TestEnvironmentDescription environment = new TestEnvironmentDescription();
         TestGoalListener goalListener = new TestGoalListener();
@@ -68,7 +68,7 @@ public class TestRunTest {
     }
 
     @Test
-    public void testExecuteMarshalsCallsBetweenAgentAndEnvironmentMultipleGoalsWithResultWriter() {
+    public void executeMarshalsCallsBetweenAgentAndEnvironmentMultipleGoalsWithResultWriter() {
         TestAgent agent = new TestAgent();
         TestEnvironmentDescription environment = new TestEnvironmentDescription();
         TestGoalListener goalListener = new TestGoalListener();
@@ -104,6 +104,7 @@ public class TestRunTest {
         assertArrayEquals(expectedEpisodicMemory, agent.episodes.toArray());
         assertArrayEquals(expectedResultWriterLogs, goalListener.logStatements.toArray());
     }
+    //endregion
 
     private class TestAgent implements IAgent {
         public Move[] moves;
@@ -128,6 +129,19 @@ public class TestRunTest {
                 this.moveIndex = 0;
             return move;
         }
+
+        public int goalCount = 0;
+        @Override
+        public void onGoalFound() {
+            this.goalCount++;
+        }
+
+        public boolean testRunComplete = false;
+        @Override
+        public void onTestRunComplete()
+        {
+            this.testRunComplete = true;
+        }
     }
 
     private  class TestEnvironmentDescription implements IEnvironmentDescription {
@@ -138,34 +152,14 @@ public class TestRunTest {
         }
 
         @Override
-        public int transition(int currentState, Move move) {
+        public TransitionResult transition(int currentState, Move move) {
             this.lastMove = move;
+            return null;
+        }
+
+        @Override
+        public int getRandomState() {
             return 0;
-        }
-
-        @Override
-        public boolean isGoalState(int state) {
-            return this.lastMove.getName() == "c";
-        }
-
-        @Override
-        public int getNumGoalStates() {
-            return 1;
-        }
-
-        @Override
-        public int getNumStates() {
-            return 3;
-        }
-
-        @Override
-        public void applySensors(int lastState, Move move, int currentState, SensorData sensorData) {
-            sensorData.setSensor(this.lastMove.getName(), this.lastMove.getName());
-        }
-
-        @Override
-        public boolean validateSequence(int state, Sequence sequence) {
-            return false;
         }
     }
 

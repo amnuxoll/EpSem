@@ -1,26 +1,27 @@
 package framework;
 
-import agents.juno.EpisodeWeights;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class EpisodeTest {
 
-    // constructor Tests
+    //region Constructor Tests
     @Test
     public void testConstructorNullMoveThrowsException() {
         assertThrows(IllegalArgumentException.class, () -> new Episode(null));
     }
+    //endregion
 
-    // getMove Tests
+    //region getMove Tests
     @Test
     public void testGetMove() {
-        Episode ep = new Episode(new Move("move"));
-        Move move = ep.getMove();
-        assertEquals("move", move.getName());
+        Move move = new Move("move");
+        Episode ep = new Episode(move);
+        assertSame(move, ep.getMove());
     }
+    //endregion
 
-    // getSensorData Tests
+    //region getSensorData Tests
     @Test
     public void testGetSensorDataNotSet() {
         Episode ep = new Episode(new Move("move"));
@@ -35,8 +36,9 @@ public class EpisodeTest {
         SensorData sensorData = ep.getSensorData();
         assertTrue(sensorData.isGoal());
     }
+    //endregion
 
-    // setSensorData Tests
+    //region setSensorData Tests
     @Test
     public void setSensorDataNullSensorDataThrowsException() {
         Episode ep = new Episode(new Move("a"));
@@ -49,8 +51,21 @@ public class EpisodeTest {
         ep.setSensorData(new SensorData(true));
         assertTrue(ep.getSensorData().isGoal());
     }
+    //endregion
 
-    // equals Tests
+    //region hitGoal Tests
+    @Test
+    public void hitGoal()
+    {
+        Episode episode = new Episode(new Move("move"));
+        episode.setSensorData(new SensorData(true));;
+        assertTrue(episode.hitGoal());
+        episode.setSensorData(new SensorData(false));;
+        assertFalse(episode.hitGoal());
+    }
+    //endregion
+
+    //region equals Tests
     @Test
     public void testEqualsAreEqualNullSensorData() {
         Episode episode1 = new Episode(new Move("move"));
@@ -98,9 +113,9 @@ public class EpisodeTest {
         Episode episode2 = new Episode(new Move("move"));
         assertNotEquals(episode1, episode2);
     }
+    //endregion
 
-    // hashCode Tests
-
+    //region hashCode Tests
     @Test
     public void testHashCodesAreEqualNullSensorData() {
         Episode episode1 = new Episode(new Move("move"));
@@ -116,4 +131,22 @@ public class EpisodeTest {
         episode2.setSensorData(new SensorData(true));
         assertEquals(episode1.hashCode(), episode2.hashCode());
     }
+    //endregion
+
+    //region toString Tests
+    @Test
+    public void toStringNullSensorData()
+    {
+        Episode episode = new Episode(new Move("move"));
+        assertEquals("move", episode.toString());
+    }
+
+    @Test
+    public void toStringWithSensorData()
+    {
+        Episode episode = new Episode(new Move("move"));
+        episode.setSensorData(new SensorData(true));
+        assertEquals("move[true]", episode.toString());
+    }
+    //endregion
 }

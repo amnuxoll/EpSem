@@ -1,14 +1,12 @@
 package framework;
 
-import java.util.Random;
-
 /**
  * An Environment will take a {@link IEnvironmentDescription} and manage an {@link IAgent} as it
  * explores while trying to find the goal.
  * @author Zachary Paul Faltersack
  * @version 0.95
  */
-class Environment {
+class Environment implements IIntrospector {
     //region Class Variables
     private IEnvironmentDescription environmentDescription;
     private int currentState;
@@ -22,20 +20,12 @@ class Environment {
     public Environment(IEnvironmentDescription environmentDescription) {
         if (environmentDescription == null)
             throw new IllegalArgumentException("environmentDescription cannot be null");
-        this.currentState = 0;
         this.environmentDescription = environmentDescription;
+        this.reset();
     }
     //endregion
 
     //region Public Methods
-    /**
-     * Get the moves allowed in this {@link Environment} instance.
-     * @return An array of {@link Move} that is valid in this {@link Environment}.
-     */
-    public Move[] getMoves() {
-        return this.environmentDescription.getMoves();
-    }
-
     /**
      * Apply a {@link Move} to this {@link Environment} instance.
      * @param move The {@link Move} to apply.
@@ -44,29 +34,32 @@ class Environment {
     public SensorData tick(Move move) {
         if (move == null)
             throw new IllegalArgumentException("move cannot be null");
-        int lastState = this.currentState;
-        this.currentState = this.environmentDescription.transition(this.currentState, move);
-        boolean hitGoal = this.environmentDescription.isGoalState(this.currentState);
-        SensorData sensorData = new SensorData(hitGoal);
-        this.environmentDescription.applySensors(lastState, move, this.currentState, sensorData);
-        return sensorData;
+        TransitionResult result = this.environmentDescription.transition(this.currentState, move);
+        this.currentState = result.getState();
+        return result.getSensorData();
     }
 
     /**
      * Resets the {@link Environment} by randomly relocating the current state.
      */
     public void reset() {
-        Random random = new Random(System.currentTimeMillis());
-        int nonGoalStates = this.environmentDescription.getNumStates() - this.environmentDescription.getNumGoalStates();
-        this.currentState = random.nextInt(nonGoalStates);
+        this.currentState = this.environmentDescription.getRandomState();
     }
+    //endregion
 
-    /**
-     * Gets the current state of the {@link IAgent}.
-     * @return The current state as defined by its index.
-     */
-    public int getCurrentState() {
-        return this.currentState;
+    //region IIntrospector Members
+    @Override
+    public boolean validateSequence(Sequence sequence) {
+        if (sequence == null)
+            throw new IllegalArgumentException("sequence cannot be null.");
+        int tempState = this.currentState;
+        for (Move move : sequence.getMoves()){
+            TransitionResult result = this.environmentDescription.transition(tempState, move);
+            if (result.getSensorData().isGoal())
+                return true;
+            tempState = result.getState();
+        }
+        return false;
     }
     //endregion
 }

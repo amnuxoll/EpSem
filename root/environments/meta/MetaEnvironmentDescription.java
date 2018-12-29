@@ -43,58 +43,15 @@ public class MetaEnvironmentDescription implements IEnvironmentDescription {
      * @return The state resulting from the move from currentState
      */
     @Override
-    public int transition(int currentState, Move move) {
-        //check for illegal arg
-        if(move == null){
-            throw new IllegalArgumentException("move cannot be null");
-        }
-        if(currentState < 0 || currentState >= currDescription.getNumStates()) {
-            throw new IllegalArgumentException("currentState out of range");
-        }
-
+    public TransitionResult transition(int currentState, Move move) {
         transitionCounter++;
-        return currDescription.transition(currentState,move);
+        // assume our internal IEnvironmentDescription is doing validation.
+        return currDescription.transition(currentState, move);
     }
 
     @Override
-    public boolean isGoalState(int state) {
-        boolean isGoal= currDescription.isGoalState(state);
-
-        if(isGoal) {
-            //makeNewDescription relies on transitionCounter, so do this first
-            numGoals++;
-            makeNewDescription();
-            transitionCounter = 0;
-        }
-
-        return isGoal;
-    }
-
-    @Override
-    public int getNumStates() {
-        return this.currDescription.getNumStates();
-    }
-
-    @Override
-    public int getNumGoalStates(){ return this.currDescription.getNumGoalStates(); }
-
-    @Override
-    public void applySensors(int lastState, Move move, int currentState, SensorData sensorData) {
-        if(sensorData == null) throw new IllegalArgumentException("sensor data cannot be null.");
-        if(move == null)
-            throw new IllegalArgumentException("move cannot be null");
-
-        if(lastState <0 || lastState >= currDescription.getNumStates())
-            throw new IllegalArgumentException("lastState number out of range.");
-        if(currentState <0 || currentState >= currDescription.getNumStates())
-            throw new IllegalArgumentException("currentState number out of range.");
-
-        currDescription.applySensors(lastState,move,currentState,sensorData);
-    }
-
-    @Override
-    public boolean validateSequence(int state, Sequence sequence) {
-        return currDescription.validateSequence(state, sequence);
+    public int getRandomState() {
+        return this.currDescription.getRandomState();
     }
     //endregion
 
@@ -104,7 +61,7 @@ public class MetaEnvironmentDescription implements IEnvironmentDescription {
      * @return number of moves since current goal
      */
     public int getTransitionCounter() {
-        return transitionCounter;
+        return this.transitionCounter;
     }
 
     /**
@@ -112,7 +69,7 @@ public class MetaEnvironmentDescription implements IEnvironmentDescription {
      * @return the current several number of moves it took to reach the goal
      */
     public LinkedList<Integer> getSuccessQueue() {
-        return successQueue;
+        return this.successQueue;
     }
     //endregion
 

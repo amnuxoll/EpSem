@@ -31,7 +31,6 @@ public class FSMDescriptionProviderTest {
         FSMDescriptionProvider descriptionProvider = new FSMDescriptionProvider(new FSMTransitionTableBuilder(1, 1, new Randomizer()), FSMDescription.Sensor.ALL_SENSORS);
         FSMDescription description = (FSMDescription)descriptionProvider.getEnvironmentDescription();
         assertEquals(1, description.getMoves().length);
-        assertEquals(1, description.getNumStates());
         assertEquals(FSMDescription.Sensor.ALL_SENSORS, description.getSensorsToInclude());
     }
 
@@ -40,7 +39,6 @@ public class FSMDescriptionProviderTest {
         FSMDescriptionProvider descriptionProvider = new FSMDescriptionProvider(new FSMTransitionTableBuilder(13, 42, new Randomizer()), EnumSet.of(FSMDescription.Sensor.EVEN_ODD));
         FSMDescription description = (FSMDescription)descriptionProvider.getEnvironmentDescription();
         assertEquals(13, description.getMoves().length);
-        assertEquals(42, description.getNumStates());
         assertEquals(EnumSet.of(FSMDescription.Sensor.EVEN_ODD), description.getSensorsToInclude());
     }
 }

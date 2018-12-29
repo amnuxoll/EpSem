@@ -85,10 +85,11 @@ public class Episode {
     }
 
     @Override
-    public String toString(){
-        String str= this.move.toString() + sensorData.toString(false);
-
-        return str;
+    public String toString() {
+        String value = this.move.toString();
+        if (this.sensorData != null)
+            value += this.sensorData.toString(false);
+        return value;
     }
     //endregion
 }

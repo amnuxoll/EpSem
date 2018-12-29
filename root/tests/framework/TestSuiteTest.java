@@ -2,6 +2,7 @@ package framework;
 
 import org.junit.jupiter.api.Test;
 
+import java.io.File;
 import java.util.HashMap;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -136,33 +137,13 @@ public class TestSuiteTest {
         }
 
         @Override
-        public int transition(int currentState, Move move) {
+        public TransitionResult transition(int currentState, Move move) {
+            return null;
+        }
+
+        @Override
+        public int getRandomState() {
             return 0;
-        }
-
-        @Override
-        public boolean isGoalState(int state) {
-            return true;
-        }
-
-        @Override
-        public int getNumGoalStates() {
-            return 1;
-        }
-
-        @Override
-        public int getNumStates() {
-            return 2;
-        }
-
-        @Override
-        public void applySensors(int lastState, Move move, int currentState, SensorData sensorData) {
-
-        }
-
-        @Override
-        public boolean validateSequence(int state, Sequence sequence) {
-            return false;
         }
     }
 
@@ -174,6 +155,11 @@ public class TestSuiteTest {
             TestResultWriter resultWriter = new TestResultWriter();
             this.generatedResultWriters.put(file, resultWriter);
             return resultWriter;
+        }
+
+        @Override
+        public File getOutputDirectory() {
+            return null;
         }
     }
 

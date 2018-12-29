@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import framework.Sequence;
 
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -24,10 +25,7 @@ public class MetaEnvironmentDescriptionProviderTest {
                         new TestEnvironmentDescriptionProvider(),MetaConfiguration.DEFAULT);
 
         IEnvironmentDescription description= provider.getEnvironmentDescription();
-
-        //check that the provedier successfully provided by checking the description's goal state
-        assertTrue(description.isGoalState(13));
-        assertFalse(description.isGoalState(12));
+        fail("come back to this");
     }
 
     /**
@@ -63,33 +61,13 @@ public class MetaEnvironmentDescriptionProviderTest {
         }
 
         @Override
-        public int transition(int currentState, Move move) {
-            return 42;
+        public TransitionResult transition(int currentState, Move move) {
+            return null;
         }
 
         @Override
-        public boolean isGoalState(int state) {
-            return state == 13;
-        }
-
-        @Override
-        public int getNumGoalStates() {
-            return 1;
-        }
-
-        @Override
-        public int getNumStates() {
-            return 3;
-        }
-
-        @Override
-        public void applySensors(int lastState, Move move, int currState, SensorData sensorData) {
-            sensorData.setSensor("sensei", new Integer(2));
-        }
-
-        @Override
-        public boolean validateSequence(int state, Sequence sequence) {
-            return false;
+        public int getRandomState() {
+            return 0;
         }
     }
 }

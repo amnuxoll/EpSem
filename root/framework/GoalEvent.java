@@ -2,7 +2,6 @@ package framework;
 
 import java.util.ArrayList;
 import java.util.EventObject;
-import java.util.HashMap;
 
 /**
  * A GoalEvent is used to indicate that a goal was located while traversing an {@link Environment}.
@@ -24,8 +23,13 @@ class GoalEvent extends EventObject {
      */
     public GoalEvent(Object source, int stepCountToGoal, ArrayList<Datum> agentData) {
         super(source);
+        if (stepCountToGoal < 1)
+            throw new IllegalArgumentException("step count must be one or greater.");
         this.stepCountToGoal = Integer.toString(stepCountToGoal);
-        this.agentData = agentData;
+        if (agentData == null)
+            this.agentData = new ArrayList<>();
+        else
+            this.agentData = agentData;
     }
     //endregion
 

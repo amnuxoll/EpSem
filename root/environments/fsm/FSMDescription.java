@@ -40,8 +40,9 @@ public class FSMDescription implements IEnvironmentDescription {
         this.transitionTable = transitionTable;
         this.sensorsToInclude = sensorsToInclude;
         this.moves = this.transitionTable.getTransitions()[0].keySet().toArray(new Move[0]);
-        this.transitionSensorTable = new HashMap[this.getNumStates()];
-        for(int i = 0; i < getNumStates(); i++) {
+        int numberOfStates = this.transitionTable.getNumberOfStates();
+        this.transitionSensorTable = new HashMap[numberOfStates];
+        for(int i = 0; i < numberOfStates; i++) {
             this.transitionSensorTable[i] = new HashMap<>(this.moves.length);
             for (Move m : getMoves()) {
                 this.transitionSensorTable[i].put(m, 0);
@@ -67,7 +68,7 @@ public class FSMDescription implements IEnvironmentDescription {
      * @return The new state.
      */
     @Override
-    public int transition(int currentState, Move move) {
+    public TransitionResult transition(int currentState, Move move) {
         if (currentState < 0)
             throw new IllegalArgumentException("currentState cannot be less than 0");
         if (currentState >= this.transitionTable.getNumberOfStates())
@@ -78,65 +79,17 @@ public class FSMDescription implements IEnvironmentDescription {
         if (!transitions.containsKey(move))
             throw new IllegalArgumentException("move is invalid for this environment");
         this.transitionSensorTable[currentState].put(move, this.transitionSensorTable[currentState].get(move)+1);
-        return transitions.get(move);
-    }
-
-    /**
-     * Determine whether or not the given state is a goal state.
-     * @param state The state to test.
-     * @return true if the state is the goal state; otherwise false.
-     */
-    @Override
-    public boolean isGoalState(int state) {
-        return this.transitionTable.isGoalState(state);
-    }
-
-    /**
-     * Get the number of states in this environment description.
-     * @return The number of states.
-     */
-    @Override
-    public int getNumStates() {
-        return this.transitionTable.getNumberOfStates();
+        int newState = transitions.get(move);
+        SensorData sensorData = new SensorData(this.transitionTable.isGoalState(newState));
+        this.applySensors(currentState, move, newState, sensorData);
+        return new TransitionResult(newState, sensorData);
     }
 
     @Override
-    public int getNumGoalStates(){
-        return 1;
-    }
-
-    /**
-     * Apply sensor data for the given state to the provided {@link SensorData}.
-     * @param lastState The state that was transitioned from.
-     * @param move The {@link Move} that was applied.
-     * @param currentState The state that was transitioned to.
-     * @param sensorData The {@link SensorData} to apply sensors to.
-     */
-    @Override
-    public void applySensors(int lastState, Move move, int currentState, SensorData sensorData) {
-        if (move == null)
-            throw new IllegalArgumentException("move cannot be null");
-        if (sensorData == null)
-            throw new IllegalArgumentException("sensorData cannot be null");
-        if (this.sensorsToInclude.contains(Sensor.EVEN_ODD))
-            this.applyEvenOddSensor(currentState, sensorData);
-        this.applyWithinNSensors(currentState, sensorData);
-        if (this.sensorsToInclude.contains(Sensor.NOISE))
-            this.applyNoiseSensor(currentState, sensorData);
-        if (this.sensorsToInclude.contains(Sensor.TRANSITION_AGE))
-            this.applyTransitionAgeSensor(lastState, move, sensorData);
-    }
-
-    @Override
-    public boolean validateSequence(int state, Sequence sequence) {
-        int currentState = state;
-        for(Move move : sequence.getMoves()){
-            currentState = this.transition(currentState, move);
-            if(this.isGoalState(currentState)){
-                return true;
-            }
-        }
-        return false;
+    public int getRandomState() {
+        Random random = new Random(System.currentTimeMillis());
+        int nonGoalStates = this.transitionTable.getNumberOfStates() - 1;
+        return random.nextInt(nonGoalStates);
     }
     //endregion
 
@@ -162,6 +115,23 @@ public class FSMDescription implements IEnvironmentDescription {
     //endregion
 
     //region Private Methods
+    /**
+     * Apply sensor data for the given state to the provided {@link SensorData}.
+     * @param lastState The state that was transitioned from.
+     * @param move The {@link Move} that was applied.
+     * @param currentState The state that was transitioned to.
+     * @param sensorData The {@link SensorData} to apply sensors to.
+     */
+    private void applySensors(int lastState, Move move, int currentState, SensorData sensorData) {
+        if (this.sensorsToInclude.contains(Sensor.EVEN_ODD))
+            this.applyEvenOddSensor(currentState, sensorData);
+        this.applyWithinNSensors(currentState, sensorData);
+        if (this.sensorsToInclude.contains(Sensor.NOISE))
+            this.applyNoiseSensor(currentState, sensorData);
+        if (this.sensorsToInclude.contains(Sensor.TRANSITION_AGE))
+            this.applyTransitionAgeSensor(lastState, move, sensorData);
+    }
+
     private void applyEvenOddSensor(int state, SensorData sensorData) {
         sensorData.setSensor(Sensor.EVEN_ODD.toString(), state % 2 == 0);
     }

@@ -38,16 +38,6 @@ public class FileResultWriter implements IResultWriter {
     }
     //endregion
 
-    //region Public Methods
-    /**
-     * Get the name of the output file for this {@link FileResultWriter} instance.
-     * @return The path of the output file.
-     */
-    public String getFileName() {
-        return this.file.getAbsolutePath();
-    }
-    //endregion
-
     //region IResultWriter Members
     /**
      * Log the number of steps taken to reach the current goal.

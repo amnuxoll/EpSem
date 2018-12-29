@@ -2,11 +2,11 @@ package framework;
 
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TestSuiteConfigurationTest {
-
-    // constructor Tests
+    //region Constructor Tests
     @Test
     public void constructorNumberOfIterationsLessThanOneThrowsException() {
         assertThrows(IllegalArgumentException.class, () -> new TestSuiteConfiguration(0, 1));
@@ -16,4 +16,23 @@ public class TestSuiteConfigurationTest {
     public void constructorNumberOfGoalsLessThanOneThrowsException() {
         assertThrows(IllegalArgumentException.class, () -> new TestSuiteConfiguration(1, 0));
     }
+    //endregion
+
+    //region getNumberOfIterations Tests
+    @Test
+    public void getNumberOfIterations()
+    {
+        TestSuiteConfiguration configuration = new TestSuiteConfiguration(13, 14);
+        assertEquals(13, configuration.getNumberOfIterations());
+    }
+    //endregion
+
+    //region getNumberOfGoals Tests
+    @Test
+    public void getNumberOfGoals()
+    {
+        TestSuiteConfiguration configuration = new TestSuiteConfiguration(13, 14);
+        assertEquals(14, configuration.getNumberOfGoals());
+    }
+    //endregion
 }

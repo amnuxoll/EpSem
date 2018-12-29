@@ -3,7 +3,6 @@ package framework;
 import utils.DirectoryUtils;
 
 import java.io.File;
-import java.nio.file.Paths;
 
 /**
  * A FileResultWriterProvider will generate {@link FileResultWriter}s bound to specific output directories.
@@ -12,7 +11,7 @@ import java.nio.file.Paths;
  */
 public class FileResultWriterProvider implements IResultWriterProvider {
     //region Class Variables
-    private File timestampDirectory;
+    private File outputDirectory;
     //endregion
 
     //region Constructors
@@ -20,7 +19,11 @@ public class FileResultWriterProvider implements IResultWriterProvider {
      * Create an instance of a {@link FileResultWriterProvider}.
      */
     public FileResultWriterProvider(File directory) {
-        this.timestampDirectory = directory;
+        if (directory == null)
+            throw new IllegalArgumentException("directory cannot be null.");
+        if (directory.isDirectory() == false)
+            throw new IllegalArgumentException("provided file is not a directory.");
+        this.outputDirectory = directory;
     }
     //endregion
 
@@ -41,7 +44,13 @@ public class FileResultWriterProvider implements IResultWriterProvider {
             throw new IllegalArgumentException("file cannot be null");
         if (file == "")
             throw new IllegalArgumentException("file cannot be empty");
-        return new FileResultWriter(agent, new File(this.timestampDirectory,  file + "." + DirectoryUtils.getTimestamp() + ".csv"));
+        return new FileResultWriter(agent, new File(this.outputDirectory,  file + "." + DirectoryUtils.getTimestamp() + ".csv"));
+    }
+
+    @Override
+    public File getOutputDirectory()
+    {
+        return this.outputDirectory;
     }
     //endregion
 }

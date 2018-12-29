@@ -12,6 +12,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class FileResultWriterTest {
 
+    //region Constructor Tests
     @Test
     public void testConstructorNullNameThrowsException() {
         assertThrows(IllegalArgumentException.class, () -> new FileResultWriter(null, new File("file")));
@@ -26,25 +27,11 @@ public class FileResultWriterTest {
     public void testConstructorNullFileThrowsException() {
         assertThrows(IllegalArgumentException.class, () -> new FileResultWriter("agent", null));
     }
+    //endregion
 
+    //region logResult Tests
     @Test
-    public void testGetFileName() throws Exception {
-        File file = new File("output.csv");
-        try {
-            FileResultWriter writer = new FileResultWriter("agent", file);
-            assertEquals(file.getAbsolutePath(), writer.getFileName());
-        }
-        finally {
-            try {
-                file.delete();
-            } catch (Exception ex) {
-
-            }
-        }
-    }
-
-    @Test
-    public void testLogStepsToGoalSingleStep()throws Exception {
+    public void logResultSingle() throws Exception {
         File file = new File("output.csv");
         try {
             FileResultWriter writer = new FileResultWriter("agent", file);
@@ -67,7 +54,7 @@ public class FileResultWriterTest {
     }
 
     @Test
-    public void testLogStepsToGoalMultipleSteps() throws Exception {
+    public void logResultMultiple() throws Exception {
         File file = new File("output.csv");
         try {
             FileResultWriter writer = new FileResultWriter("agent", file);
@@ -91,9 +78,11 @@ public class FileResultWriterTest {
             }
         }
     }
+    //endregion
 
+    //region beginNewRun Tests
     @Test
-    public void testBeginNewRunSingleRun() throws Exception {
+    public void beginNewRunSingleRun() throws Exception {
         File file = new File("output.csv");
         try {
             FileResultWriter writer = new FileResultWriter("agent", file);
@@ -118,7 +107,7 @@ public class FileResultWriterTest {
     }
 
     @Test
-    public void testBeginNewRunMultipleRuns()throws Exception {
+    public void beginNewRunMultipleRuns() throws Exception {
         File file = new File("output.csv");
         try {
             FileResultWriter writer = new FileResultWriter("agent", file);
@@ -148,9 +137,11 @@ public class FileResultWriterTest {
             }
         }
     }
+    //endregion
 
+    //region complete Tests
     @Test
-    public void testCompleteFinalizesStandardReportRun()throws Exception {
+    public void testCompleteFinalizesStandardReportRun() throws Exception {
         File file = new File("output.csv");
         try {
             FileResultWriter writer = new FileResultWriter("agent", file);
@@ -190,6 +181,7 @@ public class FileResultWriterTest {
             }
         }
     }
+    //endregion
 
     // TODO edge cases around condition where smoothing lines get added
     // TODO edge cases around news with different numbers of goals found.

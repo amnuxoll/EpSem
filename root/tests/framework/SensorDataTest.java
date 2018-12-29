@@ -1,11 +1,13 @@
 package framework;
 
 import org.junit.jupiter.api.Test;
+
+import java.util.Set;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 public class SensorDataTest {
-
-    // setSensor & getSensor Tests
+    //region setSensor & getSensor Tests
     @Test
     public void testSetSensorGetSensor() {
         SensorData sensorData = new SensorData(false);
@@ -44,8 +46,9 @@ public class SensorDataTest {
         SensorData sensorData = new SensorData(false);
         assertThrows(IllegalArgumentException.class, () -> sensorData.getSensor(""));
     }
+    //endregion
 
-    // hasSensor Argument Tests
+    //region hasSensor Argument Tests
     @Test
     public void testHasSensorTrue() {
         SensorData sensorData = new SensorData(false);
@@ -70,8 +73,9 @@ public class SensorDataTest {
         SensorData sensorData = new SensorData(false);
         assertThrows(IllegalArgumentException.class, () -> sensorData.hasSensor(""));
     }
+    //endregion
 
-    // isGoal Tests
+    //region isGoal Tests
     @Test
     public void testIsGoalFalse() {
         SensorData sensorData = new SensorData(false);
@@ -83,8 +87,31 @@ public class SensorDataTest {
         SensorData sensorData = new SensorData(true);
         assertTrue(sensorData.isGoal());
     }
+    //endregion
 
-    // equals Tests
+    //region getSensorNames Tests
+    @Test
+    public void getSensorNamesEmptySensorSet()
+    {
+        SensorData sensorData = new SensorData(true);
+        Set<String> sensorNames = sensorData.getSensorNames();
+        assertEquals(1, sensorNames.size());
+        assertTrue(sensorNames.contains("GOAL"));
+    }
+
+    @Test
+    public void getSensorNonEmptySensorSet()
+    {
+        SensorData sensorData = new SensorData(true);
+        sensorData.setSensor("additional", 13);
+        Set<String> sensorNames = sensorData.getSensorNames();
+        assertEquals(2, sensorNames.size());
+        assertTrue(sensorNames.contains("GOAL"));
+        assertTrue(sensorNames.contains("additional"));
+    }
+    //endregion
+
+    //region equals Tests
     @Test
     public void testEqualsEmptySensorDataNotGoalAreEqual() {
         SensorData sensorData1 = new SensorData(false);
@@ -146,8 +173,9 @@ public class SensorDataTest {
         sensorData2.setSensor("sensor1", 4);
         assertNotEquals(sensorData1, sensorData2);
     }
+    //endregion
 
-    // hashCode Tests
+    //region hashCode Tests
     @Test
     public void testHashCodeAllSensorsAreAccountedFor() {
         SensorData sensorData1 = new SensorData(true);
@@ -158,8 +186,9 @@ public class SensorDataTest {
         sensorData2.setSensor("sensor2", "sensor");
         assertEquals(sensorData1.hashCode(), sensorData2.hashCode());
     }
+    //endregion
 
-    // toString Tests
+    //region toString Tests
     @Test
     public void testToShortStringSingleSensorOverrideExcludesLabels() {
         SensorData sensorData = new SensorData(true);
@@ -204,4 +233,5 @@ public class SensorDataTest {
         sensorData.setSensor("c", 10.0);
         assertEquals("[GOAL:false;a:5;b:value;c:10.0]", sensorData.toString(true));
     }
+    //endregion
 }

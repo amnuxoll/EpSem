@@ -1,29 +1,23 @@
 package framework;
 
 import org.junit.jupiter.api.Test;
+import java.util.HashMap;
+import static org.junit.jupiter.api.Assertions.*;
 
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-
+/**
+ *
+ * @author Zachary Paul Faltersack
+ * @version 0.95
+ */
 public class EnvironmentTest {
-
-    // constructor Tests
+    //region Constructor Tests
     @Test
-    public void testConstructorNullTransitionDataThrowsException() {
+    public void testConstructorNullEnvironmentDescriptionThrowsException() {
         assertThrows(IllegalArgumentException.class, () -> new Environment(null));
     }
+    //endregion
 
-    // getMoves Tests
-    @Test
-    public void getMovesReturnsMoves() {
-        Environment environment = new Environment(new TestEnvironmentDescription());
-        Move[] expectedMoves = new Move[] { new Move("move1"), new Move("move2"), new Move("move3") };
-        assertArrayEquals(expectedMoves, environment.getMoves());
-    }
-
-    // tick Tests
+    //region tick Tests
     @Test
     public void tickNullMoveThrowsException() {
         Environment environment = new Environment(new TestEnvironmentDescription());
@@ -31,67 +25,79 @@ public class EnvironmentTest {
     }
 
     @Test
-    public void tickUpdatesState() {
+    public void tickMaintainsState() {
         TestEnvironmentDescription description = new TestEnvironmentDescription();
         Environment environment = new Environment(description);
-        assertEquals(0, environment.getCurrentState());
-        environment.tick(new Move("test"));
-        assertEquals(0, description.receivedState);
-        assertEquals(new Move("test"), description.receivedMove);
-        assertEquals(13, environment.getCurrentState());
+        SensorData sensorData = environment.tick(new Move("move1"));
+        assertFalse(sensorData.isGoal());
+        sensorData = environment.tick(new Move("move2"));
+        assertFalse(sensorData.isGoal());
+        sensorData = environment.tick(new Move("move3"));
+        assertTrue(sensorData.isGoal());
     }
+    //endregion
 
+    //region reset Tests
     @Test
-    public void tickSensorDataShowsGoalSuccessFalse() {
+    public void resetUpdatesCurrentState() {
         TestEnvironmentDescription description = new TestEnvironmentDescription();
         Environment environment = new Environment(description);
-        SensorData sensorData = environment.tick(new Move("test"));
-        assertEquals(13, description.receivedIsGoalState);
-        assertEquals(false, sensorData.isGoal());
-    }
-
-    @Test
-    public void tickSensorDataShowsGoalSuccess() {
-        TestEnvironmentDescription description = new TestEnvironmentDescription(true);
-        Environment environment = new Environment(description);
-        SensorData sensorData = environment.tick(new Move("test"));
-        assertEquals(13, description.receivedIsGoalState);
-        assertEquals(true, sensorData.isGoal());
-    }
-
-    @Test
-    public void tickAppliesSensorsFromDescription() {
-        TestEnvironmentDescription description = new TestEnvironmentDescription(true);
-        Environment environment = new Environment(description);
-        SensorData sensorData = environment.tick(new Move("test"));
-        assertEquals(true, description.sensorsApplied);
-        assertEquals(true, sensorData.hasSensor("sensorsApplied"));
-    }
-
-    // reset Tests
-    @Test
-    public void resetUsesEnvironmentDescriptionAndRandomizerToSetCurrentState() {
-        TestEnvironmentDescription description = new TestEnvironmentDescription();
-        Environment environment = new Environment(description);
-        int previousCurrentState = environment.getCurrentState();
+        environment.tick(new Move("move1"));
         environment.reset();
-        assertNotEquals(previousCurrentState, environment.getCurrentState());
+        // bonus move2 here should be NOP if we reset
+        SensorData sensorData = environment.tick(new Move("move2"));
+        assertFalse(sensorData.isGoal());
+        // now demonstrate the original path to goal succeeds.
+        sensorData = environment.tick(new Move("move1"));
+        assertFalse(sensorData.isGoal());
+        sensorData = environment.tick(new Move("move2"));
+        assertFalse(sensorData.isGoal());
+        sensorData = environment.tick(new Move("move3"));
+        assertTrue(sensorData.isGoal());
+    }
+    //endregion
+
+    //region validateSequence Tests
+    @Test
+    public void validateSequence() {
+        TestEnvironmentDescription description = new TestEnvironmentDescription();
+        Environment environment = new Environment(description);
+        Sequence sequence = new Sequence(description.getMoves());
+        assertTrue(environment.validateSequence(sequence));
+        assertFalse(environment.validateSequence(sequence.getSubsequence(1)));
     }
 
-    private class TestEnvironmentDescription implements IEnvironmentDescription {
-        public int receivedState = -1;
-        public Move receivedMove = null;
-        public int receivedIsGoalState = -1;
-        public boolean sensorsApplied = false;
+    @Test
+    public void validateSequenceNullSequenceThrowsException()
+    {
+        TestEnvironmentDescription description = new TestEnvironmentDescription();
+        Environment environment = new Environment(description);
+        assertThrows(IllegalArgumentException.class, () -> environment.validateSequence(null));
+    }
+    //endregion
 
-        private boolean hitGoal;
+    //region Helper Class
+    private class TestEnvironmentDescription implements IEnvironmentDescription {
+        private HashMap<Move, Integer>[] transitions;
 
         public TestEnvironmentDescription() {
-            this.hitGoal = false;
-        }
-
-        public TestEnvironmentDescription(boolean hitGoal) {
-            this.hitGoal = hitGoal;
+            this.transitions = new HashMap[4];
+            this.transitions[0] = new HashMap<>();
+            this.transitions[0].put(new Move("move1"), 1);
+            this.transitions[0].put(new Move("move2"), 0);
+            this.transitions[0].put(new Move("move3"), 0);
+            this.transitions[1] = new HashMap<>();
+            this.transitions[1].put(new Move("move1"), 1);
+            this.transitions[1].put(new Move("move2"), 2);
+            this.transitions[1].put(new Move("move3"), 1);
+            this.transitions[2] = new HashMap<>();
+            this.transitions[2].put(new Move("move1"), 2);
+            this.transitions[2].put(new Move("move2"), 2);
+            this.transitions[2].put(new Move("move3"), 3);
+            this.transitions[3] = new HashMap<>();
+            this.transitions[3].put(new Move("move1"), 3);
+            this.transitions[3].put(new Move("move2"), 3);
+            this.transitions[3].put(new Move("move3"), 3);
         }
 
         @Override
@@ -100,37 +106,16 @@ public class EnvironmentTest {
         }
 
         @Override
-        public int transition(int currentState, Move move) {
-            this.receivedState = currentState;
-            this.receivedMove = move;
-            return 13;
+        public TransitionResult transition(int currentState, Move move) {
+            int newState = this.transitions[currentState].get(move);
+            SensorData sensorData = new SensorData(newState == 3);
+            return new TransitionResult(newState, sensorData);
         }
 
         @Override
-        public boolean isGoalState(int state) {
-            this.receivedIsGoalState = state;
-            return this.hitGoal;
-        }
-
-        @Override
-        public int getNumGoalStates() {
-            return 1;
-        }
-
-        @Override
-        public int getNumStates() {
-            return 42;
-        }
-
-        @Override
-        public void applySensors(int lastState, Move move, int currentState, SensorData sensorData) {
-            this.sensorsApplied = true;
-            sensorData.setSensor("sensorsApplied", true);
-        }
-
-        @Override
-        public boolean validateSequence(int state, Sequence sequence) {
-            return false;
+        public int getRandomState() {
+            return 0;
         }
     }
+    //endregion
 }

@@ -1,5 +1,7 @@
 package framework;
 
+import java.io.File;
+
 /**
  *
  * @author Zachary Paul Faltersack
@@ -8,5 +10,7 @@ package framework;
 public interface IResultWriterProvider {
     //region Methods
     IResultWriter getResultWriter(String agent, String file) throws Exception;
+
+    File getOutputDirectory();
     //endregion
 }
