@@ -8,6 +8,11 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Set;
 
+/**
+ *
+ * @author Zachary Paul Faltersack
+ * @version 0.95
+ */
 public class FSMTransitionTable {
     //region Class Variables
     private HashMap<Move, Integer>[] transitions;
@@ -18,6 +23,8 @@ public class FSMTransitionTable {
 
     //region Constructors
     public FSMTransitionTable(HashMap<Move, Integer>[] transitions) {
+        if (transitions == null)
+            throw new IllegalArgumentException("transitions cannot be null.");
         this.transitions = transitions;
         Set<Move> moveSet = this.transitions[0].keySet();
         this.moves = moveSet.toArray(new Move[0]);

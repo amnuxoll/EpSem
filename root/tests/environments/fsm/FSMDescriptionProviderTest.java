@@ -8,8 +8,7 @@ import java.util.EnumSet;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class FSMDescriptionProviderTest {
-
-    // constructor Tests
+    //region constructor Tests
     @Test
     public void constructorAlphabetSizeLessThanOneThrowsException() {
         assertThrows(IllegalArgumentException.class, () -> new FSMDescriptionProvider(new FSMTransitionTableBuilder(0, 1, new Randomizer()), FSMDescription.Sensor.ALL_SENSORS));
@@ -24,14 +23,14 @@ public class FSMDescriptionProviderTest {
     public void constructorNullEnumSetThrowsException() {
         assertThrows(IllegalArgumentException.class, () -> new FSMDescriptionProvider(new FSMTransitionTableBuilder(1, 1, new Randomizer()), null));
     }
+    //endregion
 
-    // getEnvironmentDescription Tests
+    //region getEnvironmentDescription Tests
     @Test
     public void getEnvironmentDescriptionHeedsConfiguration1() {
         FSMDescriptionProvider descriptionProvider = new FSMDescriptionProvider(new FSMTransitionTableBuilder(1, 1, new Randomizer()), FSMDescription.Sensor.ALL_SENSORS);
         FSMDescription description = (FSMDescription)descriptionProvider.getEnvironmentDescription();
         assertEquals(1, description.getMoves().length);
-        assertEquals(FSMDescription.Sensor.ALL_SENSORS, description.getSensorsToInclude());
     }
 
     @Test
@@ -39,6 +38,15 @@ public class FSMDescriptionProviderTest {
         FSMDescriptionProvider descriptionProvider = new FSMDescriptionProvider(new FSMTransitionTableBuilder(13, 42, new Randomizer()), EnumSet.of(FSMDescription.Sensor.EVEN_ODD));
         FSMDescription description = (FSMDescription)descriptionProvider.getEnvironmentDescription();
         assertEquals(13, description.getMoves().length);
-        assertEquals(EnumSet.of(FSMDescription.Sensor.EVEN_ODD), description.getSensorsToInclude());
     }
+    //endregion
+
+    //region getAlias Tests
+    @Test
+    public void getAlias()
+    {
+        FSMDescriptionProvider descriptionProvider = new FSMDescriptionProvider(new FSMTransitionTableBuilder(13, 42, new Randomizer()), EnumSet.of(FSMDescription.Sensor.EVEN_ODD));
+        assertEquals("FSMDescription", descriptionProvider.getAlias());
+    }
+    //endregion
 }

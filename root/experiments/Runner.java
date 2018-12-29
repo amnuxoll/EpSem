@@ -150,10 +150,10 @@ public class Runner {
                     new NSMAgentProvider(),
                     new MaRzAgentProvider<>(new SuffixNodeProvider())
             },
-            file -> {
+            rootDirectory -> {
                 NamedOutput namedOutput = NamedOutput.getInstance();
                 try {
-                    namedOutput.configure("metadata", new FileOutputStream(new File(file, "metadata.txt")));
+                    namedOutput.configure("metadata", new FileOutputStream(new File(rootDirectory, "metadata.txt")));
                 } catch (FileNotFoundException e) {
                     e.printStackTrace();
                 }

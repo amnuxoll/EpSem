@@ -93,16 +93,6 @@ public class FSMDescription implements IEnvironmentDescription {
     }
     //endregion
 
-    //region Public Methods
-    /**
-     * Get the sensor data included in this environment.
-     * @return The {@link EnumSet<Sensor>} indicating the active sensors in this environment.
-     */
-    public EnumSet<Sensor> getSensorsToInclude() {
-        return this.sensorsToInclude;
-    }
-    //endregion
-
     //region Protected Methods
     protected void tweakTable(int numSwaps, Randomizer randomizer) {
         for(FSMTransitionTable.Tweak tweak : this.transitionTable.tweakTable(numSwaps, randomizer))

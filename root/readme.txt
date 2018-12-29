@@ -1,0 +1,104 @@
+How to use this framework
+Author: Zachary Paul Faltersack
+Version: 0.95
+
+This framework has the intention of:
+ 1. Enabling the development of well-tested agents with reusable components;
+ 2. Easing the process of gathering data by creating well-defined interfaces such that environments and agents can
+    easily be mixed-and-matched.
+
+When developing against the framework, try not to modify anything in the framework package. As this is an evolving
+project it may be the case that you need to add support for something that is not yet supported, but this should be
+rare at this point. Instead, use utils/agents/environments for building out your project.
+An example where this might be necessary is adding new introspection capabilities (see Introspection below).
+
+: AGENTS
+The following sections describe the techniques for creating new agents in the framework.
+
+:: Writing an Agent
+ 1. Create package in: root/agents/X
+ 2. Make a new agent class that implements: framework.IAgent
+ 3. While not required, it is recommended to use the utility class for EpisodicMemory, as it contains many commonly
+    used operations against a series of episodes.
+ 4. Make a new agent provider class that implements: framework.IAgentProvider which will create new instances of your
+    agent.
+
+When developing your agent, consider exactly what you are trying to accomplish at any given moment. If it makes sense,
+create a reusable and well-tested utility class/data structure for the logic you are writing (for example EpisodicMemory
+which abstracts away common operations from the consumer).
+
+:: Getting data from an Agent
+There are several integration points that allow for data gathering in an agent. These are all optional (defaulted)
+methods on IAgent.
+
+::: For gathering statistical data that will be written to a CSV file do the following:
+ 1. Override both IAgent.getStatisticTypes() and IAgent.getData().
+ 2. getStatisticTypes(): This will return an array of strings with the names of the statistics your agent aims to gather.
+    This is a contract with the test framework that promises to return a value for each named statistic when getData()
+    is invoked.
+ 3. getData(): This will return a list of data points, one for each statistic named in getStatisticTypes(). It is
+    the onus of the developer to respect this contract.
+
+If implemented correctly then the output directory will contain a CSV file for each declared statistic type, and each
+data point will be that data point at the time that particular goal index was hit.
+
+::: Additional logging options are:
+ 1. Override onGoalFound(): When the framework detects a goal is hit, it will invoke this method with no arguments. It
+    is a point for the agent to perform non-statistical logging if desired.
+ 2. Override onTestRunComplete(): When the framework completes a test run (This is defined as having located the goal
+    a specific number of times in a given environment) then it will invoke this method with no arguments and is another
+opportunity to log non-statistical data.
+
+An example of something that could be useful here is to print the internal state of the agent after each goal and after
+the test run is complete.
+
+::: Introspection
+It may be the case that the agent wants to track some data about itself that requires knowledge of the environment that
+is otherwise inappropriate for it to know. To support this, when the agent is initialized it is given an IIntrospector.
+This is an interface that allows the agent to ask for specific information, such as whether or not the sequence it has
+selected will work if it were to run through to completion.
+
+It is important not to leverage this for anything other than statistics and logging. No information received via
+introspection should be considered viable for learning and/or making decisions about what to do next; it is a high-level
+analytics tool for developers to use for gathering details about how the agent is working.
+
+
+: LOGGING
+The framework provides a singleton class called NamedOutput that is for logging. When writing a logging statement to
+this object, a name/tag is provided that can be used to group specific logging statements. In a default instance, the
+logging will go to System.out. It is possible, however, to redirect specific named output using the instance method
+NamedOutput.configure(...) which takes a name and an OutputStream. If a name has been configured then it will route
+the logging statements to whichever stream it was given (for example into a file for persistence). See TestSuite (below)
+for details on how this routing can be leveraged.
+
+
+: TESTRUN
+A TestRun is simply one agent and one environment with a specific number of goals for the agent to find. The TestRun
+class will, when executed, marshal calls between the agent and the environment, track the number of steps the
+agent has taken between successive goals, and inform the TestSuite when a goal is hit so that the statistical data
+can be written to a result writer.
+
+
+: TESTSUITE
+A test suite is a collection of environments and agents, along with a configuration that indicates things like how
+many goals should be found, etc. It will create a TestRun for each element in the cross product of the sets of agents
+and environments.
+Before any tests are run, however, it will invoke a delegate that can be optionally passed into the constructor. This
+allows a developer to define some configurations (such as routing NamedOutput) before any tests are run. The delegate
+receives a single argument that is a File which designates the target output directory for all data files.
+
+A constructor can be used as follows for hooking into the pre-run delegate:
+
+    private static TestSuite TempExperiment = new TestSuite(
+            TestSuiteConfiguration.QUICK,
+            new IEnvironmentDescriptionProvider[] { ... },
+            new IAgentProvider[] { ... },
+            rootDirectory -> {
+                NamedOutput namedOutput = NamedOutput.getInstance();
+                try {
+                    namedOutput.configure("metadata", new FileOutputStream(new File(rootDirectory, "metadata.txt")));
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                }
+            }
+    );

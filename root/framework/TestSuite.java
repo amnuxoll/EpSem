@@ -22,7 +22,7 @@ public class TestSuite implements IGoalListener {
 
     //region Constructors
     public TestSuite(TestSuiteConfiguration configuration, IEnvironmentDescriptionProvider[] environmentDescriptionProviders, IAgentProvider[] agentProviders) {
-        this(configuration, environmentDescriptionProviders, agentProviders, file -> { });
+        this(configuration, environmentDescriptionProviders, agentProviders, rootDirectory -> { });
     }
 
     public TestSuite(TestSuiteConfiguration configuration, IEnvironmentDescriptionProvider[] environmentDescriptionProviders, IAgentProvider[] agentProviders, Consumer<File> beforeRun) {

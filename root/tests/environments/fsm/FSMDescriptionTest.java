@@ -10,84 +10,19 @@ import java.util.HashMap;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class FSMDescriptionTest {
-
-    // constructor Tests
+    //region constructor Tests
     @Test
     public void constructorNullTransitionTableThrowsException() {
         assertThrows(IllegalArgumentException.class, () -> new FSMDescription(null));
     }
 
     @Test
-    public void constructorEmptyTransitionTableThrowsException() {
-        assertThrows(IllegalArgumentException.class, () -> new FSMDescription(new FSMTransitionTable(new HashMap[0])));
-    }
-
-    @Test
     public void constructorNullEnumSetThrowsException() {
-        assertThrows(IllegalArgumentException.class, () -> new FSMDescription(new FSMTransitionTable(new HashMap[0]), null));
+        assertThrows(IllegalArgumentException.class, () -> new FSMDescription(this.getFsmTransitionTable(), null));
     }
+    //endregion
 
-    @Test
-    public void constructorValidatesTransitionTableNotAllTransitionsContainSameMoveCount() {
-        HashMap<Move, Integer> transitionSet1 = new HashMap<>();
-        transitionSet1.put(new Move("a"), 1);
-        transitionSet1.put(new Move("b"), 1);
-        transitionSet1.put(new Move("c"), 1);
-        HashMap<Move, Integer> transitionSet2 = new HashMap<>();
-        transitionSet2.put(new Move("a"), 1);
-        transitionSet2.put(new Move("b"), 1);
-        HashMap<Move, Integer>[] transitionTable = new HashMap[] {
-                        transitionSet1,
-                        transitionSet2
-                };
-        assertThrows(IllegalArgumentException.class, () -> new FSMDescription(new FSMTransitionTable(transitionTable)));
-    }
-
-    @Test
-    public void constructorValidatesTransitionTableNotAllTransitionsContainSameMoves() {
-        HashMap<Move, Integer> transitionSet1 = new HashMap<>();
-        transitionSet1.put(new Move("a"), 1);
-        transitionSet1.put(new Move("b"), 1);
-        transitionSet1.put(new Move("c"), 1);
-        HashMap<Move, Integer> transitionSet2 = new HashMap<>();
-        transitionSet2.put(new Move("a"), 1);
-        transitionSet2.put(new Move("b"), 1);
-        transitionSet2.put(new Move("d"), 1);
-        HashMap<Move, Integer>[] transitionTable = new HashMap[] {
-                        transitionSet1,
-                        transitionSet2
-                };
-        assertThrows(IllegalArgumentException.class, () -> new FSMDescription(new FSMTransitionTable(transitionTable)));
-    }
-
-    // getSensorsToInclude Tests
-    @Test
-    public void getSensorsToIncludeDefaultsToNone() {
-        HashMap<Move, Integer> transitionSet1 = new HashMap<>();
-        transitionSet1.put(new Move("a"), 1);
-        HashMap<Move, Integer>[] transitionTable = new HashMap[] {
-                        transitionSet1
-                };
-        FSMDescription description = new FSMDescription(new FSMTransitionTable(transitionTable));
-        EnumSet<FSMDescription.Sensor> sensors = description.getSensorsToInclude();
-        assertFalse(sensors.contains(FSMDescription.Sensor.EVEN_ODD));
-        assertFalse(sensors.contains(FSMDescription.Sensor.NOISE));
-    }
-
-    @Test
-    public void getSensorsToIncludeGivesSensors() {
-        HashMap<Move, Integer> transitionSet1 = new HashMap<>();
-        transitionSet1.put(new Move("a"), 1);
-        HashMap<Move, Integer>[] transitionTable = new HashMap[] {
-                        transitionSet1
-                };
-        FSMDescription description = new FSMDescription(new FSMTransitionTable(transitionTable), EnumSet.of(FSMDescription.Sensor.EVEN_ODD));
-        EnumSet<FSMDescription.Sensor> sensors = description.getSensorsToInclude();
-        assertTrue(sensors.contains(FSMDescription.Sensor.EVEN_ODD));
-        assertFalse(sensors.contains(FSMDescription.Sensor.NOISE));
-    }
-
-    // getMoves Tests
+    //region getMoves Tests
     @Test
     public void getMovesFSMDescriptionInfersMoveSets() {
         HashMap<Move, Integer> transitionSet1 = new HashMap<>();
@@ -110,8 +45,9 @@ public class FSMDescriptionTest {
                 };
         assertArrayEquals(expectedMoves, description.getMoves());
     }
+    //endregion
 
-    // transition Tests
+    //region transition Tests
     @Test
     public void transitionStateLessThanZeroThrowsException() {
         HashMap<Move, Integer> transitionSet1 = new HashMap<>();
@@ -174,6 +110,50 @@ public class FSMDescriptionTest {
                         transitionSet1
                 };
         FSMDescription description = new FSMDescription(new FSMTransitionTable(transitionTable));
-        assertEquals(2, description.transition(0, new Move("b")));
+        assertEquals(2, description.transition(0, new Move("b")).getState());
     }
+    //endregion
+
+    //region getRandomState Tests
+    @Test
+    public void getRandomState()
+    {
+        FSMDescription description = new FSMDescription(this.getFsmTransitionTable());
+        int randomState = description.getRandomState();
+        assertTrue(randomState >= 0);
+        assertTrue(randomState < 2);
+    }
+    //endregion
+
+    //region tweakTable Tests
+    @Test
+    public void tweakTable()
+    {
+        fail("implement this test");
+    }
+    //endregion
+
+    //region Helper Methods
+    private FSMTransitionTable getFsmTransitionTable()
+    {
+        HashMap<Move, Integer> transitionSet1 = new HashMap<>();
+        transitionSet1.put(new Move("a"), 1);
+        transitionSet1.put(new Move("b"), 1);
+        transitionSet1.put(new Move("c"), 1);
+        HashMap<Move, Integer> transitionSet2 = new HashMap<>();
+        transitionSet2.put(new Move("a"), 1);
+        transitionSet2.put(new Move("b"), 1);
+        transitionSet2.put(new Move("c"), 1);
+        HashMap<Move, Integer> transitionSet3 = new HashMap<>();
+        transitionSet3.put(new Move("a"), 1);
+        transitionSet3.put(new Move("b"), 1);
+        transitionSet3.put(new Move("c"), 1);
+        HashMap<Move, Integer>[] transitionTable = new HashMap[] {
+                transitionSet1,
+                transitionSet2,
+                transitionSet3
+        };
+        return new FSMTransitionTable(transitionTable);
+    }
+    //endregion
 }

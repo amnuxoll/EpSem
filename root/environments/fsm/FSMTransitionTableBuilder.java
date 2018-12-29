@@ -4,6 +4,7 @@ import framework.Move;
 import utils.Randomizer;
 
 import java.util.HashMap;
+
 /**
  * An FSMTransitionTableBuilder is used to build transition tables for a {@link FSMDescription}.
  * @author Zachary Paul Faltersack
