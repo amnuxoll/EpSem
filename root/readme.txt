@@ -12,6 +12,12 @@ project it may be the case that you need to add support for something that is no
 rare at this point. Instead, use utils/agents/environments for building out your project.
 An example where this might be necessary is adding new introspection capabilities (see Introspection below).
 
+Important: Be sure to regularly run unit tests. If changes you made break any tests, be sure to dig into why, especially
+for shared utility classes. The correct thing to do is almost never to change the expected result unless you are
+actually modifying the class whose tests are failing. Even then, be very mindful of those changes because it is likely
+there is another agent that is assuming that class functions a specific way.
+
+
 : AGENTS
 The following sections describe the techniques for creating new agents in the framework.
 
@@ -47,7 +53,7 @@ data point will be that data point at the time that particular goal index was hi
     is a point for the agent to perform non-statistical logging if desired.
  2. Override onTestRunComplete(): When the framework completes a test run (This is defined as having located the goal
     a specific number of times in a given environment) then it will invoke this method with no arguments and is another
-opportunity to log non-statistical data.
+    opportunity to log non-statistical data.
 
 An example of something that could be useful here is to print the internal state of the agent after each goal and after
 the test run is complete.
