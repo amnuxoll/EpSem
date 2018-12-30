@@ -111,7 +111,7 @@ public class FSMTransitionTable {
     //endregion
 
     //region Nested Classes
-    public class Tweak {
+    protected class Tweak {
         //region Class Variables
         public int state;
         public int move1;

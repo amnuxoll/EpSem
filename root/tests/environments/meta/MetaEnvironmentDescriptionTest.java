@@ -9,10 +9,7 @@ import framework.Sequence;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class MetaEnvironmentDescriptionTest {
-    /**
-     * contructor test
-     * make sure the contructor throws the correct exceptions
-     */
+    //region Constructor Tests
     @Test
     public void constructor() {
         //test exceptions
@@ -21,78 +18,54 @@ public class MetaEnvironmentDescriptionTest {
         assertThrows(IllegalArgumentException.class,
                 () -> new MetaEnvironmentDescription(new TestEnvironmentDescriptionProvider(),null));
     }
+    //endregion
 
-    /**
-     * make sure the moves on the meta description match the moves on the description
-     * which the description provider should provide
-     */
+    //region getMoves Tests
     @Test
     public void getMoves() {
-        TestEnvironmentDescription testEnvironmentDescription= new TestEnvironmentDescription();
-
-        TestEnvironmentDescriptionProvider provider= new TestEnvironmentDescriptionProvider();
-        MetaEnvironmentDescription description= new MetaEnvironmentDescription(
-                provider,MetaConfiguration.DEFAULT
-        );
+        TestEnvironmentDescriptionProvider provider = new TestEnvironmentDescriptionProvider();
+        MetaEnvironmentDescription description= new MetaEnvironmentDescription(provider, MetaConfiguration.DEFAULT);
 
         //move arrays match
-        assertArrayEquals(description.getMoves(),testEnvironmentDescription.getMoves());
+        Move[] expected = {
+                new Move("a"),
+                new Move("b")
+        };
+        assertArrayEquals(expected, description.getMoves());
     }
+    //endregion
 
-    /**
-     * check that the meta description
-     * 1) correctly transitions on a transition method call
-     * 2) keeps track of the transition
-     */
+    //region transition Tests
     @Test
     public void transition() {
-        TestEnvironmentDescriptionProvider provider= new TestEnvironmentDescriptionProvider();
-        MetaEnvironmentDescription description= new MetaEnvironmentDescription(
-                provider,MetaConfiguration.DEFAULT
-        );
+        TestEnvironmentDescriptionProvider provider = new TestEnvironmentDescriptionProvider();
+        MetaEnvironmentDescription description = new MetaEnvironmentDescription(provider, MetaConfiguration.DEFAULT);
 
-        //check that we get the correct result
-        assertEquals(42,description.transition(0,new Move("a")));
-        //test that the counter has increased
-        assertEquals(1,description.getTransitionCounter());
+        TransitionResult result = description.transition(0, new Move("a"));
+        assertEquals(10, result.getState());
+        assertTrue(result.getSensorData().isGoal());
+        assertEquals(1, provider.numGenerated);
     }
 
-    /**
-     * make sure the transition method throws correct exceptions
-     */
     @Test
-    public void transitionsExceptions() {
-        TestEnvironmentDescriptionProvider provider= new TestEnvironmentDescriptionProvider();
-        MetaEnvironmentDescription description= new MetaEnvironmentDescription(
-                provider,MetaConfiguration.DEFAULT
-        );
+    public void transitionResetsEnvironmentOnGoalCount() {
+        TestEnvironmentDescriptionProvider provider = new TestEnvironmentDescriptionProvider();
+        MetaEnvironmentDescription description = new MetaEnvironmentDescription(provider, new MetaConfiguration(2));
 
-        //test illegal args
-        assertThrows(IllegalArgumentException.class, () -> description.transition(0,null));
-        assertThrows(IllegalArgumentException.class, () -> description.transition(-1,new Move("a")));
-        assertThrows(IllegalArgumentException.class, () -> description.transition(3,new Move("a")));
+        int expectedResetcount = 3;
+        for (int i = 0; i < 2 * expectedResetcount; i++) {
+            TransitionResult result = description.transition(0, new Move("a"));
+            assertEquals(10, result.getState());
+            assertTrue(result.getSensorData().isGoal());
+        }
+        // Add one because of initial environment
+        assertEquals(1 + expectedResetcount, provider.numGenerated);
     }
+    //endregion
 
-    /**
-     * test that the meta description has the correct goal state
-     * (matches the provider's description's goal state)
-     */
-    @Test
-    public void isGoalStateCorrect() {
-        TestEnvironmentDescriptionProvider provider= new TestEnvironmentDescriptionProvider();
-        MetaEnvironmentDescription description= new MetaEnvironmentDescription(
-                provider,MetaConfiguration.DEFAULT
-        );
-        fail("come back to this");
-    }
-
-    /**
-    *  Mock Classes
-    *
-     */
-
+    //region "mock" classes
     private class TestEnvironmentDescriptionProvider implements IEnvironmentDescriptionProvider {
-        public int numGenerated= 0;
+        public int numGenerated = 0;
 
         @Override
         public IEnvironmentDescription getEnvironmentDescription() {
@@ -120,13 +93,14 @@ public class MetaEnvironmentDescriptionTest {
 
         @Override
         public TransitionResult transition(int currentState, Move move) {
-            return null;
+            return new TransitionResult(10, new SensorData(true));
         }
 
         @Override
         public int getRandomState() {
-            return 0;
+            return 13;
         }
 
     }
+    //endregion
 }

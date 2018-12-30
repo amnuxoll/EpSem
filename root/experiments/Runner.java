@@ -142,7 +142,7 @@ public class Runner {
             TestSuiteConfiguration.QUICK,
             new IEnvironmentDescriptionProvider[] {
                     new FSMDescriptionProvider(new FSMTransitionTableBuilder(3, 10, Random.getTrue()), FSMDescription.Sensor.NO_SENSORS),
-                    new MetaEnvironmentDescriptionProvider(new FSMDescriptionTweakingProvider(new FSMTransitionTableBuilder(2, 15, Random.getTrue()), EnumSet.of(FSMDescription.Sensor.EVEN_ODD)), new MetaConfiguration(100, 0))
+                    new MetaEnvironmentDescriptionProvider(new FSMDescriptionTweakingProvider(new FSMTransitionTableBuilder(2, 15, Random.getTrue()), EnumSet.of(FSMDescription.Sensor.EVEN_ODD)), new MetaConfiguration(100))
             },
             new IAgentProvider[] {
                     new NSMAgentProvider(),

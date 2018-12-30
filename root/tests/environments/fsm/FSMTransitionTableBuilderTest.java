@@ -15,8 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
  * @version 0.95
  */
 public class FSMTransitionTableBuilderTest {
-
-    // buildTransitionTable Tests
+    //region Constructor Tests
     @Test
     public void constructorAlphabetSizeLessThanOneThrowsException() {
         assertThrows(IllegalArgumentException.class, () -> new FSMTransitionTableBuilder(0, 1, Random.getTrue()));
@@ -26,8 +25,9 @@ public class FSMTransitionTableBuilderTest {
     public void constructorNumStatesLessThanOneThrowsException() {
         assertThrows(IllegalArgumentException.class, () -> new FSMTransitionTableBuilder(1, 0, Random.getTrue()));
     }
+    //endregion
 
-    // getTransitionTable Tests
+    //region getTransitionTable Tests
     @Test
     public void buildTransitionTableSingleTransitionSingleState() {
         FSMTransitionTableBuilder builder = new FSMTransitionTableBuilder(1, 1, Random.getTrue());
@@ -45,11 +45,14 @@ public class FSMTransitionTableBuilderTest {
         HashMap<Move, Integer> goalTransitions = transitionTable.getTransitions()[0];
         this.validateGoalTransitions(13, 0, goalTransitions);
     }
+    //endregion
 
+    //region Helper Methods
     private void validateGoalTransitions(int expectedMoveCount, int goalState, HashMap<Move, Integer> transitions) {
         assertEquals(expectedMoveCount, transitions.size());
         for (int state : transitions.values()) {
             assertEquals(goalState, state);
         }
     }
+    //endregion
 }

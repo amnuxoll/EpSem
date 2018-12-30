@@ -48,8 +48,7 @@ public class FSMDescriptionProviderTest {
 
     //region getAlias Tests
     @Test
-    public void getAlias()
-    {
+    public void getAlias() {
         FSMDescriptionProvider descriptionProvider = new FSMDescriptionProvider(new FSMTransitionTableBuilder(13, 42, Random.getTrue()), EnumSet.of(FSMDescription.Sensor.EVEN_ODD));
         assertEquals("FSMDescription", descriptionProvider.getAlias());
     }

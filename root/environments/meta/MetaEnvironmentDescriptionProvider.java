@@ -10,8 +10,7 @@ public class MetaEnvironmentDescriptionProvider implements IEnvironmentDescripti
     //endregion
 
     //region Constructors
-    public MetaEnvironmentDescriptionProvider
-            (IEnvironmentDescriptionProvider environmentDescriptionProvider, MetaConfiguration config) {
+    public MetaEnvironmentDescriptionProvider(IEnvironmentDescriptionProvider environmentDescriptionProvider, MetaConfiguration config) {
         if(environmentDescriptionProvider == null || config == null)
             throw new IllegalArgumentException("Arguments cannot be null");
         this.environmentDescriptionProvider= environmentDescriptionProvider;

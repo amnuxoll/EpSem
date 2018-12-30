@@ -19,11 +19,14 @@ import java.util.Random;
  * @author Preben Ingvaldsen
  */
 public class FSMTransitionTableBuilder {
+    //region Class Variables
     private int alphabetSize;
     private int numStates;
     private Move[] moves;
     private Random random;
+    //endregion
 
+    //region Constructors
     /**
      * Create a {@link FSMTransitionTableBuilder}.
      * @param alphabetSize The number of moves to allow from each state.
@@ -43,7 +46,9 @@ public class FSMTransitionTableBuilder {
             moves[i] = new Move(next  + "");
         }
     }
+    //endregion
 
+    //region Public Methods
     /**
      * Get the transition table built by this {@link FSMTransitionTableBuilder}.
      * @return The transition table.
@@ -52,7 +57,9 @@ public class FSMTransitionTableBuilder {
         HashMap<Move, Integer>[] transitions = this.buildTransitionTable();
         return new FSMTransitionTable(transitions);
     }
+    //endregion
 
+    //region Private Methods
     private HashMap<Move, Integer>[] buildTransitionTable() {
         HashMap<Move, Integer>[] transitions = new HashMap[this.numStates];
         // All goal state transitions should loop back to the goal state
@@ -90,4 +97,5 @@ public class FSMTransitionTableBuilder {
         }
         this.pickTransitions(transitions, initState, 1, transitionsDone);
     }
+    //endregion
 }

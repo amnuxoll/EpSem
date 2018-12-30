@@ -93,6 +93,10 @@ public class FSMDescription implements IEnvironmentDescription {
 
     //region Protected Methods
     protected void tweakTable(int numSwaps, Random random) {
+        if (numSwaps < 0)
+            throw new IllegalArgumentException("numSwaps must be greater than or equal to zero.");
+        if (random == null)
+            throw new IllegalArgumentException("random cannot be null.");
         for(FSMTransitionTable.Tweak tweak : this.transitionTable.tweakTable(numSwaps, random))
         {
             //update the sensor table to reflect the "new" transitions

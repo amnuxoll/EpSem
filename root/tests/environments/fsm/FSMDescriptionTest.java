@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.Random;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -121,8 +122,7 @@ public class FSMDescriptionTest {
 
     //region getRandomState Tests
     @Test
-    public void getRandomState()
-    {
+    public void getRandomState() {
         FSMDescription description = new FSMDescription(this.getFsmTransitionTable());
         int randomState = description.getRandomState();
         assertTrue(randomState >= 0);
@@ -132,15 +132,20 @@ public class FSMDescriptionTest {
 
     //region tweakTable Tests
     @Test
-    public void tweakTable()
-    {
-        fail("implement this test");
+    public void tweakTableNumSwapsLessThan0ThrowsException() {
+        FSMDescription description = new FSMDescription(this.getFsmTransitionTable());
+        assertThrows(IllegalArgumentException.class, () -> description.tweakTable(-1, new Random()));
+    }
+
+    @Test
+    public void tweakTableNullRandomThrowsException() {
+        FSMDescription description = new FSMDescription(this.getFsmTransitionTable());
+        assertThrows(IllegalArgumentException.class, () -> description.tweakTable(1, null));
     }
     //endregion
 
     //region Helper Methods
-    private FSMTransitionTable getFsmTransitionTable()
-    {
+    private FSMTransitionTable getFsmTransitionTable() {
         HashMap<Move, Integer> transitionSet1 = new HashMap<>();
         transitionSet1.put(new Move("a"), 1);
         transitionSet1.put(new Move("b"), 1);

@@ -6,10 +6,12 @@ import framework.Sequence;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class MetaEnvironmentDescriptionProviderTest {
+    //region Constructor Tests
     @Test
     public void constuctor(){
         assertThrows(IllegalArgumentException.class,
@@ -17,28 +19,32 @@ public class MetaEnvironmentDescriptionProviderTest {
         assertThrows(IllegalArgumentException.class,
                 () -> new MetaEnvironmentDescriptionProvider(null,MetaConfiguration.DEFAULT));
     }
+    //endregion
 
+    //region getEnvironmentDescription Tests
     @Test
     public void getEnvironmentDescription(){
-        MetaEnvironmentDescriptionProvider provider=
-                new MetaEnvironmentDescriptionProvider(
-                        new TestEnvironmentDescriptionProvider(),MetaConfiguration.DEFAULT);
-
+        MetaEnvironmentDescriptionProvider provider =
+                new MetaEnvironmentDescriptionProvider(new TestEnvironmentDescriptionProvider(), MetaConfiguration.DEFAULT);
         IEnvironmentDescription description= provider.getEnvironmentDescription();
-        fail("come back to this");
+        assertTrue(description instanceof MetaEnvironmentDescription);
+
     }
+    //endregion
 
-    /**
-     *  Mock Classes
-     *
-     */
+    //region getAlias Tests
+    @Test
+    public void getAlias() {
+        MetaEnvironmentDescriptionProvider provider =
+                new MetaEnvironmentDescriptionProvider(new TestEnvironmentDescriptionProvider(), MetaConfiguration.DEFAULT);
+        assertEquals("MetaEnvironmentDescription{alias}", provider.getAlias());
+    }
+    //endregion
 
+    //region "mock" classes
     private class TestEnvironmentDescriptionProvider implements IEnvironmentDescriptionProvider {
-        public int numGenerated= 0;
-
         @Override
         public IEnvironmentDescription getEnvironmentDescription() {
-            numGenerated++;
             return new TestEnvironmentDescription();
         }
 
@@ -46,14 +52,13 @@ public class MetaEnvironmentDescriptionProviderTest {
         public String getAlias() {
             return "alias";
         }
-
     }
 
     private class TestEnvironmentDescription implements  IEnvironmentDescription {
 
         @Override
         public Move[] getMoves() {
-            Move[] moves= {
+            Move[] moves = {
                     new Move("a"),
                     new Move("b")
             };
@@ -70,4 +75,5 @@ public class MetaEnvironmentDescriptionProviderTest {
             return 0;
         }
     }
+    //endregion
 }
