@@ -56,17 +56,17 @@ public class TestSuite implements IGoalListener {
         try {
             this.beforeRun.accept(resultWriterProvider.getOutputDirectory());
             NamedOutput namedOutput = NamedOutput.getInstance();
-            namedOutput.write("framework", "Beginning test suite...\n");
+            namedOutput.writeLine("framework", "Beginning test suite...");
             this.writeMetaData();
 
             int numberOfIterations = this.configuration.getNumberOfIterations();
             for (int environmentIndex = 0; environmentIndex < this.environmentDescriptionProviders.length; environmentIndex++) {
                 for (int agentIndex = 0; agentIndex < this.agentProviders.length; agentIndex++) {
                     IAgentProvider agentProvider = this.agentProviders[agentIndex];
-                    namedOutput.write("framework", "Beginning agent: " + agentProvider.getAlias() + " " + agentIndex + "\n");
+                    namedOutput.writeLine("framework", "Beginning agent: " + agentProvider.getAlias() + " " + agentIndex);
                     for (int numberOfMachines = 0; numberOfMachines < numberOfIterations; numberOfMachines++) {
-                        namedOutput.write("framework", "\n");
-                        namedOutput.write("framework", "Beginning iteration: " + numberOfMachines + "\n");
+                        namedOutput.writeLine("framework");
+                        namedOutput.writeLine("framework", "Beginning iteration: " + numberOfMachines);
                         IAgent agent = agentProvider.getAgent();
                         IEnvironmentDescription environmentDescription = this.environmentDescriptionProviders[environmentIndex].getEnvironmentDescription();
                         if (numberOfMachines == 0)
@@ -140,7 +140,7 @@ public class TestSuite implements IGoalListener {
             metadataBuilder.append("Agent provider type: " + agentProvider.getClass().getName() + "\n");
             metadataBuilder.append("With Alias: " + agentProvider.getAlias() + "\n");
         }
-        NamedOutput.getInstance().write("metadata", metadataBuilder.toString());
+        NamedOutput.getInstance().writeLine("metadata", metadataBuilder.toString());
     }
     //endregion
 }

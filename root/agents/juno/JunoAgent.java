@@ -127,7 +127,7 @@ public class JunoAgent extends MaRzAgent {
         double average= ((goals-1)*prevAverage + averageEntry)/goals;
         this.tableMaturity= Math.abs(average - prevAverage);
 
-        NamedOutput.getInstance().write("tableInfo", weightTable.toString(false));
+        NamedOutput.getInstance().writeLine("tableInfo", weightTable.toString(false));
     }
 
     @Override
@@ -225,9 +225,9 @@ public class JunoAgent extends MaRzAgent {
 
     private void printInfo(ScoredIndex indexToTry){
         NamedOutput namedOutput = NamedOutput.getInstance();
-        namedOutput.write("tableInfo", episodesToString(indexToTry.index, weightTable.size()));
-        namedOutput.write("tableInfo", episodesToString(episodicMemory.currentIndex(), weightTable.size()));
-        namedOutput.write("tableInfo", weightTable.toString(false));
+        namedOutput.writeLine("tableInfo", episodesToString(indexToTry.index, weightTable.size()));
+        namedOutput.writeLine("tableInfo", episodesToString(episodicMemory.currentIndex(), weightTable.size()));
+        namedOutput.writeLine("tableInfo", weightTable.toString(false));
     }
 
     /**
@@ -237,13 +237,10 @@ public class JunoAgent extends MaRzAgent {
      */
     private String episodesToString(int index, int count){
         String str= "";
-
-        int i= Math.max(index-count+1, 0);
-        for(; i<= index; i++){
-            str+= episodicMemory.get(i);
+        int i = Math.max(index-count+1, 0);
+        for (; i<= index; i++) {
+            str += this.episodicMemory.get(i);
         }
-        str+= "\n";
-
         return str;
     }
 
