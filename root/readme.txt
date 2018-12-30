@@ -10,7 +10,7 @@ This framework has the intention of:
 When developing against the framework, try not to modify anything in the framework package. As this is an evolving
 project it may be the case that you need to add support for something that is not yet supported, but this should be
 rare at this point. Instead, use utils/agents/environments for building out your project.
-An example where this might be necessary is adding new introspection capabilities (see Introspection below).
+An example where modification might be necessary is adding new introspection capabilities (see Introspection below).
 
 Important: Be sure to regularly run unit tests. If changes you made break any tests, be sure to dig into why, especially
 for shared utility classes. The correct thing to do is almost never to change the expected result unless you are
@@ -30,8 +30,8 @@ The following sections describe the techniques for creating new agents in the fr
     agent.
 
 When developing your agent, consider exactly what you are trying to accomplish at any given moment. If it makes sense,
-create a reusable and well-tested utility class/data structure for the logic you are writing (for example EpisodicMemory
-which abstracts away common operations from the consumer).
+create a reusable and well-tested data structure or utility class for the logic you are writing (for example
+EpisodicMemory which abstracts away common operations from the consumer).
 
 :: Getting data from an Agent
 There are several integration points that allow for data gathering in an agent. These are all optional (defaulted)
@@ -66,7 +66,7 @@ selected will work if it were to run through to completion.
 
 It is important not to leverage this for anything other than statistics and logging. No information received via
 introspection should be considered viable for learning and/or making decisions about what to do next; it is a high-level
-analytics tool for developers to use for gathering details about how the agent is working.
+analytics tool for developers to use for gathering details about how the agent is working and the decisions it's making.
 
 
 : LOGGING
@@ -78,6 +78,21 @@ the logging statements to whichever stream it was given (for example into a file
 for details on how this routing can be leveraged.
 
 
+: ENVIRONMENTS
+The following sections describe the techniques for creating new environments in the framework. Environments are defined
+with a description that is leveraged by the framework Environment class.
+
+:: Writing an Environment
+ 1. Create package in: root/environments/X
+ 2. Make a new environment description class that implements: framework.IEnvironmentDescription
+ 3. Make a new environment description provider class that implements: framework.IEnvironmentDescriptionProvider
+    which will create new instances of your environment description.
+
+When developing your environment description, consider exactly what you are trying to accomplish at any given moment.
+If it makes sense, create a reusable and well-tested data structure or utility class for the logic you are writing
+(for example FSMTransitionTable which encapsulates analysis of a set of FSM transitions).
+
+
 : TESTRUN
 A TestRun is simply one agent and one environment with a specific number of goals for the agent to find. The TestRun
 class will, when executed, marshal calls between the agent and the environment, track the number of steps the
@@ -86,7 +101,7 @@ can be written to a result writer.
 
 
 : TESTSUITE
-A test suite is a collection of environments and agents, along with a configuration that indicates things like how
+A test suite is a collection of environments and agents, along with a configuration that indicates details like how
 many goals should be found, etc. It will create a TestRun for each element in the cross product of the sets of agents
 and environments.
 Before any tests are run, however, it will invoke a delegate that can be optionally passed into the constructor. This
@@ -108,3 +123,7 @@ A constructor can be used as follows for hooking into the pre-run delegate:
                 }
             }
     );
+
+After the pre-run delegate is invoked, an instance of an agent is created with the agent providers and an instance of
+an environment description is created with the environment description providers. These are then put through a TestRun
+based on the given TestSuiteConfiguration.

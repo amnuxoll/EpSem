@@ -4,6 +4,12 @@ import framework.*;
 
 import java.util.LinkedList;
 
+/**
+ * A MetaEnvironmentDescription is a special case of {@link IEnvironmentDescription} that wraps a different description
+ * type. After a certain number of goals, the nested {@link IEnvironmentDescription} is regenerated. This is for
+ * stress on an agent because it means that its memory will become stale and will be tested for resilience
+ * in extreme adversity.
+ */
 public class MetaEnvironmentDescription implements IEnvironmentDescription {
     //region Class Variables
     private IEnvironmentDescriptionProvider environmentDescriptionProvider;
