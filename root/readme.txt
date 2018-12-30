@@ -13,9 +13,7 @@ rare at this point. Instead, use utils/agents/environments for building out your
 An example where modification might be necessary is adding new introspection capabilities (see Introspection below).
 
 Important: Be sure to regularly run unit tests. If changes you made break any tests, be sure to dig into why, especially
-for shared utility classes. The correct thing to do is almost never to change the expected result unless you are
-actually modifying the class whose tests are failing. Even then, be very mindful of those changes because it is likely
-there is another agent that is assuming that class functions a specific way.
+for shared utility classes. 
 
 
 : AGENTS
