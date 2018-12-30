@@ -15,7 +15,7 @@ class TestRun {
     private IEnvironmentDescription environmentDescription;
     private int numberOfGoalsToFind;
     private Environment environment;
-    private List<IGoalListener> goalListeners = new ArrayList();
+    private List<IGoalListener> goalListeners = new ArrayList<>();
     //endregion
 
     //region Constructors

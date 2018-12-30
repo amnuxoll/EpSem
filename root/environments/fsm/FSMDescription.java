@@ -13,7 +13,7 @@ public class FSMDescription implements IEnvironmentDescription {
     private FSMTransitionTable transitionTable;
     private Move[] moves;
     private EnumSet<Sensor> sensorsToInclude;
-    private HashMap<Move, Integer>[] transitionSensorTable;
+    private ArrayList<HashMap<Move, Integer>> transitionSensorTable;
     //endregion
 
     //region Constructors
@@ -39,12 +39,13 @@ public class FSMDescription implements IEnvironmentDescription {
         this.sensorsToInclude = sensorsToInclude;
         this.moves = this.transitionTable.getTransitions()[0].keySet().toArray(new Move[0]);
         int numberOfStates = this.transitionTable.getNumberOfStates();
-        this.transitionSensorTable = new HashMap[numberOfStates];
+        this.transitionSensorTable = new ArrayList<>();
         for(int i = 0; i < numberOfStates; i++) {
-            this.transitionSensorTable[i] = new HashMap<>(this.moves.length);
+            HashMap<Move, Integer> transitions = new HashMap<>();
             for (Move m : getMoves()) {
-                this.transitionSensorTable[i].put(m, 0);
+                transitions.put(m, 0);
             }
+            this.transitionSensorTable.add(transitions);
         }
     }
     //endregion
@@ -76,7 +77,7 @@ public class FSMDescription implements IEnvironmentDescription {
         HashMap<Move, Integer> transitions = this.transitionTable.getTransitions()[currentState];
         if (!transitions.containsKey(move))
             throw new IllegalArgumentException("move is invalid for this environment");
-        this.transitionSensorTable[currentState].put(move, this.transitionSensorTable[currentState].get(move)+1);
+        this.transitionSensorTable.get(currentState).put(move, this.transitionSensorTable.get(currentState).get(move)+1);
         int newState = transitions.get(move);
         SensorData sensorData = new SensorData(this.transitionTable.isGoalState(newState));
         this.applySensors(currentState, move, newState, sensorData);
@@ -100,8 +101,8 @@ public class FSMDescription implements IEnvironmentDescription {
         for(FSMTransitionTable.Tweak tweak : this.transitionTable.tweakTable(numSwaps, random))
         {
             //update the sensor table to reflect the "new" transitions
-            this.transitionSensorTable[tweak.state].put(this.moves[tweak.move1], 0);
-            this.transitionSensorTable[tweak.state].put(this.moves[tweak.move2], 0);
+            this.transitionSensorTable.get(tweak.state).put(this.moves[tweak.move1], 0);
+            this.transitionSensorTable.get(tweak.state).put(this.moves[tweak.move2], 0);
         }
     }
     //endregion
@@ -142,7 +143,7 @@ public class FSMDescription implements IEnvironmentDescription {
     }
 
     private void applyTransitionAgeSensor(int lastState, Move move, SensorData sensorData) {
-        sensorData.setSensor("Transition age", this.transitionSensorTable[lastState].get(move) <= 5);
+        sensorData.setSensor("Transition age", this.transitionSensorTable.get(lastState).get(move) <= 5);
     }
     //endregion
 

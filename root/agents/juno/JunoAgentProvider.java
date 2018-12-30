@@ -16,14 +16,14 @@ public class JunoAgentProvider<TSuffixNode extends SuffixNodeBase<TSuffixNode>> 
         this.config= config;
     }
 
-    public JunoAgentProvider(ISuffixNodeBaseProvider nodeProvider) {
+    public JunoAgentProvider(ISuffixNodeBaseProvider<TSuffixNode> nodeProvider) {
         this(nodeProvider, JunoConfiguration.DEFAULT);
     }
     //endregion
 
     //region MaRzAgentProvider Overrides
     @Override
-    public IAgent getAgent() {return new JunoAgent(this.nodeProvider, config);}
+    public IAgent getAgent() { return new JunoAgent<>(this.nodeProvider, config); }
 
     @Override
     public String getAlias()
