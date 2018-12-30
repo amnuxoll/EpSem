@@ -3,25 +3,40 @@ package framework;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/**
+ *
+ * @author Zachary Paul Faltersack
+ * @version 0.95
+ */
 public class TestSuiteTest {
-
+    //region Class Variables
     private TestSuiteConfiguration testConfiguration = new TestSuiteConfiguration(2, 3);
+    //endregion
 
-    // constructor Tests
+    //region constructor Tests
     @Test
     public void constructorNullTestSuiteConfigurationThrowsException() {
-        assertThrows(IllegalArgumentException.class,() -> new TestSuite(null, new IEnvironmentDescriptionProvider[] { new TestEnvironmentDescriptionProvider() }, new IAgentProvider[] { new TestAgentProvider() }));
+        assertThrows(IllegalArgumentException.class,() -> new TestSuite(null, new IEnvironmentDescriptionProvider[] { new TestEnvironmentDescriptionProvider() }, new IAgentProvider[] { new TestAgentProvider(false) }));
     }
 
     @Test
-    public void constructorNullEnvironmentDescriptionProviderThrowsException() {
-        assertThrows(IllegalArgumentException.class,() -> new TestSuite(this.testConfiguration, null, new IAgentProvider[] { new TestAgentProvider() }));
+    public void constructorNullEnvironmentDescriptionProvidersThrowsException() {
+        assertThrows(IllegalArgumentException.class,() -> new TestSuite(this.testConfiguration, null, new IAgentProvider[] { new TestAgentProvider(false) }));
+    }
+
+    @Test
+    public void constructorEmptyEnvironmentDescriptionProvidersThrowsException() {
+        assertThrows(IllegalArgumentException.class,() -> new TestSuite(this.testConfiguration, new IEnvironmentDescriptionProvider[0], new IAgentProvider[] { new TestAgentProvider(false) }));
     }
 
     @Test
@@ -34,64 +49,158 @@ public class TestSuiteTest {
         assertThrows(IllegalArgumentException.class,() -> new TestSuite(this.testConfiguration, new IEnvironmentDescriptionProvider[] { new TestEnvironmentDescriptionProvider() }, new IAgentProvider[0]));
     }
 
-    // run Tests
     @Test
-    public void runInitializesAndExecutesSingleAgent() throws Exception {
-        TestResultWriterProvider resultWriterProvider = new TestResultWriterProvider();
-        TestEnvironmentDescriptionProvider environmentDescriptionProvider = new TestEnvironmentDescriptionProvider();
+    public void constructorNullBeforeRunThrowsException()
+    {
+        assertThrows(IllegalArgumentException.class,() -> new TestSuite(this.testConfiguration, new IEnvironmentDescriptionProvider[] { new TestEnvironmentDescriptionProvider() }, new IAgentProvider[] { new TestAgentProvider(false) }, null));
+    }
+    //endregion
+
+    //region run Tests
+    @Test
+    public void runInitializesAndExecutesSingleAgentSingleEnvironment() {
         IAgentProvider[] agentProviders = new IAgentProvider[] {
-                        new TestAgentProvider()
+                        new TestAgentProvider(false)
                 };
-        TestSuite testSuite = new TestSuite(this.testConfiguration, new IEnvironmentDescriptionProvider[] { environmentDescriptionProvider }, agentProviders);
+        IEnvironmentDescriptionProvider[] environmentDescriptionProviders = new IEnvironmentDescriptionProvider[] {
+                new TestEnvironmentDescriptionProvider()
+        };
+        TestSuite testSuite = new TestSuite(this.testConfiguration, environmentDescriptionProviders, agentProviders);
+        TestResultWriterProvider resultWriterProvider = new TestResultWriterProvider();
         testSuite.run(resultWriterProvider);
 
         assertEquals(this.testConfiguration.getNumberOfIterations(), ((TestAgentProvider)agentProviders[0]).generatedAgents);
-        assertEquals(this.testConfiguration.getNumberOfIterations(), environmentDescriptionProvider.generatedEnvironmentDescriptions);
+        assertEquals(this.testConfiguration.getNumberOfIterations(), ((TestEnvironmentDescriptionProvider)environmentDescriptionProviders[0]).generatedEnvironmentDescriptions);
         assertEquals(1, resultWriterProvider.generatedResultWriters.size());
-        TestResultWriter resultWriter = resultWriterProvider.generatedResultWriters.get("env_EnvAlias_0_agent_AgAlias_0_steps");
-        assertEquals(this.testConfiguration.getNumberOfIterations(), resultWriter.iterationCount);
-        assertEquals(this.testConfiguration.getNumberOfIterations() * this.testConfiguration.getNumberOfGoals(), resultWriter.stepsLoggedCount);
-        assertTrue(resultWriter.completed);
-        assertEquals(this.testConfiguration.getNumberOfIterations(), resultWriter.iterationCountAtcompleted);
+        this.validateResultWriter(resultWriterProvider.generatedResultWriters.get("env_EnvAlias_0_agent_AgAlias_0_steps"));
     }
 
     @Test
-    public void runInitializesAndExecutesMultipleAgent() throws Exception {
-        TestResultWriterProvider resultWriterProvider = new TestResultWriterProvider();
-        TestEnvironmentDescriptionProvider environmentDescriptionProvider = new TestEnvironmentDescriptionProvider();
+    public void runInitializesAndExecutesMultipleAgentsSingleEnvironment()  {
         IAgentProvider[] agentProviders = new IAgentProvider[] {
-                        new TestAgentProvider(),
-                        new TestAgentProvider()
+                        new TestAgentProvider(false),
+                        new TestAgentProvider(false)
                 };
-        TestSuite testSuite = new TestSuite(this.testConfiguration, new IEnvironmentDescriptionProvider[] { environmentDescriptionProvider }, agentProviders);
+        IEnvironmentDescriptionProvider[] environmentDescriptionProviders = new IEnvironmentDescriptionProvider[] {
+                new TestEnvironmentDescriptionProvider()
+        };
+        TestSuite testSuite = new TestSuite(this.testConfiguration, environmentDescriptionProviders, agentProviders);
+        TestResultWriterProvider resultWriterProvider = new TestResultWriterProvider();
         testSuite.run(resultWriterProvider);
 
         assertEquals(this.testConfiguration.getNumberOfIterations(), ((TestAgentProvider)agentProviders[0]).generatedAgents);
         assertEquals(this.testConfiguration.getNumberOfIterations(), ((TestAgentProvider)agentProviders[1]).generatedAgents);
-        assertEquals(2 * this.testConfiguration.getNumberOfIterations(), environmentDescriptionProvider.generatedEnvironmentDescriptions);
+        assertEquals(2 * this.testConfiguration.getNumberOfIterations(), ((TestEnvironmentDescriptionProvider)environmentDescriptionProviders[0]).generatedEnvironmentDescriptions);
 
         assertEquals(2, resultWriterProvider.generatedResultWriters.size());
-        TestResultWriter resultWriter = resultWriterProvider.generatedResultWriters.get("env_EnvAlias_0_agent_AgAlias_0_steps");
-        assertEquals(this.testConfiguration.getNumberOfIterations(), resultWriter.iterationCount);
-        assertEquals(this.testConfiguration.getNumberOfIterations() * this.testConfiguration.getNumberOfGoals(), resultWriter.stepsLoggedCount);
-        assertTrue(resultWriter.completed);
-        assertEquals(this.testConfiguration.getNumberOfIterations(), resultWriter.iterationCountAtcompleted);
+        this.validateResultWriter(resultWriterProvider.generatedResultWriters.get("env_EnvAlias_0_agent_AgAlias_0_steps"));
+        this.validateResultWriter(resultWriterProvider.generatedResultWriters.get("env_EnvAlias_0_agent_AgAlias_1_steps"));
+    }
 
-        resultWriter = resultWriterProvider.generatedResultWriters.get("env_EnvAlias_0_agent_AgAlias_1_steps");
+    @Test
+    public void runInitializesAndExecutesSingleAgentMultipleEnvironments() {
+        IAgentProvider[] agentProviders = new IAgentProvider[] {
+                new TestAgentProvider(false)
+        };
+        IEnvironmentDescriptionProvider[] environmentDescriptionProviders = new IEnvironmentDescriptionProvider[] {
+                new TestEnvironmentDescriptionProvider(),
+                new TestEnvironmentDescriptionProvider()
+        };
+        TestSuite testSuite = new TestSuite(this.testConfiguration, environmentDescriptionProviders, agentProviders);
+        TestResultWriterProvider resultWriterProvider = new TestResultWriterProvider();
+        testSuite.run(resultWriterProvider);
+
+        assertEquals(2 * this.testConfiguration.getNumberOfIterations(), ((TestAgentProvider)agentProviders[0]).generatedAgents);
+        assertEquals(this.testConfiguration.getNumberOfIterations(), ((TestEnvironmentDescriptionProvider)environmentDescriptionProviders[0]).generatedEnvironmentDescriptions);
+        assertEquals(this.testConfiguration.getNumberOfIterations(), ((TestEnvironmentDescriptionProvider)environmentDescriptionProviders[1]).generatedEnvironmentDescriptions);
+        assertEquals(2, resultWriterProvider.generatedResultWriters.size());
+        this.validateResultWriter(resultWriterProvider.generatedResultWriters.get("env_EnvAlias_0_agent_AgAlias_0_steps"));
+        this.validateResultWriter(resultWriterProvider.generatedResultWriters.get("env_EnvAlias_1_agent_AgAlias_0_steps"));
+    }
+
+    @Test
+    public void runInitializesAndExecutesMultipleAgentsMultipleEnvironments() {
+        IAgentProvider[] agentProviders = new IAgentProvider[] {
+                new TestAgentProvider(false),
+                new TestAgentProvider(false)
+        };
+        IEnvironmentDescriptionProvider[] environmentDescriptionProviders = new IEnvironmentDescriptionProvider[] {
+                new TestEnvironmentDescriptionProvider(),
+                new TestEnvironmentDescriptionProvider()
+        };
+        TestSuite testSuite = new TestSuite(this.testConfiguration, environmentDescriptionProviders, agentProviders);
+        TestResultWriterProvider resultWriterProvider = new TestResultWriterProvider();
+        testSuite.run(resultWriterProvider);
+
+        assertEquals(2 * this.testConfiguration.getNumberOfIterations(), ((TestAgentProvider)agentProviders[1]).generatedAgents);
+        assertEquals(2 * this.testConfiguration.getNumberOfIterations(), ((TestAgentProvider)agentProviders[0]).generatedAgents);
+        assertEquals(2 * this.testConfiguration.getNumberOfIterations(), ((TestEnvironmentDescriptionProvider)environmentDescriptionProviders[0]).generatedEnvironmentDescriptions);
+        assertEquals(2 * this.testConfiguration.getNumberOfIterations(), ((TestEnvironmentDescriptionProvider)environmentDescriptionProviders[1]).generatedEnvironmentDescriptions);
+        assertEquals(4, resultWriterProvider.generatedResultWriters.size());
+        this.validateResultWriter(resultWriterProvider.generatedResultWriters.get("env_EnvAlias_0_agent_AgAlias_0_steps"));
+        this.validateResultWriter(resultWriterProvider.generatedResultWriters.get("env_EnvAlias_1_agent_AgAlias_0_steps"));
+        this.validateResultWriter(resultWriterProvider.generatedResultWriters.get("env_EnvAlias_0_agent_AgAlias_1_steps"));
+        this.validateResultWriter(resultWriterProvider.generatedResultWriters.get("env_EnvAlias_1_agent_AgAlias_1_steps"));
+    }
+
+    @Test
+    public void runResultWritersCaptureAdditionalStatistics() {
+        IAgentProvider[] agentProviders = new IAgentProvider[] {
+                new TestAgentProvider(true)
+        };
+        IEnvironmentDescriptionProvider[] environmentDescriptionProviders = new IEnvironmentDescriptionProvider[] {
+                new TestEnvironmentDescriptionProvider()
+        };
+        TestSuite testSuite = new TestSuite(this.testConfiguration, environmentDescriptionProviders, agentProviders);
+        TestResultWriterProvider resultWriterProvider = new TestResultWriterProvider();
+        testSuite.run(resultWriterProvider);
+
+        assertEquals(this.testConfiguration.getNumberOfIterations(), ((TestAgentProvider)agentProviders[0]).generatedAgents);
+        assertEquals(this.testConfiguration.getNumberOfIterations(), ((TestEnvironmentDescriptionProvider)environmentDescriptionProviders[0]).generatedEnvironmentDescriptions);
+        assertEquals(2, resultWriterProvider.generatedResultWriters.size());
+        this.validateResultWriter(resultWriterProvider.generatedResultWriters.get("env_EnvAlias_0_agent_AgAlias_0_steps"));
+        this.validateResultWriter(resultWriterProvider.generatedResultWriters.get("env_EnvAlias_0_agent_AgAlias_0_additionalStat"));
+    }
+
+    @Test
+    public void runTriggersBeforeRun() {
+        IAgentProvider[] agentProviders = new IAgentProvider[] {
+                new TestAgentProvider(false)
+        };
+        IEnvironmentDescriptionProvider[] environmentDescriptionProviders = new IEnvironmentDescriptionProvider[] {
+                new TestEnvironmentDescriptionProvider()
+        };
+        AtomicBoolean beforeRunTriggered = new AtomicBoolean(false);
+        Consumer<File> beforeRun = file -> { beforeRunTriggered.set(true); };
+        TestSuite testSuite = new TestSuite(this.testConfiguration, environmentDescriptionProviders, agentProviders, beforeRun);
+        TestResultWriterProvider resultWriterProvider = new TestResultWriterProvider();
+        testSuite.run(resultWriterProvider);
+        assertTrue(beforeRunTriggered.get());
+    }
+    //endregion
+
+    //region Helper Methods
+    private void validateResultWriter(TestResultWriter resultWriter) {
         assertEquals(this.testConfiguration.getNumberOfIterations(), resultWriter.iterationCount);
         assertEquals(this.testConfiguration.getNumberOfIterations() * this.testConfiguration.getNumberOfGoals(), resultWriter.stepsLoggedCount);
         assertTrue(resultWriter.completed);
         assertEquals(this.testConfiguration.getNumberOfIterations(), resultWriter.iterationCountAtcompleted);
     }
+    //endregion
 
-
+    //region "mock" classes
     private class TestAgentProvider implements IAgentProvider {
         public int generatedAgents = 0;
+        private boolean includeAdditionalStatistics;
+
+        public TestAgentProvider(boolean includeAdditionalStatistics) {
+            this.includeAdditionalStatistics = includeAdditionalStatistics;
+        }
 
         @Override
         public IAgent getAgent() {
             this.generatedAgents++;
-            return new TestAgent();
+            return new TestAgent(this.includeAdditionalStatistics);
         }
 
         @Override
@@ -101,7 +210,11 @@ public class TestSuiteTest {
     }
 
     private class TestAgent implements IAgent {
+        private boolean includeAdditionalStatistics;
 
+        public TestAgent(boolean includeAdditionalStatistics) {
+            this.includeAdditionalStatistics = includeAdditionalStatistics;
+        }
         @Override
         public void initialize(Move[] moves, IIntrospector introspector) {
 
@@ -112,6 +225,20 @@ public class TestSuiteTest {
             return new Move("a");
         }
 
+        @Override
+        public String[] getStatisticTypes() {
+            if (this.includeAdditionalStatistics)
+                return new String[] { "additionalStat" };
+            return new String[0];
+        }
+
+        @Override
+        public ArrayList<Datum> getData() {
+            ArrayList<Datum> data = new ArrayList<>();
+            if (this.includeAdditionalStatistics)
+                data.add(new Datum("additionalStat", 0));
+            return data;
+        }
     }
 
     private class TestEnvironmentDescriptionProvider implements IEnvironmentDescriptionProvider {
@@ -138,7 +265,7 @@ public class TestSuiteTest {
 
         @Override
         public TransitionResult transition(int currentState, Move move) {
-            return null;
+            return new TransitionResult(0, new SensorData(true));
         }
 
         @Override
@@ -185,4 +312,5 @@ public class TestSuiteTest {
             this.iterationCountAtcompleted = this.iterationCount;
         }
     }
+    //endregion
 }

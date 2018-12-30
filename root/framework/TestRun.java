@@ -43,7 +43,7 @@ class TestRun {
             SensorData sensorData = null;
             do {
                 Move move = this.agent.getNextMove(sensorData);
-                sensorData = environment.tick(move);
+                sensorData = this.environment.tick(move);
                 moveCount++;
 
                 if (sensorData.isGoal()) {
@@ -51,7 +51,7 @@ class TestRun {
                     this.fireGoalEvent(moveCount);
                     goalCount++;
                     moveCount = 0;
-                    environment.reset();
+                    this.environment.reset();
                 }
             } while (goalCount < this.numberOfGoalsToFind);
             this.agent.onTestRunComplete();

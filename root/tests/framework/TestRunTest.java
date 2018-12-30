@@ -3,10 +3,15 @@ package framework;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 
+/**
+ *
+ * @author Zachary Paul Faltersack
+ * @version 0.95
+ */
 public class TestRunTest {
     //region constructor Tests
     @Test
@@ -43,6 +48,8 @@ public class TestRunTest {
         TestRun testRun = new TestRun(agent, environment, 1);
         testRun.addGoalListener(goalListener);
         testRun.execute();
+        assertTrue(agent.testRunComplete);
+        assertEquals(1, agent.goalCount);
 
         SensorData sensorA = new SensorData(false);
         sensorA.setSensor("a", "a");
@@ -62,9 +69,13 @@ public class TestRunTest {
         String[] expectedResultWriterLogs = new String[] {
                   "3,"
                 };
+        String[] additionalStatLogs = new String[] {
+                "0,"
+        };
 
         assertArrayEquals(expectedEpisodicMemory, agent.episodes.toArray());
-        assertArrayEquals(expectedResultWriterLogs, goalListener.logStatements.toArray());
+        assertArrayEquals(expectedResultWriterLogs, goalListener.logStatements.get("steps").toArray());
+        assertArrayEquals(additionalStatLogs, goalListener.logStatements.get("additionalStat").toArray());
     }
 
     @Test
@@ -75,6 +86,8 @@ public class TestRunTest {
         TestRun testRun = new TestRun(agent, environment, 3);
         testRun.addGoalListener(goalListener);
         testRun.execute();
+        assertTrue(agent.testRunComplete);
+        assertEquals(3, agent.goalCount);
 
         SensorData sensorA = new SensorData(false);
         sensorA.setSensor("a", "a");
@@ -100,16 +113,25 @@ public class TestRunTest {
                         "3,",
                         "3,"
                 };
+        String[] additionalStatLogs = new String[] {
+                "0,",
+                "1,",
+                "2,"
+        };
 
         assertArrayEquals(expectedEpisodicMemory, agent.episodes.toArray());
-        assertArrayEquals(expectedResultWriterLogs, goalListener.logStatements.toArray());
+        assertArrayEquals(expectedResultWriterLogs, goalListener.logStatements.get("steps").toArray());
+        assertArrayEquals(additionalStatLogs, goalListener.logStatements.get("additionalStat").toArray());
     }
     //endregion
 
+    //region "mock" classes
     private class TestAgent implements IAgent {
         public Move[] moves;
 
         public ArrayList<Episode> episodes = new ArrayList<>();
+        public boolean testRunComplete = false;
+        public int goalCount = 0;
 
         private int moveIndex = 0;
 
@@ -130,22 +152,34 @@ public class TestRunTest {
             return move;
         }
 
-        public int goalCount = 0;
         @Override
         public void onGoalFound() {
             this.goalCount++;
         }
 
-        public boolean testRunComplete = false;
         @Override
         public void onTestRunComplete()
         {
             this.testRunComplete = true;
         }
+
+        @Override
+        public String[] getStatisticTypes()
+        {
+            return new String[] { "additionalStat "};
+        }
+
+        private int datumCount = 0;
+        @Override
+        public ArrayList<Datum> getData()
+        {
+            ArrayList<Datum> data = new ArrayList<>();
+            data.add(new Datum("additionalStat", datumCount++));
+            return data;
+        }
     }
 
     private  class TestEnvironmentDescription implements IEnvironmentDescription {
-        private Move lastMove;
         @Override
         public Move[] getMoves() {
             return new Move[] { new Move("a"), new Move("b"), new Move("c") };
@@ -153,8 +187,9 @@ public class TestRunTest {
 
         @Override
         public TransitionResult transition(int currentState, Move move) {
-            this.lastMove = move;
-            return null;
+            SensorData sensorData = new SensorData(move.equals(this.getMoves()[2]));
+            sensorData.setSensor(move.getName(), move.getName());
+            return new TransitionResult(0, sensorData);
         }
 
         @Override
@@ -164,11 +199,21 @@ public class TestRunTest {
     }
 
     private class TestGoalListener implements IGoalListener {
-        public ArrayList<String> logStatements = new ArrayList<>();
+        public HashMap<String, ArrayList<String>> logStatements = new HashMap<>();
 
         @Override
         public void goalReceived(GoalEvent event) {
-            logStatements.add(event.getStepCountToGoal() + ",");
+            if (!this.logStatements.containsKey("steps"))
+                logStatements.put("steps", new ArrayList<>());
+            logStatements.get("steps").add(event.getStepCountToGoal() + ",");
+            for (Datum agentData : event.getAgentData())
+            {
+                String statistic = agentData.getStatistic();
+                if (!this.logStatements.containsKey(statistic))
+                    logStatements.put(statistic, new ArrayList<>());
+                logStatements.get(statistic).add(agentData.getDatum() + ",");
+            }
         }
     }
+    //endregion
 }

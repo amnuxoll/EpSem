@@ -36,6 +36,8 @@ public class TestSuite implements IGoalListener {
             throw new IllegalArgumentException("agentProviders cannot be null.");
         if (agentProviders.length == 0)
             throw new IllegalArgumentException("agentProviders cannot be empty.");
+        if (beforeRun == null)
+            throw new IllegalArgumentException("beforeRun cannot be null");
         this.configuration = configuration;
         this.environmentDescriptionProviders = environmentDescriptionProviders;
         this.agentProviders = agentProviders;
