@@ -1,7 +1,8 @@
 package environments.fsm;
 
 import framework.IEnvironmentDescription;
-import utils.Randomizer;
+import utils.Random;
+
 import java.util.EnumSet;
 
 /**
@@ -33,7 +34,7 @@ public class FSMDescriptionTweakingProvider extends FSMDescriptionProvider {
         if (this.lastDescription == null)
             this.lastDescription = (FSMDescription) super.getEnvironmentDescription();
         else
-            this.lastDescription.tweakTable(2, new Randomizer());
+            this.lastDescription.tweakTable(2, Random.getTrue());
         return this.lastDescription;
     }
 

@@ -1,7 +1,6 @@
 package utils;
 
 import java.io.File;
-import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -12,20 +11,20 @@ import java.util.Date;
  */
 public class DirectoryUtils {
     //region Static Variables
-    public final static String outputRootDirectory = Paths.get(System.getProperty("user.home"), "fsm_output").toString();
+    private final static File outputRootDirectory = new File(System.getProperty("user.home"), "fsm_output");
     //endregion
 
     //region Public Static Methods
     public static File generateNewOutputDirectory()
     {
-        File file = new File(DirectoryUtils.outputRootDirectory, DirectoryUtils.getTimestamp());
+        File file = new File(DirectoryUtils.outputRootDirectory, DirectoryUtils.getTimestamp(System.currentTimeMillis()));
         file.mkdirs();
         return file;
     }
 
-    public static String getTimestamp()
+    public static String getTimestamp(long timestamp)
     {
-        Date myDate = new Date();
+        Date myDate = new Date(timestamp);
         SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
         return sdf.format(myDate);
     }

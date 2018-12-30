@@ -10,8 +10,10 @@ import java.io.StringWriter;
  */
 public class ExceptionUtils {
     //region Public Static Methods
-    public static String getString(Exception exception)
+    public static String getStacktrace(Exception exception)
     {
+        if (exception == null)
+            throw new IllegalArgumentException("exception cannot be null.");
         StringWriter stringWriter = new StringWriter();
         PrintWriter printWriter = new PrintWriter(stringWriter);
         exception.printStackTrace(printWriter);

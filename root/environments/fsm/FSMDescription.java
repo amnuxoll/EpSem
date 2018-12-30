@@ -1,8 +1,6 @@
 package environments.fsm;
 
 import framework.*;
-import utils.Randomizer;
-import framework.Sequence;
 import java.util.*;
 
 /**
@@ -94,8 +92,8 @@ public class FSMDescription implements IEnvironmentDescription {
     //endregion
 
     //region Protected Methods
-    protected void tweakTable(int numSwaps, Randomizer randomizer) {
-        for(FSMTransitionTable.Tweak tweak : this.transitionTable.tweakTable(numSwaps, randomizer))
+    protected void tweakTable(int numSwaps, Random random) {
+        for(FSMTransitionTable.Tweak tweak : this.transitionTable.tweakTable(numSwaps, random))
         {
             //update the sensor table to reflect the "new" transitions
             this.transitionSensorTable[tweak.state].put(this.moves[tweak.move1], 0);

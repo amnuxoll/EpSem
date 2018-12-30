@@ -1,7 +1,7 @@
 package environments.fsm;
 
 import org.junit.jupiter.api.Test;
-import utils.Randomizer;
+import utils.Random;
 
 import java.util.EnumSet;
 
@@ -11,31 +11,31 @@ public class FSMDescriptionProviderTest {
     //region constructor Tests
     @Test
     public void constructorAlphabetSizeLessThanOneThrowsException() {
-        assertThrows(IllegalArgumentException.class, () -> new FSMDescriptionProvider(new FSMTransitionTableBuilder(0, 1, new Randomizer()), FSMDescription.Sensor.ALL_SENSORS));
+        assertThrows(IllegalArgumentException.class, () -> new FSMDescriptionProvider(new FSMTransitionTableBuilder(0, 1, Random.getTrue()), FSMDescription.Sensor.ALL_SENSORS));
     }
 
     @Test
     public void constructorNumberOfStatesLessThanOneThrowsException() {
-        assertThrows(IllegalArgumentException.class, () -> new FSMDescriptionProvider(new FSMTransitionTableBuilder(1, 0, new Randomizer()), FSMDescription.Sensor.ALL_SENSORS));
+        assertThrows(IllegalArgumentException.class, () -> new FSMDescriptionProvider(new FSMTransitionTableBuilder(1, 0, Random.getTrue()), FSMDescription.Sensor.ALL_SENSORS));
     }
 
     @Test
     public void constructorNullEnumSetThrowsException() {
-        assertThrows(IllegalArgumentException.class, () -> new FSMDescriptionProvider(new FSMTransitionTableBuilder(1, 1, new Randomizer()), null));
+        assertThrows(IllegalArgumentException.class, () -> new FSMDescriptionProvider(new FSMTransitionTableBuilder(1, 1, Random.getTrue()), null));
     }
     //endregion
 
     //region getEnvironmentDescription Tests
     @Test
     public void getEnvironmentDescriptionHeedsConfiguration1() {
-        FSMDescriptionProvider descriptionProvider = new FSMDescriptionProvider(new FSMTransitionTableBuilder(1, 1, new Randomizer()), FSMDescription.Sensor.ALL_SENSORS);
+        FSMDescriptionProvider descriptionProvider = new FSMDescriptionProvider(new FSMTransitionTableBuilder(1, 1, Random.getTrue()), FSMDescription.Sensor.ALL_SENSORS);
         FSMDescription description = (FSMDescription)descriptionProvider.getEnvironmentDescription();
         assertEquals(1, description.getMoves().length);
     }
 
     @Test
     public void getEnvironmentDescriptionHeedsConfiguration2() {
-        FSMDescriptionProvider descriptionProvider = new FSMDescriptionProvider(new FSMTransitionTableBuilder(13, 42, new Randomizer()), EnumSet.of(FSMDescription.Sensor.EVEN_ODD));
+        FSMDescriptionProvider descriptionProvider = new FSMDescriptionProvider(new FSMTransitionTableBuilder(13, 42, Random.getTrue()), EnumSet.of(FSMDescription.Sensor.EVEN_ODD));
         FSMDescription description = (FSMDescription)descriptionProvider.getEnvironmentDescription();
         assertEquals(13, description.getMoves().length);
     }
@@ -45,7 +45,7 @@ public class FSMDescriptionProviderTest {
     @Test
     public void getAlias()
     {
-        FSMDescriptionProvider descriptionProvider = new FSMDescriptionProvider(new FSMTransitionTableBuilder(13, 42, new Randomizer()), EnumSet.of(FSMDescription.Sensor.EVEN_ODD));
+        FSMDescriptionProvider descriptionProvider = new FSMDescriptionProvider(new FSMTransitionTableBuilder(13, 42, Random.getTrue()), EnumSet.of(FSMDescription.Sensor.EVEN_ODD));
         assertEquals("FSMDescription", descriptionProvider.getAlias());
     }
     //endregion

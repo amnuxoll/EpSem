@@ -44,7 +44,7 @@ public class FileResultWriterProvider implements IResultWriterProvider {
             throw new IllegalArgumentException("file cannot be null");
         if (file == "")
             throw new IllegalArgumentException("file cannot be empty");
-        return new FileResultWriter(agent, new File(this.outputDirectory,  file + "." + DirectoryUtils.getTimestamp() + ".csv"));
+        return new FileResultWriter(agent, new File(this.outputDirectory,  file + "." + DirectoryUtils.getTimestamp(System.currentTimeMillis()) + ".csv"));
     }
 
     @Override

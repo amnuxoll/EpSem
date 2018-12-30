@@ -45,7 +45,7 @@ public class NamedOutput {
 
     public void write(String key, Exception exception) {
         this.write(key, "Exception logged: " + exception.getMessage());
-        this.write(key, ExceptionUtils.getString(exception));
+        this.write(key, ExceptionUtils.getStacktrace(exception));
     }
 
     public void closeAll(){

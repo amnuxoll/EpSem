@@ -45,7 +45,7 @@ public class MaRzLearner<TSuffixNode extends SuffixNodeBase<TSuffixNode>> extend
     protected void markSuccess() {
         // We'll get inconsistent data if we allow this case through due to the fact that a goal sensor triggers a wormhole event.
         // This is a definite weakness of the algorithm right now
-        Episode episode = this.episodicMemory.getFromOffset(2);
+        Episode episode = this.episodicMemory.getFromOffset(1);
         if (!episode.hitGoal()) {
             this.discriminator.add(episode.getSensorData(), this.episodicMemory.current().getMove());
             System.out.println(this.discriminator);

@@ -202,7 +202,9 @@ public class NSMAgent implements IAgent {
             double prevUtility = utility;
 
             //Update all the root's predecessors that participated in the match
-            for(int j = 1; j < nbor.len; ++j)
+            // TODO -- this range was updated to reflect how getFromOffset works. I don't really understand why it's
+            // starting at 2
+            for(int j = 2; j <= nbor.len; ++j)
             {
                 QEpisode prevEp = episodicMemory.getFromOffset(j);
                 prevEp.updateQValue(prevUtility);

@@ -2,11 +2,8 @@ package environments.fsm;
 
 import framework.Move;
 import framework.Sequence;
-import utils.Randomizer;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.Set;
+
+import java.util.*;
 
 /**
  *
@@ -86,16 +83,16 @@ public class FSMTransitionTable {
     //endregion
 
     //region Protected Methods
-    protected Tweak[] tweakTable(int numSwaps, Randomizer randomizer) {
+    protected Tweak[] tweakTable(int numSwaps, Random random) {
         ArrayList<Tweak> tweaks = new ArrayList<>();
         for(int i = 0;i<numSwaps; i++) {
-            int stateToSwitch = randomizer.getRandomNumber(this.transitions.length); //pick which state whose moves will be swapped
+            int stateToSwitch = random.nextInt(this.transitions.length); //pick which state whose moves will be swapped
             //pick two moves from a state's possible moves to exchange
             //don't allow the selected moves to be the same one
             int selectedMove1, selectedMove2;
             do {
-                selectedMove1 = randomizer.getRandomNumber(this.moves.length);
-                selectedMove2 = randomizer.getRandomNumber(this.moves.length);
+                selectedMove1 = random.nextInt(this.moves.length);
+                selectedMove2 = random.nextInt(this.moves.length);
             } while(selectedMove1 == selectedMove2 && this.moves.length != 1);
 
             //save value to temp and put new values in swapped places

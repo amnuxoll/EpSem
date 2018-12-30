@@ -14,6 +14,8 @@ public class EpisodeUtils {
     //region Public Static Methods
     public static Move[] selectMoves(Episode[] episodes)
     {
+        if (episodes == null)
+            throw new IllegalArgumentException("episodes cannot be null.");
         return Arrays.stream(episodes).map(ep -> ep.getMove()).collect(Collectors.toList()).toArray(new Move[0]);
     }
     //endregion

@@ -1,9 +1,9 @@
 package environments.fsm;
 
 import framework.Move;
-import utils.Randomizer;
 
 import java.util.HashMap;
+import java.util.Random;
 
 /**
  * An FSMTransitionTableBuilder is used to build transition tables for a {@link FSMDescription}.
@@ -21,20 +21,20 @@ import java.util.HashMap;
 public class FSMTransitionTableBuilder {
     private int alphabetSize;
     private int numStates;
-    private Randomizer randomizer;
     private Move[] moves;
+    private Random random;
 
     /**
      * Create a {@link FSMTransitionTableBuilder}.
      * @param alphabetSize The number of moves to allow from each state.
      * @param numStates The number of states in the FSM.
      */
-    public FSMTransitionTableBuilder(int alphabetSize, int numStates, Randomizer randomizer) {
+    public FSMTransitionTableBuilder(int alphabetSize, int numStates, Random random) {
         if (alphabetSize < 1)
             throw new IllegalArgumentException("alphabetSize cannot be less than 1");
         if (numStates < 1)
             throw new IllegalArgumentException("numStates cannot be less than 1");
-        this.randomizer = randomizer;
+        this.random = random;
         this.alphabetSize = alphabetSize;
         this.numStates = numStates;
         this.moves = new Move[alphabetSize];
@@ -65,7 +65,7 @@ public class FSMTransitionTableBuilder {
         int maxTransitionsToGoal = (int)(transitions.length * this.moves.length * 0.04);
         if (maxTransitionsToGoal == 0)
             maxTransitionsToGoal = 1;
-        this.pickTransitions(transitions,this.numStates - 1, this.randomizer.getRandomNumber(maxTransitionsToGoal) + 1, 0);
+        this.pickTransitions(transitions,this.numStates - 1, this.random.nextInt(maxTransitionsToGoal) + 1, 0);
         return transitions;
     }
 
@@ -75,8 +75,8 @@ public class FSMTransitionTableBuilder {
             //check to see if table is full
             if(transitionsDone == ((transitions.length-1)*this.moves.length))
                 return;
-            initState = this.randomizer.getRandomNumber(transitions.length);
-            int moveIndex = this.randomizer.getRandomNumber(this.moves.length);
+            initState = this.random.nextInt(transitions.length);
+            int moveIndex = this.random.nextInt(this.moves.length);
 
             if (transitions[initState] != null && transitions[initState].containsKey(this.moves[moveIndex])) {
                 i--;
