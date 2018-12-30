@@ -12,7 +12,7 @@ public class NSMAgentProvider implements IAgentProvider {
     //region IAgentProvider Members
     @Override
     public IAgent getAgent() {
-        return new NSMAgent();
+        return new NSMAgent(new QLearningConfiguration());
     }
 
     @Override

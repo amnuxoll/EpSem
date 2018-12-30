@@ -60,11 +60,8 @@ public class NHood {
 
         // sum the q-values of each neighbor
         double total = 0.0;
-        for(NBor nbor : this.nbors)
-        {
+        for (NBor nbor : this.nbors) {
             total += nbor.calculateQValue();
-//            QEpisode qep = episodicMemory.get(nbor.end);
-//            total += qep.qValue;
         }
 
         // return the average

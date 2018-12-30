@@ -1,7 +1,6 @@
 package agents.nsm;
 
 import framework.*;
-import utils.EpisodicMemory;
 
 import java.util.*;
 
@@ -17,36 +16,25 @@ import java.util.*;
  */
 public class NSMAgent implements IAgent {
     //region Static Variables
-    /**
-     * ************************************************************************************
-     * VARIABLES
-     * ************************************************************************************
-     */
-    // Defines for Q-Learning algorithm
-    public static double REWARD_SUCCESS   =  1.0;
-    public static double REWARD_FAILURE   = -0.1;
-    public static double INIT_RAND_CHANCE =  0.8;
-    public static double RAND_DECREASE    =  0.95;  //mult randChance by this value at each goal
-    public static double MIN_RAND_CHANCE  =  0.0;
-    public static final int MAX_EPISODES = 2000000;
-    public static final int NUM_GOALS = 1000;
-    public static int informationColumns = 0; //for now before consolidation of recording data must be declared in each agent
     private static Random random = new Random();
     //endregion
 
     //region Class Variables
-    protected HashMap<Move, NHood> nhoods;
-    protected double randChance = INIT_RAND_CHANCE;  //how frequently the agent make a random move
-    protected EpisodicMemory<QEpisode> episodicMemory;
-    protected int Successes = 0;
+    private NHood selectedNHood;
+    private double randChance;  //how frequently the agent make a random move
+    private QEpisodicMemory episodicMemory;
+    private int Successes = 0;
     private Move[] moves;
+    private QLearningConfiguration qLearningConfiguration;
     //endregion
 
     //region Constructors
     /**
 	 * The constructor for the agent simply initializes it's instance variables
 	 */
-	public NSMAgent() {
+	public NSMAgent(QLearningConfiguration qLearningConfiguration) {
+	    this.qLearningConfiguration = qLearningConfiguration;
+	    this.randChance = this.qLearningConfiguration.INIT_RAND_CHANCE;
 	}//NSMAgent ctor
     //endregion
 
@@ -54,63 +42,42 @@ public class NSMAgent implements IAgent {
     @Override
     public void initialize(Move[] moves, IIntrospector introspector) {
         this.moves = moves;
-        informationColumns = 2;
-        nhoods = new HashMap<>();
-        episodicMemory = new EpisodicMemory<>();
+        this.episodicMemory = new QEpisodicMemory();
     }
 
     @Override
     public Move getNextMove(SensorData sensorData) {
-        if (episodicMemory.any()) {
-            QEpisode episode = episodicMemory.current();
-            episode.setSensorData(sensorData);
+        if (this.episodicMemory.any()) {
+            this.episodicMemory.current().setSensorData(sensorData);
 
             if (sensorData.isGoal()) {
-                episode.reward = REWARD_SUCCESS;
-                Successes++;
-                if (randChance > MIN_RAND_CHANCE) {
-                    randChance *= RAND_DECREASE;
+                this.Successes++;
+                if (this.randChance > this.qLearningConfiguration.MIN_RAND_CHANCE) {
+                    this.randChance *= this.qLearningConfiguration.RAND_DECREASE;
                 }
-            } else {
-                episode.reward = REWARD_FAILURE;
             }
-            //Update the q-values for the previous iteration of this loop
-            if (nhoods.size() > 0)
-                updateAllLittleQ(episode);
+            // Update the q-values for the previous iteration of this loop
+            this.updateAllLittleQ();
         }
 
-        Move move = this.moves[random.nextInt(this.moves.length)];  //default is random for now
-
-        // We can't use NSM until we've found the goal at least once
-        if(Successes > 0) {
-            // Ensure there isn't anything to incorrectly update should we choose a random move.
-            nhoods.clear();
-            // (if not using random action) select the action that has the
-            // neighborhood with the highest Q-value
-            if (random.nextDouble() >= this.randChance) {
-                populateNHoods();
-                double bestQ = 0;
-                Move bestMove = null;
-                for (Move moveToConsider : nhoods.keySet())
-                {
-                    NHood nHood = nhoods.get(moveToConsider);
-                    double qVal = nHood.getQValue();
-                    if (bestMove == null || qVal > bestQ)
-                    {
-                        bestQ = qVal;
-                        bestMove = nHood.getMove();
-                    }
-                }
-                move = bestMove;
-            }//if
-        }//if
-
-        episodicMemory.add(new QEpisode(move));
+        Move move = this.selectNextMove();
+        this.episodicMemory.add(new QEpisode(move, this.qLearningConfiguration.REWARD_SUCCESS, this.qLearningConfiguration.REWARD_FAILURE));
         return move;
     }//exploreEnvironment
     //endregion
 
     //region Private Methods
+    private Move selectNextMove() {
+        // We can't use NSM until we've found the goal at least once
+        // (if not using random action) select the action that has the neighborhood with the highest Q-value
+        if(this.Successes > 0 && NSMAgent.random.nextDouble() >= this.randChance) {
+            this.selectedNHood = this.getBestNeighborhood();
+            return this.selectedNHood.getMove();
+        }//if
+        this.selectedNHood = null;
+        return this.moves[NSMAgent.random.nextInt(this.moves.length)];
+    }
+
     /**
      * populateNHoods
      *
@@ -118,60 +85,17 @@ public class NSMAgent implements IAgent {
      * must be regenerated each time that that a new episode is added to the
      * store.
      */
-    private void populateNHoods() {
+    private NHood getBestNeighborhood() {
         //Create a new neighborhood for each command
+        NHood bestNHood = null;
         for (Move move : this.moves)
         {
-            NHood nHood = new NHood(move);
-            nhoods.put(move, nHood);
-
-            //temporarily set the to-be-issued command to this value
-            episodicMemory.add(new QEpisode(move));
-
-            //find the kNN
-            for(int i = 0; i <= episodicMemory.currentIndex() - 1; ++i) {
-                int matchLen = matchedMemoryStringLength(i);
-                if ((matchLen > 0) && ((nHood.shortest <= matchLen) || (nHood.nbors.size() < nHood.K_NEAREST))) {
-                    nHood.addNBor(new NBor(i, matchLen, this.episodicMemory.get(i)));
-                }
-            }//for
-
-            episodicMemory.trim(1);
+            NHood nhood = this.episodicMemory.buildNeighborhoodForMove(move);
+            if (bestNHood == null || nhood.getQValue() > bestNHood.getQValue())
+                bestNHood = nhood;
         }//for
+        return bestNHood;
     }//populateNHoods
-
-    /**
-     * matchedMemoryStringLength
-     *
-     * Starts from a given index and the end of the Agent's episodic memory and
-     * moves backwards, comparing each episode to the present episode and it
-     * prededessors until the corresponding episdoes no longer match.
-     *
-     * @param endOfStringIndex The index from which to start the backwards search
-     * @return the number of consecutive matching characters
-     */
-    private int matchedMemoryStringLength(int endOfStringIndex) {
-        int length = 0;
-        int indexOfMatchingAction = episodicMemory.currentIndex();
-        if (!episodicMemory.get(indexOfMatchingAction).getMove().equals(episodicMemory.get(endOfStringIndex).getMove()))
-            return 0;
-        endOfStringIndex--;
-        indexOfMatchingAction--;
-        for (int i = endOfStringIndex; i >= 0; i--) {
-            //We want to compare the command from the prev episode and the
-            //sensors from the "right now" episode to the sequence at the
-            //index indicated by 'i'
-            if (episodicMemory.get(indexOfMatchingAction).equals(episodicMemory.get(i))) {
-                length++;
-                indexOfMatchingAction--;
-            }
-            else {
-                return length;
-            }
-        }//for
-
-        return length;
-    }//matchedMemoryStringLength
 
     /**
      * updateAllLittleQ
@@ -184,37 +108,29 @@ public class NSMAgent implements IAgent {
      *
      * @arg ep A pointer to the episode containing the most recently executed action
      */
-    private void updateAllLittleQ(QEpisode ep) {
+    private void updateAllLittleQ() {
+        if (this.selectedNHood == null)
+            return;
         // Recalculate the Q value of the neighborhood associated with the
         // episode's action
-        NHood nhood = nhoods.get(ep.getMove());
-        double utility = nhood.getQValue();
+        double utility = this.selectedNHood.getQValue();
 
         // Update the q values for each of the voting episodes for the most
         // recent action
-        for(int i = 0; i < nhood.nbors.size(); ++i) {
+        for(int i = 0; i < this.selectedNHood.nbors.size(); ++i) {
             //Update the root episode
-            NBor nbor = nhood.nbors.get(i);
-            int index = nbor.end - i;
-            if (index < 0)
-                continue;  //don't fall off the end
-            episodicMemory.get(index).updateQValue(utility);
-            double prevUtility = utility;
-
+            NBor nbor = this.selectedNHood.nbors.get(i);
+            nbor.qEpisode.updateQValue(utility); // <--- TODO Is this really necessary? I feel like this is a bug
+                                                 // that got ported over
             //Update all the root's predecessors that participated in the match
-            // TODO -- this range was updated to reflect how getFromOffset works. I don't really understand why it's
-            // starting at 2
-            for(int j = 2; j <= nbor.len; ++j)
+            double prevUtility = utility;
+            for(int j = 0; j < nbor.len; ++j)
             {
-                QEpisode prevEp = episodicMemory.getFromOffset(j);
+                QEpisode prevEp = this.episodicMemory.getFromOffset(j);
                 prevEp.updateQValue(prevUtility);
                 prevUtility = prevEp.qValue;
             }
         }//for
-
-        // Update the given (most recent) episode's Q value
-        ep.updateQValue(utility);
-
     }//updateAllLittleQ
     //endregion
 }//class NSMAgent

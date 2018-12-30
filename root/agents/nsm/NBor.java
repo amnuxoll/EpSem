@@ -9,16 +9,16 @@ package agents.nsm;
  */
 public class NBor implements Comparable<NBor> {
     //region Class Variables
-    public int end;  // index of the current episode of the sequence
-    public int begin; // index of the first episode of the sequence
+    //public int end;  // index of the current episode of the sequence
+    //public int begin; // index of the first episode of the sequence
     public int len;  //length of the sequence
-    private QEpisode qEpisode;
+    public QEpisode qEpisode;
     //endregion
 
     //region Constructors
     public NBor(int initEnd, int initLen, QEpisode episode) {
-        this.begin = initEnd - initLen;
-        this.end = initEnd;
+        //this.begin = initEnd - initLen;
+        //this.end = initEnd;
         this.len = initLen;
         this.qEpisode = episode;
     }
@@ -32,8 +32,7 @@ public class NBor implements Comparable<NBor> {
     //endregion
 
     //region Public Methods
-    public double calculateQValue()
-    {
+    public double calculateQValue() {
         return this.qEpisode.qValue;
     }
     //endregion

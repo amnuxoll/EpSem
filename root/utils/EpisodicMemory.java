@@ -11,7 +11,7 @@ import java.util.ArrayList;
  */
 public class EpisodicMemory<TEpisode extends Episode> {
     //region Class Variables
-    private ArrayList<TEpisode> episodicMemory = new ArrayList<>();
+    protected ArrayList<TEpisode> episodicMemory = new ArrayList<>();
     //endregion
 
     //region Public Methods

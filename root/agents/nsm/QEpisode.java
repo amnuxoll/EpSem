@@ -2,6 +2,7 @@ package agents.nsm;
 
 import framework.Episode;
 import framework.Move;
+import framework.SensorData;
 
 /**
  *
@@ -16,12 +17,27 @@ public class QEpisode extends Episode {
 
     //region Class Variables
     public double qValue = 0.0;
-    public double reward = 0.0;
+    private double reward = 0.0;
+    private double successReward;
+    private double failureReward;
     //endregion
 
     //region Constructors
-    public QEpisode(Move move) {
+    public QEpisode(Move move, double successReward, double failureReward) {
         super(move);
+        this.successReward = successReward;
+        this.failureReward = failureReward;
+    }
+    //endregion
+
+    //region Episode Overrides
+    @Override
+    public void setSensorData(SensorData sensorData) {
+        super.setSensorData(sensorData);
+        if (sensorData.isGoal())
+            this.reward = this.successReward;
+        else
+            this.reward = this.failureReward;
     }
     //endregion
 
