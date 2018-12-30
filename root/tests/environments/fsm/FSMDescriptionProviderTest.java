@@ -7,6 +7,11 @@ import java.util.EnumSet;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+/**
+ *
+ * @author Zachary Paul Faltersack
+ * @version 0.95
+ */
 public class FSMDescriptionProviderTest {
     //region constructor Tests
     @Test

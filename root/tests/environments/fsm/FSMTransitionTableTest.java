@@ -7,6 +7,11 @@ import java.util.HashMap;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+/**
+ *
+ * @author Zachary Paul Faltersack
+ * @version 0.95
+ */
 public class FSMTransitionTableTest {
     //region Constructor Tests
     @Test

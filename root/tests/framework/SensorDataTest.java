@@ -6,6 +6,11 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+/**
+ *
+ * @author Zachary Paul Faltersack
+ * @version 0.95
+ */
 public class SensorDataTest {
     //region setSensor & getSensor Tests
     @Test
