@@ -1,6 +1,8 @@
 package framework;
 
 import org.junit.jupiter.api.Test;
+
+import java.util.ArrayList;
 import java.util.HashMap;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -78,26 +80,26 @@ public class EnvironmentTest {
 
     //region Helper Class
     private class TestEnvironmentDescription implements IEnvironmentDescription {
-        private HashMap<Move, Integer>[] transitions;
+        private ArrayList<HashMap<Move, Integer>> transitions;
 
         public TestEnvironmentDescription() {
-            this.transitions = new HashMap[4];
-            this.transitions[0] = new HashMap<>();
-            this.transitions[0].put(new Move("move1"), 1);
-            this.transitions[0].put(new Move("move2"), 0);
-            this.transitions[0].put(new Move("move3"), 0);
-            this.transitions[1] = new HashMap<>();
-            this.transitions[1].put(new Move("move1"), 1);
-            this.transitions[1].put(new Move("move2"), 2);
-            this.transitions[1].put(new Move("move3"), 1);
-            this.transitions[2] = new HashMap<>();
-            this.transitions[2].put(new Move("move1"), 2);
-            this.transitions[2].put(new Move("move2"), 2);
-            this.transitions[2].put(new Move("move3"), 3);
-            this.transitions[3] = new HashMap<>();
-            this.transitions[3].put(new Move("move1"), 3);
-            this.transitions[3].put(new Move("move2"), 3);
-            this.transitions[3].put(new Move("move3"), 3);
+            this.transitions = new ArrayList<>();
+            this.transitions.add(new HashMap<>());
+            this.transitions.get(0).put(new Move("move1"), 1);
+            this.transitions.get(0).put(new Move("move2"), 0);
+            this.transitions.get(0).put(new Move("move3"), 0);
+            this.transitions.add(new HashMap<>());
+            this.transitions.get(1).put(new Move("move1"), 1);
+            this.transitions.get(1).put(new Move("move2"), 2);
+            this.transitions.get(1).put(new Move("move3"), 1);
+            this.transitions.add(new HashMap<>());
+            this.transitions.get(2).put(new Move("move1"), 2);
+            this.transitions.get(2).put(new Move("move2"), 2);
+            this.transitions.get(2).put(new Move("move3"), 3);
+            this.transitions.add(new HashMap<>());
+            this.transitions.get(3).put(new Move("move1"), 3);
+            this.transitions.get(3).put(new Move("move2"), 3);
+            this.transitions.get(3).put(new Move("move3"), 3);
         }
 
         @Override
@@ -107,7 +109,7 @@ public class EnvironmentTest {
 
         @Override
         public TransitionResult transition(int currentState, Move move) {
-            int newState = this.transitions[currentState].get(move);
+            int newState = this.transitions.get(currentState).get(move);
             SensorData sensorData = new SensorData(newState == 3);
             return new TransitionResult(newState, sensorData);
         }
