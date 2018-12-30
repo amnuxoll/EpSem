@@ -17,7 +17,7 @@ public class QEpisodicMemory extends EpisodicMemory<QEpisode> {
         for(int i = 0; i <= this.currentIndex(); ++i) {
             int matchLen = this.matchedMemoryStringLength(move, i);
             if ((matchLen > 0) && ((nHood.shortest <= matchLen) || (nHood.nbors.size() < nHood.K_NEAREST))) {
-                nHood.addNBor(new NBor(i, matchLen, episodicMemory.get(i)));
+                nHood.addNBor(new NBor(i, matchLen, this.episodicMemory.get(i)));
             }
         }//for
         return nHood;
@@ -45,7 +45,7 @@ public class QEpisodicMemory extends EpisodicMemory<QEpisode> {
             //We want to compare the command from the prev episode and the
             //sensors from the "right now" episode to the sequence at the
             //index indicated by 'i'
-            if (this.episodicMemory.get(indexOfMatchingAction).equals(episodicMemory.get(i))) {
+            if (this.episodicMemory.get(indexOfMatchingAction).equals(this.episodicMemory.get(i))) {
                 length++;
                 indexOfMatchingAction--;
             }
