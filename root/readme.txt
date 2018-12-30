@@ -13,7 +13,7 @@ rare at this point. Instead, use utils/agents/environments for building out your
 An example where modification might be necessary is adding new introspection capabilities (see Introspection below).
 
 Important: Be sure to regularly run unit tests. If changes you made break any tests, be sure to dig into why, especially
-for shared utility classes. 
+for shared utility classes.
 
 
 : AGENTS

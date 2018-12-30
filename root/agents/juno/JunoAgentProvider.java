@@ -2,15 +2,16 @@ package agents.juno;
 
 import agents.marz.ISuffixNodeBaseProvider;
 import agents.marz.MaRzAgentProvider;
+import agents.marz.SuffixNodeBase;
 import framework.IAgent;
 
-public class JunoAgentProvider extends MaRzAgentProvider {
+public class JunoAgentProvider<TSuffixNode extends SuffixNodeBase<TSuffixNode>> extends MaRzAgentProvider<TSuffixNode> {
     //region Class Variables
     private JunoConfiguration config;
     //endregion
 
     //region Constructors
-    public JunoAgentProvider(ISuffixNodeBaseProvider nodeProvider, JunoConfiguration config) {
+    public JunoAgentProvider(ISuffixNodeBaseProvider<TSuffixNode> nodeProvider, JunoConfiguration config) {
         super(nodeProvider);
         this.config= config;
     }

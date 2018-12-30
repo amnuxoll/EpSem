@@ -2,6 +2,7 @@ package agents.juno;
 
 import agents.marz.ISuffixNodeBaseProvider;
 import agents.marz.MaRzAgent;
+import agents.marz.SuffixNodeBase;
 import framework.*;
 import agents.juno.WeightTable.ScoredIndex;
 import utils.EpisodeUtils;
@@ -10,7 +11,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 
-public class JunoAgent extends MaRzAgent {
+public class JunoAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> extends MaRzAgent<TSuffixNode> {
     //region Class Variables
     private WeightTable weightTable= null;
 
@@ -42,7 +43,7 @@ public class JunoAgent extends MaRzAgent {
      *
      * @param nodeProvider
      */
-    public JunoAgent(ISuffixNodeBaseProvider nodeProvider, JunoConfiguration config) {
+    public JunoAgent(ISuffixNodeBaseProvider<TSuffixNode> nodeProvider, JunoConfiguration config) {
         super(nodeProvider);
         this.config= config;
         marzCount= 0;
