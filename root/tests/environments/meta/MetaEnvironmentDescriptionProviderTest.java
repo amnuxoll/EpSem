@@ -1,28 +1,28 @@
-package environments.meta;
+package tests.environments.meta;
 
+import environments.meta.MetaConfiguration;
+import environments.meta.MetaEnvironmentDescription;
+import environments.meta.MetaEnvironmentDescriptionProvider;
 import framework.*;
-import org.junit.jupiter.api.Test;
-import framework.Sequence;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.fail;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import tests.EpSemTest;
+import tests.EpSemTestClass;
+import static tests.Assertions.*;
 
+@EpSemTestClass
 public class MetaEnvironmentDescriptionProviderTest {
     //region Constructor Tests
-    @Test
+    @EpSemTest
     public void constuctor(){
         assertThrows(IllegalArgumentException.class,
                 () -> new MetaEnvironmentDescriptionProvider(new TestEnvironmentDescriptionProvider(),null));
         assertThrows(IllegalArgumentException.class,
-                () -> new MetaEnvironmentDescriptionProvider(null,MetaConfiguration.DEFAULT));
+                () -> new MetaEnvironmentDescriptionProvider(null, MetaConfiguration.DEFAULT));
     }
     //endregion
 
     //region getEnvironmentDescription Tests
-    @Test
+    @EpSemTest
     public void getEnvironmentDescription(){
         MetaEnvironmentDescriptionProvider provider =
                 new MetaEnvironmentDescriptionProvider(new TestEnvironmentDescriptionProvider(), MetaConfiguration.DEFAULT);
@@ -33,7 +33,7 @@ public class MetaEnvironmentDescriptionProviderTest {
     //endregion
 
     //region getAlias Tests
-    @Test
+    @EpSemTest
     public void getAlias() {
         MetaEnvironmentDescriptionProvider provider =
                 new MetaEnvironmentDescriptionProvider(new TestEnvironmentDescriptionProvider(), MetaConfiguration.DEFAULT);

@@ -1,37 +1,40 @@
-package framework;
+package tests.framework;
 
-import org.junit.jupiter.api.Test;
+import framework.FileResultWriter;
+import framework.FileResultWriterProvider;
+import framework.IResultWriter;
 
 import java.io.File;
 
-import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import tests.EpSemTest;
+import tests.EpSemTestClass;
+import static tests.Assertions.*;
 
 /**
  *
  * @author Zachary Paul Faltersack
  * @version 0.95
  */
+@EpSemTestClass
 public class FileResultWriterProviderTest {
     //region Class Variables
     private File outputDirectory = new File("outputdirectory");
     //endregion
 
     //region Constructor Tests
-    @Test
+    @EpSemTest
     public void constructorNullDirectoryThrowsException() {
         assertThrows(IllegalArgumentException.class, () -> new FileResultWriterProvider(null));
     }
 
-    @Test
+    @EpSemTest
     public void constructorFileNotADirectoryThrowsException() {
         assertThrows(IllegalArgumentException.class, () -> new FileResultWriterProvider(new File("output.txt")));
     }
     //endregion
 
     //region getResultWriter Tests
-    @Test
+    @EpSemTest
     public void getResultWriterNullAgentThrowsException() {
         try {
             this.outputDirectory.mkdirs();
@@ -42,7 +45,7 @@ public class FileResultWriterProviderTest {
         }
     }
 
-    @Test
+    @EpSemTest
     public void getResultWriterEmptyAgentThrowsException() {
         try {
             this.outputDirectory.mkdirs();
@@ -53,7 +56,7 @@ public class FileResultWriterProviderTest {
         }
     }
 
-    @Test
+    @EpSemTest
     public void getResultWriterNullFileThrowsException() {
         try {
             this.outputDirectory.mkdirs();
@@ -64,7 +67,7 @@ public class FileResultWriterProviderTest {
         }
     }
 
-    @Test
+    @EpSemTest
     public void getResultWriterEmptyFileThrowsException() {
         try {
             this.outputDirectory.mkdirs();
@@ -75,7 +78,7 @@ public class FileResultWriterProviderTest {
         }
     }
 
-    @Test
+    @EpSemTest
     public void getResultWriterLabelsAgentFile() throws Exception {
         try {
             this.outputDirectory.mkdirs();
@@ -94,7 +97,7 @@ public class FileResultWriterProviderTest {
     //endregion
 
     //region getOutputDirectory Tests
-    @Test
+    @EpSemTest
     public void getOutputDirectory() {
         try {
             this.outputDirectory.mkdirs();

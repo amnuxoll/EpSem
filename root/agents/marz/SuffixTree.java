@@ -23,7 +23,7 @@ public class SuffixTree<TSuffixNode extends SuffixNodeBase<TSuffixNode>> {
      * @param maxSize The max allowed size of this tree.
      * @param rootNode The root node of the tree.
      */
-    SuffixTree(int maxSize, TSuffixNode rootNode) {
+    public SuffixTree(int maxSize, TSuffixNode rootNode) {
         if (maxSize < 1)
             throw new IllegalArgumentException("maxSize must be greater than 0");
         if (rootNode == null)

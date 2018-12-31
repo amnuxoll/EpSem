@@ -19,7 +19,7 @@ public class MetaEnvironmentDescription implements IEnvironmentDescription {
     //endregion
 
     //region Constructors
-    MetaEnvironmentDescription(IEnvironmentDescriptionProvider environmentDescriptionProvider, MetaConfiguration config) {
+    public MetaEnvironmentDescription(IEnvironmentDescriptionProvider environmentDescriptionProvider, MetaConfiguration config) {
         if (environmentDescriptionProvider == null)
             throw new IllegalArgumentException("environmentDescriptionProvider cannot be null");
         if (config == null)

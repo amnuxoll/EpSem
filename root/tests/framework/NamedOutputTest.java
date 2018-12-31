@@ -1,33 +1,33 @@
-package framework;
+package tests.framework;
 
-import org.junit.jupiter.api.Test;
-
+import framework.NamedOutput;
 import java.io.ByteArrayOutputStream;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import tests.EpSemTest;
+import tests.EpSemTestClass;
+import static tests.Assertions.*;
 
 /**
  *
  * @author Zachary Paul Faltersack
  * @version 0.95
  */
+@EpSemTestClass
 public class NamedOutputTest {
     //region configure Tests
-    @Test
+    @EpSemTest
     public void configureNullKeyThrowsException() {
         NamedOutput namedOutput = NamedOutput.getInstance();
         assertThrows(IllegalArgumentException.class, () -> namedOutput.configure(null, System.out));
     }
 
-    @Test
+    @EpSemTest
     public void configureEmptyKeyThrowsException() {
         NamedOutput namedOutput = NamedOutput.getInstance();
         assertThrows(IllegalArgumentException.class, () -> namedOutput.configure("", System.out));
     }
 
-    @Test
+    @EpSemTest
     public void configureNullOutputStreamThrowsException() {
         NamedOutput namedOutput = NamedOutput.getInstance();
         assertThrows(IllegalArgumentException.class, () -> namedOutput.configure("name", null));
@@ -35,37 +35,37 @@ public class NamedOutputTest {
     //endregion
 
     //region writeLine Tests
-    @Test
+    @EpSemTest
     public void writeLineNullKeyNoDataThrowsException() {
         NamedOutput namedOutput = NamedOutput.getInstance();
         assertThrows(IllegalArgumentException.class, () -> namedOutput.writeLine(null));
     }
 
-    @Test
+    @EpSemTest
     public void writeLineEmptyKeyNoDataThrowsException() {
         NamedOutput namedOutput = NamedOutput.getInstance();
         assertThrows(IllegalArgumentException.class, () -> namedOutput.writeLine(""));
     }
 
-    @Test
+    @EpSemTest
     public void writeLineNullKeyWithDataThrowsException() {
         NamedOutput namedOutput = NamedOutput.getInstance();
         assertThrows(IllegalArgumentException.class, () -> namedOutput.writeLine(null, ""));
     }
 
-    @Test
+    @EpSemTest
     public void writeLineEmptyKeyWithDataThrowsException() {
         NamedOutput namedOutput = NamedOutput.getInstance();
         assertThrows(IllegalArgumentException.class, () -> namedOutput.writeLine("", ""));
     }
 
-    @Test
+    @EpSemTest
     public void writeLineNullDataThrowsException() {
         NamedOutput namedOutput = NamedOutput.getInstance();
         assertThrows(IllegalArgumentException.class, () -> namedOutput.writeLine("name", null));
     }
 
-    @Test
+    @EpSemTest
     public void writeLineNoDataAppendsNewline() {
         try {
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -78,7 +78,7 @@ public class NamedOutputTest {
         }
     }
 
-    @Test
+    @EpSemTest
     public void writeLineAppendsNewline() {
         try {
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -93,43 +93,43 @@ public class NamedOutputTest {
     //endregion
 
     //region write Tests
-    @Test
+    @EpSemTest
     public void writeNullKeyWithDataThrowsException() {
         NamedOutput namedOutput = NamedOutput.getInstance();
         assertThrows(IllegalArgumentException.class, () -> namedOutput.write(null, ""));
     }
 
-    @Test
+    @EpSemTest
     public void writeEmptyKeyWithDataThrowsException() {
         NamedOutput namedOutput = NamedOutput.getInstance();
         assertThrows(IllegalArgumentException.class, () -> namedOutput.write("", ""));
     }
 
-    @Test
+    @EpSemTest
     public void writeNullDataThrowsException() {
         NamedOutput namedOutput = NamedOutput.getInstance();
         assertThrows(IllegalArgumentException.class, () -> namedOutput.write("name", (String) null));
     }
 
-    @Test
+    @EpSemTest
     public void writeNullKeyWithExceptionThrowsException() {
         NamedOutput namedOutput = NamedOutput.getInstance();
         assertThrows(IllegalArgumentException.class, () -> namedOutput.write(null, new Exception()));
     }
 
-    @Test
+    @EpSemTest
     public void writeEmptyKeyWithExceptionThrowsException() {
         NamedOutput namedOutput = NamedOutput.getInstance();
         assertThrows(IllegalArgumentException.class, () -> namedOutput.write("", new Exception()));
     }
 
-    @Test
+    @EpSemTest
     public void writeNullExceptionThrowsException() {
         NamedOutput namedOutput = NamedOutput.getInstance();
         assertThrows(IllegalArgumentException.class, () -> namedOutput.write("name", (Exception) null));
     }
 
-    @Test
+    @EpSemTest
     public void writeData() {
         try {
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -142,7 +142,7 @@ public class NamedOutputTest {
         }
     }
 
-    @Test
+    @EpSemTest
     public void writeException() {
         try {
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();

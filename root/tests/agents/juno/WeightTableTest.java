@@ -1,24 +1,26 @@
-package agents.juno;
+package tests.agents.juno;
 
+import agents.juno.EpisodeWeights;
+import agents.juno.WeightTable;
 import framework.Episode;
 import framework.Move;
 import framework.SensorData;
-import org.junit.jupiter.api.Test;
 import utils.EpisodicMemory;
 
 import java.util.HashMap;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import tests.EpSemTest;
+import tests.EpSemTestClass;
+import static tests.Assertions.*;
 
+@EpSemTestClass
 public class WeightTableTest {
-    @Test
+    @EpSemTest
     public void constructorThrowsException(){
         assertThrows(IllegalArgumentException.class, () -> new WeightTable(0));
     }
 
-    @Test
+    @EpSemTest
     public void bestIndicesThrowsException(){
         WeightTable table= new WeightTable(2);
 
@@ -37,7 +39,7 @@ public class WeightTableTest {
         assertThrows(IllegalArgumentException.class, () -> table.bestIndices(episodes,-1, 0));
     }
 
-    @Test
+    @EpSemTest
     public void bestIndices(){
         Move a= new Move("a");
         Move b= new Move("b");
@@ -62,7 +64,7 @@ public class WeightTableTest {
         }
     }
 
-    @Test
+    @EpSemTest
     public void testMatchScore(){
         Move a= new Move("a");
         Move b= new Move("b");
@@ -83,7 +85,7 @@ public class WeightTableTest {
         assertEquals(0.8, testWeightTable.calculateMatchScore(episodes,episodes.currentIndex(), 3));
     }
 
-    @Test
+    @EpSemTest
     public void updateOnFailure(){
         Move a= new Move("a");
         Move b= new Move("b");
@@ -144,7 +146,7 @@ public class WeightTableTest {
         }
     }
 
-    public class TestEpisodeWeights extends EpisodeWeights{
+    public class TestEpisodeWeights extends EpisodeWeights {
         public TestEpisodeWeights(double actionWeight, HashMap<String, Double> sensorWeights){
             this.actionWeight= actionWeight;
             this.sensorWeights= sensorWeights;

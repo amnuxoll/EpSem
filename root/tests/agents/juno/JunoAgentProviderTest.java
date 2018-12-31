@@ -1,16 +1,20 @@
-package agents.juno;
+package tests.agents.juno;
 
+import agents.juno.JunoAgent;
+import agents.juno.JunoAgentProvider;
 import agents.marz.MaRzAgent;
 import agents.marz.nodes.SuffixNodeProvider;
 import framework.IAgent;
-import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import tests.EpSemTest;
+import tests.EpSemTestClass;
+import static tests.Assertions.*;
 
+@EpSemTestClass
 public class JunoAgentProviderTest {
 
     // getAgent Tests
-    @Test
+    @EpSemTest
     public void getAgentReturnsMaRzAgents() {
         JunoAgentProvider provider = new JunoAgentProvider(new SuffixNodeProvider());
         IAgent agent = provider.getAgent();

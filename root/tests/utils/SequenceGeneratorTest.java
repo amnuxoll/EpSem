@@ -1,33 +1,35 @@
-package utils;
+package tests.utils;
 
 import framework.Move;
 import framework.Sequence;
-import org.junit.jupiter.api.Test;
+import utils.SequenceGenerator;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import tests.EpSemTest;
+import tests.EpSemTestClass;
+import static tests.Assertions.*;
 
 /**
  *
  * @author Zachary Paul Faltersack
  * @version 0.95
  */
+@EpSemTestClass
 public class SequenceGeneratorTest {
 
     // constructor Tests
-    @Test
+    @EpSemTest
     public void constructorNullMovesThrowsException() {
         assertThrows(IllegalArgumentException.class, () -> new SequenceGenerator(null));
     }
 
     // nextPermutation Tests
-    @Test
+    @EpSemTest
     public void nextPermutationIndexLessThanZeroThrowsException() {
         SequenceGenerator sequenceGenerator = new SequenceGenerator(new Move[0]);
         assertThrows(IndexOutOfBoundsException.class, () -> sequenceGenerator.nextPermutation(0));
     }
 
-    @Test
+    @EpSemTest
     public void nextPermutationNoMovesAlwaysYieldsEmptySequence() {
         SequenceGenerator sequenceGenerator = new SequenceGenerator(new Move[0]);
         assertEquals(Sequence.EMPTY, sequenceGenerator.nextPermutation(1));
@@ -35,7 +37,7 @@ public class SequenceGeneratorTest {
         assertEquals(Sequence.EMPTY, sequenceGenerator.nextPermutation(42));
     }
 
-    @Test
+    @EpSemTest
     public void nextPermutationPermutesSingleMove() {
         Move a = new Move("a");
         SequenceGenerator sequenceGenerator = new SequenceGenerator(new Move[] { a });
@@ -45,7 +47,7 @@ public class SequenceGeneratorTest {
         assertEquals(new Sequence(new Move[] { a, a, a, a, a, a, a, a }), sequenceGenerator.nextPermutation(8));
     }
 
-    @Test
+    @EpSemTest
     public void nextPermutationPermutesTwoMoves() {
         Move a = new Move("a");
         Move b = new Move("b");
@@ -67,7 +69,7 @@ public class SequenceGeneratorTest {
     }
 
     // getCanonicalOderering
-    @Test
+    @EpSemTest
     public void getCanonicalOrderingNullSequenceThrowsException() {
         Move a = new Move("a");
         Move b = new Move("b");
@@ -75,46 +77,46 @@ public class SequenceGeneratorTest {
         assertThrows(IllegalArgumentException.class, () -> sequenceGenerator.getCanonicalIndex(null));
     }
 
-    @Test
+    @EpSemTest
     public void getCanonicalOrderingBinary() {
         Move a = new Move("a");
         Move b = new Move("b");
         SequenceGenerator sequenceGenerator = new SequenceGenerator(new Move[] { a, b });
-        assertEquals(1, sequenceGenerator.getCanonicalIndex(new Sequence(new Move[] { a })));
-        assertEquals(2, sequenceGenerator.getCanonicalIndex(new Sequence(new Move[] { b })));
-        assertEquals(3, sequenceGenerator.getCanonicalIndex(new Sequence(new Move[] { a, a })));
-        assertEquals(4, sequenceGenerator.getCanonicalIndex(new Sequence(new Move[] { a, b})));
-        assertEquals(5, sequenceGenerator.getCanonicalIndex(new Sequence(new Move[] { b, a})));
-        assertEquals(6, sequenceGenerator.getCanonicalIndex(new Sequence(new Move[] { b, b})));
-        assertEquals(7, sequenceGenerator.getCanonicalIndex(new Sequence(new Move[] { a, a, a})));
-        assertEquals(8, sequenceGenerator.getCanonicalIndex(new Sequence(new Move[] { a, a, b})));
-        assertEquals(9, sequenceGenerator.getCanonicalIndex(new Sequence(new Move[] { a, b, a})));
-        assertEquals(10, sequenceGenerator.getCanonicalIndex(new Sequence(new Move[] { a, b, b})));
-        assertEquals(11, sequenceGenerator.getCanonicalIndex(new Sequence(new Move[] { b, a, a})));
-        assertEquals(12, sequenceGenerator.getCanonicalIndex(new Sequence(new Move[] { b, a, b})));
-        assertEquals(13, sequenceGenerator.getCanonicalIndex(new Sequence(new Move[] { b, b, a})));
-        assertEquals(14, sequenceGenerator.getCanonicalIndex(new Sequence(new Move[] { b, b, b})));
+        assertEquals(1L, sequenceGenerator.getCanonicalIndex(new Sequence(new Move[] { a })));
+        assertEquals(2L, sequenceGenerator.getCanonicalIndex(new Sequence(new Move[] { b })));
+        assertEquals(3L, sequenceGenerator.getCanonicalIndex(new Sequence(new Move[] { a, a })));
+        assertEquals(4L, sequenceGenerator.getCanonicalIndex(new Sequence(new Move[] { a, b})));
+        assertEquals(5L, sequenceGenerator.getCanonicalIndex(new Sequence(new Move[] { b, a})));
+        assertEquals(6L, sequenceGenerator.getCanonicalIndex(new Sequence(new Move[] { b, b})));
+        assertEquals(7L, sequenceGenerator.getCanonicalIndex(new Sequence(new Move[] { a, a, a})));
+        assertEquals(8L, sequenceGenerator.getCanonicalIndex(new Sequence(new Move[] { a, a, b})));
+        assertEquals(9L, sequenceGenerator.getCanonicalIndex(new Sequence(new Move[] { a, b, a})));
+        assertEquals(10L, sequenceGenerator.getCanonicalIndex(new Sequence(new Move[] { a, b, b})));
+        assertEquals(11L, sequenceGenerator.getCanonicalIndex(new Sequence(new Move[] { b, a, a})));
+        assertEquals(12L, sequenceGenerator.getCanonicalIndex(new Sequence(new Move[] { b, a, b})));
+        assertEquals(13L, sequenceGenerator.getCanonicalIndex(new Sequence(new Move[] { b, b, a})));
+        assertEquals(14L, sequenceGenerator.getCanonicalIndex(new Sequence(new Move[] { b, b, b})));
     }
 
-    @Test
+    @EpSemTest
     public void getCanonicalOrderingTernary() {
         Move a = new Move("a");
         Move b = new Move("b");
         Move c = new Move("c");
         SequenceGenerator sequenceGenerator = new SequenceGenerator(new Move[] { a, b, c });
-        assertEquals(1, sequenceGenerator.getCanonicalIndex(new Sequence(new Move[] { a })));
-        assertEquals(2, sequenceGenerator.getCanonicalIndex(new Sequence(new Move[] { b })));
-        assertEquals(3, sequenceGenerator.getCanonicalIndex(new Sequence(new Move[] { c })));
-        assertEquals(4, sequenceGenerator.getCanonicalIndex(new Sequence(new Move[] { a, a })));
-        assertEquals(5, sequenceGenerator.getCanonicalIndex(new Sequence(new Move[] { a, b })));
-        assertEquals(6, sequenceGenerator.getCanonicalIndex(new Sequence(new Move[] { a, c })));
-        assertEquals(7, sequenceGenerator.getCanonicalIndex(new Sequence(new Move[] { b, a })));
-        assertEquals(8, sequenceGenerator.getCanonicalIndex(new Sequence(new Move[] { b, b})));
-        assertEquals(9, sequenceGenerator.getCanonicalIndex(new Sequence(new Move[] { b, c })));
-        assertEquals(10, sequenceGenerator.getCanonicalIndex(new Sequence(new Move[] { c, a })));
-        assertEquals(11, sequenceGenerator.getCanonicalIndex(new Sequence(new Move[] { c, b })));
-        assertEquals(12, sequenceGenerator.getCanonicalIndex(new Sequence(new Move[] { c, c })));
-        assertEquals(13, sequenceGenerator.getCanonicalIndex(new Sequence(new Move[] { a, a, a })));
-        assertEquals(14, sequenceGenerator.getCanonicalIndex(new Sequence(new Move[] { a, a, b })));
+        assertEquals(1L, sequenceGenerator.getCanonicalIndex(new Sequence(new Move[] { a })));
+        assertEquals(2L, sequenceGenerator.getCanonicalIndex(new Sequence(new Move[] { b })));
+        assertEquals(3L, sequenceGenerator.getCanonicalIndex(new Sequence(new Move[] { c })));
+        assertEquals(4L, sequenceGenerator.getCanonicalIndex(new Sequence(new Move[] { a, a })));
+        assertEquals(5L, sequenceGenerator.getCanonicalIndex(new Sequence(new Move[] { a, b })));
+        assertEquals(6L, sequenceGenerator.getCanonicalIndex(new Sequence(new Move[] { a, c })));
+        assertEquals(7L, sequenceGenerator.getCanonicalIndex(new Sequence(new Move[] { b, a })));
+        assertEquals(8L, sequenceGenerator.getCanonicalIndex(new Sequence(new Move[] { b, b})));
+        assertEquals(9L, sequenceGenerator.getCanonicalIndex(new Sequence(new Move[] { b, c })));
+        assertEquals(10L, sequenceGenerator.getCanonicalIndex(new Sequence(new Move[] { c, a })));
+        assertEquals(11L, sequenceGenerator.getCanonicalIndex(new Sequence(new Move[] { c, b })));
+        assertEquals(12L, sequenceGenerator.getCanonicalIndex(new Sequence(new Move[] { c, c })));
+        assertEquals(13L, sequenceGenerator.getCanonicalIndex(new Sequence(new Move[] { a, a, a })));
+        assertEquals(14L, sequenceGenerator.getCanonicalIndex(new Sequence(new Move[] { a, a, b })));
     }
 }

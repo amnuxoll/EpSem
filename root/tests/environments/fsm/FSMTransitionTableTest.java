@@ -1,25 +1,28 @@
-package environments.fsm;
+package tests.environments.fsm;
 
+import environments.fsm.FSMTransitionTable;
 import framework.Move;
-import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import tests.EpSemTest;
+import tests.EpSemTestClass;
+import static tests.Assertions.*;
 
 /**
  *
  * @author Zachary Paul Faltersack
  * @version 0.95
  */
+@EpSemTestClass
 public class FSMTransitionTableTest {
     //region Constructor Tests
-    @Test
+    @EpSemTest
     public void constructorNullTransitionsThrowsException() {
         assertThrows(IllegalArgumentException.class, () -> new FSMTransitionTable(null));
     }
 
-    @Test
+    @EpSemTest
     public void constructorValidatesTransitionTableNotAllTransitionsContainSameMoveCount() {
         HashMap<Move, Integer> transitionSet1 = new HashMap<>();
         transitionSet1.put(new Move("a"), 1);
@@ -35,7 +38,7 @@ public class FSMTransitionTableTest {
         assertThrows(IllegalArgumentException.class, () -> new FSMTransitionTable(transitionTable));
     }
 
-    @Test
+    @EpSemTest
     public void constructorValidatesTransitionTableNotAllTransitionsContainSameMoves() {
         HashMap<Move, Integer> transitionSet1 = new HashMap<>();
         transitionSet1.put(new Move("a"), 1);

@@ -6,7 +6,7 @@ package framework;
  * @author Zachary Paul Faltersack
  * @version 0.95
  */
-class Environment implements IIntrospector {
+public class Environment implements IIntrospector {
     //region Class Variables
     private IEnvironmentDescription environmentDescription;
     private int currentState;

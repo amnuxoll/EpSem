@@ -1,26 +1,29 @@
-package framework;
+package tests.framework;
 
-import org.junit.jupiter.api.Test;
+import framework.SensorData;
 
 import java.util.Set;
 
-import static org.junit.jupiter.api.Assertions.*;
+import tests.EpSemTest;
+import tests.EpSemTestClass;
+import static tests.Assertions.*;
 
 /**
  *
  * @author Zachary Paul Faltersack
  * @version 0.95
  */
+@EpSemTestClass
 public class SensorDataTest {
     //region setSensor & getSensor Tests
-    @Test
+    @EpSemTest
     public void testSetSensorGetSensor() {
         SensorData sensorData = new SensorData(false);
         sensorData.setSensor("sensor", 5);
         assertEquals(5, sensorData.getSensor("sensor"));
     }
 
-    @Test
+    @EpSemTest
     public void testSetSensorOverwritesPreviousValue() {
         SensorData sensorData = new SensorData(false);
         sensorData.setSensor("sensor", 5);
@@ -28,25 +31,25 @@ public class SensorDataTest {
         assertEquals("otherValue", sensorData.getSensor("sensor"));
     }
 
-    @Test
+    @EpSemTest
     public void testSetSensorNullSensorNameThrowsException() {
         SensorData sensorData = new SensorData(false);
         assertThrows(IllegalArgumentException.class, () -> sensorData.setSensor(null, 5));
     }
 
-    @Test
+    @EpSemTest
     public void testSetSensorEmptySensorNameThrowsException() {
         SensorData sensorData = new SensorData(false);
         assertThrows(IllegalArgumentException.class, () -> sensorData.setSensor("", 5));
     }
 
-    @Test
+    @EpSemTest
     public void testGetSensorNullSensorNameThrowsException() {
         SensorData sensorData = new SensorData(false);
         assertThrows(IllegalArgumentException.class, () -> sensorData.getSensor(null));
     }
 
-    @Test
+    @EpSemTest
     public void testGetSensorEmptySensorNameThrowsException() {
         SensorData sensorData = new SensorData(false);
         assertThrows(IllegalArgumentException.class, () -> sensorData.getSensor(""));
@@ -54,26 +57,26 @@ public class SensorDataTest {
     //endregion
 
     //region hasSensor Argument Tests
-    @Test
+    @EpSemTest
     public void testHasSensorTrue() {
         SensorData sensorData = new SensorData(false);
         sensorData.setSensor("sensor", 5);
         assertTrue(sensorData.hasSensor("sensor"));
     }
 
-    @Test
+    @EpSemTest
     public void testHasSensorFalse() {
         SensorData sensorData = new SensorData(false);
         assertFalse(sensorData.hasSensor("sensor"));
     }
 
-    @Test
+    @EpSemTest
     public void testHasSensorNullSensorNameThrowsException() {
         SensorData sensorData = new SensorData(false);
         assertThrows(IllegalArgumentException.class, () -> sensorData.hasSensor(null));
     }
 
-    @Test
+    @EpSemTest
     public void testHasSensorEmptySensorNameThrowsException() {
         SensorData sensorData = new SensorData(false);
         assertThrows(IllegalArgumentException.class, () -> sensorData.hasSensor(""));
@@ -81,13 +84,13 @@ public class SensorDataTest {
     //endregion
 
     //region isGoal Tests
-    @Test
+    @EpSemTest
     public void testIsGoalFalse() {
         SensorData sensorData = new SensorData(false);
         assertFalse(sensorData.isGoal());
     }
 
-    @Test
+    @EpSemTest
     public void testIsGoalTrue() {
         SensorData sensorData = new SensorData(true);
         assertTrue(sensorData.isGoal());
@@ -95,7 +98,7 @@ public class SensorDataTest {
     //endregion
 
     //region getSensorNames Tests
-    @Test
+    @EpSemTest
     public void getSensorNamesEmptySensorSet()
     {
         SensorData sensorData = new SensorData(true);
@@ -104,7 +107,7 @@ public class SensorDataTest {
         assertTrue(sensorNames.contains("GOAL"));
     }
 
-    @Test
+    @EpSemTest
     public void getSensorNonEmptySensorSet()
     {
         SensorData sensorData = new SensorData(true);
@@ -117,28 +120,28 @@ public class SensorDataTest {
     //endregion
 
     //region equals Tests
-    @Test
+    @EpSemTest
     public void testEqualsEmptySensorDataNotGoalAreEqual() {
         SensorData sensorData1 = new SensorData(false);
         SensorData sensorData2 = new SensorData(false);
         assertEquals(sensorData1, sensorData2);
     }
 
-    @Test
+    @EpSemTest
     public void testEqualsEmptySensorDataGoalAreEqual() {
         SensorData sensorData1 = new SensorData(true);
         SensorData sensorData2 = new SensorData(true);
         assertEquals(sensorData1, sensorData2);
     }
 
-    @Test
+    @EpSemTest
     public void testEqualsEmptySensorDataGoalAreNotEqual() {
         SensorData sensorData1 = new SensorData(true);
         SensorData sensorData2 = new SensorData(false);
         assertNotEquals(sensorData1, sensorData2);
     }
 
-    @Test
+    @EpSemTest
     public void testEqualsAllSensorsAreAccountedForAreEqual() {
         SensorData sensorData1 = new SensorData(true);
         sensorData1.setSensor("sensor1", 4);
@@ -149,7 +152,7 @@ public class SensorDataTest {
         assertEquals(sensorData1, sensorData2);
     }
 
-    @Test
+    @EpSemTest
     public void testEqualsNullValuesAreEqual() {
         SensorData sensorData1 = new SensorData(true);
         sensorData1.setSensor("sensor1", null);
@@ -158,7 +161,7 @@ public class SensorDataTest {
         assertEquals(sensorData1, sensorData2);
     }
 
-    @Test
+    @EpSemTest
     public void testEqualsAllSensorsAreAccountedForNotAllEqual() {
         SensorData sensorData1 = new SensorData(true);
         sensorData1.setSensor("sensor1", 4);
@@ -169,7 +172,7 @@ public class SensorDataTest {
         assertNotEquals(sensorData1, sensorData2);
     }
 
-    @Test
+    @EpSemTest
     public void testEqualsDifferentSensorCountsNotEqual() {
         SensorData sensorData1 = new SensorData(true);
         sensorData1.setSensor("sensor1", 4);
@@ -181,7 +184,7 @@ public class SensorDataTest {
     //endregion
 
     //region hashCode Tests
-    @Test
+    @EpSemTest
     public void testHashCodeAllSensorsAreAccountedFor() {
         SensorData sensorData1 = new SensorData(true);
         sensorData1.setSensor("sensor1", 4);
@@ -194,13 +197,13 @@ public class SensorDataTest {
     //endregion
 
     //region toString Tests
-    @Test
+    @EpSemTest
     public void testToShortStringSingleSensorOverrideExcludesLabels() {
         SensorData sensorData = new SensorData(true);
         assertEquals("[true]", sensorData.toString());
     }
 
-    @Test
+    @EpSemTest
     public void testToShortStringMultipleSensorsCustomSortOverrideExcludesLabels() {
         SensorData sensorData = new SensorData(false);
         sensorData.setSensor("b", "value");
@@ -209,13 +212,13 @@ public class SensorDataTest {
         assertEquals("[false;5;value;10.0]", sensorData.toString());
     }
 
-    @Test
+    @EpSemTest
     public void testToShortStringSingleSensorExplicitExcludeLabels() {
         SensorData sensorData = new SensorData(true);
         assertEquals("[true]", sensorData.toString(false));
     }
 
-    @Test
+    @EpSemTest
     public void testToShortStringMultipleSensorsCustomSortExplicitExcludeLabels() {
         SensorData sensorData = new SensorData(false);
         sensorData.setSensor("b", "value");
@@ -224,13 +227,13 @@ public class SensorDataTest {
         assertEquals("[false;5;value;10.0]", sensorData.toString(false));
     }
 
-    @Test
+    @EpSemTest
     public void testToStringSingleSensorIncludeLabels() {
         SensorData sensorData = new SensorData(true);
         assertEquals("[GOAL:true]", sensorData.toString(true));
     }
 
-    @Test
+    @EpSemTest
     public void testToStringMultipleSensorsCustomSortIncludeLabels() {
         SensorData sensorData = new SensorData(false);
         sensorData.setSensor("b", "value");

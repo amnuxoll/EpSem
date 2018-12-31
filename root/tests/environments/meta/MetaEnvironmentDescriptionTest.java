@@ -1,16 +1,17 @@
-package environments.meta;
+package tests.environments.meta;
 
+import environments.meta.MetaConfiguration;
+import environments.meta.MetaEnvironmentDescription;
 import framework.*;
-import org.junit.jupiter.api.Test;
-import framework.Sequence;
-//import org.junit.jupiter.params.ParameterizedTest;
 
+import tests.EpSemTest;
+import tests.EpSemTestClass;
+import static tests.Assertions.*;
 
-import static org.junit.jupiter.api.Assertions.*;
-
+@EpSemTestClass
 public class MetaEnvironmentDescriptionTest {
     //region Constructor Tests
-    @Test
+    @EpSemTest
     public void constructor() {
         //test exceptions
         assertThrows(IllegalArgumentException.class,
@@ -21,7 +22,7 @@ public class MetaEnvironmentDescriptionTest {
     //endregion
 
     //region getMoves Tests
-    @Test
+    @EpSemTest
     public void getMoves() {
         TestEnvironmentDescriptionProvider provider = new TestEnvironmentDescriptionProvider();
         MetaEnvironmentDescription description= new MetaEnvironmentDescription(provider, MetaConfiguration.DEFAULT);
@@ -36,7 +37,7 @@ public class MetaEnvironmentDescriptionTest {
     //endregion
 
     //region transition Tests
-    @Test
+    @EpSemTest
     public void transition() {
         TestEnvironmentDescriptionProvider provider = new TestEnvironmentDescriptionProvider();
         MetaEnvironmentDescription description = new MetaEnvironmentDescription(provider, MetaConfiguration.DEFAULT);
@@ -47,7 +48,7 @@ public class MetaEnvironmentDescriptionTest {
         assertEquals(1, provider.numGenerated);
     }
 
-    @Test
+    @EpSemTest
     public void transitionResetsEnvironmentOnGoalCount() {
         TestEnvironmentDescriptionProvider provider = new TestEnvironmentDescriptionProvider();
         MetaEnvironmentDescription description = new MetaEnvironmentDescription(provider, new MetaConfiguration(2));

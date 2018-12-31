@@ -1,6 +1,6 @@
-package framework;
+package tests.framework;
 
-import org.junit.jupiter.api.Test;
+import framework.FileResultWriter;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -8,34 +8,37 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import tests.EpSemTest;
+import tests.EpSemTestClass;
+import static tests.Assertions.*;
 
 /**
  *
  * @author Zachary Paul Faltersack
  * @version 0.95
  */
+@EpSemTestClass
 public class FileResultWriterTest {
 
     //region Constructor Tests
-    @Test
+    @EpSemTest
     public void testConstructorNullNameThrowsException() {
         assertThrows(IllegalArgumentException.class, () -> new FileResultWriter(null, new File("file")));
     }
 
-    @Test
+    @EpSemTest
     public void testConstructorEmptyNameThrowsException() {
         assertThrows(IllegalArgumentException.class, () -> new FileResultWriter("", new File("file")));
     }
 
-    @Test
+    @EpSemTest
     public void testConstructorNullFileThrowsException() {
         assertThrows(IllegalArgumentException.class, () -> new FileResultWriter("agent", null));
     }
     //endregion
 
     //region logResult Tests
-    @Test
+    @EpSemTest
     public void logResultSingle() throws Exception {
         File file = new File("output.csv");
         try {
@@ -58,7 +61,7 @@ public class FileResultWriterTest {
         }
     }
 
-    @Test
+    @EpSemTest
     public void logResultMultiple() throws Exception {
         File file = new File("output.csv");
         try {
@@ -86,7 +89,7 @@ public class FileResultWriterTest {
     //endregion
 
     //region beginNewRun Tests
-    @Test
+    @EpSemTest
     public void beginNewRunSingleRun() throws Exception {
         File file = new File("output.csv");
         try {
@@ -111,7 +114,7 @@ public class FileResultWriterTest {
         }
     }
 
-    @Test
+    @EpSemTest
     public void beginNewRunMultipleRuns() throws Exception {
         File file = new File("output.csv");
         try {
@@ -145,7 +148,7 @@ public class FileResultWriterTest {
     //endregion
 
     //region complete Tests
-    @Test
+    @EpSemTest
     public void testCompleteFinalizesStandardReportRun() throws Exception {
         File file = new File("output.csv");
         try {

@@ -1,19 +1,20 @@
-package utils;
+package tests.utils;
 
-import org.junit.jupiter.api.Test;
+import utils.ExceptionUtils;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import tests.EpSemTest;
+import tests.EpSemTestClass;
+import static tests.Assertions.*;
 
 /**
  *
  * @author Zachary Paul Faltersack
  * @version 0.95
  */
+@EpSemTestClass
 public class ExceptionUtilsTest {
     //region getStacktrace Tests
-    @Test
+    @EpSemTest
     public void getStacktrace() {
         // This test is kind of weak, but the stacktrace will vary depending on build configurations so we're
         // going to have to settle for just verifying we got something back that wasn't empty.
@@ -22,7 +23,7 @@ public class ExceptionUtilsTest {
         assertNotEquals("", stacktrace);
     }
 
-    @Test
+    @EpSemTest
     public void getStacktraceNullExceptionThrowsException()
     {
         assertThrows(IllegalArgumentException.class, () -> ExceptionUtils.getStacktrace(null));

@@ -9,7 +9,7 @@ import java.util.List;
  * @author Zachary Paul Faltersack
  * @version 0.95
  */
-class TestRun {
+public class TestRun {
     //region Class Variables
     private IAgent agent;
     private IEnvironmentDescription environmentDescription;

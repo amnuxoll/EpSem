@@ -1,34 +1,37 @@
-package environments.fsm;
+package tests.environments.fsm;
 
+import environments.fsm.FSMTransitionTable;
+import environments.fsm.FSMTransitionTableBuilder;
 import framework.Move;
-import org.junit.jupiter.api.Test;
 import utils.Random;
 
 import java.util.HashMap;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import tests.EpSemTest;
+import tests.EpSemTestClass;
+import static tests.Assertions.*;
 
 /**
  *
  * @author Zachary Paul Faltersack
  * @version 0.95
  */
+@EpSemTestClass
 public class FSMTransitionTableBuilderTest {
     //region Constructor Tests
-    @Test
+    @EpSemTest
     public void constructorAlphabetSizeLessThanOneThrowsException() {
         assertThrows(IllegalArgumentException.class, () -> new FSMTransitionTableBuilder(0, 1, Random.getTrue()));
     }
 
-    @Test
+    @EpSemTest
     public void constructorNumStatesLessThanOneThrowsException() {
         assertThrows(IllegalArgumentException.class, () -> new FSMTransitionTableBuilder(1, 0, Random.getTrue()));
     }
     //endregion
 
     //region getTransitionTable Tests
-    @Test
+    @EpSemTest
     public void buildTransitionTableSingleTransitionSingleState() {
         FSMTransitionTableBuilder builder = new FSMTransitionTableBuilder(1, 1, Random.getTrue());
         FSMTransitionTable transitionTable = builder.getTransitionTable();
@@ -37,7 +40,7 @@ public class FSMTransitionTableBuilderTest {
         this.validateGoalTransitions(1, 0, goalTransitions);
     }
 
-    @Test
+    @EpSemTest
     public void buildTransitionTableMultipleTransitionSingleState() {
         FSMTransitionTableBuilder builder = new FSMTransitionTableBuilder(13, 1, Random.getTrue());
         FSMTransitionTable transitionTable = builder.getTransitionTable();

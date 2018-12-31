@@ -1,55 +1,54 @@
-package framework;
+package tests.framework;
 
-import org.junit.jupiter.api.Test;
-
+import framework.*;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import tests.EpSemTest;
+import tests.EpSemTestClass;
+import static tests.Assertions.*;
 
 /**
  *
  * @author Zachary Paul Faltersack
  * @version 0.95
  */
+@EpSemTestClass
 public class TestSuiteTest {
     //region Class Variables
     private TestSuiteConfiguration testConfiguration = new TestSuiteConfiguration(2, 3);
     //endregion
 
     //region constructor Tests
-    @Test
+    @EpSemTest
     public void constructorNullTestSuiteConfigurationThrowsException() {
         assertThrows(IllegalArgumentException.class,() -> new TestSuite(null, new IEnvironmentDescriptionProvider[] { new TestEnvironmentDescriptionProvider() }, new IAgentProvider[] { new TestAgentProvider(false) }));
     }
 
-    @Test
+    @EpSemTest
     public void constructorNullEnvironmentDescriptionProvidersThrowsException() {
         assertThrows(IllegalArgumentException.class,() -> new TestSuite(this.testConfiguration, null, new IAgentProvider[] { new TestAgentProvider(false) }));
     }
 
-    @Test
+    @EpSemTest
     public void constructorEmptyEnvironmentDescriptionProvidersThrowsException() {
         assertThrows(IllegalArgumentException.class,() -> new TestSuite(this.testConfiguration, new IEnvironmentDescriptionProvider[0], new IAgentProvider[] { new TestAgentProvider(false) }));
     }
 
-    @Test
+    @EpSemTest
     public void constructorNullAgentProvidersThrowsException() {
         assertThrows(IllegalArgumentException.class,() -> new TestSuite(this.testConfiguration, new IEnvironmentDescriptionProvider[] { new TestEnvironmentDescriptionProvider() }, null));
     }
 
-    @Test
+    @EpSemTest
     public void constructorEmptyAgentProvidersThrowsException() {
         assertThrows(IllegalArgumentException.class,() -> new TestSuite(this.testConfiguration, new IEnvironmentDescriptionProvider[] { new TestEnvironmentDescriptionProvider() }, new IAgentProvider[0]));
     }
 
-    @Test
+    @EpSemTest
     public void constructorNullBeforeRunThrowsException()
     {
         assertThrows(IllegalArgumentException.class,() -> new TestSuite(this.testConfiguration, new IEnvironmentDescriptionProvider[] { new TestEnvironmentDescriptionProvider() }, new IAgentProvider[] { new TestAgentProvider(false) }, null));
@@ -57,7 +56,7 @@ public class TestSuiteTest {
     //endregion
 
     //region run Tests
-    @Test
+    @EpSemTest
     public void runInitializesAndExecutesSingleAgentSingleEnvironment() {
         IAgentProvider[] agentProviders = new IAgentProvider[] {
                         new TestAgentProvider(false)
@@ -75,7 +74,7 @@ public class TestSuiteTest {
         this.validateResultWriter(resultWriterProvider.generatedResultWriters.get("env_EnvAlias_0_agent_AgAlias_0_steps"));
     }
 
-    @Test
+    @EpSemTest
     public void runInitializesAndExecutesMultipleAgentsSingleEnvironment()  {
         IAgentProvider[] agentProviders = new IAgentProvider[] {
                         new TestAgentProvider(false),
@@ -97,7 +96,7 @@ public class TestSuiteTest {
         this.validateResultWriter(resultWriterProvider.generatedResultWriters.get("env_EnvAlias_0_agent_AgAlias_1_steps"));
     }
 
-    @Test
+    @EpSemTest
     public void runInitializesAndExecutesSingleAgentMultipleEnvironments() {
         IAgentProvider[] agentProviders = new IAgentProvider[] {
                 new TestAgentProvider(false)
@@ -118,7 +117,7 @@ public class TestSuiteTest {
         this.validateResultWriter(resultWriterProvider.generatedResultWriters.get("env_EnvAlias_1_agent_AgAlias_0_steps"));
     }
 
-    @Test
+    @EpSemTest
     public void runInitializesAndExecutesMultipleAgentsMultipleEnvironments() {
         IAgentProvider[] agentProviders = new IAgentProvider[] {
                 new TestAgentProvider(false),
@@ -143,7 +142,7 @@ public class TestSuiteTest {
         this.validateResultWriter(resultWriterProvider.generatedResultWriters.get("env_EnvAlias_1_agent_AgAlias_1_steps"));
     }
 
-    @Test
+    @EpSemTest
     public void runResultWritersCaptureAdditionalStatistics() {
         IAgentProvider[] agentProviders = new IAgentProvider[] {
                 new TestAgentProvider(true)
@@ -162,7 +161,7 @@ public class TestSuiteTest {
         this.validateResultWriter(resultWriterProvider.generatedResultWriters.get("env_EnvAlias_0_agent_AgAlias_0_additionalStat"));
     }
 
-    @Test
+    @EpSemTest
     public void runTriggersBeforeRun() {
         IAgentProvider[] agentProviders = new IAgentProvider[] {
                 new TestAgentProvider(false)

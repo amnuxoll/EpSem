@@ -1,20 +1,24 @@
-package agents.juno;
+package tests.agents.juno;
 
+import agents.juno.EpisodeWeights;
 import framework.Episode;
 import framework.Move;
 import framework.SensorData;
-import org.junit.jupiter.api.Test;
-import static org.junit.jupiter.api.Assertions.*;
 
+import tests.EpSemTest;
+import tests.EpSemTestClass;
+import static tests.Assertions.*;
+
+@EpSemTestClass
 public class EpisodeWeightsTest {
 
-    @Test
+    @EpSemTest
     public void testConstructor() {
         EpisodeWeights weights = new EpisodeWeights();
         assertEquals(0.0, weights.getActionWeight());
     }
 
-    @Test
+    @EpSemTest
     public void updateWeightsTest() {
         EpisodeWeights weights = new EpisodeWeights();
         Move move = new Move("a");
@@ -36,7 +40,7 @@ public class EpisodeWeightsTest {
         assertTrue(ep1.getSensorData().getSensor("GOAL") == ep1.getSensorData().getSensor("GOAL"));
     }
 
-    @Test
+    @EpSemTest
     public void episodeSensorsMatchTest() {
         EpisodeWeights weights = new EpisodeWeights();
         Move move = new Move("a");
@@ -67,7 +71,7 @@ public class EpisodeWeightsTest {
         assertFalse(weights.episodeSensorsMatch(ep1, ep2, "thanos"));
     }
 
-    @Test
+    @EpSemTest
     public void matchScoreTest() {
         fail("This method requires greater testing");
 //        EpisodeWeights weights = new EpisodeWeights();

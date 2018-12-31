@@ -1,37 +1,40 @@
-package framework;
+package tests.framework;
 
-import org.junit.jupiter.api.Test;
+import framework.*;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 
-import static org.junit.jupiter.api.Assertions.*;
+import tests.EpSemTest;
+import tests.EpSemTestClass;
+import static tests.Assertions.*;
 
 /**
  *
  * @author Zachary Paul Faltersack
  * @version 0.95
  */
+@EpSemTestClass
 public class TestRunTest {
     //region constructor Tests
-    @Test
+    @EpSemTest
     public void constructorNullAgentThrowsException() {
         assertThrows(IllegalArgumentException.class, () -> new TestRun(null, new TestEnvironmentDescription(), 1));
     }
 
-    @Test
+    @EpSemTest
     public void constructorNullEnvironmentDescriptionThrowsException() {
         assertThrows(IllegalArgumentException.class, () -> new TestRun(new TestAgent(), null, 1));
     }
 
-    @Test
+    @EpSemTest
     public void constructorNumberOfGoalsToFindLessThan1ThrowsException() {
         assertThrows(IllegalArgumentException.class, () -> new TestRun(new TestAgent(), new TestEnvironmentDescription(), 0));
     }
     //endregion
 
     //region execute Tests
-    @Test
+    @EpSemTest
     public void executeInitializesAgentWithMoves() {
         TestAgent agent = new TestAgent();
         TestEnvironmentDescription environmentDescription = new TestEnvironmentDescription();
@@ -40,7 +43,7 @@ public class TestRunTest {
         assertArrayEquals(environmentDescription.getMoves(), agent.moves);
     }
 
-    @Test
+    @EpSemTest
     public void executeMarshalsCallsBetweenAgentAndEnvironmentSingleGoalWithResultWriter() {
         TestAgent agent = new TestAgent();
         TestEnvironmentDescription environment = new TestEnvironmentDescription();
@@ -78,7 +81,7 @@ public class TestRunTest {
         assertArrayEquals(additionalStatLogs, goalListener.logStatements.get("additionalStat").toArray());
     }
 
-    @Test
+    @EpSemTest
     public void executeMarshalsCallsBetweenAgentAndEnvironmentMultipleGoalsWithResultWriter() {
         TestAgent agent = new TestAgent();
         TestEnvironmentDescription environment = new TestEnvironmentDescription();

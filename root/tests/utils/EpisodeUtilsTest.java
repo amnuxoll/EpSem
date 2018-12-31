@@ -1,20 +1,22 @@
-package utils;
+package tests.utils;
 
 import framework.Episode;
 import framework.Move;
-import org.junit.jupiter.api.Test;
+import utils.EpisodeUtils;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import tests.EpSemTest;
+import tests.EpSemTestClass;
+import static tests.Assertions.*;
 
 /**
  *
  * @author Zachary Paul Faltersack
  * @version 0.95
  */
+@EpSemTestClass
 public class EpisodeUtilsTest {
     //region selectMoves Tests
-    @Test
+    @EpSemTest
     public void selectMoves()
     {
         Move[] expectedMoves = new Move[] {
@@ -31,7 +33,7 @@ public class EpisodeUtilsTest {
         assertArrayEquals(expectedMoves, actualMoves);
     }
 
-    @Test
+    @EpSemTest
     public void selectMovesNullEpisodesThrowsException()
     {
         assertThrows(IllegalArgumentException.class, () -> EpisodeUtils.selectMoves(null));

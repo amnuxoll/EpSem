@@ -1,35 +1,37 @@
-package environments.fsm;
+package tests.environments.fsm;
 
+import environments.fsm.FSMDescription;
+import environments.fsm.FSMTransitionTable;
 import framework.Move;
-import framework.SensorData;
-import org.junit.jupiter.api.Test;
 
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Random;
 
-import static org.junit.jupiter.api.Assertions.*;
+import tests.EpSemTest;
+import tests.EpSemTestClass;
+import static tests.Assertions.*;
 
 /**
  *
  * @author Zachary Paul Faltersack
  * @version 0.95
  */
+@EpSemTestClass
 public class FSMDescriptionTest {
     //region constructor Tests
-    @Test
+    @EpSemTest
     public void constructorNullTransitionTableThrowsException() {
         assertThrows(IllegalArgumentException.class, () -> new FSMDescription(null));
     }
 
-    @Test
+    @EpSemTest
     public void constructorNullEnumSetThrowsException() {
         assertThrows(IllegalArgumentException.class, () -> new FSMDescription(this.getFsmTransitionTable(), null));
     }
     //endregion
 
     //region getMoves Tests
-    @Test
+    @EpSemTest
     public void getMovesFSMDescriptionInfersMoveSets() {
         HashMap<Move, Integer> transitionSet1 = new HashMap<>();
         transitionSet1.put(new Move("a"), 1);
@@ -54,7 +56,7 @@ public class FSMDescriptionTest {
     //endregion
 
     //region transition Tests
-    @Test
+    @EpSemTest
     public void transitionStateLessThanZeroThrowsException() {
         HashMap<Move, Integer> transitionSet1 = new HashMap<>();
         transitionSet1.put(new Move("a"), 1);
@@ -67,7 +69,7 @@ public class FSMDescriptionTest {
         assertThrows(IllegalArgumentException.class, () -> description.transition(-1, new Move("a")));
     }
 
-    @Test
+    @EpSemTest
     public void transitionStateTooLargeThrowsException() {
         HashMap<Move, Integer> transitionSet1 = new HashMap<>();
         transitionSet1.put(new Move("a"), 0);
@@ -80,7 +82,7 @@ public class FSMDescriptionTest {
         assertThrows(IllegalArgumentException.class, () -> description.transition(1, new Move("a")));
     }
 
-    @Test
+    @EpSemTest
     public void transitionNullMoveThrowsException() {
         HashMap<Move, Integer> transitionSet1 = new HashMap<>();
         transitionSet1.put(new Move("a"), 0);
@@ -93,7 +95,7 @@ public class FSMDescriptionTest {
         assertThrows(IllegalArgumentException.class, () -> description.transition(0, null));
     }
 
-    @Test
+    @EpSemTest
     public void transitionInvalidMoveThrowsException() {
         HashMap<Move, Integer> transitionSet1 = new HashMap<>();
         transitionSet1.put(new Move("a"), 0);
@@ -106,7 +108,7 @@ public class FSMDescriptionTest {
         assertThrows(IllegalArgumentException.class, () -> description.transition(0, new Move("d")));
     }
 
-    @Test
+    @EpSemTest
     public void transitionReturnsNewState() {
         HashMap<Move, Integer> transitionSet1 = new HashMap<>();
         transitionSet1.put(new Move("a"), 1);
@@ -121,7 +123,7 @@ public class FSMDescriptionTest {
     //endregion
 
     //region getRandomState Tests
-    @Test
+    @EpSemTest
     public void getRandomState() {
         FSMDescription description = new FSMDescription(this.getFsmTransitionTable());
         int randomState = description.getRandomState();
@@ -131,13 +133,13 @@ public class FSMDescriptionTest {
     //endregion
 
     //region tweakTable Tests
-    @Test
+    @EpSemTest
     public void tweakTableNumSwapsLessThan0ThrowsException() {
         FSMDescription description = new FSMDescription(this.getFsmTransitionTable());
         assertThrows(IllegalArgumentException.class, () -> description.tweakTable(-1, new Random()));
     }
 
-    @Test
+    @EpSemTest
     public void tweakTableNullRandomThrowsException() {
         FSMDescription description = new FSMDescription(this.getFsmTransitionTable());
         assertThrows(IllegalArgumentException.class, () -> description.tweakTable(1, null));

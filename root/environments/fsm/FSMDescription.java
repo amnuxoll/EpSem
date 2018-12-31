@@ -92,8 +92,8 @@ public class FSMDescription implements IEnvironmentDescription {
     }
     //endregion
 
-    //region Protected Methods
-    protected void tweakTable(int numSwaps, Random random) {
+    //region Public Methods
+    public void tweakTable(int numSwaps, Random random) {
         if (numSwaps < 0)
             throw new IllegalArgumentException("numSwaps must be greater than or equal to zero.");
         if (random == null)

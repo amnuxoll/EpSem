@@ -7,7 +7,7 @@ import java.io.IOException;
  * @author Zachary Paul Faltersack
  * @version 0.95
  */
-interface IGoalListener {
+public interface IGoalListener {
     //region Methods
     /**
      * Callback for receiving a goal {@link GoalEvent}.

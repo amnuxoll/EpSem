@@ -1,19 +1,21 @@
-package framework;
+package tests.framework;
 
-import org.junit.jupiter.api.Test;
+import framework.SensorData;
+import framework.TransitionResult;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import tests.EpSemTest;
+import tests.EpSemTestClass;
+import static tests.Assertions.*;
 
 /**
  *
  * @author Zachary Paul Faltersack
  * @version 0.95
  */
+@EpSemTestClass
 public class TransitionResultTest {
     //region Constructor Tests
-    @Test
+    @EpSemTest
     public void constructorNullSensorDataThrowsException()
     {
         assertThrows(IllegalArgumentException.class, () -> new TransitionResult(13, null));
@@ -21,7 +23,7 @@ public class TransitionResultTest {
     //endregion
 
     //region getState Tests
-    @Test
+    @EpSemTest
     public void getState()
     {
         TransitionResult result = new TransitionResult(13, new SensorData(true));
@@ -30,7 +32,7 @@ public class TransitionResultTest {
     //endregion
 
     //region getSensorData Tests
-    @Test
+    @EpSemTest
     public void getSensorData()
     {
         SensorData sensorData = new SensorData(true);

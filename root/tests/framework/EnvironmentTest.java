@@ -1,32 +1,36 @@
-package framework;
+package tests.framework;
 
-import org.junit.jupiter.api.Test;
+import framework.*;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import static org.junit.jupiter.api.Assertions.*;
+
+import tests.EpSemTest;
+import tests.EpSemTestClass;
+import static tests.Assertions.*;
 
 /**
  *
  * @author Zachary Paul Faltersack
  * @version 0.95
  */
+@EpSemTestClass
 public class EnvironmentTest {
     //region Constructor Tests
-    @Test
+    @EpSemTest
     public void testConstructorNullEnvironmentDescriptionThrowsException() {
         assertThrows(IllegalArgumentException.class, () -> new Environment(null));
     }
     //endregion
 
     //region tick Tests
-    @Test
+    @EpSemTest
     public void tickNullMoveThrowsException() {
         Environment environment = new Environment(new TestEnvironmentDescription());
         assertThrows(IllegalArgumentException.class, () -> environment.tick(null));
     }
 
-    @Test
+    @EpSemTest
     public void tickMaintainsState() {
         TestEnvironmentDescription description = new TestEnvironmentDescription();
         Environment environment = new Environment(description);
@@ -40,7 +44,7 @@ public class EnvironmentTest {
     //endregion
 
     //region reset Tests
-    @Test
+    @EpSemTest
     public void resetUpdatesCurrentState() {
         TestEnvironmentDescription description = new TestEnvironmentDescription();
         Environment environment = new Environment(description);
@@ -60,7 +64,7 @@ public class EnvironmentTest {
     //endregion
 
     //region validateSequence Tests
-    @Test
+    @EpSemTest
     public void validateSequence() {
         TestEnvironmentDescription description = new TestEnvironmentDescription();
         Environment environment = new Environment(description);
@@ -69,7 +73,7 @@ public class EnvironmentTest {
         assertFalse(environment.validateSequence(sequence.getSubsequence(1)));
     }
 
-    @Test
+    @EpSemTest
     public void validateSequenceNullSequenceThrowsException()
     {
         TestEnvironmentDescription description = new TestEnvironmentDescription();

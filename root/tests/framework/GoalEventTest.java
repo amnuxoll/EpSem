@@ -1,21 +1,23 @@
-package framework;
+package tests.framework;
 
-import org.junit.jupiter.api.Test;
+import framework.Datum;
+import framework.GoalEvent;
 
 import java.util.ArrayList;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import tests.EpSemTest;
+import tests.EpSemTestClass;
+import static tests.Assertions.*;
 
 /**
  *
  * @author Zachary Paul Faltersack
  * @version 0.95
  */
+@EpSemTestClass
 public class GoalEventTest {
     //region Constructor Tests
-    @Test
+    @EpSemTest
     public void constructorStepCountLessThan1ThrowsException()
     {
         assertThrows(IllegalArgumentException.class, () -> new GoalEvent(this, 0, null));
@@ -23,7 +25,7 @@ public class GoalEventTest {
     //endregion
 
     //region getStepCountToGoal Tests
-    @Test
+    @EpSemTest
     public void getStepCountToGoal()
     {
         GoalEvent event = new GoalEvent(this, 13, null);
@@ -32,14 +34,14 @@ public class GoalEventTest {
     //endregion
 
     //region getAgentData Tests
-    @Test
+    @EpSemTest
     public void getAgentDataNoneProvidedYieldsEmptyList()
     {
         GoalEvent event = new GoalEvent(this, 13, null);
         assertEquals(0, event.getAgentData().size());
     }
 
-    @Test
+    @EpSemTest
     public void getAgentData()
     {
         ArrayList<Datum> agentData = new ArrayList<>();

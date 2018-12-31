@@ -1,39 +1,43 @@
-package agents.marz;
+package tests.agents.marz;
 
+import agents.marz.SuffixNodeBase;
+import agents.marz.SuffixTree;
 import framework.Move;
-import org.junit.jupiter.api.Test;
 import framework.Sequence;
 
-import static org.junit.jupiter.api.Assertions.*;
+import tests.EpSemTest;
+import tests.EpSemTestClass;
+import static tests.Assertions.*;
 
+@EpSemTestClass
 public class SuffixTreeTest {
 
     // constructor Tests
-    @Test
+    @EpSemTest
     public void constructorMaxSizeLessThanOneThrowsException() {
         assertThrows(IllegalArgumentException.class, () -> new SuffixTree<TestSuffixNode>(0, new TestSuffixNode(5, Sequence.EMPTY)));
     }
 
-    @Test
+    @EpSemTest
     public void constructorNullRootNodeThrowsException() {
         assertThrows(IllegalArgumentException.class, () -> new SuffixTree<TestSuffixNode>(10, null));
     }
 
     // splitSuffix Tests
-    @Test
+    @EpSemTest
     public void splitSuffixNullSuffixThrowsException() {
         SuffixTree<TestSuffixNode> suffixTree = new SuffixTree<>(20, new TestSuffixNode(10, Sequence.EMPTY));
         assertThrows(IllegalArgumentException.class, () -> suffixTree.splitSuffix(null));
     }
 
-    @Test
+    @EpSemTest
     public void splitSuffixNotFoundReturnsFalse() {
         Sequence toSplit = new Sequence(new Move[] { new Move("a"), new Move("b"), new Move("c") });
         SuffixTree<TestSuffixNode> suffixTree = new SuffixTree<>(20, new TestSuffixNode(10, Sequence.EMPTY));
         assertFalse(suffixTree.splitSuffix(toSplit));
     }
 
-    @Test
+    @EpSemTest
     public void splitSuffixAddsChildrenRemovesSelf() {
         Sequence toSplit = new Sequence(new Move[] { new Move("a"), new Move("b"), new Move("c") });
         TestSuffixNode node = new TestSuffixNode(10, toSplit);
@@ -47,7 +51,7 @@ public class SuffixTreeTest {
     }
 
     // findBestNodeToTry Tests
-    @Test
+    @EpSemTest
     public void findBestNodeToTryTakesHighestWeightNode() {
         Sequence toSplit = new Sequence(new Move[] { new Move("a"), new Move("b"), new Move("c") });
         TestSuffixNode node = new TestSuffixNode(10, toSplit);
@@ -60,13 +64,13 @@ public class SuffixTreeTest {
     }
 
     // findBestMatch Tests
-    @Test
+    @EpSemTest
     public void findBestMatchNullSequenceThrowsException() {
         SuffixTree<TestSuffixNode> suffixTree = new SuffixTree<>(20, new TestSuffixNode(10, Sequence.EMPTY));
         assertThrows(IllegalArgumentException.class, () -> suffixTree.findBestMatch(null));
     }
 
-    @Test
+    @EpSemTest
     public void findBestMatchMatchesFullSequence() {
         Sequence match = new Sequence(new Move[] { new Move("a"), new Move("b"), new Move("c") });
         TestSuffixNode node = new TestSuffixNode(10, match);
@@ -75,7 +79,7 @@ public class SuffixTreeTest {
         assertEquals(node, foundNode);
     }
 
-    @Test
+    @EpSemTest
     public void findBestMatchMatchesSubsequence() {
         Sequence subsequence = new Sequence(new Move[] { new Move("a"), new Move("b"), new Move("c") });
         TestSuffixNode node = new TestSuffixNode(10, subsequence);
@@ -85,7 +89,7 @@ public class SuffixTreeTest {
         assertEquals(node, foundNode);
     }
 
-    @Test
+    @EpSemTest
     public void findBestMatchNotFoundReturnsNull() {
         Sequence match = new Sequence(new Move[] { new Move("a"), new Move("b"), new Move("c") });
         TestSuffixNode node = new TestSuffixNode(10, match);
@@ -95,13 +99,13 @@ public class SuffixTreeTest {
     }
 
     // containsSuffix Tests
-    @Test
+    @EpSemTest
     public void containsSuffixNullSequenceThrowsException() {
         SuffixTree<TestSuffixNode> suffixTree = new SuffixTree<>(20, new TestSuffixNode(10, Sequence.EMPTY));
         assertThrows(IllegalArgumentException.class, () -> suffixTree.containsSuffix(null));
     }
 
-    @Test
+    @EpSemTest
     public void containsSuffixTrue() {
         Sequence suffix = new Sequence(new Move[] { new Move("a"), new Move("b"), new Move("c") });
         TestSuffixNode node = new TestSuffixNode(10, suffix);
@@ -109,7 +113,7 @@ public class SuffixTreeTest {
         assertTrue(suffixTree.containsSuffix(suffix));
     }
 
-    @Test
+    @EpSemTest
     public void containsSuffixFalse() {
         Sequence suffix = new Sequence(new Move[] { new Move("a"), new Move("b"), new Move("c") });
         TestSuffixNode node = new TestSuffixNode(10, suffix);

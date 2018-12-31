@@ -1,55 +1,58 @@
-package framework;
+package tests.framework;
 
-import org.junit.jupiter.api.Test;
+import framework.Move;
+import framework.Sequence;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.*;
+
+import tests.EpSemTest;
+import tests.EpSemTestClass;
+import static tests.Assertions.*;
 
 /**
  *
  * @author Zachary Paul Faltersack
  * @version 0.95
  */
+@EpSemTestClass
 public class SequenceTest {
     //region constructor Tests
-    @Test
+    @EpSemTest
     public void constructorNullMovesThrowsException() {
         assertThrows(IllegalArgumentException.class, () -> new Sequence(null));
     }
     //endregion
 
     //region endsWith Tests
-    @Test
+    @EpSemTest
     public void endsWithNullSequenceThrowsException() {
         Sequence sequence = new Sequence(new Move[0]);
         assertThrows(IllegalArgumentException.class, () -> sequence.endsWith(null));
     }
 
-    @Test
+    @EpSemTest
     public void endsWithFalseIfGivenSequenceIsLongerThanSelf() {
         Sequence toTest = new Sequence(new Move[] { new Move("a"), new Move("b"), new Move("c") });
         Sequence master = new Sequence(new Move[] { new Move("a"), new Move("b")});
         assertFalse(master.endsWith(toTest));
     }
 
-    @Test
+    @EpSemTest
     public void endsWithTrueIfGivenEmptySequence() {
         Sequence toTest = new Sequence(new Move[0]);
         Sequence master = new Sequence(new Move[] { new Move("a"), new Move("b"), new Move("c")});
         assertTrue(master.endsWith(toTest));
     }
 
-    @Test
+    @EpSemTest
     public void endsWithTrueIfGivenSequenceSameAsSelf() {
         Sequence toTest = new Sequence(new Move[] { new Move("a"), new Move("b"), new Move("c") });
         Sequence master = new Sequence(new Move[] { new Move("a"), new Move("b"), new Move("c")});
         assertTrue(master.endsWith(toTest));
     }
 
-    @Test
+    @EpSemTest
     public void endsWithTrueIfGivenSequenceThatMatchesEndOfSelf() {
         Sequence toTest = new Sequence(new Move[] { new Move("b"), new Move("c") });
         Sequence master = new Sequence(new Move[] { new Move("a"), new Move("b"), new Move("c")});
@@ -58,7 +61,7 @@ public class SequenceTest {
     //endregion
 
     //region getMoves Tests
-    @Test
+    @EpSemTest
     public void getMoves()
     {
         Move[] moves = new Move[] { new Move("one"), new Move("two") };
@@ -68,20 +71,20 @@ public class SequenceTest {
     //endregion
 
     //region getSubsequence Tests
-    @Test
+    @EpSemTest
     public void getSubsequenceIndexLessThanZeroThrowsException() {
         Sequence sequence = new Sequence(new Move[] { new Move("a"), new Move("b"), new Move("c")});
         assertThrows(IllegalArgumentException.class, () -> sequence.getSubsequence(-1));
     }
 
-    @Test
+    @EpSemTest
     public void getSubsequenceStartAtZeroReturnsEqualSequence() {
         Sequence sequence = new Sequence(new Move[] { new Move("a"), new Move("b"), new Move("c")});
         Sequence subsequence = sequence.getSubsequence(0);
         assertEquals(sequence, subsequence);
     }
 
-    @Test
+    @EpSemTest
     public void getSubsequenceReturnsProperSubsequence() {
         Sequence sequence = new Sequence(new Move[] { new Move("a"), new Move("b"), new Move("c")});
         Sequence subsequence = sequence.getSubsequence(1);
@@ -89,7 +92,7 @@ public class SequenceTest {
         assertEquals(expected, subsequence);
     }
 
-    @Test
+    @EpSemTest
     public void getSubsequenceReturnsProperSubsequenceLastItem() {
         Sequence sequence = new Sequence(new Move[] { new Move("a"), new Move("b"), new Move("c")});
         Sequence subsequence = sequence.getSubsequence(2);
@@ -97,7 +100,7 @@ public class SequenceTest {
         assertEquals(expected, subsequence);
     }
 
-    @Test
+    @EpSemTest
     public void getSubsequenceLargerThanSequenceGivesEmptySequence() {
         Sequence sequence = new Sequence(new Move[] { new Move("a"), new Move("b"), new Move("c")});
         Sequence subsequence = sequence.getSubsequence(3);
@@ -107,13 +110,13 @@ public class SequenceTest {
     //endregion
 
     //region getLength Tests
-    @Test
+    @EpSemTest
     public void getLengthGivesEmptySequenceLength() {
         Sequence sequence = new Sequence(new Move[0]);
         assertEquals(0, sequence.getLength());
     }
 
-    @Test
+    @EpSemTest
     public void getLengthGivesSequenceLength() {
         Sequence sequence = new Sequence(new Move[5]);
         assertEquals(5, sequence.getLength());
@@ -121,13 +124,13 @@ public class SequenceTest {
     //endregion
 
     //region buildChildSequence Tests
-    @Test
+    @EpSemTest
     public void buildChildSequenceNullMoveThrowsException() {
         Sequence sequence = new Sequence(new Move[0]);
         assertThrows(IllegalArgumentException.class, () -> sequence.buildChildSequence(null));
     }
 
-    @Test
+    @EpSemTest
     public void buildChildSequenceAppendsToEmptySequence() {
         Sequence sequence = new Sequence(new Move[0]);
         Sequence childSequence = sequence.buildChildSequence(new Move("a"));
@@ -135,7 +138,7 @@ public class SequenceTest {
         assertEquals(expected, childSequence);
     }
 
-    @Test
+    @EpSemTest
     public void buildChildSequencePrependsNewMove() {
         Sequence sequence = new Sequence(new Move[] { new Move("b"), new Move("a") });
         Sequence childSequence = sequence.buildChildSequence(new Move("c"));
@@ -145,13 +148,13 @@ public class SequenceTest {
     //endregion
 
     //region hasNext Tests
-    @Test
+    @EpSemTest
     public void hasNextFalseForEmptySequence() {
         Sequence sequence = new Sequence(new Move[0]);
         assertFalse(sequence.hasNext());
     }
 
-    @Test
+    @EpSemTest
     public void hasNextTrueForNonEmptySequence() {
         Sequence sequence = new Sequence(new Move[] { new Move("a")});
         assertTrue(sequence.hasNext());
@@ -159,13 +162,13 @@ public class SequenceTest {
     //endregion
 
     //region next Tests
-    @Test
+    @EpSemTest
     public void nextNoNextItemThrowsException() {
         Sequence sequence = new Sequence(new Move[0]);
         assertThrows(RuntimeException.class, () -> sequence.next());
     }
 
-    @Test
+    @EpSemTest
     public void nextReturnsNextItem() {
         Sequence sequence = new Sequence(new Move[] { new Move("a") });
         Move move = sequence.next();
@@ -174,7 +177,7 @@ public class SequenceTest {
     //endregion
 
     //region reset (iteration Integration) Tests
-    @Test
+    @EpSemTest
     public void iterationIntegration() {
         Move a = new Move("a");
         Move b = new Move("b");
@@ -205,7 +208,7 @@ public class SequenceTest {
     //endregion
 
     //region getCurrentIndex Tests
-    @Test
+    @EpSemTest
     public void getCurrentIndex()
     {
 
@@ -218,34 +221,34 @@ public class SequenceTest {
     //endregion
 
     //region equals Tests
-    @Test
+    @EpSemTest
     public void equalsAreEqual() {
         Sequence sequence1 = new Sequence(new Move[] { new Move("a"), new Move("b"), new Move("c") });
         Sequence sequence2 = new Sequence(new Move[] { new Move("a"), new Move("b"), new Move("c") });
         assertEquals(sequence1, sequence2);
     }
 
-    @Test
+    @EpSemTest
     public void equalsAreEqualSameObject() {
         Sequence sequence1 = new Sequence(new Move[] { new Move("a"), new Move("b"), new Move("c") });
         assertTrue(sequence1.equals(sequence1));
     }
 
-    @Test
+    @EpSemTest
     public void equalsAreNotEqualDifferentMoves() {
         Sequence sequence1 = new Sequence(new Move[] { new Move("d"), new Move("b"), new Move("c") });
         Sequence sequence2 = new Sequence(new Move[] { new Move("a"), new Move("b"), new Move("c") });
         assertNotEquals(sequence1, sequence2);
     }
 
-    @Test
+    @EpSemTest
     public void equalsAreNotEqualDifferentMoveCounts() {
         Sequence sequence1 = new Sequence(new Move[] { new Move("b"), new Move("c") });
         Sequence sequence2 = new Sequence(new Move[] { new Move("a"), new Move("b"), new Move("c") });
         assertNotEquals(sequence1, sequence2);
     }
 
-    @Test
+    @EpSemTest
     public void equalsAreNotEqualDifferentTypes() {
         Sequence sequence1 = new Sequence(new Move[] { new Move("b"), new Move("c") });
         assertFalse(sequence1.equals(new Move("a")));
@@ -253,7 +256,7 @@ public class SequenceTest {
     //endregion
 
     //region hashcode Tests
-    @Test
+    @EpSemTest
     public void hashCodeSameForEqualSequences() {
         Sequence sequence1 = new Sequence(new Move[] { new Move("a"), new Move("b"), new Move("c") });
         Sequence sequence2 = new Sequence(new Move[] { new Move("a"), new Move("b"), new Move("c") });
@@ -262,33 +265,33 @@ public class SequenceTest {
     //endregion
 
     //region take Tests
-    @Test
+    @EpSemTest
     public void takeLengthLessThanZeroThrowsException() {
         Sequence sequence = new Sequence(new Move[0]);
         assertThrows(IllegalArgumentException.class, () -> sequence.take(-1));
     }
 
-    @Test
+    @EpSemTest
     public void takeLengthBiggerThanSequenceThrowsException() {
         Sequence sequence = new Sequence(new Move[] { new Move("a") });
         assertThrows(IllegalArgumentException.class, () -> sequence.take(2));
     }
 
-    @Test
+    @EpSemTest
     public void takeNothingGivesEmptySequence() {
         Sequence sequence = new Sequence(new Move[] { new Move("a") });
         Sequence subsequence = sequence.take(0);
         assertEquals(new Sequence(new Move[0]), subsequence);
     }
 
-    @Test
+    @EpSemTest
     public void takeGivesSingleItem() {
         Sequence sequence = new Sequence(new Move[] { new Move("a") });
         Sequence subsequence = sequence.take(1);
         assertEquals(sequence, subsequence);
     }
 
-    @Test
+    @EpSemTest
     public void takeGivesFirstNItems() {
         Sequence sequence = new Sequence(new Move[] { new Move("a"), new Move("b"), new Move("c") });
         Sequence subsequence = sequence.take(2);
@@ -298,7 +301,7 @@ public class SequenceTest {
     //endregion
 
     //region comparable Tests
-    @Test
+    @EpSemTest
     public void comparableSortsByLength() {
         Sequence length1 = new Sequence(new Move[] { new Move("a")});
         Sequence length21 = new Sequence(new Move[] { new Move("a"), new Move("b") });

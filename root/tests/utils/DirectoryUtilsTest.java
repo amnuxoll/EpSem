@@ -1,22 +1,25 @@
-package utils;
+package tests.utils;
 
-import org.junit.jupiter.api.Test;
+import utils.DirectoryUtils;
+
 import java.io.File;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import tests.EpSemTest;
+import tests.EpSemTestClass;
+import static tests.Assertions.*;
 
 /**
  *
  * @author Zachary Paul Faltersack
  * @version 0.95
  */
+@EpSemTestClass
 public class DirectoryUtilsTest {
     //region generateNewOutputDirectory Tests
-    @Test
+    @EpSemTest
     public void generateNewOutputDirectory()
     {
         File outputDirectory = DirectoryUtils.generateNewOutputDirectory();
@@ -31,7 +34,7 @@ public class DirectoryUtilsTest {
     //endregion
 
     //region getTimestamp Tests
-    @Test
+    @EpSemTest
     public void getTimestamp()
     {
         long time = 303030;

@@ -8,7 +8,7 @@ import java.util.EventObject;
  * @author Zachary Paul Faltersack
  * @version 0.95
  */
-class GoalEvent extends EventObject {
+public class GoalEvent extends EventObject {
     //region Class Variables
     private String stepCountToGoal;
     private ArrayList<Datum> agentData;

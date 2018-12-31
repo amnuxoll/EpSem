@@ -1,44 +1,49 @@
-package environments.fsm;
+package tests.environments.fsm;
 
-import org.junit.jupiter.api.Test;
+import environments.fsm.FSMDescription;
+import environments.fsm.FSMDescriptionProvider;
+import environments.fsm.FSMTransitionTableBuilder;
 import utils.Random;
 
 import java.util.EnumSet;
 
-import static org.junit.jupiter.api.Assertions.*;
+import tests.EpSemTest;
+import tests.EpSemTestClass;
+import static tests.Assertions.*;
 
 /**
  *
  * @author Zachary Paul Faltersack
  * @version 0.95
  */
+@EpSemTestClass
 public class FSMDescriptionProviderTest {
     //region constructor Tests
-    @Test
+    @EpSemTest
     public void constructorAlphabetSizeLessThanOneThrowsException() {
         assertThrows(IllegalArgumentException.class, () -> new FSMDescriptionProvider(new FSMTransitionTableBuilder(0, 1, Random.getTrue()), FSMDescription.Sensor.ALL_SENSORS));
     }
 
-    @Test
+    @EpSemTest
     public void constructorNumberOfStatesLessThanOneThrowsException() {
         assertThrows(IllegalArgumentException.class, () -> new FSMDescriptionProvider(new FSMTransitionTableBuilder(1, 0, Random.getTrue()), FSMDescription.Sensor.ALL_SENSORS));
     }
 
-    @Test
+    @EpSemTest
     public void constructorNullEnumSetThrowsException() {
         assertThrows(IllegalArgumentException.class, () -> new FSMDescriptionProvider(new FSMTransitionTableBuilder(1, 1, Random.getTrue()), null));
     }
     //endregion
 
     //region getEnvironmentDescription Tests
-    @Test
+    @EpSemTest
     public void getEnvironmentDescriptionHeedsConfiguration1() {
         FSMDescriptionProvider descriptionProvider = new FSMDescriptionProvider(new FSMTransitionTableBuilder(1, 1, Random.getTrue()), FSMDescription.Sensor.ALL_SENSORS);
         FSMDescription description = (FSMDescription)descriptionProvider.getEnvironmentDescription();
         assertEquals(1, description.getMoves().length);
     }
 
-    @Test
+    @EpSemTest
     public void getEnvironmentDescriptionHeedsConfiguration2() {
         FSMDescriptionProvider descriptionProvider = new FSMDescriptionProvider(new FSMTransitionTableBuilder(13, 42, Random.getTrue()), EnumSet.of(FSMDescription.Sensor.EVEN_ODD));
         FSMDescription description = (FSMDescription)descriptionProvider.getEnvironmentDescription();
@@ -47,7 +52,7 @@ public class FSMDescriptionProviderTest {
     //endregion
 
     //region getAlias Tests
-    @Test
+    @EpSemTest
     public void getAlias() {
         FSMDescriptionProvider descriptionProvider = new FSMDescriptionProvider(new FSMTransitionTableBuilder(13, 42, Random.getTrue()), EnumSet.of(FSMDescription.Sensor.EVEN_ODD));
         assertEquals("FSMDescription", descriptionProvider.getAlias());

@@ -80,10 +80,8 @@ public class FSMTransitionTable {
         }
         return this.universalSequence;
     }
-    //endregion
 
-    //region Protected Methods
-    protected Tweak[] tweakTable(int numSwaps, Random random) {
+    public Tweak[] tweakTable(int numSwaps, Random random) {
         ArrayList<Tweak> tweaks = new ArrayList<>();
         for(int i = 0;i<numSwaps; i++) {
             int stateToSwitch = random.nextInt(this.transitions.length); //pick which state whose moves will be swapped

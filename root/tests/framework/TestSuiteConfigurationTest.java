@@ -1,30 +1,32 @@
-package framework;
+package tests.framework;
 
-import org.junit.jupiter.api.Test;
+import framework.TestSuiteConfiguration;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import tests.EpSemTest;
+import tests.EpSemTestClass;
+import static tests.Assertions.*;
 
 /**
  *
  * @author Zachary Paul Faltersack
  * @version 0.95
  */
+@EpSemTestClass
 public class TestSuiteConfigurationTest {
     //region Constructor Tests
-    @Test
+    @EpSemTest
     public void constructorNumberOfIterationsLessThanOneThrowsException() {
         assertThrows(IllegalArgumentException.class, () -> new TestSuiteConfiguration(0, 1));
     }
 
-    @Test
+    @EpSemTest
     public void constructorNumberOfGoalsLessThanOneThrowsException() {
         assertThrows(IllegalArgumentException.class, () -> new TestSuiteConfiguration(1, 0));
     }
     //endregion
 
     //region getNumberOfIterations Tests
-    @Test
+    @EpSemTest
     public void getNumberOfIterations()
     {
         TestSuiteConfiguration configuration = new TestSuiteConfiguration(13, 14);
@@ -33,7 +35,7 @@ public class TestSuiteConfigurationTest {
     //endregion
 
     //region getNumberOfGoals Tests
-    @Test
+    @EpSemTest
     public void getNumberOfGoals()
     {
         TestSuiteConfiguration configuration = new TestSuiteConfiguration(13, 14);

@@ -1,26 +1,29 @@
-package utils;
+package tests.utils;
 
 import framework.Episode;
 import framework.Move;
 import framework.SensorData;
-import org.junit.jupiter.api.Test;
+import utils.EpisodicMemory;
 
-import static org.junit.jupiter.api.Assertions.*;
+import tests.EpSemTest;
+import tests.EpSemTestClass;
+import static tests.Assertions.*;
 
 /**
  *
  * @author Zachary Paul Faltersack
  * @version 0.95
  */
+@EpSemTestClass
 public class EpisodicMemoryTest {
     //region any Tests
-    @Test
+    @EpSemTest
     public void anyEmpty() {
         EpisodicMemory<Episode> episodicMemory = new EpisodicMemory<>();
         assertFalse(episodicMemory.any());
     }
 
-    @Test
+    @EpSemTest
     public void anyNotEmpty() {
         EpisodicMemory<Episode> episodicMemory = new EpisodicMemory<>();
         episodicMemory.add(new Episode(new Move("move")));
@@ -29,13 +32,13 @@ public class EpisodicMemoryTest {
     //endregion
 
     //region current Tests
-    @Test
+    @EpSemTest
     public void currentEmptyReturnsNull() {
         EpisodicMemory<Episode> episodicMemory = new EpisodicMemory<>();
         assertNull(episodicMemory.current());
     }
 
-    @Test
+    @EpSemTest
     public void currentReturnsLastItem() {
         EpisodicMemory<Episode> episodicMemory = new EpisodicMemory<>();
         episodicMemory.add(new Episode(new Move("move1")));
@@ -47,13 +50,13 @@ public class EpisodicMemoryTest {
     //endregion
 
     //region currentIndex Tests
-    @Test
+    @EpSemTest
     public void currentIndexNegativeOneWhenEmpty() {
         EpisodicMemory<Episode> episodicMemory = new EpisodicMemory<>();
         assertEquals(-1, episodicMemory.currentIndex());
     }
 
-    @Test
+    @EpSemTest
     public void currentIndex() {
         EpisodicMemory<Episode> episodicMemory = new EpisodicMemory<>();
         episodicMemory.add(new Episode(new Move("move1")));
@@ -64,13 +67,13 @@ public class EpisodicMemoryTest {
     //endregion
 
     //region length Tests
-    @Test
+    @EpSemTest
     public void lengthWhenEmpty() {
         EpisodicMemory<Episode> episodicMemory = new EpisodicMemory<>();
         assertEquals(0, episodicMemory.length());
     }
 
-    @Test
+    @EpSemTest
     public void length() {
         EpisodicMemory<Episode> episodicMemory = new EpisodicMemory<>();
         episodicMemory.add(new Episode(new Move("move1")));
@@ -81,7 +84,7 @@ public class EpisodicMemoryTest {
     //endregion
 
     //region add Tests
-    @Test
+    @EpSemTest
     public void add() {
         Episode expected = new Episode(new Move("move"));
         EpisodicMemory<Episode> episodicMemory = new EpisodicMemory<>();
@@ -90,7 +93,7 @@ public class EpisodicMemoryTest {
         assertSame(expected, actual);
     }
 
-    @Test
+    @EpSemTest
     public void addNullEpisodeThrowsException() {
         EpisodicMemory<Episode> episodicMemory = new EpisodicMemory<>();
         assertThrows(IllegalArgumentException.class, () -> episodicMemory.add(null));
@@ -98,14 +101,14 @@ public class EpisodicMemoryTest {
     //endregion
 
     //region get Tests
-    @Test
+    @EpSemTest
     public void getFirst() {
         EpisodicMemory<Episode> episodicMemory = new EpisodicMemory<>();
         episodicMemory.add(new Episode(new Move("move1")));
         assertEquals(new Episode(new Move("move1")), episodicMemory.get(0));
     }
 
-    @Test
+    @EpSemTest
     public void getLast() {
         EpisodicMemory<Episode> episodicMemory = new EpisodicMemory<>();
         episodicMemory.add(new Episode(new Move("move1")));
@@ -114,19 +117,19 @@ public class EpisodicMemoryTest {
         assertEquals(new Episode(new Move("move3")), episodicMemory.get(2));
     }
 
-    @Test
+    @EpSemTest
     public void getNegativeIndexThrowsException() {
         EpisodicMemory<Episode> episodicMemory = new EpisodicMemory<>();
         assertThrows(IllegalArgumentException.class, () -> episodicMemory.get(-1));
     }
 
-    @Test
+    @EpSemTest
     public void getEmptyMemoryThrowsException() {
         EpisodicMemory<Episode> episodicMemory = new EpisodicMemory<>();
         assertThrows(IllegalArgumentException.class, () -> episodicMemory.get(0));
     }
 
-    @Test
+    @EpSemTest
     public void getIndexTooLargeThrowsException() {
         EpisodicMemory<Episode> episodicMemory = new EpisodicMemory<>();
         episodicMemory.add(new Episode(new Move("move1")));
@@ -135,14 +138,14 @@ public class EpisodicMemoryTest {
     //endregion
 
     //region getFromOffset Tests
-    @Test
+    @EpSemTest
     public void getFromOffsetFirst() {
         EpisodicMemory<Episode> episodicMemory = new EpisodicMemory<>();
         episodicMemory.add(new Episode(new Move("move1")));
         assertEquals(new Episode(new Move("move1")), episodicMemory.getFromOffset(0));
     }
 
-    @Test
+    @EpSemTest
     public void getFromOffsetLast() {
         EpisodicMemory<Episode> episodicMemory = new EpisodicMemory<>();
         episodicMemory.add(new Episode(new Move("move1")));
@@ -151,19 +154,19 @@ public class EpisodicMemoryTest {
         assertEquals(new Episode(new Move("move1")), episodicMemory.getFromOffset(2));
     }
 
-    @Test
+    @EpSemTest
     public void getFromOffsetNegativeIndexThrowsException() {
         EpisodicMemory<Episode> episodicMemory = new EpisodicMemory<>();
         assertThrows(IllegalArgumentException.class, () -> episodicMemory.getFromOffset(-1));
     }
 
-    @Test
+    @EpSemTest
     public void getFromOffsetEmptyMemoryThrowsException() {
         EpisodicMemory<Episode> episodicMemory = new EpisodicMemory<>();
         assertThrows(IllegalArgumentException.class, () -> episodicMemory.getFromOffset(0));
     }
 
-    @Test
+    @EpSemTest
     public void getFromOffsetIndexTooLargeThrowsException() {
         EpisodicMemory<Episode> episodicMemory = new EpisodicMemory<>();
         episodicMemory.add(new Episode(new Move("move1")));
@@ -172,7 +175,7 @@ public class EpisodicMemoryTest {
     //endregion
 
     //region trim Tests
-    @Test
+    @EpSemTest
     public void trim() {
         EpisodicMemory<Episode> episodicMemory = new EpisodicMemory<>();
         episodicMemory.add(new Episode(new Move("move1")));
@@ -182,7 +185,7 @@ public class EpisodicMemoryTest {
         assertEquals(1, episodicMemory.length());
     }
 
-    @Test
+    @EpSemTest
     public void trimNegativeCountThrowsException() {
         EpisodicMemory<Episode> episodicMemory = new EpisodicMemory<>();
         assertThrows(IllegalArgumentException.class, () -> episodicMemory.trim(-1));
@@ -190,7 +193,7 @@ public class EpisodicMemoryTest {
     //endregion
 
     //region subset Tests
-    @Test
+    @EpSemTest
     public void subsetTakesRest() {
         EpisodicMemory<Episode> episodicMemory = new EpisodicMemory<>();
         episodicMemory.add(new Episode(new Move("move1")));
@@ -204,7 +207,7 @@ public class EpisodicMemoryTest {
         assertArrayEquals(expected, subset);
     }
 
-    @Test
+    @EpSemTest
     public void subset() {
         EpisodicMemory<Episode> episodicMemory = new EpisodicMemory<>();
         episodicMemory.add(new Episode(new Move("move1")));
@@ -218,20 +221,20 @@ public class EpisodicMemoryTest {
         assertArrayEquals(expected, subset);
     }
 
-    @Test
+    @EpSemTest
     public void subsetStartLessThanZeroThrowsException() {
         EpisodicMemory<Episode> episodicMemory = new EpisodicMemory<>();
         assertThrows(IllegalArgumentException.class, () -> episodicMemory.subset(-1));
     }
 
-    @Test
+    @EpSemTest
     public void subsetEndGreaterThanLengthThrowsException() {
         EpisodicMemory<Episode> episodicMemory = new EpisodicMemory<>();
         episodicMemory.add(new Episode(new Move("move1")));
         assertThrows(IllegalArgumentException.class, () -> episodicMemory.subset(0, 2));
     }
 
-    @Test
+    @EpSemTest
     public void subsetEndLessThanStartThrowsException() {
         EpisodicMemory<Episode> episodicMemory = new EpisodicMemory<>();
         assertThrows(IllegalArgumentException.class, () -> episodicMemory.subset(1, 0));
@@ -239,7 +242,7 @@ public class EpisodicMemoryTest {
     //endregion
 
     //region lastGoalIndex Tests
-    @Test
+    @EpSemTest
     public void lastGoalIndex() {
         // 2 and 5 will be goal
         EpisodicMemory<Episode> episodicMemory = new EpisodicMemory<>();
@@ -252,7 +255,7 @@ public class EpisodicMemoryTest {
         assertEquals(2, episodicMemory.lastGoalIndex(4));
     }
 
-    @Test
+    @EpSemTest
     public void lastGoalIndexNegativeStartThrowsException() {
         EpisodicMemory<Episode> episodicMemory = new EpisodicMemory<>();
         assertThrows(IllegalArgumentException.class, () -> episodicMemory.lastGoalIndex(-1));
