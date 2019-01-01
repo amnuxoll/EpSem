@@ -125,3 +125,43 @@ A constructor can be used as follows for hooking into the pre-run delegate:
 After the pre-run delegate is invoked, an instance of an agent is created with the agent providers and an instance of
 an environment description is created with the environment description providers. These are then put through a TestRun
 based on the given TestSuiteConfiguration.
+
+: UNIT TESTING
+This framework has homegrown unit test functionality that is currently evolving. The intention is to minimize as much
+as possible any external dependencies such as JUnit. In order to create a new test class you must annotate the class
+as well as any test methods in the class as follows:
+
+@EpSemTestClass
+public class ThisIsATestClass {
+    @EpSemTest
+    public void ThisIsATest() {
+        // I must not take any arguments.
+    }
+}
+
+When writing tests, nest them in the "tests" package in a directory structure that reflects the source code structure
+of the rest of the project.
+
+There exists an Assertions class that contains a variety of static assertion methods. Use these and if an assertion
+does not exist for what you need, add it here and ensure it throws the correct AssertionFailedException.
+
+There is a test runner class called EpSemTestRunner that takes a single argument. If this argument is a directory, then
+that directory will be searched recursively for test classes. If it is a single file, then it will run that test file.
+For example:
+
+java <classpath> tests.EpSemTestRunner tests/mytestfile.java
+java <classpath> tests.EpSemTestRunner tests/
+
+: MAKE
+A makefile exists in the repository root that contains a variety of targets.
+
+make [all] :: This will build all the source code and put the generated class files in <root>/out/
+
+make runexperiments :: This will build the source code and then execute whatever experiment is in Runner.main().
+
+make runtests :: This will build the source code and then run all the unit tests
+
+make runtestsnorebuild :: This will run all the unit tests without rebuilding the source code.
+
+This functionality is new and still brittle. It is expected that all commands to make are executed from the root
+repository directory for now. This will continue to evolve and become more robust.
