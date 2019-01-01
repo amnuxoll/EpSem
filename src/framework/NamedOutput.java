@@ -52,12 +52,11 @@ public class NamedOutput {
             throw new IllegalArgumentException("key cannot be null or empty.");
         if (data == null)
             throw new IllegalArgumentException("data cannot be null.");
-        if (!this.outputStreams.containsKey(key)) {
-            this.outputStreams.put(key, System.out);
-        }
-
         try {
-            this.outputStreams.get(key).write(data.getBytes());
+            OutputStream stream = System.out;
+            if (this.outputStreams.containsKey(key))
+                stream = this.outputStreams.get(key);
+            stream.write(data.getBytes());
         } catch (IOException ex) {
             // To avoid any possible exception recursion we'll print internal errors directly to std out.
             ex.printStackTrace();
