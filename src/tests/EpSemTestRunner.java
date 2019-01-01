@@ -14,14 +14,22 @@ public class EpSemTestRunner {
     public static void main(String[] args) {
         File file;
         if (args == null || args.length == 0)
-            file = new File("C:\\Source\\EpSem\\root\\tests");
+            file = new File("C:\\Source\\EpSem\\src\\tests");
         else
             file = new File(args[0]);
         ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
         ArrayList<UnitTestClass> testClasses = getUnitTestClasses(classLoader, file);
         ArrayList<Results> results = new ArrayList<>();
         for (UnitTestClass testClass : testClasses) {
-            results.add(testClass.executeTestClass());
+            System.out.println("Found test class: " + testClass.getClassName());
+        }
+        for (UnitTestClass testClass : testClasses) {
+	        try {
+                System.out.println("Running test class (Runner): " + testClass.getClassName());
+                results.add(testClass.executeTestClass());
+	        } catch (Exception ex) {
+                ex.printStackTrace();
+	        }
         }
         int successCount = 0, failureCount = 0;
         for (Results result : results) {
@@ -57,9 +65,9 @@ public class EpSemTestRunner {
     }
 
     private static String toClassPath(File file) {
-        StringBuilder classPath = new StringBuilder(file.getName().replace(".java", ""));
+        StringBuilder classPath = new StringBuilder(file.getName().replace(".java", "").replace(".class",""));
         File currentFile = file.getParentFile();
-        while (currentFile != null && !currentFile.getName().equals("root")) {
+        while (currentFile != null && !(currentFile.getName().equals("src") || currentFile.getName().equals("out"))) {
             classPath.insert(0, currentFile.getName() + ".");
             currentFile = currentFile.getParentFile();
         }

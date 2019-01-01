@@ -58,7 +58,7 @@ public class NamedOutput {
 
         try {
             this.outputStreams.get(key).write(data.getBytes());
-        } catch (IOException ex) {
+        } catch (Exception ex) {
             // To avoid any possible exception recursion we'll print internal errors directly to std out.
             ex.printStackTrace();
         }
@@ -75,11 +75,12 @@ public class NamedOutput {
         for(OutputStream stream: this.outputStreams.values()){
             try {
                 stream.close();
-            } catch (IOException ex) {
+            } catch (Exception ex) {
                 // To avoid any possible exception recursion we'll print internal errors directly to std out.
                 ex.printStackTrace();
             }
         }
+        this.outputStreams.clear();
     }
     //endregion
 }

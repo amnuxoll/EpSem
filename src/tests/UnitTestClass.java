@@ -28,17 +28,23 @@ public class UnitTestClass {
     //endregion
 
     //region Public Methods
+    public String getClassName() { return this.testClass.getName(); }
+
     public Results executeTestClass() {
+        System.out.println("Running test class: " + this.testClass.getName());
         Results results = new Results(this.testClass.getName());
         for (Method test : this.unitTests) {
             try {
+                System.out.println("Running test: " + test);
                 test.invoke(this.testClassInstance);
                 results.addResult(test.getName());
             }catch (InvocationTargetException exc) {
                 // This would be our failed assertions (most of the time... hopefully)
                 results.addResult(test.getName(), (Exception) exc.getTargetException());
+                exc.printStackTrace();
             } catch (Exception exception) {
                 results.addResult(test.getName(), exception);
+                exception.printStackTrace();
             }
         }
         return results;
