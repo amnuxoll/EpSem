@@ -21,11 +21,7 @@ public class EpSemTestRunner {
         ArrayList<UnitTestClass> testClasses = getUnitTestClasses(classLoader, file);
         ArrayList<Results> results = new ArrayList<>();
         for (UnitTestClass testClass : testClasses) {
-            System.out.println("Found test class: " + testClass.getClassName());
-        }
-        for (UnitTestClass testClass : testClasses) {
 	        try {
-                System.out.println("Running test class (Runner): " + testClass.getClassName());
                 results.add(testClass.executeTestClass());
 	        } catch (Exception ex) {
                 ex.printStackTrace();
