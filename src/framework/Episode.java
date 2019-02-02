@@ -88,7 +88,7 @@ public class Episode {
     public String toString() {
         String value = this.move.toString();
         if (this.sensorData != null)
-            value += this.sensorData.toString(false);
+            value = this.sensorData.toString(false) + value;
         return value;
     }
     //endregion

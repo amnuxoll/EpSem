@@ -91,4 +91,14 @@ public class EpisodicMemory<TEpisode extends Episode> {
         return -1;
     }
     //endregion
+
+    @Override
+    public String toString(){
+        StringBuilder value = new StringBuilder();
+        for (TEpisode episode : episodicMemory){
+            value.append(episode.toString());
+            value.append(",");
+        }
+        return value.toString();
+    }
 }

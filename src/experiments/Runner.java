@@ -36,7 +36,17 @@ public class Runner {
     private static TestSuite MarzFSM = new TestSuite(
             TestSuiteConfiguration.FULL,
             new IEnvironmentDescriptionProvider[] {
-                    new FSMDescriptionProvider(new FSMTransitionTableBuilder(4, 40, Random.getTrue()), FSMDescription.Sensor.ALL_SENSORS),
+                    new FSMDescriptionProvider(new FSMTransitionTableBuilder(4, 40, Random.getTrue()), FSMDescription.Sensor.NO_SENSORS),
+            },
+            new IAgentProvider[] {
+                    new MaRzAgentProvider<>(new SuffixNodeProvider())
+            }
+    );
+
+    private static TestSuite MarzFSMPrintout = new TestSuite(
+            TestSuiteConfiguration.QUICK,
+            new IEnvironmentDescriptionProvider[] {
+                    new FSMDescriptionProvider(new FSMTransitionTableBuilder(2, 25, Random.getFalse()), EnumSet.of(FSMDescription.Sensor.EVEN_ODD))
             },
             new IAgentProvider[] {
                     new MaRzAgentProvider<>(new SuffixNodeProvider())
@@ -161,7 +171,7 @@ public class Runner {
     public static void main(String[] args) {
         try {
             File outputDirectory = DirectoryUtils.generateNewOutputDirectory();
-            Runner.TempExperiment.run(new FileResultWriterProvider(outputDirectory));
+            Runner.MarzFSMPrintout.run(new FileResultWriterProvider(outputDirectory));
         } catch (OutOfMemoryError mem) {
             mem.printStackTrace();
         } catch (Exception ex) {

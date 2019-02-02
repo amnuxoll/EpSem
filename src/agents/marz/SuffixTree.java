@@ -88,7 +88,7 @@ public class SuffixTree<TSuffixNode extends SuffixNodeBase<TSuffixNode>> {
         if (sequence == null)
             throw new IllegalArgumentException("sequence cannot be null");
         List<Sequence> suffixKeys = Arrays.asList(this.hashFringe.keySet().toArray(new Sequence[0]));
-        Collections.sort(suffixKeys);
+        Collections.sort(suffixKeys);  //Shortest to longest
         for (Sequence suffixKey : suffixKeys)
         {
             if (sequence.endsWith(suffixKey))

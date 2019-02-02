@@ -160,7 +160,7 @@ public class MaRzAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> implemen
 
 	@Override
 	public void onTestRunComplete() {
-
+		System.out.println(episodicMemory);
 	}
 	//endregion
 

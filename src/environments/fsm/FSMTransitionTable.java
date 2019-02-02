@@ -108,6 +108,27 @@ public class FSMTransitionTable {
     }
     //endregion
 
+    @Override
+    public String toString(){
+        StringBuilder builder = new StringBuilder();
+        for (Move move: moves){
+            builder.append(",");
+            builder.append(move.toString());
+        }
+
+        for (int i = 0; i < transitions.length; i++){
+            builder.append("\n");
+            builder.append(i);
+            for (Move move : moves){
+                int result = transitions[i].get(move);
+                builder.append(",");
+                builder.append(result);
+            }
+        }
+        return builder.toString();
+
+    }
+
     //region Nested Classes
     protected class Tweak {
         //region Class Variables

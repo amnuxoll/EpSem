@@ -1,6 +1,8 @@
 package environments.fsm;
 
 import framework.*;
+
+import java.lang.reflect.Array;
 import java.util.*;
 
 /**
@@ -14,6 +16,10 @@ public class FSMDescription implements IEnvironmentDescription {
     private Move[] moves;
     private EnumSet<Sensor> sensorsToInclude;
     private ArrayList<HashMap<Move, Integer>> transitionSensorTable;
+
+    // Variables for generating the rules
+    private HashMap<Episode, HashMap<String, Double>> rules;
+
     //endregion
 
     //region Constructors

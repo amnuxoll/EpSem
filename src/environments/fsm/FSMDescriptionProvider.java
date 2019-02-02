@@ -40,6 +40,7 @@ public class FSMDescriptionProvider implements IEnvironmentDescriptionProvider {
     @Override
     public IEnvironmentDescription getEnvironmentDescription() {
         FSMTransitionTable transitionTable = this.transitionTableBuilder.getTransitionTable();
+        System.out.println(transitionTable.toString());
         return new FSMDescription(transitionTable, this.sensorsToInclude);
     }
 
