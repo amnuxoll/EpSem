@@ -51,7 +51,7 @@ public class Assertions {
 
     public static void assertEquals(Object object1, Object object2) {
         if (!object1.equals(object2))
-            throw new AssertionFailedException("Objects did not match.");
+            throw new AssertionFailedException("Objects did not match. Expected " + object1.toString() + " and recieved " + object2.toString());
     }
 
     public static void assertNotEquals(Object object1, Object object2) {

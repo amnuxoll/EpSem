@@ -157,7 +157,7 @@ public class EpisodeTest {
     {
         Episode episode = new Episode(new Move("move"));
         episode.setSensorData(new SensorData(true));
-        assertEquals("move[true]", episode.toString());
+        assertEquals("[true]move", episode.toString());
     }
     //endregion
 }
