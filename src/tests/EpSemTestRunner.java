@@ -13,10 +13,14 @@ public class EpSemTestRunner {
     //region Main
     public static void main(String[] args) {
         File file;
-        if (args == null || args.length == 0)
-            file = new File("C:\\Source\\EpSem\\src\\tests");
-        else
+        if (args == null || args.length == 0) {
+            File srcDir = new File(System.getProperty("user.dir"), "src");
+            file = new File(srcDir, "tests");
+        }
+        else {
             file = new File(args[0]);
+        }
+
         ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
         ArrayList<UnitTestClass> testClasses = getUnitTestClasses(classLoader, file);
         ArrayList<Results> results = new ArrayList<>();
