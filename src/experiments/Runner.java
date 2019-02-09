@@ -46,7 +46,7 @@ public class Runner {
     private static TestSuite MarzFSMPrintout = new TestSuite(
             TestSuiteConfiguration.QUICK,
             new IEnvironmentDescriptionProvider[] {
-                    new FSMDescriptionProvider(new FSMTransitionTableBuilder(2, 25, Random.getFalse()), EnumSet.of(FSMDescription.Sensor.EVEN_ODD))
+                    new FSMDescriptionProvider(new FSMTransitionTableBuilder(2, 25, Random.getFalse()), EnumSet.of(FSMDescription.Sensor.EVEN_ODD), true)
             },
             new IAgentProvider[] {
                     new MaRzAgentProvider<>(new SuffixNodeProvider())

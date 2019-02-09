@@ -14,6 +14,7 @@ public class FSMDescriptionProvider implements IEnvironmentDescriptionProvider {
     //region Class Variables
     private FSMTransitionTableBuilder transitionTableBuilder;
     private EnumSet<FSMDescription.Sensor> sensorsToInclude;
+    private boolean serialize = false;
     //endregion
 
     //region Constructors
@@ -30,6 +31,11 @@ public class FSMDescriptionProvider implements IEnvironmentDescriptionProvider {
         this.transitionTableBuilder = transitionTableBuilder;
         this.sensorsToInclude = sensorsToInclude;
     }
+
+    public FSMDescriptionProvider(FSMTransitionTableBuilder transitionTableBuilder, EnumSet<FSMDescription.Sensor> sensorsToInclude, boolean serialize){
+        this(transitionTableBuilder, sensorsToInclude);
+        this.serialize = serialize;
+    }
     //endregion
 
     //region IEnvironmentDescriptionProvider Members
@@ -40,7 +46,7 @@ public class FSMDescriptionProvider implements IEnvironmentDescriptionProvider {
     @Override
     public IEnvironmentDescription getEnvironmentDescription() {
         FSMTransitionTable transitionTable = this.transitionTableBuilder.getTransitionTable();
-        System.out.println(transitionTable.toString());
+        if(serialize) System.out.println(transitionTable.toString());
         return new FSMDescription(transitionTable, this.sensorsToInclude);
     }
 
