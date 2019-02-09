@@ -28,7 +28,7 @@ public class SensorData {
     public void setSensor(String sensorName, Object sensorValue) throws IllegalArgumentException {
         if (sensorName == null)
             throw new IllegalArgumentException("sensorName cannot be null");
-        if (sensorName == "") //TODO is this correct?
+        if (sensorName == "")
             throw new IllegalArgumentException("sensorName cannot be empty");
         this.data.put(sensorName, sensorValue);
     }
