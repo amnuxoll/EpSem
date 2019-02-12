@@ -21,6 +21,17 @@ public class RuleNode {
     private double expectation;
 
     public RuleNode(Move[] potentialMoves, int sense, int maxDepth){
+
+        if (potentialMoves == null){
+            throw new IllegalArgumentException("Cannot have null move set");
+        } else if (potentialMoves.length == 0){
+            throw new IllegalArgumentException("Cannot have empty move set");
+        }
+
+        if (maxDepth < 0){
+            throw new IllegalArgumentException("Cannot have negative max depth");
+        }
+
         this.potentialMoves = potentialMoves;
         int alphabetSize = potentialMoves.length;
         this.sense = sense;
@@ -48,7 +59,14 @@ public class RuleNode {
             return null;
         }
 
+        if (move == null){
+            throw new IllegalArgumentException("Move cannot be null");
+        }
+
         ArrayList<RuleNode> moveChildren = children.get(move);
+        if (moveChildren == null){
+            throw new IllegalArgumentException("Move does not exist");
+        }
         for (RuleNode ruleNode : moveChildren){
             if (ruleNode.sense == nextSense){
                 return ruleNode;
@@ -65,7 +83,16 @@ public class RuleNode {
             return null;
         }
 
-        return (RuleNodeGoal) children.get(move).get(0);
+        if (move == null){
+            throw new IllegalArgumentException("Move cannot be null");
+        }
+
+        ArrayList<RuleNode> moveChildren = children.get(move);
+        if (moveChildren == null){
+            throw new IllegalArgumentException("Move not in alphabet");
+        }
+
+        return (RuleNodeGoal) moveChildren.get(0);
 
     }
 

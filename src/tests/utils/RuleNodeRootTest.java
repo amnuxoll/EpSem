@@ -24,6 +24,11 @@ public class RuleNodeRootTest {
         assertThrows(IllegalArgumentException.class, () -> new RuleNodeRoot(new Move[] {new Move("a") }, 0));
         assertThrows(IllegalArgumentException.class, () -> new RuleNodeRoot(new Move[] {new Move("a") }, -1));
     }
+
+    @EpSemTest
+    public void testNoThrow(){
+        assertNotNull(new RuleNodeRoot(new Move[] {new Move("a")}, 1));
+    }
     //endregion
 
     //region getNextChildTest
