@@ -14,7 +14,7 @@ public class Move {
     public Move(String name) throws IllegalArgumentException {
         if (name == null)
             throw new IllegalArgumentException("name cannot be null");
-        if (name == "")
+        if (name.isEmpty())
             throw new IllegalArgumentException("name cannot be empty");
         this.name = name;
     }

@@ -30,7 +30,7 @@ public class NamedOutput {
 
     //region Public Methods
     public void configure(String key, OutputStream stream) {
-        if (key == null || key == "")
+        if (key == null || key.isEmpty())
             throw new IllegalArgumentException("key cannot be empty or null");
         if (stream == null)
             throw new IllegalArgumentException("stream cannot be null.");
@@ -48,7 +48,7 @@ public class NamedOutput {
     }
 
     public void write(String key, String data) {
-        if (key == null || key == "")
+        if (key == null || key.isEmpty())
             throw new IllegalArgumentException("key cannot be null or empty.");
         if (data == null)
             throw new IllegalArgumentException("data cannot be null.");

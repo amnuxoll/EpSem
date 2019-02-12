@@ -17,7 +17,7 @@ public class RuleNode {
     protected final Move[] potentialMoves;
     protected int maxDepth;
     //Potential:
-    private int[] indicies;
+    private int[] indices;
     private double expectation;
 
     public RuleNode(Move[] potentialMoves, int sense, int maxDepth){
@@ -30,8 +30,9 @@ public class RuleNode {
         if (maxDepth > 0) {
             children = new HashMap<>(alphabetSize);
             for (Move move : potentialMoves) {
-                ArrayList<RuleNode> list = new ArrayList<>();
-                list.add(new RuleNodeGoal(potentialMoves));
+                ArrayList<RuleNode> list = new ArrayList<>(
+                        Collections.singletonList(new RuleNodeGoal(potentialMoves))
+                );
                 children.put(move, list);
             }
         } else {
@@ -43,21 +44,25 @@ public class RuleNode {
         frequency++;
     }
 
-    public RuleNode getNextChild(Move move, int nextSense){
-        if (maxDepth == 0){
-            return null;
-        }
-
-        ArrayList<RuleNode> moveChildren = children.get(move);
-        for (RuleNode ruleNode : moveChildren){
+    protected RuleNode getChildBySense(ArrayList<RuleNode> children, int nextSense) {
+        for (RuleNode ruleNode : children){
             if (ruleNode.sense == nextSense){
                 return ruleNode;
             }
         }
 
         RuleNode child = new RuleNode(potentialMoves, nextSense, maxDepth - 1);
-        moveChildren.add(child);
+        children.add(child);
         return child;
+    }
+
+    public RuleNode getNextChild(Move move, int nextSense){
+        if (maxDepth == 0){
+            return null;
+        }
+
+        ArrayList<RuleNode> moveChildren = children.get(move);
+        return getChildBySense(moveChildren, nextSense);
     }
 
     public RuleNodeGoal getGoalChild(Move move){
@@ -75,11 +80,20 @@ public class RuleNode {
 
     @Override
     public String toString(){
-        return String.join("\n", toStringArray());
+        ArrayList<String> stringArrayList = toStringArray();
+        if (stringArrayList.isEmpty()) {
+            return "";
+        }
+
+        return String.join("\n", stringArrayList);
     }
 
     private ArrayList<String> toStringArray(){
         ArrayList<String> result = new ArrayList<>();
+
+        if (children == null || children.isEmpty()) {
+            return result;
+        }
 
         for (Map.Entry<Move, ArrayList<RuleNode>> entry : children.entrySet()){
             Move move = entry.getKey();
@@ -90,7 +104,7 @@ public class RuleNode {
                 }
             }
         }
-        result.add(String.valueOf(sense) + ": " + frequency);
+        result.add(sense + ": " + frequency);
         return result;
     }
 

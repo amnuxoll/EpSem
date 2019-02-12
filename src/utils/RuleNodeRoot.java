@@ -3,7 +3,6 @@ package utils;
 import framework.Move;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 
 /**
  * Created by Ryan on 2/7/2019.
@@ -27,15 +26,7 @@ public class RuleNodeRoot extends RuleNode {
             return null;
         }
 
-        for (RuleNode ruleNode : children){
-            if (ruleNode.sense == nextSense){
-                return ruleNode;
-            }
-        }
-
-        RuleNode child = new RuleNode(potentialMoves, nextSense, maxDepth - 1);
-        children.add(child);
-        return child;
+        return getChildBySense(children, nextSense);
     }
 
     @Override

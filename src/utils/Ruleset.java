@@ -6,7 +6,6 @@ import framework.SensorData;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.EnumSet;
 
 /**
  * Created by Ryan on 2/7/2019.
@@ -15,13 +14,14 @@ public class Ruleset {
 
     private RuleNodeRoot root;
     private ArrayList<RuleNode> current;
-    private EnumSet<FSMDescription.Sensor> sensors;
 
-    public Ruleset(Move[] alphabet, int maxDepth, EnumSet<FSMDescription.Sensor> sensors){
+    public Ruleset(Move[] alphabet, int maxDepth){
+        if (alphabet == null) throw new IllegalArgumentException();
+        if (alphabet.length == 0) throw new IllegalArgumentException();
+
         root = new RuleNodeRoot(alphabet, maxDepth);
         current = new ArrayList<>();
         current.add(root);
-        this.sensors = sensors;
     }
 
     public ArrayList<RuleNode> getCurrent(){
@@ -30,10 +30,10 @@ public class Ruleset {
 
     public void update(Move move, SensorData sensorData){
         boolean isGoal = sensorData.isGoal();
-        int sense = 0; //TODO: make real
 
-        for (FSMDescription.Sensor sensor : sensors){
-            int value = (boolean) sensorData.getSensor(sensor.toString()) ? 1 : 0;
+        int sense = 0;
+        for (String sensor : sensorData.getSensorNames()){
+            int value = (boolean) sensorData.getSensor(sensor) ? 1 : 0;
             sense += value;
             sense *= 2;
         }
