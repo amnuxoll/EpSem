@@ -28,7 +28,7 @@ public class FileResultWriter implements IResultWriter {
     public FileResultWriter(String agent, File outputFile) throws IOException {
         if (agent == null)
             throw new IllegalArgumentException("agent cannot be null");
-        if (agent == "")
+        if (agent.isEmpty())
             throw new IllegalArgumentException("agent cannot be empty");
         if (outputFile == null)
             throw new IllegalArgumentException("outputFile cannot be null");

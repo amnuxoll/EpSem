@@ -21,7 +21,7 @@ public class Datum {
     }
 
     public Datum(String statistic, String datum) {
-        if (statistic == null || statistic == "")
+        if (statistic == null || statistic.isEmpty())
             throw new IllegalArgumentException("Statistic requires a name.");
         if (datum == null)
             datum = "";

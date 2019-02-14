@@ -28,7 +28,7 @@ public class SensorData {
     public void setSensor(String sensorName, Object sensorValue) throws IllegalArgumentException {
         if (sensorName == null)
             throw new IllegalArgumentException("sensorName cannot be null");
-        if (sensorName == "")
+        if (sensorName.isEmpty())
             throw new IllegalArgumentException("sensorName cannot be empty");
         this.data.put(sensorName, sensorValue);
     }
@@ -36,7 +36,7 @@ public class SensorData {
     public Object getSensor(String sensorName) throws IllegalArgumentException {
         if (sensorName == null)
             throw new IllegalArgumentException("sensorName cannot be null");
-        if (sensorName == "")
+        if (sensorName.isEmpty())
             throw new IllegalArgumentException("sensorName cannot be empty");
         return this.data.get(sensorName);
     }
@@ -44,7 +44,7 @@ public class SensorData {
     public boolean hasSensor(String sensorName) throws IllegalArgumentException {
         if (sensorName == null)
             throw new IllegalArgumentException("sensorName cannot be null");
-        if (sensorName == "")
+        if (sensorName.isEmpty())
             throw new IllegalArgumentException("sensorName cannot be empty");
         return this.data.containsKey(sensorName);
     }
@@ -62,9 +62,9 @@ public class SensorData {
                 String rightKey = o2.getKey();
                 if (leftKey.equals(rightKey))
                     return 0;
-                if (leftKey == SensorData.goalSensor)
+                if (leftKey.equals(SensorData.goalSensor))
                     return -1;
-                if (rightKey == SensorData.goalSensor)
+                if (rightKey.equals(SensorData.goalSensor))
                     return 1;
                 return leftKey.compareTo(rightKey);
             }
@@ -103,7 +103,7 @@ public class SensorData {
         if (this.data.size() != sensorData.data.size())
             return false;
         for (String key : this.data.keySet()) {
-            if (sensorData.data.containsKey(key) == false)
+            if (!sensorData.data.containsKey(key))
                 return false;
             if (this.data.get(key) != sensorData.data.get(key))
                 return false;

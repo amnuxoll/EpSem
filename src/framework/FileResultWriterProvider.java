@@ -38,11 +38,11 @@ public class FileResultWriterProvider implements IResultWriterProvider {
     public IResultWriter getResultWriter(String agent, String file) throws Exception {
         if (agent == null)
             throw new IllegalArgumentException("agent cannot be null");
-        if (agent == "")
+        if (agent.isEmpty())
             throw new IllegalArgumentException("agent cannot be empty");
         if (file == null)
             throw new IllegalArgumentException("file cannot be null");
-        if (file == "")
+        if (file.isEmpty())
             throw new IllegalArgumentException("file cannot be empty");
         return new FileResultWriter(agent, new File(this.outputDirectory,  file + "." + DirectoryUtils.getTimestamp(System.currentTimeMillis()) + ".csv"));
     }

@@ -6,7 +6,6 @@ import framework.SensorData;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.EnumSet;
 
 /**
  * Created by Ryan on 2/7/2019.
@@ -17,6 +16,9 @@ public class Ruleset {
     private ArrayList<RuleNode> current;
 
     public Ruleset(Move[] alphabet, int maxDepth){
+        if (alphabet == null) throw new IllegalArgumentException();
+        if (alphabet.length == 0) throw new IllegalArgumentException();
+
         root = new RuleNodeRoot(alphabet, maxDepth);
         current = new ArrayList<>();
         current.add(root);
