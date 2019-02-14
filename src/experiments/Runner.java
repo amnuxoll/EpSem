@@ -5,6 +5,7 @@ import agents.juno.JunoAgentProvider;
 import agents.juno.JunoConfiguration;
 import agents.marz.MaRzAgentProvider;
 import agents.marz.nodes.SuffixNodeProvider;
+import agents.marzrules.RulesAgentProvider;
 import agents.nsm.NSMAgentProvider;
 import environments.fsm.FSMDescription;
 import environments.fsm.FSMDescriptionProvider;
@@ -50,6 +51,16 @@ public class Runner {
             },
             new IAgentProvider[] {
                     new MaRzAgentProvider<>(new SuffixNodeProvider())
+            }
+    );
+
+    private static TestSuite RulesAgent = new TestSuite(
+            TestSuiteConfiguration.QUICK,
+            new IEnvironmentDescriptionProvider[] {
+                    new FSMDescriptionProvider(new FSMTransitionTableBuilder(2, 16, Random.getTrue()), EnumSet.of(FSMDescription.Sensor.EVEN_ODD), true)
+            },
+            new IAgentProvider[] {
+                    new RulesAgentProvider(new SuffixNodeProvider())
             }
     );
 
@@ -171,7 +182,7 @@ public class Runner {
     public static void main(String[] args) {
         try {
             File outputDirectory = DirectoryUtils.generateNewOutputDirectory();
-            Runner.MarzFSMPrintout.run(new FileResultWriterProvider(outputDirectory));
+            Runner.RulesAgent.run(new FileResultWriterProvider(outputDirectory));
         } catch (OutOfMemoryError mem) {
             mem.printStackTrace();
         } catch (Exception ex) {

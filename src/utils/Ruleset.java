@@ -15,13 +15,11 @@ public class Ruleset {
 
     private RuleNodeRoot root;
     private ArrayList<RuleNode> current;
-    private EnumSet<FSMDescription.Sensor> sensors;
 
-    public Ruleset(Move[] alphabet, int maxDepth, EnumSet<FSMDescription.Sensor> sensors){
+    public Ruleset(Move[] alphabet, int maxDepth){
         root = new RuleNodeRoot(alphabet, maxDepth);
         current = new ArrayList<>();
         current.add(root);
-        this.sensors = sensors;
     }
 
     public ArrayList<RuleNode> getCurrent(){
@@ -30,10 +28,10 @@ public class Ruleset {
 
     public void update(Move move, SensorData sensorData){
         boolean isGoal = sensorData.isGoal();
-        int sense = 0; //TODO: make real
+        int sense = 0;
 
-        for (FSMDescription.Sensor sensor : sensors){
-            int value = (boolean) sensorData.getSensor(sensor.toString()) ? 1 : 0;
+        for (String sensor : sensorData.getSensorNames()){
+            int value = (boolean) sensorData.getSensor(sensor) ? 1 : 0;
             sense += value;
             sense *= 2;
         }
@@ -60,5 +58,10 @@ public class Ruleset {
         current.removeAll(Collections.singleton(null));
         current.add(root);
         root.occurs();
+    }
+
+    @Override
+    public String toString(){
+        return "Ruleset:\n" + root.toString();
     }
 }
