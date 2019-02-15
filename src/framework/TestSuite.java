@@ -11,7 +11,7 @@ import java.util.function.Function;
  * @author Zachary Paul Faltersack
  * @version 0.95
  */
-public class TestSuite implements IGoalListener {
+public class TestSuite implements IGoalListener, IAgentFinishedListener {
     //region Class Variables
     private TestSuiteConfiguration configuration;
     private IEnvironmentDescriptionProvider[] environmentDescriptionProviders;
@@ -73,6 +73,7 @@ public class TestSuite implements IGoalListener {
                             this.generateResultWriters(resultWriterProvider, this.environmentDescriptionProviders[environmentIndex].getAlias(), environmentIndex, agentProvider.getAlias(), agentIndex, agent.getStatisticTypes());
                         TestRun testRun = new TestRun(agent, environmentDescription, this.configuration.getNumberOfGoals());
                         testRun.addGoalListener(this);
+                        testRun.addAgentFinishedListener(this);
                         this.beginAgentTestRun();
                         testRun.execute();
                     }
@@ -93,8 +94,16 @@ public class TestSuite implements IGoalListener {
     @Override
     public void goalReceived(GoalEvent event) throws IOException {
         this.resultWriters.get("steps").logResult(event.getStepCountToGoal());
-        for (Datum datum : event.getAgentData())
-        {
+        for (Datum datum : event.getAgentData()) {
+            this.resultWriters.get(datum.getStatistic()).logResult(datum.getDatum());
+        }
+    }
+    //endregion
+
+    //region IAgentFinishedListener Members
+    @Override
+    public void agentFinished(AgentFinishedEvent event) throws IOException {
+        for (Datum datum : event.getAgentData()) {
             this.resultWriters.get(datum.getStatistic()).logResult(datum.getDatum());
         }
     }

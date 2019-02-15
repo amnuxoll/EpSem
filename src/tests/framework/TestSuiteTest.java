@@ -232,7 +232,7 @@ public class TestSuiteTest {
         }
 
         @Override
-        public ArrayList<Datum> getData() {
+        public ArrayList<Datum> getGoalData() {
             ArrayList<Datum> data = new ArrayList<>();
             if (this.includeAdditionalStatistics)
                 data.add(new Datum("additionalStat", 0));

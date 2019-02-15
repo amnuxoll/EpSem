@@ -1,5 +1,6 @@
 package experiments;
 
+import agents.RAgent.RAgentProvider;
 import agents.discr.MaRzLearnerProvider;
 import agents.juno.JunoAgentProvider;
 import agents.juno.JunoConfiguration;
@@ -36,7 +37,7 @@ public class Runner {
     private static TestSuite MarzFSM = new TestSuite(
             TestSuiteConfiguration.FULL,
             new IEnvironmentDescriptionProvider[] {
-                    new FSMDescriptionProvider(new FSMTransitionTableBuilder(4, 40, Random.getTrue()), FSMDescription.Sensor.ALL_SENSORS),
+                    new FSMDescriptionProvider(new FSMTransitionTableBuilder(4, 40, Random.getTrue()), FSMDescription.Sensor.NO_SENSORS),
             },
             new IAgentProvider[] {
                     new MaRzAgentProvider<>(new SuffixNodeProvider())
@@ -73,6 +74,16 @@ public class Runner {
             new IAgentProvider[] {
                     new JunoAgentProvider<>(new SuffixNodeProvider(), new JunoConfiguration(true, .7, Double.MAX_VALUE)),
                     new MaRzAgentProvider<>(new SuffixNodeProvider())
+            }
+    );
+
+    private static TestSuite RandomTest = new TestSuite(
+            new TestSuiteConfiguration(2, 30),
+            new IEnvironmentDescriptionProvider[] {
+                    new FSMDescriptionProvider(new FSMTransitionTableBuilder(3, 30, Random.getTrue()), EnumSet.of(FSMDescription.Sensor.EVEN_ODD))
+            },
+            new IAgentProvider[] {
+                    new RAgentProvider()
             }
     );
 
@@ -161,7 +172,7 @@ public class Runner {
     public static void main(String[] args) {
         try {
             File outputDirectory = DirectoryUtils.generateNewOutputDirectory();
-            Runner.TempExperiment.run(new FileResultWriterProvider(outputDirectory));
+            Runner.RandomTest.run(new FileResultWriterProvider(outputDirectory));
         } catch (OutOfMemoryError mem) {
             mem.printStackTrace();
         } catch (Exception ex) {

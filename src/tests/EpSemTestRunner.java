@@ -14,7 +14,7 @@ public class EpSemTestRunner {
     public static void main(String[] args) {
         File file;
         if (args == null || args.length == 0)
-            file = new File("C:\\Source\\EpSem\\src\\tests");
+            file = new File("../../tests");
         else
             file = new File(args[0]);
         ClassLoader classLoader = Thread.currentThread().getContextClassLoader();

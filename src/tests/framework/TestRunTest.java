@@ -174,7 +174,7 @@ public class TestRunTest {
 
         private int datumCount = 0;
         @Override
-        public ArrayList<Datum> getData()
+        public ArrayList<Datum> getGoalData()
         {
             ArrayList<Datum> data = new ArrayList<>();
             data.add(new Datum("additionalStat", datumCount++));
