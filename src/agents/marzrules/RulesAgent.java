@@ -28,7 +28,7 @@ public class RulesAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> extends
 
     @Override
     public Move getNextMove(SensorData sensorData) {
-        ruleset.update(previousMove, sensorData);
+        if (sensorData != null) ruleset.update(previousMove, sensorData);
         previousMove = super.getNextMove(sensorData);
         return previousMove;
     }

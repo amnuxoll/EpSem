@@ -15,6 +15,7 @@ public class RuleNode {
     private HashMap<Move, ArrayList<RuleNode>> children;
     protected int frequency;
     protected final Move[] potentialMoves;
+    private int[] moveFrequencies;
     protected int maxDepth;
     //Potential:
     private int[] indices;
@@ -36,6 +37,7 @@ public class RuleNode {
         int alphabetSize = potentialMoves.length;
         this.sense = sense;
         frequency = 0;
+        moveFrequencies = new int[alphabetSize];
         this.maxDepth = maxDepth;
 
         if (maxDepth > 0) {
@@ -76,10 +78,21 @@ public class RuleNode {
             throw new IllegalArgumentException("Move cannot be null");
         }
 
-        ArrayList<RuleNode> moveChildren = children.get(move);
-        if (moveChildren == null){
+        int index = -1;
+        for (int i = 0; i < potentialMoves.length; i++){
+            if (potentialMoves[i].equals(move)){
+                index = i;
+                break;
+            }
+        }
+
+        if (index == -1){
             throw new IllegalArgumentException("Move does not exist");
         }
+
+        moveFrequencies[index]++;
+
+        ArrayList<RuleNode> moveChildren = children.get(move);
 
         return getChildBySense(moveChildren, nextSense);
     }
@@ -116,8 +129,16 @@ public class RuleNode {
         return String.join("\n", stringArrayList);
     }
 
-    private ArrayList<String> toStringArray(){
+    protected ArrayList<String> toStringArray(){
         ArrayList<String> result = new ArrayList<>();
+
+        if (maxDepth == 0){
+            result.add(sense + ": " + frequency);
+        } else {
+            for (int i = 0; i < potentialMoves.length; i++) {
+                result.add(sense + potentialMoves[i].toString() + ": " + moveFrequencies[i]);
+            }
+        }
 
         if (children == null || children.isEmpty()) {
             return result;
@@ -128,11 +149,10 @@ public class RuleNode {
             for (RuleNode ruleNode : entry.getValue()){
                 for (String childItem : ruleNode.toStringArray())
                 {
-                    result.add(String.valueOf(sense) + move + " ->" + childItem);
+                    result.add(String.valueOf(sense) + move + " -> " + childItem);
                 }
             }
         }
-        result.add(sense + ": " + frequency);
         return result;
     }
 
