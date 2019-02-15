@@ -63,9 +63,9 @@ public class JunoAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> extends 
     }
 
     @Override
-    public ArrayList<Datum> getData()
+    public ArrayList<Datum> getGoalData()
     {
-        ArrayList<Datum> data = super.getData();
+        ArrayList<Datum> data = super.getGoalData();
         data.add(new Datum("junoRatios", this.getJunoRatio()));
         return data;
     }

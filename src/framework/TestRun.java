@@ -16,6 +16,7 @@ public class TestRun {
     private int numberOfGoalsToFind;
     private Environment environment;
     private List<IGoalListener> goalListeners = new ArrayList<>();
+    private List<IAgentFinishedListener> agentFinishedListeners = new ArrayList<>();
     //endregion
 
     //region Constructors
@@ -43,6 +44,7 @@ public class TestRun {
             SensorData sensorData = null; //TODO: Initialize first sensor data value?
             do {
                 Move move = this.agent.getNextMove(sensorData);
+                if(move == null) break;
                 sensorData = this.environment.tick(move);
                 moveCount++;
 
@@ -54,6 +56,7 @@ public class TestRun {
                     this.environment.reset();
                 }
             } while (goalCount < this.numberOfGoalsToFind);
+            this.fireAgentFinishedEvent();
             this.agent.onTestRunComplete();
         } catch (Exception ex) {
             NamedOutput.getInstance().write("framework", ex);
@@ -63,13 +66,24 @@ public class TestRun {
     public synchronized void addGoalListener(IGoalListener listener) {
         this.goalListeners.add(listener);
     }
+
+    public synchronized void addAgentFinishedListener(IAgentFinishedListener listener) {
+        this.agentFinishedListeners.add(listener);
+    }
     //endregion
 
     //region Private Methods
     private synchronized void fireGoalEvent(int stepsToGoal) throws IOException {
-        GoalEvent goal = new GoalEvent(this, stepsToGoal, this.agent.getData());
+        GoalEvent goal = new GoalEvent(this, stepsToGoal, this.agent.getGoalData());
         for (IGoalListener listener : this.goalListeners) {
             listener.goalReceived(goal);
+        }
+    }
+
+    private synchronized void fireAgentFinishedEvent() throws IOException {
+        AgentFinishedEvent event = new AgentFinishedEvent(this, this.agent.getAgentFinishedData());
+        for(IAgentFinishedListener listener : this.agentFinishedListeners){
+            listener.agentFinished(event);
         }
     }
     //endregion

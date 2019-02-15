@@ -133,7 +133,7 @@ public class MaRzAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> implemen
 	}
 
 	@Override
-	public ArrayList<Datum> getData() {
+	public ArrayList<Datum> getGoalData() {
 		ArrayList<Datum> data = new ArrayList<>();
 		if (this.decisionsMade > 0) {
 			data.add(new Datum("agentDidAGood", (double)this.goodDecisionCount/this.decisionsMade));

@@ -1,20 +1,35 @@
 package tests.agents.RAgent;
 
+import agents.RAgent.MemoryPattern;
+import framework.Move;
 import framework.SensorData;
 import tests.EpSemTest;
 import tests.EpSemTestClass;
 import static tests.Assertions.*;
 
+@EpSemTestClass
 public class MemoryPatternTest {
 
     @EpSemTest
     public void EqualsTest() {
-        SensorData sd1 = new SensorData(false);
-        sd1.setSensor("sensor1", true);
+        SensorData pre1 = new SensorData(false);
+        pre1.setSensor("sensor1", true);
 
-        SensorData sd2 = new SensorData(false);
-        sd2.setSensor("sensor1", true);
+        SensorData post1 = new SensorData(false);
+        post1.setSensor("sensor1", false);
 
-        assertTrue(sd1.equals(sd2));
+        SensorData pre2 = new SensorData(false);
+        pre2.setSensor("sensor1", true);
+
+        SensorData post2 = new SensorData(false);
+        post2.setSensor("sensor1", false);
+
+        Move a1 = new Move("a");
+        Move a2 = new Move("a");
+
+        MemoryPattern mp1 = new MemoryPattern(pre1, a1, post1);
+        MemoryPattern mp2 = new MemoryPattern(pre2, a2, post2);
+
+        assertTrue(mp1.equals(mp2));
     }
 }
