@@ -8,7 +8,6 @@ import java.util.*;
  * Created by Ryan on 1/28/2019.
  */
 public class RuleNode {
-
     private static RuleNodeRoot root;
 
     protected int sense;

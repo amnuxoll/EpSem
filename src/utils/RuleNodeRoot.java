@@ -1,9 +1,7 @@
 package utils;
 
-import com.sun.javafx.css.Rule;
 import framework.Move;
 
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Map;
 
@@ -11,8 +9,7 @@ import java.util.Map;
  * Created by Ryan on 2/7/2019.
  */
 public class RuleNodeRoot extends RuleNode {
-
-    ArrayList<RuleNode> childArray;
+    private ArrayList<RuleNode> childArray;
 
     public RuleNodeRoot(Move[] potentialMoves, int maxDepth){
         super(potentialMoves, -1, maxDepth);
@@ -33,7 +30,6 @@ public class RuleNodeRoot extends RuleNode {
         }
         return super.getNextChild(move, nextSense);
     }
-
 
 
     @Override
