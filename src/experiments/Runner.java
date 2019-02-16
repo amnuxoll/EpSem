@@ -57,7 +57,7 @@ public class Runner {
     private static TestSuite RulesAgent = new TestSuite(
             TestSuiteConfiguration.QUICK,
             new IEnvironmentDescriptionProvider[] {
-                    new FSMDescriptionProvider(new FSMTransitionTableBuilder(2, 16, Random.getTrue()), EnumSet.of(FSMDescription.Sensor.EVEN_ODD), true)
+                    new FSMDescriptionProvider(new FSMTransitionTableBuilder(2, 8, Random.getTrue()), EnumSet.of(FSMDescription.Sensor.EVEN_ODD), true)
             },
             new IAgentProvider[] {
                     new RulesAgentProvider(new SuffixNodeProvider())

@@ -132,9 +132,8 @@ public class RuleNode {
     protected ArrayList<String> toStringArray(){
         ArrayList<String> result = new ArrayList<>();
 
-        if (maxDepth == 0){
-            result.add(sense + ": " + frequency);
-        } else {
+        result.add(sense + ": " + frequency);
+        if (maxDepth != 0) {
             for (int i = 0; i < potentialMoves.length; i++) {
                 result.add(sense + potentialMoves[i].toString() + ": " + moveFrequencies[i]);
             }

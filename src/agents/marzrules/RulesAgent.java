@@ -23,7 +23,7 @@ public class RulesAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> extends
     @Override
     public void initialize(Move[] moves, IIntrospector introspector){
         super.initialize(moves, introspector);
-        ruleset = new Ruleset(moves, 3);
+        ruleset = new Ruleset(moves, 4);
     }
 
     @Override
