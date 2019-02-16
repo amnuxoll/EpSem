@@ -12,7 +12,7 @@ public class RuleNode {
     private static RuleNodeRoot root;
 
     protected int sense;
-    private HashMap<Move, ArrayList<RuleNode>> children;
+    protected HashMap<Move, ArrayList<RuleNode>> children;
     protected int frequency;
     protected final Move[] potentialMoves;
     private int[] moveFrequencies;
