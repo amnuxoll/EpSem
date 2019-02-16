@@ -10,7 +10,7 @@ import java.util.Map.Entry;
  */
 public class SensorData {
     //region Static Variables
-    private static final String goalSensor = "GOAL";
+    public static final String goalSensor = "GOAL";
     //endregion
 
     //region Class Variables
@@ -55,19 +55,16 @@ public class SensorData {
 
     public String toString(boolean includeSensorLabels) {
         ArrayList<Entry<String, Object>> entries = new ArrayList<>(this.data.entrySet());
-        Collections.sort(entries, new Comparator<Entry<String, Object>>() {
-            @Override
-            public int compare(Entry<String, Object> o1, Entry<String, Object> o2) {
-                String leftKey = o1.getKey();
-                String rightKey = o2.getKey();
-                if (leftKey.equals(rightKey))
-                    return 0;
-                if (leftKey.equals(SensorData.goalSensor))
-                    return -1;
-                if (rightKey.equals(SensorData.goalSensor))
-                    return 1;
-                return leftKey.compareTo(rightKey);
-            }
+        entries.sort((o1, o2) -> {
+            String leftKey = o1.getKey();
+            String rightKey = o2.getKey();
+            if (leftKey.equals(rightKey))
+                return 0;
+            if (leftKey.equals(SensorData.goalSensor))
+                return -1;
+            if (rightKey.equals(SensorData.goalSensor))
+                return 1;
+            return leftKey.compareTo(rightKey);
         });
 
         StringBuilder stringBuilder = new StringBuilder("[");

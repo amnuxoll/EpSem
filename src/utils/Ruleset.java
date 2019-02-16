@@ -33,7 +33,10 @@ public class Ruleset {
         int sense = 0;
 
         for (String sensor : sensorData.getSensorNames()){
-            if (sensor.equals("GOAL")) continue;
+            if (sensor.equals(SensorData.goalSensor)) {
+                continue;
+            }
+
             int value = (boolean) sensorData.getSensor(sensor) ? 1 : 0;
             sense *= 2;
             sense += value;

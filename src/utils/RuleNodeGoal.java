@@ -14,6 +14,11 @@ public class RuleNodeGoal extends RuleNode{
     }
 
     @Override
+    public double getGoalProbability(ArrayList<Move> moves, int moveIdx) {
+        return 1;
+    }
+
+    @Override
     public ArrayList<String> toStringArray(){
         ArrayList<String> result = new ArrayList<>();
         result.add("G: " + frequency);

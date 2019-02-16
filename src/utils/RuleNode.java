@@ -53,6 +53,35 @@ public class RuleNode {
         }
     }
 
+    public double getGoalProbability(ArrayList<Move> moves, int moveIdx) {
+        if (maxDepth == 0) {
+            return 0;
+        }
+
+        if (moves.size() <= moveIdx) {
+            return 0;
+        }
+
+        Move move = moves.get(moveIdx);
+        int firstMoveIdx = Arrays.asList(potentialMoves).indexOf(move);
+        if (firstMoveIdx == -1) {
+            throw new IllegalArgumentException("Move not in alphabet!");
+        }
+
+        int frequency = moveFrequencies[firstMoveIdx];
+        if (frequency == 0) {
+            return 0;
+        }
+
+        double probability = 0;
+        ArrayList<RuleNode> children = this.children.get(move);
+        for (RuleNode child : children) {
+            double childGoalProbability = child.getGoalProbability(moves, moveIdx+1);
+            probability += child.frequency * childGoalProbability;
+        }
+        return probability / frequency;
+    }
+
     protected void occurs(){
         frequency++;
     }
