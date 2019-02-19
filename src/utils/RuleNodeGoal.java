@@ -12,6 +12,7 @@ public class RuleNodeGoal extends RuleNode{
         super(potentialMoves, -1, 0);
     }
 
+    // BASE CASE 4
     @Override
     public double getGoalProbability(ArrayList<Move> moves, int moveIdx) {
         return 1;
