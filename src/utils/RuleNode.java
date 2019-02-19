@@ -52,6 +52,25 @@ public class RuleNode {
         }
     }
 
+    protected int getMoveFrequency(Move move){
+        int index = Arrays.asList(potentialMoves).indexOf(move);
+        if (index == -1) {
+            return -1;
+        }
+
+        return moveFrequencies[index];
+    }
+
+    protected int incrementMoveFrequency(Move move){
+        int index = Arrays.asList(potentialMoves).indexOf(move);
+        if (index == -1) {
+            return -1;
+        }
+
+        int frequency = moveFrequencies[index]++;
+        return frequency;
+    }
+
     public double getGoalProbability(ArrayList<Move> moves, int moveIdx) {
         if (maxDepth == 0) {
             return 0;
@@ -62,13 +81,10 @@ public class RuleNode {
         }
 
         Move move = moves.get(moveIdx);
-        int firstMoveIdx = Arrays.asList(potentialMoves).indexOf(move);
-        if (firstMoveIdx == -1) {
+        int frequency = getMoveFrequency(move);
+        if (frequency == -1) {
             throw new IllegalArgumentException("Move not in alphabet!");
-        }
-
-        int frequency = moveFrequencies[firstMoveIdx];
-        if (frequency == 0) {
+        } else if (frequency == 0) {
             return 0;
         }
 
@@ -106,19 +122,10 @@ public class RuleNode {
             throw new IllegalArgumentException("Move cannot be null");
         }
 
-        int index = -1;
-        for (int i = 0; i < potentialMoves.length; i++){
-            if (potentialMoves[i].equals(move)){
-                index = i;
-                break;
-            }
-        }
-
-        if (index == -1){
+        int frequency = incrementMoveFrequency(move);
+        if (frequency == -1){
             throw new IllegalArgumentException("Move does not exist");
         }
-
-        moveFrequencies[index]++;
 
         ArrayList<RuleNode> moveChildren = children.get(move);
 
@@ -138,6 +145,8 @@ public class RuleNode {
         if (moveChildren == null){
             throw new IllegalArgumentException("Move not in alphabet");
         }
+
+        incrementMoveFrequency(move);
 
         return (RuleNodeGoal) moveChildren.get(0);
 
