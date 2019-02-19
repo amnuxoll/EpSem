@@ -5,6 +5,7 @@ import framework.Move;
 import framework.SensorData;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 
 /**
@@ -14,6 +15,7 @@ public class Ruleset {
 
     private RuleNodeRoot root;
     private ArrayList<RuleNode> current;
+    private Move[] alphabet;
 
     public Ruleset(Move[] alphabet, int maxDepth){
         if (alphabet == null) throw new IllegalArgumentException();
@@ -22,6 +24,7 @@ public class Ruleset {
         root = new RuleNodeRoot(alphabet, maxDepth);
         current = new ArrayList<>();
         current.add(root);
+        this.alphabet = alphabet;
     }
 
     public ArrayList<RuleNode> getCurrent(){
@@ -68,6 +71,7 @@ public class Ruleset {
 
     @Override
     public String toString(){
-        return "Ruleset:\n" + root.toString();
+        ArrayList<Move> moves = new ArrayList<>(Arrays.asList(alphabet[0], alphabet[1], alphabet[0], alphabet[1], alphabet[1]));
+        return "Ruleset:\n" + root.toString() + "\n" + root.getGoalProbability(moves, 0);
     }
 }

@@ -24,6 +24,16 @@ public class RuleNodeRoot extends RuleNode {
     }
 
     @Override
+    protected int getMoveFrequency(Move move) {
+        return frequency;
+    }
+
+    @Override
+    protected int incrementMoveFrequency(Move move) {
+        return ++frequency;
+    }
+
+    @Override
     public RuleNode getNextChild(Move move, int nextSense) {
         if (move == null){
             return super.getChildBySense(childArray, nextSense);

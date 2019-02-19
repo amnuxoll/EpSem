@@ -37,7 +37,7 @@ public class Runner {
     private static TestSuite MarzFSM = new TestSuite(
             TestSuiteConfiguration.FULL,
             new IEnvironmentDescriptionProvider[] {
-                    new FSMDescriptionProvider(new FSMTransitionTableBuilder(4, 40, Random.getTrue()), FSMDescription.Sensor.NO_SENSORS),
+                    new FSMDescriptionProvider(new FSMTransitionTableBuilder(4, 40, Random.getFalse()), FSMDescription.Sensor.NO_SENSORS),
             },
             new IAgentProvider[] {
                     new MaRzAgentProvider<>(new SuffixNodeProvider())
