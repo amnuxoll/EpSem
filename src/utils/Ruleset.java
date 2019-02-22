@@ -58,9 +58,6 @@ public class Ruleset {
 
         for (int i = 0; i < current.size(); i++){
             RuleNode child = current.get(i).getNextChild(move, sense);
-            if (child != null){
-                child.occurs();
-            }
             current.set(i, child);
         }
 

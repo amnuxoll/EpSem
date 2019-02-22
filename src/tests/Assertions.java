@@ -46,7 +46,7 @@ public class Assertions {
 
     public static void assertEquals(double one, double two, double delta) {
         if (delta < Math.abs(one - two) / Math.max(Math.abs(one), Math.abs(two)))
-            throw new AssertionFailedException("doubles are not equal within delta " + delta);
+            throw new AssertionFailedException(String.format("doubles %.3f and %.3f are not equal within delta %.3f", one, two, delta));
     }
 
     public static void assertEquals(Object object1, Object object2) {
