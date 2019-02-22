@@ -52,10 +52,7 @@ public class Ruleset {
 
         if (isGoal){
             for (RuleNode ruleNode : current){
-                RuleNodeGoal goalChild = ruleNode.getGoalChild(move);
-                if (goalChild != null){
-                    goalChild.occurs();
-                }
+                ruleNode.getGoalChild(move);
             }
             current.clear();
             current.add(root);
@@ -63,9 +60,6 @@ public class Ruleset {
 
         for (int i = 0; i < current.size(); i++){
             RuleNode child = current.get(i).getNextChild(move, sense);
-            if (child != null){
-                child.occurs();
-            }
             current.set(i, child);
         }
 
