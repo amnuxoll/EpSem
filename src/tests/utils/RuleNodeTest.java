@@ -1,10 +1,15 @@
 package tests.utils;
 
+import com.sun.javafx.css.Rule;
 import framework.Move;
 import tests.EpSemTest;
 import tests.EpSemTestClass;
+import utils.Random;
 import utils.RuleNode;
 import utils.RuleNodeGoal;
+
+import java.util.ArrayList;
+import java.util.Arrays;
 
 import static tests.Assertions.*;
 
@@ -134,6 +139,82 @@ public class RuleNodeTest {
         assertNotNull(goalChild2);
         assertNotEquals(node, goalChild2);
         assertEquals(goalChild1, goalChild2);
+    }
+
+    //endregion
+
+    //region getGoalProbability
+
+    @EpSemTest
+    public void testBadMoves(){
+        Move[] moves = new Move[] {new Move("a"), new Move("b")};
+        RuleNode node = new RuleNode(moves, 0, 2);
+        assertThrows(IllegalArgumentException.class, () -> node.getGoalProbability(null, 0));
+        assertThrows(IllegalArgumentException.class, () -> node.getGoalProbability(new ArrayList<Move>(Arrays.asList(new Move("c"))), 0));
+        assertEquals(0.0, node.getGoalProbability(new ArrayList<>(), 0));
+    }
+
+    @EpSemTest
+    public void testBadIndex(){
+        Move[] moves = new Move[] {new Move("a"), new Move("b")};
+        RuleNode node = new RuleNode(moves, 0, 2);
+        ArrayList<Move> sequence = new ArrayList<>(Arrays.asList(moves[0], moves[1], moves[1]));
+        assertEquals(0.0, node.getGoalProbability(sequence, 10)); //Index too high returns 0
+        assertThrows(IllegalArgumentException.class, () -> node.getGoalProbability(sequence, -1)); //Index too low throws
+    }
+
+    @EpSemTest
+    public void testBaseCases(){
+        //Setup
+        Move[] moves = new Move[] {new Move("a"), new Move("b")};
+        ArrayList<Move> sequence = new ArrayList<>(Arrays.asList(moves[0], moves[1]));
+
+        //Max depth returns 0
+        RuleNode leafNode = new RuleNode(moves, 0, 0);
+        assertEquals(0.0, leafNode.getGoalProbability(sequence, 0));
+
+        //Return if move has never been tried
+        RuleNode node = new RuleNode(moves, 0, 2);
+        node.getGoalChild(moves[1]);
+        assertEquals(0.0, node.getGoalProbability(sequence, 0));
+
+        //Return 0 when end of sequence reached
+        RuleNode nextNode = node.getNextChild(moves[0], 0);
+        nextNode.getNextChild(moves[1], 0);
+        assertEquals(0.0, node.getGoalProbability(sequence, sequence.size()));
+
+        //Return 1 if goal node
+        RuleNode goalNode = new RuleNodeGoal(moves);
+        assertEquals(1.0, goalNode.getGoalProbability(sequence, 0));
+    }
+
+    @EpSemTest
+    public void testRecursiveCase(){
+        Move[] moves = new Move[] {new Move("a"), new Move("b")};
+        ArrayList<Move> aSequence = new ArrayList<>(Arrays.asList(moves[0]));
+        ArrayList<Move> bSequence = new ArrayList<>(Arrays.asList(moves[1]));
+        ArrayList<Move> twoSequence = new ArrayList<>(Arrays.asList(moves[0], moves[1]));
+        RuleNode node = new RuleNode(moves, 0, 2);
+        RuleNode aChild = node.getNextChild(moves[0], 0);
+        node.getGoalChild(moves[0]); //Goal child with an "a" move
+        node.getGoalChild(moves[1]);
+
+        //Test 1 deep recursion
+        for (int i = 0; i < 8; i++){
+            node.getNextChild(moves[0], 0);
+        }
+        for (int i = 0; i < 19; i++){
+            node.getNextChild(moves[1], 0);
+        }
+        assertEquals(0.1, node.getGoalProbability(aSequence, 0), 0);
+        assertEquals(0.05, node.getGoalProbability(bSequence, 0), 0);
+
+        //Test 2 deep recursion
+        aChild.getGoalChild(moves[1]);
+        for (int i = 0; i < 4; i++){
+            aChild.getNextChild(moves[1], 0);
+        }
+        assertEquals(0.1 + 0.9*0.2, node.getGoalProbability(twoSequence, 0), 0.0001);
     }
 
     //endregion
