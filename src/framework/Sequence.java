@@ -115,6 +115,19 @@ public class Sequence implements Comparable<Sequence> {
     }
 
     /**
+     * Concatenates two sequences.
+     * @param sequence The sequence to concatenate to this sequence.
+     * @return A new sequence that starts with this sequence and ends with the given sequence.
+     */
+    public Sequence concat(Sequence sequence) {
+        if (sequence == null)
+            throw new IllegalArgumentException("sequence cannot be null.");
+        List<Move> concatenated = new LinkedList<>(Arrays.asList(this.moves));
+        concatenated.addAll(Arrays.asList(sequence.getMoves()));
+        return new Sequence(concatenated.toArray(new Move[0]));
+    }
+
+    /**
      * Indicates whether or not there is a next move in the sequence.
      * @return true if a next move exists; otherwise false.
      */

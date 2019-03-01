@@ -20,16 +20,18 @@ public class RulesAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> extends
     private Ruleset ruleset;
     private Move previousMove = null;
     private IIntrospector introspector;
+    private RuleSetEvaluator ruleSetEvaluator;
 
     public RulesAgent(ISuffixNodeBaseProvider<TSuffixNode> nodeProvider){
         super(nodeProvider);
     }
 
     @Override
-    public void initialize(Move[] moves, IIntrospector introspector){
+    public void initialize(Move[] moves, IIntrospector introspector) {
         super.initialize(moves, introspector);
         this.introspector = introspector;
-        ruleset = new Ruleset(moves, 4);
+        this.ruleset = new Ruleset(moves, 4);
+        this.ruleSetEvaluator = new RuleSetEvaluator(moves, this.ruleset, 3, 8);
     }
 
     @Override
@@ -37,6 +39,8 @@ public class RulesAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> extends
         if (sensorData != null) {
             ruleset.update(previousMove, sensorData);
         }
+
+        this.ruleSetEvaluator.evaluateEpisodicMemory(super.episodicMemory);
 
         previousMove = super.getNextMove(sensorData);
         return previousMove;

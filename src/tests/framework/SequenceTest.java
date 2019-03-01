@@ -324,4 +324,21 @@ public class SequenceTest {
         assertArrayEquals(expected.toArray(new Sequence[0]), actual.toArray(new Sequence[0]));
     }
     //endregion
+
+    //region concat Tests
+    @EpSemTest
+    public void concatAppendsSequence() {
+        Sequence start = new Sequence(new Move[] { new Move("a"), new Move("b") });
+        Sequence end = new Sequence(new Move[] { new Move("c"), new Move("d") });
+        Sequence expected = new Sequence(new Move[] { new Move("a"), new Move("b"), new Move("c"), new Move("d") });
+        Sequence actual = start.concat(end);
+        assertEquals(expected, actual);
+    }
+
+    @EpSemTest
+    public void concatNullSequenceThrowsException() {
+        Sequence start = new Sequence(new Move[] { new Move("a"), new Move("b") });
+        assertThrows(IllegalArgumentException.class, () -> start.concat(null));
+    }
+    //endregion
 }

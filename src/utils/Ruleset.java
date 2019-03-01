@@ -1,6 +1,5 @@
 package utils;
 
-import environments.fsm.FSMDescription;
 import framework.Move;
 import framework.SensorData;
 
@@ -68,6 +67,11 @@ public class Ruleset {
         root.occurs();
 
         setGoalProbabilities();
+    }
+
+    public double evaluateMoves(Move[] moves) {
+        ArrayList<Move> movesList = new ArrayList<>(Arrays.asList(moves));
+        return root.getGoalProbability(movesList, 0);
     }
 
     private void setGoalProbabilities() {
