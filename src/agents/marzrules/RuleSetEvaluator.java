@@ -4,10 +4,10 @@ import framework.Episode;
 import framework.Move;
 import framework.NamedOutput;
 import framework.Sequence;
-import utils.EpisodeUtils;
-import utils.EpisodicMemory;
-import utils.Ruleset;
-import utils.SequenceGenerator;
+import utils.*;
+
+import java.util.ArrayList;
+import java.util.Arrays;
 
 /**
  * A RuleSetEvaluator will use a given ruleset and configuration to evaluate a set of possible sequences
@@ -17,39 +17,32 @@ import utils.SequenceGenerator;
  */
 public class RuleSetEvaluator {
     //region Class Variables
-    private int evaluationDepth = 0;
-    private int maxSuffix = 0;
-    private SequenceGenerator sequenceGenerator;
-    private Ruleset ruleSet;
+    Sequence[] sequences;
+    ArrayList<ArrayList<Move>> suffixSequences;
     //endregion
 
     //region Constructors
-    public RuleSetEvaluator(Move[] moves, Ruleset ruleSet, int evaluationDepth, int maxSuffix) {
-        this.evaluationDepth = evaluationDepth;
-        this.maxSuffix = maxSuffix;
-        this.sequenceGenerator = new SequenceGenerator(moves);
-        this.ruleSet = ruleSet;
+    public RuleSetEvaluator(Sequence[] sequences) {
+        this.sequences = sequences;
+        this.suffixSequences = new ArrayList<>();
+        for (Sequence suffix : sequences)
+        {
+            suffixSequences.add(new ArrayList<>(Arrays.asList(suffix.getMoves())));
+        }
     }
     //endregion
 
     //region Public Methods
-    public void evaluateEpisodicMemory(EpisodicMemory<Episode> episodicMemory)
+    public void evaluate(Ruleset ruleSet)
     {
         NamedOutput namedOutput = NamedOutput.getInstance();
-        namedOutput.writeLine("RuleSetEvaluator", episodicMemory.toString(10));
         namedOutput.writeLine("RuleSetEvaluator");
         this.writeSuffixLine();
-        int targetDepth = Math.min(this.evaluationDepth, episodicMemory.length());
-        for (int depth = 0; depth < targetDepth; depth++) {
-            Move[] moves = EpisodeUtils.selectMoves(episodicMemory.last(depth));
-            Sequence currentMemorySequence = new Sequence(moves);
-            namedOutput.write("RuleSetEvaluator", currentMemorySequence + ",");
-            for (int suffixIndex = 1; suffixIndex <= this.maxSuffix; suffixIndex++) {
-                Sequence currentSuffixSequence = this.sequenceGenerator.nextPermutation(suffixIndex);
-                Sequence targetSequence = currentMemorySequence.concat(currentSuffixSequence);
-                double probability = this.ruleSet.evaluateMoves(targetSequence.getMoves());
-                namedOutput.write("RuleSetEvaluator", probability + ",");
-            }
+        for (RuleNode node : ruleSet.getCurrent()) {
+           namedOutput.write("RuleSetEvaluator", node.toString() + ",");
+           for (ArrayList<Move> moves : this.suffixSequences) {
+               namedOutput.write("RuleSetEvaluator", node.getGoalProbability(moves, 0) + ",");
+           }
             namedOutput.writeLine("RuleSetEvaluator");
         }
         namedOutput.writeLine("RuleSetEvaluator");
@@ -61,8 +54,8 @@ public class RuleSetEvaluator {
     private void writeSuffixLine() {
         NamedOutput namedOutput = NamedOutput.getInstance();
         namedOutput.write("RuleSetEvaluator", ",");
-        for (int suffixIndex = 1; suffixIndex <= this.maxSuffix; suffixIndex++) {
-            namedOutput.write("RuleSetEvaluator", this.sequenceGenerator.nextPermutation(suffixIndex) + ",");
+        for (Sequence suffix : this.sequences) {
+            namedOutput.write("RuleSetEvaluator", suffix + ",");
         }
         namedOutput.write("RuleSetEvaluator", "\n");
     }
