@@ -261,4 +261,71 @@ public class EpisodicMemoryTest {
         assertThrows(IllegalArgumentException.class, () -> episodicMemory.lastGoalIndex(-1));
     }
     //endregion
+
+    //region last Tests
+    @EpSemTest
+    public void countLessThanZeroReturnsEmptyArray() {
+        EpisodicMemory<Episode> episodicMemory = new EpisodicMemory<>();
+        episodicMemory.add(new Episode(new Move("move1")));
+        episodicMemory.add(new Episode(new Move("move2")));
+        episodicMemory.add(new Episode(new Move("move3")));
+        Episode[] subset = episodicMemory.last(-1);
+        Episode[] expected = new Episode[0];
+        assertArrayEquals(expected, subset);
+    }
+
+    @EpSemTest
+    public void countZeroReturnsEmptyArray() {
+        EpisodicMemory<Episode> episodicMemory = new EpisodicMemory<>();
+        episodicMemory.add(new Episode(new Move("move1")));
+        episodicMemory.add(new Episode(new Move("move2")));
+        episodicMemory.add(new Episode(new Move("move3")));
+        Episode[] subset = episodicMemory.last(0);
+        Episode[] expected = new Episode[0];
+        assertArrayEquals(expected, subset);
+    }
+
+    @EpSemTest
+    public void countOneReturnsLastEpisode() {
+        EpisodicMemory<Episode> episodicMemory = new EpisodicMemory<>();
+        episodicMemory.add(new Episode(new Move("move1")));
+        episodicMemory.add(new Episode(new Move("move2")));
+        episodicMemory.add(new Episode(new Move("move3")));
+        Episode[] subset = episodicMemory.last(1);
+        Episode[] expected = new Episode[] {
+                new Episode(new Move("move3"))
+        };
+        assertArrayEquals(expected, subset);
+    }
+
+    @EpSemTest
+    public void countMemoryLengthReturnsAllEpisodes() {
+        EpisodicMemory<Episode> episodicMemory = new EpisodicMemory<>();
+        episodicMemory.add(new Episode(new Move("move1")));
+        episodicMemory.add(new Episode(new Move("move2")));
+        episodicMemory.add(new Episode(new Move("move3")));
+        Episode[] subset = episodicMemory.last(3);
+        Episode[] expected = new Episode[] {
+                new Episode(new Move("move1")),
+                new Episode(new Move("move2")),
+                new Episode(new Move("move3"))
+        };
+        assertArrayEquals(expected, subset);
+    }
+
+    @EpSemTest
+    public void countLargerThanMemoryLengthReturnsAllEpisodes() {
+        EpisodicMemory<Episode> episodicMemory = new EpisodicMemory<>();
+        episodicMemory.add(new Episode(new Move("move1")));
+        episodicMemory.add(new Episode(new Move("move2")));
+        episodicMemory.add(new Episode(new Move("move3")));
+        Episode[] subset = episodicMemory.last(10);
+        Episode[] expected = new Episode[] {
+                new Episode(new Move("move1")),
+                new Episode(new Move("move2")),
+                new Episode(new Move("move3"))
+        };
+        assertArrayEquals(expected, subset);
+    }
+    //endregion
 }

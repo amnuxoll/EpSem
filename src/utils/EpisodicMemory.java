@@ -90,12 +90,40 @@ public class EpisodicMemory<TEpisode extends Episode> {
         }
         return -1;
     }
+
+    /**
+     * Returns that last n number of episodes in the memory.
+     * @param count The number of episodes to return.
+     * @return The last count episodes.
+     */
+    public Episode[] last(int count) {
+        if (count <= 0)
+            return new Episode[0];
+        int epMemSize = this.episodicMemory.size();
+        if (count > epMemSize)
+            count = epMemSize;
+        return this.subset(epMemSize - count);
+    }
     //endregion
 
     @Override
     public String toString(){
         StringBuilder value = new StringBuilder();
         for (TEpisode episode : episodicMemory){
+            value.append(episode.toString());
+            value.append(",");
+        }
+        return value.toString();
+    }
+
+    /**
+     * Builds a string of the last count episodes.
+     * @param count The number of episodes to include.
+     * @return A string of the last count episodes.
+     */
+    public String toString(int count) {
+        StringBuilder value = new StringBuilder();
+        for (Episode episode : this.last(count)){
             value.append(episode.toString());
             value.append(",");
         }

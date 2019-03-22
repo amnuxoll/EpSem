@@ -3,12 +3,10 @@ package agents.marzrules;
 import agents.marz.ISuffixNodeBaseProvider;
 import agents.marz.MaRzAgent;
 import agents.marz.SuffixNodeBase;
-import framework.Datum;
-import framework.IIntrospector;
-import framework.Move;
-import framework.SensorData;
+import framework.*;
 import utils.RuleNode;
 import utils.Ruleset;
+import utils.SequenceGenerator;
 
 import java.util.ArrayList;
 
@@ -20,16 +18,24 @@ public class RulesAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> extends
     private Ruleset ruleset;
     private Move previousMove = null;
     private IIntrospector introspector;
+    private RuleSetEvaluator ruleSetEvaluator;
 
     public RulesAgent(ISuffixNodeBaseProvider<TSuffixNode> nodeProvider){
         super(nodeProvider);
     }
 
     @Override
-    public void initialize(Move[] moves, IIntrospector introspector){
+    public void initialize(Move[] moves, IIntrospector introspector) {
         super.initialize(moves, introspector);
         this.introspector = introspector;
-        ruleset = new Ruleset(moves, 4);
+        this.ruleset = new Ruleset(moves, 4);
+        SequenceGenerator generator = new SequenceGenerator(moves);
+        ArrayList<Sequence> evaluationSuffixes = new ArrayList<>();
+        for (int i = 1; i <= 15; i++)
+        {
+            evaluationSuffixes.add(generator.nextPermutation(i));
+        }
+        this.ruleSetEvaluator = new RuleSetEvaluator(evaluationSuffixes.toArray(new Sequence[0]));
     }
 
     @Override
@@ -37,6 +43,8 @@ public class RulesAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> extends
         if (sensorData != null) {
             ruleset.update(previousMove, sensorData);
         }
+
+        this.ruleSetEvaluator.evaluate(this.ruleset);
 
         previousMove = super.getNextMove(sensorData);
         return previousMove;

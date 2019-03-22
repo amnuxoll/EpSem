@@ -169,12 +169,17 @@ public class RuleNode {
 
     @Override
     public String toString(){
+        return this.toString(true);
+    }
+
+    public String toString(Boolean includeNewline) {
         ArrayList<String> stringArrayList = toStringArray();
         if (stringArrayList.isEmpty()) {
             return "";
         }
-
-        return String.join("\n", stringArrayList);
+        if (includeNewline)
+            return String.join("\n", stringArrayList);
+        return String.join("", stringArrayList);
     }
 
     protected ArrayList<String> toStringArray(){
