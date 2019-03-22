@@ -1,2 +1,42 @@
 //pseudocode for "falsifying" rules in ruleset and taking actions when placed in the environment
 
+//first, I think superstitions should be stored as a 2D array so that falsifiable rules are separated by length; i.e.
+// superstitions[i][j] would be the j-th falsifiable i-deep rule.
+
+public move falsify(superstitions) {
+
+    for i in length(superstitions){ //iterate through 0-deep possibilities, then 1-deep, etc
+        if (length(superstitions[i] == 0) continue; //no rules at this depth to try anymore
+
+        ArrayList<String> toTry;
+        int steps = 0;
+        while (length(toTry) == 0) {
+            steps += 1;
+            if (steps > i) break; //nothing testable at this depth at all, need to look deeper
+
+            for j in length(superstitions[i]){ //add any i-deep rules that are testable within n steps to toTry list
+                if testable(steps, superstition[i][j]){
+                    toTry.add(superstitions[i][j])
+                }
+            }
+
+        }
+
+        if (length(toTry) > 0){
+            //just pick one at random (?)
+            move = whichever move corresponds to testing the rule from the list of rules toTry
+        }
+        //note that if the length of toTry is 0, we just go to the next depth
+
+    }
+    return move;
+}
+
+//does the substring consisting of the superstition from its beginning through to n steps away from goal appear at the end of our memory?
+//e.g. memory = .... 1b 0b 1a 1b 0, and the superstition to test = "1b 0b 0a",
+// 1 step =>               1b 0b 0a     // FALSE: can't be tested within one step, doesn't appear at end of memory
+// 2 step =>                  1b 0b 0a  // TRUE: could be tested within 2 steps
+
+public boolean testable(int steps, superstition string, memory) {
+    return (superstition[0:length(superstition) - steps] ==  memory[-steps:])     //vague and python-y because I don't know java
+}
