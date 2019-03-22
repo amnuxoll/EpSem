@@ -1,0 +1,2 @@
+//pseudocode for "falsifying" rules in ruleset and taking actions when placed in the environment
+
