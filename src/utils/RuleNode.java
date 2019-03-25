@@ -90,6 +90,10 @@ public class RuleNode {
     // likewise, getGoalProbability(moves, 3) would return the estimated probability of reaching the goal just by taking that
     // last 'a' move.
     public double getGoalProbability(ArrayList<Move> moves, int moveIdx) {
+        if (moves == null){
+            throw new IllegalArgumentException("Moves cannot be null");
+        }
+
         // CASE 1:
         // if you have no children, i.e. if you have reached the bottom of the tree
         if (maxDepth == 0) {
@@ -99,6 +103,8 @@ public class RuleNode {
         // you've reached the end of the sequence whose goal probability we are calculating
         if (moves.size() <= moveIdx) {
             return 0;
+        } else if (moveIdx < 0) {
+            throw new IllegalArgumentException("moveIdx cannot be negative");
         }
 
         // CASE 3:
@@ -146,12 +152,14 @@ public class RuleNode {
     protected RuleNode getChildBySense(ArrayList<RuleNode> children, int nextSense) {
         for (RuleNode ruleNode : children){
             if (ruleNode.sense == nextSense){
+                ruleNode.occurs();
                 return ruleNode;
             }
         }
 
         RuleNode child = new RuleNode(potentialMoves, nextSense, maxDepth - 1);
         children.add(child);
+        child.occurs();
         return child;
     }
 
@@ -199,7 +207,9 @@ public class RuleNode {
 
         incrementMoveFrequency(move);
 
-        return (RuleNodeGoal) moveChildren.get(0);
+        RuleNodeGoal goal = (RuleNodeGoal) moveChildren.get(0);
+        goal.occurs();
+        return goal;
 
     }
 
