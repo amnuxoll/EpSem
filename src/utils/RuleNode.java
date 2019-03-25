@@ -135,6 +135,14 @@ public class RuleNode {
         frequency++;
     }
 
+    /**
+     * Gets the child that corresponds to the given sense in the given list, or creates it if it does not exist
+     * @param children The list of children to look through
+     * @param nextSense The sense that the child should have
+     * @return The corresponding child
+     *
+     * Side effect: Can create the child if a child with the given sense is not found
+     */
     protected RuleNode getChildBySense(ArrayList<RuleNode> children, int nextSense) {
         for (RuleNode ruleNode : children){
             if (ruleNode.sense == nextSense){
@@ -147,6 +155,15 @@ public class RuleNode {
         return child;
     }
 
+    /**
+     * Gets the child that corresponds to the given move and sense value
+     * @param move The move of the child
+     * @param nextSense The sense of the child
+     * @return null if at max depth, otherwise the corresponding child
+     *
+     * Side effects: Will create the child if it does not exist
+     *               Will increment move frequency of this node and frequency of child
+     */
     public RuleNode getNextChild(Move move, int nextSense){
         if (maxDepth == 0){
             return null;

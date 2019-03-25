@@ -57,7 +57,7 @@ public class Runner {
     private static TestSuite RulesAgent = new TestSuite(
             TestSuiteConfiguration.QUICK,
             new IEnvironmentDescriptionProvider[] {
-                    new FSMDescriptionProvider(new FSMTransitionTableBuilder(2, 8, Random.getTrue()), EnumSet.of(FSMDescription.Sensor.EVEN_ODD), true)
+                    new FSMDescriptionProvider(new FSMTransitionTableBuilder(2, 10, Random.getTrue()), EnumSet.of(FSMDescription.Sensor.EVEN_ODD), true)
             },
             new IAgentProvider[] {
                     new RulesAgentProvider(new SuffixNodeProvider())
@@ -158,14 +158,13 @@ public class Runner {
     });
 
     private static TestSuite TempExperiment = new TestSuite(
-            TestSuiteConfiguration.QUICK,
+            TestSuiteConfiguration.FULL,
             new IEnvironmentDescriptionProvider[] {
-                    new FSMDescriptionProvider(new FSMTransitionTableBuilder(3, 10, Random.getTrue()), FSMDescription.Sensor.NO_SENSORS),
-                    new MetaEnvironmentDescriptionProvider(new FSMDescriptionTweakingProvider(new FSMTransitionTableBuilder(2, 15, Random.getTrue()), EnumSet.of(FSMDescription.Sensor.EVEN_ODD)), new MetaConfiguration(100))
+                    new FSMDescriptionProvider(new FSMTransitionTableBuilder(2, 100, Random.getTrue()), FSMDescription.Sensor.NO_SENSORS)
             },
             new IAgentProvider[] {
-                    new NSMAgentProvider(),
-                    new MaRzAgentProvider<>(new SuffixNodeProvider())
+                    new MaRzAgentProvider<>(new SuffixNodeProvider()),
+                    new NSMAgentProvider()
             },
             rootDirectory -> {
                 NamedOutput namedOutput = NamedOutput.getInstance();

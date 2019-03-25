@@ -56,6 +56,7 @@ public class RulesAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> extends
         super.onTestRunComplete();
     }
 
+    /*
     @Override
     public ArrayList<Datum> getData() {
         ArrayList<Datum> allData = super.getData();
@@ -69,4 +70,5 @@ public class RulesAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> extends
 
         return allData;
     }
+    */
 }
