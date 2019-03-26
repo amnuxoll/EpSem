@@ -1,5 +1,6 @@
 package utils;
 
+import com.sun.javafx.css.Rule;
 import framework.Move;
 
 import java.util.*;
@@ -21,6 +22,7 @@ public class RuleNode {
     //Potential:
     private int[] indices;
     private double expectation;
+    private Move bestMove;
 
     // constructor
     public RuleNode(Move[] potentialMoves, int sense, int maxDepth){
@@ -137,6 +139,76 @@ public class RuleNode {
         return probability / frequency;
     }
 
+    /**
+     * Gets the expected number of moves to goal from this node. Fails if it cannot be calculated.
+     * Fails if these conditions are met:
+     *      Node is at depth limit or otherwise does not have children
+     *      Node is in current (this prevents loops)
+     *      A child in every possible move fails
+     *
+     * @param current The nodes in current. Needed so that EV calculation fails if it hits another current node.
+     * @param top Whether this node is in current. Should be true unless called recursively. Causes code to ignore current check.
+     * @param h The heuristic to value unexplored moves
+     * @return The expected value (if it is defined)
+     *
+     * Side effects: TODO save the best moves and EVs so this does not have to be recaluclated
+     */
+    public Optional<Double> getExpectation(ArrayList<RuleNode> current, boolean top, double h){
+        //BASE CASE: Is goal (method override)
+
+        //BASE CASE: Not top and in current
+        if (!top && current.contains(this)){
+            return Optional.empty();
+        }
+
+        //BASE CASE: No children (at depth limit)
+        //Moved below
+
+        //RECURSIVE CASE: Add 1 to expectation of best child
+        Optional<Double> best = Optional.empty();
+        Move bestMove = null;
+        boolean madeMove = false;
+        for (int i = 0; i < potentialMoves.length; i++){
+            if(moveFrequencies[i] == 0){
+                if (!best.isPresent() || h < best.get()){
+                    bestMove = potentialMoves[i];
+                    best = Optional.of(h);
+                }
+            } else {
+                madeMove = true;
+                ArrayList<RuleNode> childArray = children.get(potentialMoves[i]);
+                final double frequency = (double) moveFrequencies[i];
+                //Sums up all child EVs for a move, propagating empty optionals if one fails
+                Optional<Double> moveEV = childArray.stream()
+                                    .map(node -> node.getExpectation(current, false, h) //Gets expected value
+                                                     .map(val -> val*node.frequency)) //Multiply by node frequency
+                                    .reduce(Optional.of(0.0), (sum, ev) -> sum.flatMap(x -> ev.map(y -> x+y))) //Add EVs up
+                                    .map(val -> val / frequency + 1); //Divide by overall node frequency
+                if (moveEV.isPresent()){
+                    Double ev = moveEV.get();
+                    if (!best.isPresent() || ev < best.get()){
+                        bestMove = potentialMoves[i];
+                        best = Optional.of(ev);
+                    }
+                }
+            }
+        }
+        if(!madeMove){
+            return Optional.empty();
+        } else if (best.isPresent()){
+            expectation = best.get();
+            this.bestMove = bestMove;
+        } else {
+            expectation = -1;
+            this.bestMove = null;
+        }
+        return best;
+    }
+
+    public Move getBestMove(){
+        return bestMove;
+    }
+
     protected void occurs(){
         frequency++;
     }
@@ -148,6 +220,7 @@ public class RuleNode {
      * @return The corresponding child
      *
      * Side effect: Can create the child if a child with the given sense is not found
+     *              Will increase child frequency
      */
     protected RuleNode getChildBySense(ArrayList<RuleNode> children, int nextSense) {
         for (RuleNode ruleNode : children){
@@ -191,6 +264,14 @@ public class RuleNode {
         return getChildBySense(moveChildren, nextSense);
     }
 
+    /**
+     * Gets the goal child for the node
+     *
+     * @param move The move that led to the goal
+     * @return The goal child
+     *
+     * Side Effect: Increments goal child frequency
+     */
     public RuleNodeGoal getGoalChild(Move move){
         if (maxDepth == 0){
             return null;

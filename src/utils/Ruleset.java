@@ -3,9 +3,11 @@ package utils;
 import framework.Move;
 import framework.SensorData;
 
+import javax.swing.text.html.Option;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Optional;
 
 /**
  * Created by Ryan on 2/7/2019.
@@ -25,6 +27,19 @@ public class Ruleset {
         current = new ArrayList<>();
         current.add(root);
         this.alphabet = alphabet;
+    }
+
+    public Move getBestMove(double h){
+        double bestEV = -1;
+        Move bestMove = alphabet[0];
+        for (RuleNode node : current){
+            Optional<Double> expectation = node.getExpectation(current, true, h);
+            if (expectation.isPresent() && (bestEV == -1 || expectation.get() < bestEV)){
+                bestEV = expectation.get();
+                bestMove = node.getBestMove();
+            }
+        }
+        return bestMove;
     }
 
     public ArrayList<RuleNode> getCurrent(){

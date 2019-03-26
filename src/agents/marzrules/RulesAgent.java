@@ -28,7 +28,7 @@ public class RulesAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> extends
     public void initialize(Move[] moves, IIntrospector introspector) {
         super.initialize(moves, introspector);
         this.introspector = introspector;
-        this.ruleset = new Ruleset(moves, 4);
+        this.ruleset = new Ruleset(moves, 500);
         SequenceGenerator generator = new SequenceGenerator(moves);
         ArrayList<Sequence> evaluationSuffixes = new ArrayList<>();
         for (int i = 1; i <= 15; i++)
@@ -44,15 +44,21 @@ public class RulesAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> extends
             ruleset.update(previousMove, sensorData);
         }
 
-        this.ruleSetEvaluator.evaluate(this.ruleset);
+        //this.ruleSetEvaluator.evaluate(this.ruleset);
 
+        previousMove = ruleset.getBestMove(4);
+        //System.out.println(previousMove);
+        return previousMove;
+
+        /*
         previousMove = super.getNextMove(sensorData);
         return previousMove;
+        */
     }
 
     @Override
     public void onTestRunComplete() {
-        System.out.println(ruleset);
+        //System.out.println(ruleset);
         super.onTestRunComplete();
     }
 
