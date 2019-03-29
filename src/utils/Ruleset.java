@@ -79,14 +79,19 @@ public class Ruleset {
 
         if (isGoal){
             for (RuleNode ruleNode : current){
-                ruleNode.getGoalChild(move);
+                ruleNode.incrementMoveFrequency(move);
+                RuleNode node = ruleNode.getGoalChild(move);
+                node.occurs();
             }
             current.clear();
             current.add(root);
         }
 
         for (int i = 0; i < current.size(); i++){
-            RuleNode child = current.get(i).getNextChild(move, sense);
+            RuleNode node = current.get(i);
+            node.incrementMoveFrequency(move);
+            RuleNode child = node.getNextChild(move, sense);
+            child.occurs();
             current.set(i, child);
         }
 
@@ -94,7 +99,7 @@ public class Ruleset {
         current.add(root);
         root.occurs();
 
-        setGoalProbabilities();
+        //setGoalProbabilities();
     }
 
     public double evaluateMoves(Move[] moves) {

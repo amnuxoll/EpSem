@@ -9,7 +9,7 @@ import java.util.*;
  * Created by Ryan on 1/28/2019.
  */
 public class RuleNode {
-    private static RuleNodeRoot root;
+    //private static RuleNodeRoot root;
 
     protected int sense;
     protected HashMap<Move, ArrayList<RuleNode>> children;
@@ -73,7 +73,7 @@ public class RuleNode {
         return moveFrequencies[index];
     }
 
-    protected int incrementMoveFrequency(Move move){
+    public int incrementMoveFrequency(Move move){
         int index = Arrays.asList(potentialMoves).indexOf(move);
         if (index == -1) {
             return -1;
@@ -81,6 +81,10 @@ public class RuleNode {
 
         int frequency = moveFrequencies[index]++;
         return frequency;
+    }
+
+    public boolean inAlphabet(Move move){
+        return Arrays.asList(potentialMoves).contains(move);
     }
 
     // The "goal probability" of a sequence of moves is the estimated likelihood that a goal will be reached by the end
@@ -216,7 +220,7 @@ public class RuleNode {
 
     public boolean getExplore() { return explore; }
 
-    protected void occurs(){
+    public void occurs(){
         frequency++;
     }
 
@@ -232,14 +236,12 @@ public class RuleNode {
     protected RuleNode getChildBySense(ArrayList<RuleNode> children, int nextSense) {
         for (RuleNode ruleNode : children){
             if (ruleNode.sense == nextSense){
-                ruleNode.occurs();
                 return ruleNode;
             }
         }
 
         RuleNode child = new RuleNode(potentialMoves, nextSense, maxDepth - 1);
         children.add(child);
-        child.occurs();
         return child;
     }
 
@@ -261,8 +263,7 @@ public class RuleNode {
             throw new IllegalArgumentException("Move cannot be null");
         }
 
-        int frequency = incrementMoveFrequency(move);
-        if (frequency == -1){
+        if (!inAlphabet(move)){
             throw new IllegalArgumentException("Move does not exist");
         }
 
@@ -293,10 +294,7 @@ public class RuleNode {
             throw new IllegalArgumentException("Move not in alphabet");
         }
 
-        incrementMoveFrequency(move);
-
         RuleNodeGoal goal = (RuleNodeGoal) moveChildren.get(0);
-        goal.occurs();
         return goal;
 
     }

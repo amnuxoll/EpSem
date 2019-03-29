@@ -29,8 +29,9 @@ public class RuleNodeRoot extends RuleNode {
     }
 
     @Override
-    protected int incrementMoveFrequency(Move move) {
-        return ++frequency;
+    public int incrementMoveFrequency(Move move) {
+        //Don't actually increase frequency, since all moves are the same to root, and it will already by incremented by occurs() call
+        return frequency;
     }
 
     @Override

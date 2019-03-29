@@ -196,25 +196,45 @@ public class RuleNodeTest {
         ArrayList<Move> twoSequence = new ArrayList<>(Arrays.asList(moves[0], moves[1]));
         RuleNode node = new RuleNode(moves, 0, 2);
         RuleNode aChild = node.getNextChild(moves[0], 0);
-        node.getGoalChild(moves[0]); //Goal child with an "a" move
-        node.getGoalChild(moves[1]);
+        RuleNode bChild = node.getNextChild(moves[1], 0);
+        node.getGoalChild(moves[0]).occurs(); //Goal child with an "a" move
+        node.incrementMoveFrequency(moves[0]);
+        node.getGoalChild(moves[1]).occurs();
+        node.incrementMoveFrequency(moves[1]);
 
         //Test 1 deep recursion
-        for (int i = 0; i < 8; i++){
-            node.getNextChild(moves[0], 0);
+        for (int i = 0; i < 9; i++){
+            aChild.occurs();
+            node.incrementMoveFrequency(moves[0]);
         }
         for (int i = 0; i < 19; i++){
-            node.getNextChild(moves[1], 0);
+            bChild.occurs();
+            node.incrementMoveFrequency(moves[1]);
         }
         assertEquals(0.1, node.getGoalProbability(aSequence, 0), 0);
         assertEquals(0.05, node.getGoalProbability(bSequence, 0), 0);
 
         //Test 2 deep recursion
-        aChild.getGoalChild(moves[1]);
+        aChild.getGoalChild(moves[1]).occurs();
+        RuleNode grandchild = aChild.getNextChild(moves[1], 0);
+        aChild.incrementMoveFrequency(moves[1]);
         for (int i = 0; i < 4; i++){
-            aChild.getNextChild(moves[1], 0);
+            aChild.incrementMoveFrequency(moves[1]);
+            grandchild.occurs();
         }
         assertEquals(0.1 + 0.9*0.2, node.getGoalProbability(twoSequence, 0), 0.0001);
+    }
+
+    //TODO: Test root only increases by frequency 1
+
+    //endregion
+
+    //region expected value
+
+    @EpSemTest
+    public void testExpectedInputs(){
+        Move[] moves = new Move[] {new Move("a"), new Move("b")};
+        RuleNode node = new RuleNode(moves, 0, 2);
     }
 
     //endregion
