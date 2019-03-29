@@ -20,9 +20,10 @@ public class RuleNode {
     // can be understood as "how much deeper does the tree go beyond this node".
     protected int maxDepth;
     //Potential:
-    private int[] indices;
-    private double expectation;
-    private Move bestMove;
+    //private int[] indices;
+    private double expectation = 0;
+    private Move bestMove = null;
+    private boolean explore = false;
 
     // constructor
     public RuleNode(Move[] potentialMoves, int sense, int maxDepth){
@@ -173,6 +174,7 @@ public class RuleNode {
                 if (!best.isPresent() || h < best.get()){
                     bestMove = potentialMoves[i];
                     best = Optional.of(h);
+                    explore = true;
                 }
             } else {
                 madeMove = true;
@@ -189,6 +191,7 @@ public class RuleNode {
                     if (!best.isPresent() || ev < best.get()){
                         bestMove = potentialMoves[i];
                         best = Optional.of(ev);
+                        explore = false;
                     }
                 }
             }
@@ -208,6 +211,10 @@ public class RuleNode {
     public Move getBestMove(){
         return bestMove;
     }
+
+    public int getFrequency() { return frequency; }
+
+    public boolean getExplore() { return explore; }
 
     protected void occurs(){
         frequency++;

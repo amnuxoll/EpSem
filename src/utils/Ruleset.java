@@ -18,6 +18,7 @@ public class Ruleset {
     private ArrayList<RuleNode> current;
     private ArrayList<Double> goalProbabilities;
     private Move[] alphabet;
+    private int explores;
 
     public Ruleset(Move[] alphabet, int maxDepth){
         if (alphabet == null) throw new IllegalArgumentException();
@@ -29,7 +30,14 @@ public class Ruleset {
         this.alphabet = alphabet;
     }
 
-    public Move getBestMove(double h){
+    public double get_heuristic(){
+        double p = root.getIncreasedGoalProbability();
+        double h = 1/p; //TODO: Subtract 1?
+        return h;
+    }
+
+    public Move getBestMove(){
+        double h = get_heuristic();
         double bestEV = -1;
         Move bestMove = alphabet[0];
         for (RuleNode node : current){
@@ -37,6 +45,9 @@ public class Ruleset {
             if (expectation.isPresent() && (bestEV == -1 || expectation.get() < bestEV)){
                 bestEV = expectation.get();
                 bestMove = node.getBestMove();
+                if (node.getExplore()){
+                    explores++;
+                }
             }
         }
         return bestMove;
@@ -45,6 +56,8 @@ public class Ruleset {
     public ArrayList<RuleNode> getCurrent(){
         return current;
     }
+
+    public int getExplores() { return explores; }
 
     public ArrayList<Double> getGoalProbabilities() {
         return goalProbabilities;

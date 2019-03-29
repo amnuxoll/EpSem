@@ -53,4 +53,8 @@ public class RuleNodeRoot extends RuleNode {
         }
         return result;
     }
+
+    public double getIncreasedGoalProbability(){
+        return (childArray.get(0).getFrequency()+1)/((double)frequency+1);
+    }
 }

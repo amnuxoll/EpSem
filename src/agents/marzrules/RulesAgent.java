@@ -46,7 +46,7 @@ public class RulesAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> extends
 
         //this.ruleSetEvaluator.evaluate(this.ruleset);
 
-        previousMove = ruleset.getBestMove(4);
+        previousMove = ruleset.getBestMove();
         //System.out.println(previousMove);
         return previousMove;
 
@@ -77,4 +77,24 @@ public class RulesAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> extends
         return allData;
     }
     */
+
+    @Override
+    public String[] getStatisticTypes(){
+        return new String[] {
+                "agentDidAGood",
+                "goodDecisionBail",
+                "badDecisionBail",
+                "properBails",
+                "heuristic",
+                "explore"
+        };
+    }
+
+    @Override
+    public ArrayList<Datum> getGoalData() {
+        ArrayList<Datum> data = super.getGoalData();
+        data.add(new Datum("heuristic", ruleset.get_heuristic()));
+        data.add(new Datum("explore", ruleset.getExplores()));
+        return data;
+    }
 }
