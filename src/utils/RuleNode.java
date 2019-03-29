@@ -25,6 +25,8 @@ public class RuleNode {
     private Move bestMove = null;
     private boolean explore = false;
 
+    protected boolean visited = false;
+
     // constructor
     public RuleNode(Move[] potentialMoves, int sense, int maxDepth){
 
@@ -159,10 +161,17 @@ public class RuleNode {
      * Side effects: TODO save the best moves and EVs so this does not have to be recaluclated
      */
     public Optional<Double> getExpectation(ArrayList<RuleNode> current, boolean top, double h){
+        if (!visited){
+            return Optional.of(expectation);
+        }
         //BASE CASE: Is goal (method override)
 
         //BASE CASE: Not top and in current
         if (!top && current.contains(this)){
+            return Optional.empty();
+        }
+
+        if (maxDepth == 0){
             return Optional.empty();
         }
 
@@ -212,6 +221,10 @@ public class RuleNode {
         return best;
     }
 
+    protected void unvisit(){
+        visited = false;
+    }
+
     public Move getBestMove(){
         return bestMove;
     }
@@ -222,6 +235,7 @@ public class RuleNode {
 
     public void occurs(){
         frequency++;
+        visited = true;
     }
 
     /**

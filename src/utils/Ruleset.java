@@ -34,22 +34,23 @@ public class Ruleset {
         double p = root.getIncreasedGoalProbability();
         double h = 1/p; //TODO: Subtract 1?
         return h;
+        //return 4;
     }
 
     public Move getBestMove(){
         double h = get_heuristic();
         double bestEV = -1;
+        boolean explore = false;
         Move bestMove = alphabet[0];
         for (RuleNode node : current){
             Optional<Double> expectation = node.getExpectation(current, true, h);
             if (expectation.isPresent() && (bestEV == -1 || expectation.get() < bestEV)){
                 bestEV = expectation.get();
                 bestMove = node.getBestMove();
-                if (node.getExplore()){
-                    explores++;
-                }
+                explore = node.getExplore();
             }
         }
+        if (explore) explores++;
         return bestMove;
     }
 
@@ -91,7 +92,9 @@ public class Ruleset {
             RuleNode node = current.get(i);
             node.incrementMoveFrequency(move);
             RuleNode child = node.getNextChild(move, sense);
-            child.occurs();
+            if (child != null) {
+                child.occurs();
+            }
             current.set(i, child);
         }
 

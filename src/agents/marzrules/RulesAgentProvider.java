@@ -17,7 +17,7 @@ public class RulesAgentProvider implements IAgentProvider {
 
     @Override
     public IAgent getAgent(){
-        return new RulesAgent<>(this.nodeProvider);
+        return new RulesAgent();
     }
 
     @Override

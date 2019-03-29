@@ -21,6 +21,7 @@ public class RuleNodeRoot extends RuleNode {
         for (Map.Entry<Move,ArrayList<RuleNode>> entry : children.entrySet()){
             entry.setValue(childArray);
         }
+        visited = true;
     }
 
     @Override
@@ -57,5 +58,12 @@ public class RuleNodeRoot extends RuleNode {
 
     public double getIncreasedGoalProbability(){
         return (childArray.get(0).getFrequency()+1)/((double)frequency+1);
+    }
+
+    public void reachedGoal(){
+        visited = false;
+        for (RuleNode child : childArray){
+            child.unvisit();
+        }
     }
 }

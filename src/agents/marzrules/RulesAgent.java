@@ -13,20 +13,19 @@ import java.util.ArrayList;
 /**
  * Created by Ryan on 2/11/2019.
  */
-public class RulesAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> extends MaRzAgent<TSuffixNode> {
+public class RulesAgent implements IAgent{
 
     private Ruleset ruleset;
     private Move previousMove = null;
     private IIntrospector introspector;
     private RuleSetEvaluator ruleSetEvaluator;
 
-    public RulesAgent(ISuffixNodeBaseProvider<TSuffixNode> nodeProvider){
-        super(nodeProvider);
+    public RulesAgent(){
+
     }
 
     @Override
     public void initialize(Move[] moves, IIntrospector introspector) {
-        super.initialize(moves, introspector);
         this.introspector = introspector;
         this.ruleset = new Ruleset(moves, 500);
         SequenceGenerator generator = new SequenceGenerator(moves);
@@ -59,7 +58,6 @@ public class RulesAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> extends
     @Override
     public void onTestRunComplete() {
         //System.out.println(ruleset);
-        super.onTestRunComplete();
     }
 
     /*
@@ -81,10 +79,6 @@ public class RulesAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> extends
     @Override
     public String[] getStatisticTypes(){
         return new String[] {
-                "agentDidAGood",
-                "goodDecisionBail",
-                "badDecisionBail",
-                "properBails",
                 "heuristic",
                 "explore"
         };
@@ -92,7 +86,7 @@ public class RulesAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> extends
 
     @Override
     public ArrayList<Datum> getGoalData() {
-        ArrayList<Datum> data = super.getGoalData();
+        ArrayList<Datum> data = new ArrayList<>();
         data.add(new Datum("heuristic", ruleset.get_heuristic()));
         data.add(new Datum("explore", ruleset.getExplores()));
         return data;
