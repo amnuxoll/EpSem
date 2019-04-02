@@ -1,6 +1,5 @@
 package utils;
 
-import com.sun.javafx.css.Rule;
 import framework.Move;
 
 import java.util.*;
@@ -147,23 +146,42 @@ public class RuleNode {
     }
 
     /**
-     * Gets the expected number of moves to goal from this node. Fails if it cannot be calculated.
+     * Gets the expected number of moves to goal from this node, assuming the best possible move is always made.
+     * Fails if it cannot be calculated.
      * Fails if these conditions are met:
      *      Node is at depth limit or otherwise does not have children
      *      Node is in current (this prevents loops)
      *      A child in every possible move fails
+     *
+     * This function is cached. When unvisit is called, it will begin returning cached results. When occurs is called,
+     * it will stop caching the results until it is unvisited. The idea is that it only recalculates if it or a child is
+     * in current, and caches if it has not been visited since the last goal.
+     * TODO: Is cache correct for a failed EV result (ex depth limit)?
      *
      * @param current The nodes in current. Needed so that EV calculation fails if it hits another current node.
      * @param top Whether this node is in current. Should be true unless called recursively. Causes code to ignore current check.
      * @param h The heuristic to value unexplored moves
      * @return The expected value (if it is defined)
      *
-     * Side effects: TODO save the best moves and EVs so this does not have to be recaluclated
+     * Side effects:
+     *      If it returns an empty optional, explore may be changed to an arbitrary value
+     *      Otherwise, expectation stores the value contained in the optional (used for caching result)
+     *                 bestMove stores the move that led to the minimum expected value
+     *                 explore will be true if bestMove is an explore move (never been done before)
      */
     public Optional<Double> getExpectation(ArrayList<RuleNode> current, boolean top, double h){
+
+        //Cached value
+        //TODO: Fix so that it will uncache if h changes
         if (!visited){
             return Optional.of(expectation);
         }
+
+        //Error check
+        if (current == null){
+            throw new IllegalArgumentException("current cannot be null");
+        }
+
         //BASE CASE: Is goal (method override)
 
         //BASE CASE: Not top and in current
@@ -171,12 +189,13 @@ public class RuleNode {
             return Optional.empty();
         }
 
+        //BASE CASE: At depth limit
         if (maxDepth == 0){
             return Optional.empty();
         }
 
-        //BASE CASE: No children (at depth limit)
-        //Moved below
+
+        //BASE CASE: No children
 
         //RECURSIVE CASE: Add 1 to expectation of best child
         Optional<Double> best = Optional.empty();
@@ -214,10 +233,10 @@ public class RuleNode {
         } else if (best.isPresent()){
             expectation = best.get();
             this.bestMove = bestMove;
-        } else {
+        } /*else {
             expectation = -1;
             this.bestMove = null;
-        }
+        }*/ // Makes lack of side effects consistent
         return best;
     }
 
@@ -232,6 +251,10 @@ public class RuleNode {
     public int getFrequency() { return frequency; }
 
     public boolean getExplore() { return explore; }
+
+    public double getCachedExpectation() {
+        return expectation;
+    }
 
     public void occurs(){
         frequency++;

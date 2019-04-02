@@ -32,7 +32,7 @@ public class Ruleset {
 
     public double get_heuristic(){
         double p = root.getIncreasedGoalProbability();
-        double h = 1/p; //TODO: Subtract 1?
+        double h = 1/p /*- 1*/; //TODO: Subtract 1?
         return h;
         //return 4;
     }
@@ -82,6 +82,7 @@ public class Ruleset {
             for (RuleNode ruleNode : current){
                 ruleNode.incrementMoveFrequency(move);
                 RuleNode node = ruleNode.getGoalChild(move);
+                //TODO: Fix NPE here
                 node.occurs();
             }
             current.clear();

@@ -1,6 +1,5 @@
 package tests.utils;
 
-import com.sun.javafx.css.Rule;
 import framework.Move;
 import tests.EpSemTest;
 import tests.EpSemTestClass;
@@ -8,8 +7,7 @@ import utils.Random;
 import utils.RuleNode;
 import utils.RuleNodeGoal;
 
-import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.*;
 
 import static tests.Assertions.*;
 
@@ -232,9 +230,85 @@ public class RuleNodeTest {
     //region expected value
 
     @EpSemTest
-    public void testExpectedInputs(){
+    public void testExpectedBaseCases(){
         Move[] moves = new Move[] {new Move("a"), new Move("b")};
-        RuleNode node = new RuleNode(moves, 0, 2);
+        RuleNode node = new RuleNode(moves, 0, 1);
+        node.occurs();
+        node.occurs();
+        node.incrementMoveFrequency(moves[0]);
+        node.incrementMoveFrequency(moves[0]);
+        RuleNode depthLimitNode = node.getNextChild(moves[0], 0);
+        depthLimitNode.occurs();
+        RuleNodeGoal goalNode = node.getGoalChild(moves[0]);
+        goalNode.occurs();
+        ArrayList<RuleNode> current = new ArrayList<>();
+        current.add(node);
+
+        //Current not null
+        assertThrows(IllegalArgumentException.class, () -> node.getExpectation(null, false, 1.0));
+
+        //Not in current and not top
+        assertEquals(Optional.empty(), node.getExpectation(current, false, 1.0));
+
+        //At max depth
+        assertEquals(Optional.empty(), depthLimitNode.getExpectation(current, true, 1.0));
+
+        //Is goal
+        assertEquals(Optional.of(0.0), goalNode.getExpectation(current, true, 1.0));
+
+        //Not a base case
+        assertNotEquals(Optional.empty(), node.getExpectation(current, true, 1.0));
+    }
+
+    @EpSemTest
+    public void testExpectedRecursiveCase(){
+        Move[] moves = new Move[] {new Move("a"), new Move("b")};
+        RuleNode node = new RuleNode(moves, 0, 5);
+        node.occurs();
+        node.occurs();
+        node.incrementMoveFrequency(moves[0]);
+        node.incrementMoveFrequency(moves[0]);
+        RuleNode childNode = node.getNextChild(moves[0], 0);
+        childNode.occurs();
+        childNode.incrementMoveFrequency(moves[1]);
+        RuleNodeGoal goalGrandChild = childNode.getGoalChild(moves[1]);
+        goalGrandChild.occurs();
+        RuleNodeGoal goalNode = node.getGoalChild(moves[0]);
+        goalNode.occurs();
+        ArrayList<RuleNode> current = new ArrayList<>();
+        current.add(node);
+
+        assertEquals(Optional.of(1.5), node.getExpectation(current, true, 2.0));
+        assertEquals(Optional.of(1.0), node.getExpectation(current, true, 1.0));
+    }
+
+    @EpSemTest
+    public void testExpectedSideEffects(){
+        Move[] moves = new Move[] {new Move("a"), new Move("b")};
+        RuleNode node = new RuleNode(moves, 0, 5);
+        node.occurs();
+        node.occurs();
+        node.incrementMoveFrequency(moves[0]);
+        node.incrementMoveFrequency(moves[0]);
+        RuleNode childNode = node.getNextChild(moves[0], 0);
+        childNode.occurs();
+        childNode.incrementMoveFrequency(moves[1]);
+        RuleNodeGoal goalGrandChild = childNode.getGoalChild(moves[1]);
+        goalGrandChild.occurs();
+        RuleNodeGoal goalNode = node.getGoalChild(moves[0]);
+        goalNode.occurs();
+        ArrayList<RuleNode> current = new ArrayList<>();
+        current.add(node);
+
+        assertEquals(Optional.of(1.5), node.getExpectation(current, true, 2.0));
+        assertEquals(false, node.getExplore());
+        assertEquals(moves[0], node.getBestMove());
+        assertEquals(1.5, node.getCachedExpectation());
+
+        assertEquals(Optional.of(1.0), node.getExpectation(current, true, 1.0));
+        assertEquals(true, node.getExplore());
+        assertEquals(moves[1], node.getBestMove());
+        assertEquals(1.0, node.getCachedExpectation());
     }
 
     //endregion
