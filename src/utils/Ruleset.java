@@ -135,9 +135,11 @@ public class Ruleset {
             for (Move move : alphabet) {
                 RuleNode superstition = getNextTestable(current.get(i), move);
                 //TODO: this assumes depth means something more intuitive than what I think is reflected in our implementation
-                if (superstition.depth < bestDepth){ //TODO: superstition.depth + 1 to enforce choice of simplest rules?
+
+                //Commented for compilation purposes
+                /*if (superstition.depth < bestDepth){ //TODO: superstition.depth + 1 to enforce choice of simplest rules?
                     toTake = move;
-                }
+                }*/
             }
         }
         return toTake;
