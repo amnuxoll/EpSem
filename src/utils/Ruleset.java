@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Optional;
+import java.util.ArrayDeque;
 
 /**
  * Created by Ryan on 2/7/2019.
@@ -114,6 +115,56 @@ public class Ruleset {
             goalProbabilities.add(node.getGoalProbability(moves, 0));
         }
     }
+
+
+    //region FalsificationStuff
+    public Move falsify() {
+        Move toTake = null;//TODO: make random?
+        int bestDepth = 500; //arbitrary; right now just max depth limit
+        for (int i = 0; i < current.size(); i++) {
+            if ( current.get(i) instanceof RuleNodeRoot ) { // Note : I don't think we need to look at 0-deep rules, might be wrong
+                continue;
+            }
+            if (i >= bestDepth){ // because current has one rule of each depth, i also effectively measures depth of parent RuleNode
+                break;
+            }
+            for (Move move : alphabet) {
+                RuleNode superstition = getNextTestable(current.get(i), move);
+                //TODO: this assumes depth means something more intuitive than what I think is reflected in our implementation
+                if (superstition.depth < bestDepth){ //TODO: superstition.depth + 1 to enforce choice of simplest rules?
+                    toTake = move;
+                }
+            }
+        }
+        return toTake;
+    }
+    //breadth first search for nearest testable child
+    //this function is called twice (in a 2-alphabet) per node in current, which I'd like do more elegantly but alas alack
+    public RuleNode getNextTestable(RuleNode parent, Move move) {
+        ArrayDeque<RuleNode> queue = null;
+        RuleNode p = parent;
+        ArrayList<RuleNode> moveChildren = p.children.get(move);
+        queue.addAll(moveChildren); //initial queue is just the specific branch of children that the caller of this function was looking at
+        while(queue.size() > 0) {
+            p = queue.remove();
+
+            if (current.contains(p)){ //if p is in current, continue b/c this is redundant
+                continue;
+            }
+
+            for (Move m : alphabet){ //to get each set of child nodes
+                moveChildren = p.children.get(m);
+                if (moveChildren.size() == 1){ //i.e. this node has never been expanded, only instantiated with goal child
+                    return p;
+                }
+                else{
+                    queue.addAll(moveChildren);
+                }
+            }
+        }
+    return null;
+    }
+    //endregion
 
     @Override
     public String toString(){
