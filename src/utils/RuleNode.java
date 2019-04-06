@@ -17,6 +17,7 @@ public class RuleNode {
     private int[] moveFrequencies;
     // maxDepth is decremented as you move down the tree; at the depth limit this value will be 0.
     // can be understood as "how much deeper does the tree go beyond this node".
+    protected int currentDepth;
     protected int maxDepth;
     //TODO: protected int depth; //common-sense notion of depth. Technically redundant with maxDepth as of right now, but makes some stuff easier
     //Potential:
@@ -28,7 +29,11 @@ public class RuleNode {
     protected boolean visited = true;
 
     // constructor
-    public RuleNode(Move[] potentialMoves, int sense, int maxDepth){
+    public RuleNode(Move[] potentialMoves, int sense, int maxDepth, int currentDepth){
+        if (currentDepth < 0) {
+            throw new IllegalArgumentException("Current depth cannot be negative!");
+        }
+        this.currentDepth = currentDepth;
 
         if (potentialMoves == null){
             throw new IllegalArgumentException("Cannot have null move set");
@@ -55,7 +60,9 @@ public class RuleNode {
             for (Move move : potentialMoves) {
                 //initialize the list for a given possible move and make the goal node--which is a special case--the first
                 // element. This means that the first element is *always* the goal child for every possible move, which is handy.
-                ArrayList<RuleNode> list = new ArrayList<>(Collections.singletonList(new RuleNodeGoal(potentialMoves)));
+                ArrayList<RuleNode> list = new ArrayList<>(Collections.singletonList(
+                        new RuleNodeGoal(potentialMoves, currentDepth + 1))
+                );
                 children.put(move, list);
             }
         } else { //at the depth limit, don't build more nodes.
@@ -246,12 +253,11 @@ public class RuleNode {
     }
 
     protected Optional<Double> getMoveEV(ArrayList<RuleNode> childArray, int moveFrequency, ArrayList<RuleNode> current, double h){
-        Optional<Double> moveEV = childArray.stream()
+        return childArray.stream()
                 .map(node -> node.getExpectation(current, false, h) //Gets expected value
                         .map(val -> val*node.frequency)) //Multiply by node frequency
                 .reduce(Optional.of(0.0), (sum, ev) -> sum.flatMap(x -> ev.map(y -> x+y))) //Add EVs up
-                .map(val -> val / moveFrequency + 1); //Divide by overall node frequency
-        return moveEV;
+                .map(val -> val / moveFrequency + 1);
     }
 
     protected void unvisit(){
@@ -293,7 +299,7 @@ public class RuleNode {
         if (maxDepth - 1 == 0){
             throw new IllegalStateException("At depth limit - cannot create children");
         }
-        RuleNode child = new RuleNode(potentialMoves, nextSense, maxDepth - 1);
+        RuleNode child = new RuleNode(potentialMoves, nextSense, maxDepth - 1, currentDepth + 1);
         children.add(child);
         return child;
     }
@@ -395,4 +401,7 @@ public class RuleNode {
         return result;
     }
 
+    public int getCurrentDepth() {
+        return currentDepth;
+    }
 }

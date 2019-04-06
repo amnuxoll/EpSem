@@ -1,10 +1,20 @@
 package experiments;
 
-import utils.RuleNodeRoot;
+public class Heuristic {
+    private double alpha;
+    private double beta;
 
-public class Heuristic implements IHeuristic {
-    @Override
-    public double getHeuristic(RuleNodeRoot root) {
-        return 1 / root.getIncreasedGoalProbability();
+    public Heuristic(double alpha, double beta) {
+        this.alpha = alpha;
+        this.beta = beta;
+    }
+
+    public double getHeuristic(double goalProbability, int depth) {
+        double heuristicValue = alpha / goalProbability + beta * depth;
+        if (heuristicValue < 1) {
+            return 1;
+        } else {
+            return heuristicValue;
+        }
     }
 }

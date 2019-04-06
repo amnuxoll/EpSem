@@ -63,8 +63,29 @@ public class Runner {
                     new FSMDescriptionProvider(new FSMTransitionTableBuilder(2, 50, Random.getFalse()), FSMDescription.Sensor.NO_SENSORS)
             },
             new IAgentProvider[] {
-                    new RulesAgentProvider(new SuffixNodeProvider(), new Heuristic()),
+                    new RulesAgentProvider(new SuffixNodeProvider(), new Heuristic(1, 0)),
                     new MaRzAgentProvider<>(new SuffixNodeProvider())
+            }
+    );
+
+    private static TestSuite HeuristicTest = new TestSuite(
+            TestSuiteConfiguration.FULL,
+            new IEnvironmentDescriptionProvider[] {
+                    new FSMDescriptionProvider(new FSMTransitionTableBuilder(2, 15, Random.getFalse()), EnumSet.of(FSMDescription.Sensor.EVEN_ODD), false),
+                    new FSMDescriptionProvider(new FSMTransitionTableBuilder(2, 50, Random.getFalse()), EnumSet.of(FSMDescription.Sensor.EVEN_ODD), false),
+                    new FSMDescriptionProvider(new FSMTransitionTableBuilder(2, 100, Random.getFalse()), EnumSet.of(FSMDescription.Sensor.EVEN_ODD), false),
+                    new FSMDescriptionProvider(new FSMTransitionTableBuilder(6, 15, Random.getFalse()), EnumSet.of(FSMDescription.Sensor.EVEN_ODD), false),
+                    new FSMDescriptionProvider(new FSMTransitionTableBuilder(6, 50, Random.getFalse()), EnumSet.of(FSMDescription.Sensor.EVEN_ODD), false),
+                    new FSMDescriptionProvider(new FSMTransitionTableBuilder(6, 100, Random.getFalse()), EnumSet.of(FSMDescription.Sensor.EVEN_ODD), false)
+            },
+            new IAgentProvider[] {
+                    new RulesAgentProvider(new SuffixNodeProvider(), new Heuristic(0.5, -1)),
+                    new RulesAgentProvider(new SuffixNodeProvider(), new Heuristic(0.5, 0)),
+                    new RulesAgentProvider(new SuffixNodeProvider(), new Heuristic(0.5, 1)),
+                    new RulesAgentProvider(new SuffixNodeProvider(), new Heuristic(0, 0)),
+                    new RulesAgentProvider(new SuffixNodeProvider(), new Heuristic(1, -1)),
+                    new RulesAgentProvider(new SuffixNodeProvider(), new Heuristic(1, 0)),
+                    new RulesAgentProvider(new SuffixNodeProvider(), new Heuristic(1, 1))
             }
     );
 
@@ -185,7 +206,7 @@ public class Runner {
     public static void main(String[] args) {
         try {
             File outputDirectory = DirectoryUtils.generateNewOutputDirectory();
-            Runner.RulesAgent.run(new FileResultWriterProvider(outputDirectory));
+            Runner.HeuristicTest.run(new FileResultWriterProvider(outputDirectory));
         } catch (OutOfMemoryError mem) {
             mem.printStackTrace();
         } catch (Exception ex) {

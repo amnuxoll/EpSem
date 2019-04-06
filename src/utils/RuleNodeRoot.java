@@ -13,12 +13,12 @@ public class RuleNodeRoot extends RuleNode {
     private ArrayList<RuleNode> childArray;
 
     public RuleNodeRoot(Move[] potentialMoves, int maxDepth){
-        super(potentialMoves, -1, maxDepth);
+        super(potentialMoves, -1, maxDepth, 0);
         if (maxDepth  <= 0 ){
             throw new IllegalArgumentException("Must have max depth of at least 1");
         }
         childArray = new ArrayList<>();
-        childArray.add(new RuleNodeGoal(potentialMoves));
+        childArray.add(new RuleNodeGoal(potentialMoves, 1));
         for (Map.Entry<Move,ArrayList<RuleNode>> entry : children.entrySet()){
             entry.setValue(childArray);
         }

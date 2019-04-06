@@ -20,24 +20,24 @@ import static tests.Assertions.*;
 public class RulesetTest {
     @EpSemTest
     public void nullAlphabetTest() {
-        assertThrows(IllegalArgumentException.class, () -> new Ruleset(null, 2, new Heuristic()));
+        assertThrows(IllegalArgumentException.class, () -> new Ruleset(null, 2, new Heuristic(1, 0)));
     }
 
     @EpSemTest
     public void emptyAlphabetTest() {
-        assertThrows(IllegalArgumentException.class, () -> new Ruleset(new Move[] {}, 2, new Heuristic()));
+        assertThrows(IllegalArgumentException.class, () -> new Ruleset(new Move[] {}, 2, new Heuristic(1, 0)));
     }
 
     @EpSemTest
     public void assertConstructorNoThrows() {
         assertNotNull(
-                new Ruleset(new Move[] {new Move("a")}, 1, new Heuristic())
+                new Ruleset(new Move[] {new Move("a")}, 1, new Heuristic(1, 0))
         );
     }
 
     @EpSemTest
     public void testRulesetUpdates() {
-        Ruleset ruleset = new Ruleset(new Move[] {new Move("a")},2, new Heuristic());
+        Ruleset ruleset = new Ruleset(new Move[] {new Move("a")},2, new Heuristic(1, 0));
 
         RuleNodeRoot root = (RuleNodeRoot)ruleset.getCurrent().get(0);
         assertNotNull(root);
