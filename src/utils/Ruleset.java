@@ -89,8 +89,7 @@ public class Ruleset {
             for (RuleNode ruleNode : current){
                 ruleNode.incrementMoveFrequency(move);
                 RuleNode node = ruleNode.getGoalChild(move);
-                //TODO: Fix NPE here
-                node.occurs();
+                if (node != null) node.occurs();
             }
             current.clear();
             current.add(root);
