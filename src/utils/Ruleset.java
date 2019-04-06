@@ -1,6 +1,6 @@
 package utils;
 
-import experiments.IHeuristic;
+import experiments.Heuristic;
 import framework.Move;
 import framework.SensorData;
 
@@ -20,9 +20,9 @@ public class Ruleset {
     private ArrayList<Double> goalProbabilities;
     private Move[] alphabet;
     private int explores;
-    private IHeuristic heuristic;
+    private Heuristic heuristic;
 
-    public Ruleset(Move[] alphabet, int maxDepth, IHeuristic heuristic){
+    public Ruleset(Move[] alphabet, int maxDepth, Heuristic heuristic){
         if (alphabet == null) throw new IllegalArgumentException();
         if (alphabet.length == 0) throw new IllegalArgumentException();
 
@@ -38,11 +38,11 @@ public class Ruleset {
     }
 
     public Move getBestMove(){
-        double h = heuristic.getHeuristic(root);
         double bestEV = -1;
         boolean explore = false;
         Move bestMove = alphabet[0];
         for (RuleNode node : current){
+            double h = heuristic.getHeuristic(root.getIncreasedGoalProbability(), node.getCurrentDepth());
             Optional<Double> expectation = node.getExpectation(current, true, h);
             //if (expectation.isPresent()) System.out.print("" + expectation.get() +",");
             //else System.out.print(",");

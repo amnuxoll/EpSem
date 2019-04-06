@@ -63,7 +63,7 @@ public class Runner {
                     new FSMDescriptionProvider(new FSMTransitionTableBuilder(2, 50, Random.getFalse()), FSMDescription.Sensor.NO_SENSORS)
             },
             new IAgentProvider[] {
-                    new RulesAgentProvider(new SuffixNodeProvider(), new Heuristic()),
+                    new RulesAgentProvider(new SuffixNodeProvider(), new Heuristic(1, 0)),
                     new MaRzAgentProvider<>(new SuffixNodeProvider())
             }
     );

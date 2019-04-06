@@ -9,8 +9,8 @@ import java.util.Optional;
  * Created by Ryan on 2/7/2019.
  */
 public class RuleNodeGoal extends RuleNode{
-    public RuleNodeGoal(Move[] potentialMoves){
-        super(potentialMoves, -1, 0);
+    public RuleNodeGoal(Move[] potentialMoves, int currentDepth){
+        super(potentialMoves, -1, 0, currentDepth);
         expectation = 0;
     }
 

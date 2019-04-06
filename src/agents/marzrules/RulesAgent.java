@@ -1,6 +1,6 @@
 package agents.marzrules;
 
-import experiments.IHeuristic;
+import experiments.Heuristic;
 import framework.*;
 import utils.Ruleset;
 import utils.SequenceGenerator;
@@ -15,9 +15,9 @@ public class RulesAgent implements IAgent {
     private Move previousMove = null;
     private IIntrospector introspector;
     private RuleSetEvaluator ruleSetEvaluator;
-    private IHeuristic heuristic;
+    private Heuristic heuristic;
 
-    public RulesAgent(IHeuristic heuristic) {
+    public RulesAgent(Heuristic heuristic) {
         this.heuristic = heuristic;
     }
 
@@ -59,7 +59,7 @@ public class RulesAgent implements IAgent {
     @Override
     public String[] getStatisticTypes(){
         return new String[] {
-                "heuristic",
+                "goal probability",
                 "explore"
         };
     }
@@ -67,7 +67,7 @@ public class RulesAgent implements IAgent {
     @Override
     public ArrayList<Datum> getGoalData() {
         ArrayList<Datum> data = new ArrayList<>();
-        data.add(new Datum("heuristic", heuristic.getHeuristic(ruleset.getRoot())));
+        data.add(new Datum("goal probability", ruleset.getRoot().getIncreasedGoalProbability()));
         data.add(new Datum("explore", ruleset.getExplores()));
         return data;
     }
