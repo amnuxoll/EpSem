@@ -24,7 +24,7 @@ public class RulesAgent implements IAgent {
     @Override
     public void initialize(Move[] moves, IIntrospector introspector) {
         this.introspector = introspector;
-        this.ruleset = new Ruleset(moves, 500, heuristic);
+        this.ruleset = new Ruleset(moves, 1000, heuristic);
         SequenceGenerator generator = new SequenceGenerator(moves);
         ArrayList<Sequence> evaluationSuffixes = new ArrayList<>();
         for (int i = 1; i <= 15; i++) {

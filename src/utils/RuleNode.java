@@ -290,7 +290,9 @@ public class RuleNode {
                 return ruleNode;
             }
         }
-
+        if (maxDepth - 1 == 0){
+            throw new IllegalStateException("At depth limit - cannot create children");
+        }
         RuleNode child = new RuleNode(potentialMoves, nextSense, maxDepth - 1);
         children.add(child);
         return child;
