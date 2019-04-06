@@ -69,7 +69,7 @@ public class Runner {
     );
 
     private static TestSuite HeuristicTest = new TestSuite(
-            TestSuiteConfiguration.MEDIUM,
+            TestSuiteConfiguration.FULL,
             new IEnvironmentDescriptionProvider[] {
                     new FSMDescriptionProvider(new FSMTransitionTableBuilder(2, 15, Random.getFalse()), EnumSet.of(FSMDescription.Sensor.EVEN_ODD), false),
                     new FSMDescriptionProvider(new FSMTransitionTableBuilder(2, 50, Random.getFalse()), EnumSet.of(FSMDescription.Sensor.EVEN_ODD), false),
