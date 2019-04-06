@@ -55,9 +55,7 @@ public class RuleNode {
             for (Move move : potentialMoves) {
                 //initialize the list for a given possible move and make the goal node--which is a special case--the first
                 // element. This means that the first element is *always* the goal child for every possible move, which is handy.
-                ArrayList<RuleNode> list = new ArrayList<>(
-                        Collections.singletonList(new RuleNodeGoal(potentialMoves))
-                );
+                ArrayList<RuleNode> list = new ArrayList<>(Collections.singletonList(new RuleNodeGoal(potentialMoves)));
                 children.put(move, list);
             }
         } else { //at the depth limit, don't build more nodes.
@@ -81,8 +79,7 @@ public class RuleNode {
             return -1;
         }
 
-        int frequency = moveFrequencies[index]++;
-        return frequency;
+        return moveFrequencies[index]++;
     }
 
     public boolean inAlphabet(Move move){
@@ -332,9 +329,7 @@ public class RuleNode {
             throw new IllegalArgumentException("Move not in alphabet");
         }
 
-        RuleNodeGoal goal = (RuleNodeGoal) moveChildren.get(0);
-        return goal;
-
+        return (RuleNodeGoal) moveChildren.get(0);
     }
 
     public int getSense(){
