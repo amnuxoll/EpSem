@@ -16,11 +16,13 @@ import framework.*;
 import utils.DirectoryUtils;
 import environments.fsm.FSMTransitionTableBuilder;
 import utils.Random;
+import utils.RuleNodeRoot;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.util.EnumSet;
+import java.util.function.IntBinaryOperator;
 
 public class Runner {
     //region TestSuites
@@ -61,7 +63,7 @@ public class Runner {
                     new FSMDescriptionProvider(new FSMTransitionTableBuilder(2, 50, Random.getFalse()), FSMDescription.Sensor.NO_SENSORS)
             },
             new IAgentProvider[] {
-                    new RulesAgentProvider(new SuffixNodeProvider()),
+                    new RulesAgentProvider(new SuffixNodeProvider(), new Heuristic()),
                     new MaRzAgentProvider<>(new SuffixNodeProvider())
             }
     );

@@ -1,6 +1,5 @@
 package agents.marzrules;
 
-import framework.Episode;
 import framework.Move;
 import framework.NamedOutput;
 import framework.Sequence;
@@ -25,8 +24,7 @@ public class RuleSetEvaluator {
     public RuleSetEvaluator(Sequence[] sequences) {
         this.sequences = sequences;
         this.suffixSequences = new ArrayList<>();
-        for (Sequence suffix : sequences)
-        {
+        for (Sequence suffix : sequences) {
             suffixSequences.add(new ArrayList<>(Arrays.asList(suffix.getMoves())));
         }
     }

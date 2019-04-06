@@ -1,9 +1,9 @@
 package utils;
 
+import experiments.IHeuristic;
 import framework.Move;
 import framework.SensorData;
 
-import javax.swing.text.html.Option;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -20,8 +20,9 @@ public class Ruleset {
     private ArrayList<Double> goalProbabilities;
     private Move[] alphabet;
     private int explores;
+    private IHeuristic heuristic;
 
-    public Ruleset(Move[] alphabet, int maxDepth){
+    public Ruleset(Move[] alphabet, int maxDepth, IHeuristic heuristic){
         if (alphabet == null) throw new IllegalArgumentException();
         if (alphabet.length == 0) throw new IllegalArgumentException();
 
@@ -29,17 +30,15 @@ public class Ruleset {
         current = new ArrayList<>();
         current.add(root);
         this.alphabet = alphabet;
+        this.heuristic = heuristic;
     }
 
-    public double get_heuristic(){
-        double p = root.getIncreasedGoalProbability();
-        double h = 1/p /*- 1*/; //TODO: Subtract 1?
-        return h;
-        //return 4;
+    public double getHeuristic(){
+        return 1 / root.getIncreasedGoalProbability();
     }
 
     public Move getBestMove(){
-        double h = get_heuristic();
+        double h = heuristic.getHeuristic(root);
         double bestEV = -1;
         boolean explore = false;
         Move bestMove = alphabet[0];
@@ -154,7 +153,7 @@ public class Ruleset {
     //breadth first search for nearest testable child
     //this function is called twice (in a 2-alphabet) per node in current, which I'd like do more elegantly but alas alack
     public RuleNode getNextTestable(RuleNode parent, Move move) {
-        ArrayDeque<RuleNode> queue = null;
+        ArrayDeque<RuleNode> queue = new ArrayDeque<>();
         RuleNode p = parent;
         ArrayList<RuleNode> moveChildren = p.children.get(move);
         queue.addAll(moveChildren); //initial queue is just the specific branch of children that the caller of this function was looking at
@@ -169,8 +168,7 @@ public class Ruleset {
                 moveChildren = p.children.get(m);
                 if (moveChildren.size() == 1){ //i.e. this node has never been expanded, only instantiated with goal child
                     return p;
-                }
-                else{
+                } else {
                     queue.addAll(moveChildren);
                 }
             }
@@ -185,5 +183,9 @@ public class Ruleset {
                 Arrays.asList(new Move("a"), new Move("b"), new Move("a"), new Move("b"), new Move("a"))
         );
         return "Ruleset:\n" + root.toString() + "\n" + root.getGoalProbability(moves, 0);
+    }
+
+    public RuleNodeRoot getRoot() {
+        return root;
     }
 }
