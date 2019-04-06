@@ -10,6 +10,11 @@ public class Heuristic {
     }
 
     public double getHeuristic(double goalProbability, int depth) {
-        return alpha / goalProbability - beta * depth;
+        double heuristicValue = alpha / goalProbability + beta * depth;
+        if (heuristicValue < 1) {
+            return 1;
+        } else {
+            return heuristicValue;
+        }
     }
 }
