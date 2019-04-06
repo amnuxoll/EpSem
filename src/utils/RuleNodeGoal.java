@@ -11,6 +11,7 @@ import java.util.Optional;
 public class RuleNodeGoal extends RuleNode{
     public RuleNodeGoal(Move[] potentialMoves){
         super(potentialMoves, -1, 0);
+        expectation = 0;
     }
 
     // BASE CASE 4

@@ -21,11 +21,11 @@ public class RuleNode {
     //TODO: protected int depth; //common-sense notion of depth. Technically redundant with maxDepth as of right now, but makes some stuff easier
     //Potential:
     //private int[] indices;
-    private double expectation = 0;
+    protected double expectation = -1;
     private Move bestMove = null;
-    private boolean explore = false;
+    protected boolean explore = false;
 
-    protected boolean visited = false;
+    protected boolean visited = true;
 
     // constructor
     public RuleNode(Move[] potentialMoves, int sense, int maxDepth){
@@ -174,7 +174,7 @@ public class RuleNode {
 
         //Cached value
         //TODO: Fix so that it will uncache if h changes
-        if (!visited){
+        if (!visited && expectation != -1.0){
             return Optional.of(expectation);
         }
 
@@ -187,11 +187,15 @@ public class RuleNode {
 
         //BASE CASE: Not top and in current
         if (!top && current.contains(this)){
+            bestMove = null;
+            expectation = -1;
             return Optional.empty();
         }
 
         //BASE CASE: At depth limit
         if (maxDepth == 0){
+            bestMove = null;
+            expectation = -1;
             return Optional.empty();
         }
 
@@ -199,6 +203,10 @@ public class RuleNode {
         //BASE CASE: No children
 
         //RECURSIVE CASE: Add 1 to expectation of best child
+        return getEVRecursive(current, h);
+    }
+
+    protected Optional<Double> getEVRecursive(ArrayList<RuleNode> current, double h){
         Optional<Double> best = Optional.empty();
         Move bestMove = null;
         boolean madeMove = false;
@@ -212,15 +220,11 @@ public class RuleNode {
             } else {
                 madeMove = true;
                 ArrayList<RuleNode> childArray = children.get(potentialMoves[i]);
-                final double frequency = (double) moveFrequencies[i];
-                //Sums up all child EVs for a move, propagating empty optionals if one fails
-                Optional<Double> moveEV = childArray.stream()
-                                    .map(node -> node.getExpectation(current, false, h) //Gets expected value
-                                                     .map(val -> val*node.frequency)) //Multiply by node frequency
-                                    .reduce(Optional.of(0.0), (sum, ev) -> sum.flatMap(x -> ev.map(y -> x+y))) //Add EVs up
-                                    .map(val -> val / frequency + 1); //Divide by overall node frequency
+                final int frequency = moveFrequencies[i];
+                Optional<Double> moveEV = getMoveEV(childArray, frequency, current, h);
                 if (moveEV.isPresent()){
                     Double ev = moveEV.get();
+                    //System.out.print("" + potentialMoves[i].toString() + ev + ",");
                     if (!best.isPresent() || ev < best.get()){
                         bestMove = potentialMoves[i];
                         best = Optional.of(ev);
@@ -228,8 +232,11 @@ public class RuleNode {
                     }
                 }
             }
+            //System.out.println(":::");
         }
         if(!madeMove){
+            this.bestMove = null;
+            expectation = -1;
             return Optional.empty();
         } else if (best.isPresent()){
             expectation = best.get();
@@ -239,6 +246,15 @@ public class RuleNode {
             this.bestMove = null;
         }*/ // Makes lack of side effects consistent
         return best;
+    }
+
+    protected Optional<Double> getMoveEV(ArrayList<RuleNode> childArray, int moveFrequency, ArrayList<RuleNode> current, double h){
+        Optional<Double> moveEV = childArray.stream()
+                .map(node -> node.getExpectation(current, false, h) //Gets expected value
+                        .map(val -> val*node.frequency)) //Multiply by node frequency
+                .reduce(Optional.of(0.0), (sum, ev) -> sum.flatMap(x -> ev.map(y -> x+y))) //Add EVs up
+                .map(val -> val / moveFrequency + 1); //Divide by overall node frequency
+        return moveEV;
     }
 
     protected void unvisit(){

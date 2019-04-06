@@ -45,13 +45,19 @@ public class Ruleset {
         Move bestMove = alphabet[0];
         for (RuleNode node : current){
             Optional<Double> expectation = node.getExpectation(current, true, h);
+            //if (expectation.isPresent()) System.out.print("" + expectation.get() +",");
+            //else System.out.print(",");
             if (expectation.isPresent() && (bestEV == -1 || expectation.get() < bestEV)){
-                bestEV = expectation.get();
-                bestMove = node.getBestMove();
-                explore = node.getExplore();
+                if (node.getBestMove() != null) {
+                    bestEV = expectation.get();
+                    bestMove = node.getBestMove();
+                    explore = node.getExplore();
+                }
             }
         }
+        //System.out.println("---");
         if (explore) explores++;
+        //System.out.print(bestMove);
         return bestMove;
     }
 
@@ -88,6 +94,8 @@ public class Ruleset {
             }
             current.clear();
             current.add(root);
+            //System.out.print("G");
+            //root.reachedGoal();
         }
 
         for (int i = 0; i < current.size(); i++){

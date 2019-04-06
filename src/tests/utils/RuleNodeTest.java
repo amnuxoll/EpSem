@@ -260,30 +260,48 @@ public class RuleNodeTest {
         assertNotEquals(Optional.empty(), node.getExpectation(current, true, 1.0));
     }
 
+    /**
+     * Tests that the expected value is correct when in must call itself recursively
+     *
+     * TODO: Test these things with root node
+     */
     @EpSemTest
     public void testExpectedRecursiveCase(){
         Move[] moves = new Move[] {new Move("a"), new Move("b")};
+
+        //Root node, makes a twice
         RuleNode node = new RuleNode(moves, 0, 5);
         node.occurs();
         node.occurs();
         node.incrementMoveFrequency(moves[0]);
         node.incrementMoveFrequency(moves[0]);
+
+        //Child a node, visited once, made a b
         RuleNode childNode = node.getNextChild(moves[0], 0);
         childNode.occurs();
         childNode.incrementMoveFrequency(moves[1]);
+
+        //Child a goal node, visited once
         RuleNodeGoal goalGrandChild = childNode.getGoalChild(moves[1]);
         goalGrandChild.occurs();
+
+        //Grandchild b goal node, child of childNode, visited once
         RuleNodeGoal goalNode = node.getGoalChild(moves[0]);
         goalNode.occurs();
+
+        //Current
         ArrayList<RuleNode> current = new ArrayList<>();
         current.add(node);
 
+        //Returns 1.5, since it beats the heuristic
         assertEquals(Optional.of(1.5), node.getExpectation(current, true, 2.0));
+
+        //Since the heuristic is better, returns that instead
         assertEquals(Optional.of(1.0), node.getExpectation(current, true, 1.0));
     }
 
     @EpSemTest
-    public void testExpectedSideEffects(){
+    public void testExpectedSideEffectsRecursiveCase(){
         Move[] moves = new Move[] {new Move("a"), new Move("b")};
         RuleNode node = new RuleNode(moves, 0, 5);
         node.occurs();
@@ -300,15 +318,53 @@ public class RuleNodeTest {
         ArrayList<RuleNode> current = new ArrayList<>();
         current.add(node);
 
+        //When heuristic is greater than best move, explore is false, exploit move and EV is cached
         assertEquals(Optional.of(1.5), node.getExpectation(current, true, 2.0));
         assertEquals(false, node.getExplore());
         assertEquals(moves[0], node.getBestMove());
         assertEquals(1.5, node.getCachedExpectation());
 
+        //When heuristic is less, explore is true, explore move and EV cached
         assertEquals(Optional.of(1.0), node.getExpectation(current, true, 1.0));
         assertEquals(true, node.getExplore());
         assertEquals(moves[1], node.getBestMove());
         assertEquals(1.0, node.getCachedExpectation());
+    }
+
+    @EpSemTest
+    public void testExpectedSideEffectsBaseCase(){
+        Move[] moves = new Move[] {new Move("a"), new Move("b")};
+        RuleNode node = new RuleNode(moves, 0, 1);
+        node.occurs();
+        node.occurs();
+        node.incrementMoveFrequency(moves[0]);
+        node.incrementMoveFrequency(moves[0]);
+        RuleNode depthLimitNode = node.getNextChild(moves[0], 0);
+        depthLimitNode.occurs();
+        RuleNodeGoal goalNode = node.getGoalChild(moves[0]);
+        goalNode.occurs();
+        ArrayList<RuleNode> current = new ArrayList<>();
+        current.add(node);
+
+        //Expected side effects: explore arbitrary, best move null, and expectation -1 on fail
+
+        //Current not null throws, so no other tested side effects
+
+        //Not in current and not top
+        assertEquals(Optional.empty(), node.getExpectation(current, false, 1.0));
+        assertNull(node.getBestMove());
+        assertEquals(-1.0, node.getCachedExpectation());
+
+        //At max depth
+        assertEquals(Optional.empty(), depthLimitNode.getExpectation(current, true, 1.0));
+        assertNull(depthLimitNode.getBestMove());
+        assertEquals(-1.0, depthLimitNode.getCachedExpectation());
+
+        //Is goal. best move null, explore false, expectation 0
+        assertEquals(Optional.of(0.0), goalNode.getExpectation(current, true, 1.0));
+        assertNull(goalNode.getBestMove());
+        assertEquals(0.0, goalNode.getCachedExpectation());
+        assertEquals(false, goalNode.getExplore());
     }
 
     //endregion

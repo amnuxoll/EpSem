@@ -60,22 +60,6 @@ public class RulesAgent implements IAgent{
         //System.out.println(ruleset);
     }
 
-    /*
-    @Override
-    public ArrayList<Datum> getData() {
-        ArrayList<Datum> allData = super.getData();
-
-        ArrayList<RuleNode> currentList = ruleset.getCurrent();
-        ArrayList<Double> goalProbabilities = ruleset.getGoalProbabilities();
-        for (int i = 0; i < currentList.size(); i++) {
-            RuleNode ruleNode = currentList.get(i);
-            double goalProbability = goalProbabilities.get(i);
-        }
-
-        return allData;
-    }
-    */
-
     @Override
     public String[] getStatisticTypes(){
         return new String[] {

@@ -4,6 +4,7 @@ import framework.Move;
 
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Created by Ryan on 2/7/2019.
@@ -65,5 +66,24 @@ public class RuleNodeRoot extends RuleNode {
         for (RuleNode child : childArray){
             child.unvisit();
         }
+    }
+
+    @Override
+    protected Optional<Double> getEVRecursive(ArrayList<RuleNode> current, double h){
+        if (frequency == 0){
+            expectation = -1;
+            explore = true;
+            return Optional.empty();
+        }
+
+        Optional<Double> best = getMoveEV(childArray, frequency, current, h);
+
+        if (best.isPresent()){
+            expectation = best.get();
+        } /*else {
+            expectation = -1;
+            this.bestMove = null;
+        }*/ // Makes lack of side effects consistent
+        return best;
     }
 }
