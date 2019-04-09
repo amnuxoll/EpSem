@@ -33,6 +33,17 @@ public class Ruleset {
         this.heuristic = heuristic;
     }
 
+    //for popper-bot
+    public Ruleset(Move[] alphabet, int maxDepth){
+        if (alphabet == null) throw new IllegalArgumentException();
+        if (alphabet.length == 0) throw new IllegalArgumentException();
+
+        root = new RuleNodeRoot(alphabet, maxDepth);
+        current = new ArrayList<>();
+        current.add(root);
+        this.alphabet = alphabet;
+    }
+
     public double getHeuristic(){
         return 1 / root.getIncreasedGoalProbability();
     }
@@ -127,7 +138,7 @@ public class Ruleset {
     }
 
 
-    //region FalsificationStuff
+    //region PopperBotStuff
     public Move falsify() {
         Move toTake = null;//TODO: make random?
         int bestDepth = 500; //arbitrary; right now just max depth limit
@@ -138,20 +149,21 @@ public class Ruleset {
             if (i >= bestDepth){ // because current has one rule of each depth, i also effectively measures depth of parent RuleNode
                 break;
             }
+
             for (Move move : alphabet) {
                 RuleNode superstition = getNextTestable(current.get(i), move);
                 //TODO: this assumes depth means something more intuitive than what I think is reflected in our implementation
 
-                //Commented for compilation purposes
-                /*if (superstition.depth < bestDepth){ //TODO: superstition.depth + 1 to enforce choice of simplest rules?
+                if (superstition.getCurrentDepth() < bestDepth){ //TODO: superstition.depth + 1 to enforce choice of simplest rules?
                     toTake = move;
-                }*/
+                }
             }
         }
         return toTake;
     }
     //breadth first search for nearest testable child
     //this function is called twice (in a 2-alphabet) per node in current, which I'd like do more elegantly but alas alack
+
     public RuleNode getNextTestable(RuleNode parent, Move move) {
         ArrayDeque<RuleNode> queue = new ArrayDeque<>();
         RuleNode p = parent;
