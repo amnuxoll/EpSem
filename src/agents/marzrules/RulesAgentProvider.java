@@ -1,7 +1,7 @@
 package agents.marzrules;
 
 import agents.marz.ISuffixNodeBaseProvider;
-import experiments.Heuristic;
+import utils.Heuristic;
 import framework.IAgent;
 import framework.IAgentProvider;
 
