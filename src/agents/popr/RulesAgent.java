@@ -1,7 +1,7 @@
 package agents.popr;
 
 import agents.popr.RuleSetEvaluator;
-import experiments.Heuristic;
+
 import framework.*;
 import utils.Ruleset;
 import utils.SequenceGenerator;
