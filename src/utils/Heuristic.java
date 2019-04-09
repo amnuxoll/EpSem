@@ -1,4 +1,4 @@
-package experiments;
+package utils;
 
 public class Heuristic {
     private double alpha;

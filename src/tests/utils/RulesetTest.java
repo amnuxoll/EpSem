@@ -1,6 +1,6 @@
 package tests.utils;
 
-import experiments.Heuristic;
+import utils.Heuristic;
 import framework.Move;
 import framework.SensorData;
 import tests.EpSemTest;
