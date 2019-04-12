@@ -174,7 +174,7 @@ public class RuleNode {
      *                 bestMove stores the move that led to the minimum expected value
      *                 explore will be true if bestMove is an explore move (never been done before)
      */
-    public Optional<Double> getExpectation(ArrayList<RuleNode> current, boolean top, double h){
+    public Optional<Double> getExpectation(ArrayList<RuleNode> current, boolean top, Heuristic heuristic){
 
         //Cached value
         //TODO: Fix so that it will uncache if h changes
@@ -207,11 +207,12 @@ public class RuleNode {
         //BASE CASE: No children
 
         //RECURSIVE CASE: Add 1 to expectation of best child
-        return getEVRecursive(current, h);
+        return getEVRecursive(current, heuristic);
     }
 
-    protected Optional<Double> getEVRecursive(ArrayList<RuleNode> current, double h){
+    protected Optional<Double> getEVRecursive(ArrayList<RuleNode> current, Heuristic heuristic){
         Optional<Double> best = Optional.empty();
+        double h = heuristic.getHeuristic(currentDepth);
         Move bestMove = null;
         boolean madeMove = false;
         for (int i = 0; i < potentialMoves.length; i++){
@@ -225,7 +226,7 @@ public class RuleNode {
                 madeMove = true;
                 ArrayList<RuleNode> childArray = children.get(potentialMoves[i]);
                 final int frequency = moveFrequencies[i];
-                Optional<Double> moveEV = getMoveEV(childArray, frequency, current, h);
+                Optional<Double> moveEV = getMoveEV(childArray, frequency, current, heuristic);
                 if (moveEV.isPresent()){
                     Double ev = moveEV.get();
                     //System.out.print("" + potentialMoves[i].toString() + ev + ",");
@@ -252,9 +253,9 @@ public class RuleNode {
         return best;
     }
 
-    protected Optional<Double> getMoveEV(ArrayList<RuleNode> childArray, int moveFrequency, ArrayList<RuleNode> current, double h){
+    protected Optional<Double> getMoveEV(ArrayList<RuleNode> childArray, int moveFrequency, ArrayList<RuleNode> current, Heuristic heuristic){
         return childArray.stream()
-                .map(node -> node.getExpectation(current, false, h) //Gets expected value
+                .map(node -> node.getExpectation(current, false, heuristic) //Gets expected value
                         .map(val -> val*node.frequency)) //Multiply by node frequency
                 .reduce(Optional.of(0.0), (sum, ev) -> sum.flatMap(x -> ev.map(y -> x+y))) //Add EVs up
                 .map(val -> val / moveFrequency + 1);

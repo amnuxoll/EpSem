@@ -3,9 +3,8 @@ package tests.utils;
 import framework.Move;
 import tests.EpSemTest;
 import tests.EpSemTestClass;
+import utils.*;
 import utils.Random;
-import utils.RuleNode;
-import utils.RuleNodeGoal;
 
 import java.util.*;
 
@@ -168,11 +167,11 @@ public class RuleNodeTest {
         ArrayList<Move> sequence = new ArrayList<>(Arrays.asList(moves[0], moves[1]));
 
         //Max depth returns 0
-        RuleNode leafNode = new RuleNode(moves, 0, 0, 0);
+        RuleNode leafNode = new RuleNode(moves, 0, 1, 0);
         assertEquals(0.0, leafNode.getGoalProbability(sequence, 0));
 
         //Return if move has never been tried
-        RuleNode node = new RuleNode(moves, 0, 2, 0);
+        RuleNode node = new RuleNode(moves, 0, 3, 0);
         node.getGoalChild(moves[1]);
         assertEquals(0.0, node.getGoalProbability(sequence, 0));
 
@@ -192,7 +191,7 @@ public class RuleNodeTest {
         ArrayList<Move> aSequence = new ArrayList<>(Collections.singletonList(moves[0]));
         ArrayList<Move> bSequence = new ArrayList<>(Collections.singletonList(moves[1]));
         ArrayList<Move> twoSequence = new ArrayList<>(Arrays.asList(moves[0], moves[1]));
-        RuleNode node = new RuleNode(moves, 0, 2, 0);
+        RuleNode node = new RuleNode(moves, 0, 3, 0);
         RuleNode aChild = node.getNextChild(moves[0], 0);
         RuleNode bChild = node.getNextChild(moves[1], 0);
         node.getGoalChild(moves[0]).occurs(); //Goal child with an "a" move
@@ -231,8 +230,9 @@ public class RuleNodeTest {
 
     @EpSemTest
     public void testExpectedBaseCases(){
+        Heuristic h = new TestHeuristic(1);
         Move[] moves = new Move[] {new Move("a"), new Move("b")};
-        RuleNode node = new RuleNode(moves, 0, 1, 0);
+        RuleNode node = new RuleNode(moves, 0, 2, 0);
         node.occurs();
         node.occurs();
         node.incrementMoveFrequency(moves[0]);
@@ -245,19 +245,19 @@ public class RuleNodeTest {
         current.add(node);
 
         //Current not null
-        assertThrows(IllegalArgumentException.class, () -> node.getExpectation(null, false, 1.0));
+        assertThrows(IllegalArgumentException.class, () -> node.getExpectation(null, false, h));
 
         //Not in current and not top
-        assertEquals(Optional.empty(), node.getExpectation(current, false, 1.0));
+        assertEquals(Optional.empty(), node.getExpectation(current, false, h));
 
         //At max depth
-        assertEquals(Optional.empty(), depthLimitNode.getExpectation(current, true, 1.0));
+        assertEquals(Optional.empty(), depthLimitNode.getExpectation(current, true, h));
 
         //Is goal
-        assertEquals(Optional.of(0.0), goalNode.getExpectation(current, true, 1.0));
+        assertEquals(Optional.of(0.0), goalNode.getExpectation(current, true, h));
 
         //Not a base case
-        assertNotEquals(Optional.empty(), node.getExpectation(current, true, 1.0));
+        assertNotEquals(Optional.empty(), node.getExpectation(current, true, h));
     }
 
     /**
@@ -294,10 +294,10 @@ public class RuleNodeTest {
         current.add(node);
 
         //Returns 1.5, since it beats the heuristic
-        assertEquals(Optional.of(1.5), node.getExpectation(current, true, 2.0));
+        assertEquals(Optional.of(1.5), node.getExpectation(current, true, new TestHeuristic(2)));
 
         //Since the heuristic is better, returns that instead
-        assertEquals(Optional.of(1.0), node.getExpectation(current, true, 1.0));
+        assertEquals(Optional.of(1.0), node.getExpectation(current, true, new TestHeuristic(1)));
     }
 
     @EpSemTest
@@ -319,13 +319,13 @@ public class RuleNodeTest {
         current.add(node);
 
         //When heuristic is greater than best move, explore is false, exploit move and EV is cached
-        assertEquals(Optional.of(1.5), node.getExpectation(current, true, 2.0));
+        assertEquals(Optional.of(1.5), node.getExpectation(current, true, new TestHeuristic(2)));
         assertEquals(false, node.getExplore());
         assertEquals(moves[0], node.getBestMove());
         assertEquals(1.5, node.getCachedExpectation());
 
         //When heuristic is less, explore is true, explore move and EV cached
-        assertEquals(Optional.of(1.0), node.getExpectation(current, true, 1.0));
+        assertEquals(Optional.of(1.0), node.getExpectation(current, true, new TestHeuristic(1)));
         assertEquals(true, node.getExplore());
         assertEquals(moves[1], node.getBestMove());
         assertEquals(1.0, node.getCachedExpectation());
@@ -334,7 +334,7 @@ public class RuleNodeTest {
     @EpSemTest
     public void testExpectedSideEffectsBaseCase(){
         Move[] moves = new Move[] {new Move("a"), new Move("b")};
-        RuleNode node = new RuleNode(moves, 0, 1, 0);
+        RuleNode node = new RuleNode(moves, 0, 2, 0);
         node.occurs();
         node.occurs();
         node.incrementMoveFrequency(moves[0]);
@@ -351,17 +351,17 @@ public class RuleNodeTest {
         //Current not null throws, so no other tested side effects
 
         //Not in current and not top
-        assertEquals(Optional.empty(), node.getExpectation(current, false, 1.0));
+        assertEquals(Optional.empty(), node.getExpectation(current, false, new TestHeuristic(1)));
         assertNull(node.getBestMove());
         assertEquals(-1.0, node.getCachedExpectation());
 
         //At max depth
-        assertEquals(Optional.empty(), depthLimitNode.getExpectation(current, true, 1.0));
+        assertEquals(Optional.empty(), depthLimitNode.getExpectation(current, true, new TestHeuristic(1)));
         assertNull(depthLimitNode.getBestMove());
         assertEquals(-1.0, depthLimitNode.getCachedExpectation());
 
         //Is goal. best move null, explore false, expectation 0
-        assertEquals(Optional.of(0.0), goalNode.getExpectation(current, true, 1.0));
+        assertEquals(Optional.of(0.0), goalNode.getExpectation(current, true, new TestHeuristic(1)));
         assertNull(goalNode.getBestMove());
         assertEquals(0.0, goalNode.getCachedExpectation());
         assertEquals(false, goalNode.getExplore());

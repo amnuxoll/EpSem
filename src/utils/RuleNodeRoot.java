@@ -70,14 +70,15 @@ public class RuleNodeRoot extends RuleNode {
     }
 
     @Override
-    protected Optional<Double> getEVRecursive(ArrayList<RuleNode> current, double h){
+    protected Optional<Double> getEVRecursive(ArrayList<RuleNode> current, Heuristic heuristic){
         if (frequency == 0){
             expectation = -1;
             explore = true;
             return Optional.empty();
         }
 
-        Optional<Double> best = getMoveEV(childArray, frequency, current, h);
+        double h = heuristic.getHeuristic(currentDepth);
+        Optional<Double> best = getMoveEV(childArray, frequency, current, heuristic);
 
         if (best.isPresent()){
             expectation = best.get();

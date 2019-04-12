@@ -88,6 +88,18 @@ public class Runner {
             }
     );
 
+    private static TestSuite SingleHeuristicTest = new TestSuite(
+            TestSuiteConfiguration.MEDIUM,
+            new IEnvironmentDescriptionProvider[] {
+                    //new FSMDescriptionProvider(new FSMTransitionTableBuilder(4, 50, Random.getFalse()), FSMDescription.Sensor.NO_SENSORS),
+                    new FSMDescriptionProvider(new FSMTransitionTableBuilder(4, 50, Random.getFalse()), EnumSet.of(FSMDescription.Sensor.EVEN_ODD))
+                    //new FSMDescriptionProvider(new FSMTransitionTableBuilder(4, 50, Random.getFalse()), EnumSet.of(FSMDescription.Sensor.EVEN_ODD, FSMDescription.Sensor.MOD_3))
+            },
+            new IAgentProvider[] {
+                    new RulesAgentProvider(new SuffixNodeProvider(), new Heuristic(1, 1))
+            }
+    );
+
     private static TestSuite NsmVsMaRzFSM = new TestSuite(
             TestSuiteConfiguration.FULL,
             new IEnvironmentDescriptionProvider[] {
@@ -205,7 +217,7 @@ public class Runner {
     public static void main(String[] args) {
         try {
             File outputDirectory = DirectoryUtils.generateNewOutputDirectory();
-            Runner.HeuristicTest.run(new FileResultWriterProvider(outputDirectory));
+            Runner.SingleHeuristicTest.run(new FileResultWriterProvider(outputDirectory));
         } catch (OutOfMemoryError mem) {
             mem.printStackTrace();
         } catch (Exception ex) {

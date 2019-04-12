@@ -124,6 +124,9 @@ public class FSMDescription implements IEnvironmentDescription {
     private void applySensors(int lastState, Move move, int currentState, SensorData sensorData) {
         if (this.sensorsToInclude.contains(Sensor.EVEN_ODD))
             this.applyEvenOddSensor(currentState, sensorData);
+        if (this.sensorsToInclude.contains(Sensor.MOD_3)){
+            this.applyMod3Sensor(currentState, sensorData);
+        }
         this.applyWithinNSensors(currentState, sensorData);
         if (this.sensorsToInclude.contains(Sensor.NOISE))
             this.applyNoiseSensor(currentState, sensorData);
@@ -133,6 +136,10 @@ public class FSMDescription implements IEnvironmentDescription {
 
     private void applyEvenOddSensor(int state, SensorData sensorData) {
         sensorData.setSensor(Sensor.EVEN_ODD.toString(), state % 2 == 0);
+    }
+
+    private void applyMod3Sensor(int state, SensorData sensorData){
+        sensorData.setSensor(Sensor.MOD_3.toString(), state % 3 == 0);
     }
 
     private void applyNoiseSensor(int state, SensorData sensorData){
@@ -162,6 +169,7 @@ public class FSMDescription implements IEnvironmentDescription {
          * Identifies the sensor that determines if the current state is even or odd.
          */
         EVEN_ODD,
+        MOD_3,
 
         WITHIN_1,
         WITHIN_2,

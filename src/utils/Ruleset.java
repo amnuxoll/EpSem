@@ -41,8 +41,9 @@ public class Ruleset {
         boolean explore = false;
         Move bestMove = alphabet[0];
         for (RuleNode node : current){
-            double h = heuristic.getHeuristic(root.getIncreasedGoalProbability(), node.getCurrentDepth());
-            Optional<Double> expectation = node.getExpectation(current, true, h);
+            heuristic.setGoalProbability(root.getIncreasedGoalProbability());
+            //double h = heuristic.getHeuristic(root.getIncreasedGoalProbability(), node.getCurrentDepth());
+            Optional<Double> expectation = node.getExpectation(current, true, heuristic);
             //if (expectation.isPresent()) System.out.print("" + expectation.get() +",");
             //else System.out.print(",");
             if (expectation.isPresent() && (bestEV == -1 || expectation.get() < bestEV)){

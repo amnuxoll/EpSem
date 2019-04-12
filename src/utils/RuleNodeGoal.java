@@ -21,7 +21,7 @@ public class RuleNodeGoal extends RuleNode{
     }
 
     @Override
-    public Optional<Double> getExpectation(ArrayList<RuleNode> current, boolean top, double h) {
+    public Optional<Double> getExpectation(ArrayList<RuleNode> current, boolean top, Heuristic heuristic) {
         return Optional.of(0.0);
     }
 

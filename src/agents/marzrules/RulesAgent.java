@@ -42,7 +42,7 @@ public class RulesAgent implements IAgent {
         //this.ruleSetEvaluator.evaluate(this.ruleset);
 
         previousMove = ruleset.getBestMove();
-        //System.out.println(previousMove);
+        System.out.print(previousMove);
         return previousMove;
 
         /*
@@ -66,6 +66,7 @@ public class RulesAgent implements IAgent {
 
     @Override
     public ArrayList<Datum> getGoalData() {
+        System.out.println();
         ArrayList<Datum> data = new ArrayList<>();
         data.add(new Datum("goal probability", ruleset.getRoot().getIncreasedGoalProbability()));
         data.add(new Datum("explore", ruleset.getExplores()));
