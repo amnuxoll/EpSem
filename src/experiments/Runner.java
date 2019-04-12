@@ -78,12 +78,12 @@ public class Runner {
                     new FSMDescriptionProvider(new FSMTransitionTableBuilder(6, 100, Random.getFalse()), EnumSet.of(FSMDescription.Sensor.EVEN_ODD), false)
             },
             new IAgentProvider[] {
-                    new RulesAgentProvider(new SuffixNodeProvider(), new Heuristic(0.5, -1)),
-                    new RulesAgentProvider(new SuffixNodeProvider(), new Heuristic(0.5, 0)),
-                    new RulesAgentProvider(new SuffixNodeProvider(), new Heuristic(0.5, 1)),
-                    new RulesAgentProvider(new SuffixNodeProvider(), new Heuristic(1, -1)),
-                    new RulesAgentProvider(new SuffixNodeProvider(), new Heuristic(1, 0)),
-                    new RulesAgentProvider(new SuffixNodeProvider(), new Heuristic(1, 1))
+                    //new RulesAgentProvider(new SuffixNodeProvider(), new Heuristic(0.5, -1)),
+                    //new RulesAgentProvider(new SuffixNodeProvider(), new Heuristic(0.5, 0)),
+                    //new RulesAgentProvider(new SuffixNodeProvider(), new Heuristic(0.5, 1)),
+                    //new RulesAgentProvider(new SuffixNodeProvider(), new Heuristic(1, -1)),
+                    new RulesAgentProvider(new SuffixNodeProvider(), new Heuristic(1, 0))
+                    //new RulesAgentProvider(new SuffixNodeProvider(), new Heuristic(1, 1))
             }
     );
 
@@ -91,11 +91,12 @@ public class Runner {
             TestSuiteConfiguration.MEDIUM,
             new IEnvironmentDescriptionProvider[] {
                     //new FSMDescriptionProvider(new FSMTransitionTableBuilder(4, 50, Random.getFalse()), FSMDescription.Sensor.NO_SENSORS),
-                    new FSMDescriptionProvider(new FSMTransitionTableBuilder(4, 50, Random.getFalse()), EnumSet.of(FSMDescription.Sensor.EVEN_ODD))
+                    new FSMDescriptionProvider(new FSMTransitionTableBuilder(4, 100, Random.getFalse()), EnumSet.of(FSMDescription.Sensor.EVEN_ODD))
                     //new FSMDescriptionProvider(new FSMTransitionTableBuilder(4, 50, Random.getFalse()), EnumSet.of(FSMDescription.Sensor.EVEN_ODD, FSMDescription.Sensor.MOD_3))
             },
             new IAgentProvider[] {
-                    new RulesAgentProvider(new SuffixNodeProvider(), new Heuristic(1, 0))
+                    new RulesAgentProvider(new SuffixNodeProvider(), new Heuristic(1, 0)),
+                    new MaRzAgentProvider<>(new SuffixNodeProvider())
             }
     );
 
