@@ -64,10 +64,10 @@ public class RuleNodeRoot extends RuleNode {
 
     //NOTE: Uncomment to enable caching
     public void reachedGoal(){
-        /*visited = false;
+        visited = false;
         for (RuleNode child : childArray){
             child.unvisit();
-        }*/
+        }
     }
 
     @Override

@@ -15,6 +15,7 @@ import java.util.ArrayDeque;
 public class Ruleset {
 
     private RuleNodeRoot root;
+    private RuleNode driver;
     private ArrayList<RuleNode> current;
     private ArrayList<Double> goalProbabilities;
     private Move[] alphabet;
@@ -40,14 +41,17 @@ public class Ruleset {
         root = new RuleNodeRoot(alphabet, maxDepth);
         current = new ArrayList<>();
         current.add(root);
+        driver = root;
         this.alphabet = alphabet;
     }
 
-    public double getHeuristic(){
-        return 1 / root.getIncreasedGoalProbability();
-    }
-
     public Move getBestMove(){
+
+        if(driver != null && driver.getBestMove() != null){
+            if (driver.getExplore()) explores++;
+            return driver.getBestMove();
+        }
+
         double bestEV = -1;
         boolean explore = false;
         Move bestMove = alphabet[0];
@@ -62,6 +66,7 @@ public class Ruleset {
                     bestEV = expectation.get();
                     bestMove = node.getBestMove();
                     explore = node.getExplore();
+                    driver = node;
                 }
             }
         }
@@ -105,6 +110,7 @@ public class Ruleset {
             current.add(root);
             //System.out.print("G");
             root.reachedGoal();
+            driver = root;
         }
 
         for (int i = 0; i < current.size(); i++){
@@ -115,6 +121,9 @@ public class Ruleset {
                 child.occurs();
             }
             current.set(i, child);
+            if (driver == node){
+                driver = child;
+            }
         }
 
         current.removeAll(Collections.singleton(null));

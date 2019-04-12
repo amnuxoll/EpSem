@@ -24,7 +24,7 @@ public class RulesAgent implements IAgent {
     @Override
     public void initialize(Move[] moves, IIntrospector introspector) {
         this.introspector = introspector;
-        this.ruleset = new Ruleset(moves, 1000, heuristic);
+        this.ruleset = new Ruleset(moves, 10000, heuristic);
         SequenceGenerator generator = new SequenceGenerator(moves);
         ArrayList<Sequence> evaluationSuffixes = new ArrayList<>();
         for (int i = 1; i <= 15; i++) {
@@ -42,7 +42,7 @@ public class RulesAgent implements IAgent {
         //this.ruleSetEvaluator.evaluate(this.ruleset);
 
         previousMove = ruleset.getBestMove();
-        //System.out.print(previousMove);
+        System.out.print(previousMove);
         return previousMove;
 
         /*
@@ -66,9 +66,9 @@ public class RulesAgent implements IAgent {
 
     @Override
     public ArrayList<Datum> getGoalData() {
-        //System.out.println();
+        System.out.println();
         ArrayList<Datum> data = new ArrayList<>();
-        data.add(new Datum("goal probability", ruleset.getRoot().getIncreasedGoalProbability()));
+        data.add(new Datum("goal probability", heuristic.getHeuristic(0)));
         data.add(new Datum("explore", ruleset.getExplores()));
         return data;
     }

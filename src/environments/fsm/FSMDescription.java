@@ -16,6 +16,7 @@ public class FSMDescription implements IEnvironmentDescription {
     private Move[] moves;
     private EnumSet<Sensor> sensorsToInclude;
     private ArrayList<HashMap<Move, Integer>> transitionSensorTable;
+    private Random random;
 
     // Variables for generating the rules
     private HashMap<Episode, HashMap<String, Double>> rules;
@@ -41,6 +42,7 @@ public class FSMDescription implements IEnvironmentDescription {
             throw new IllegalArgumentException("transitionTable cannot be null");
         if (sensorsToInclude == null)
             throw new IllegalArgumentException("sensorsToInclude cannot be null");
+        this.random = new Random(42);
         this.transitionTable = transitionTable;
         this.sensorsToInclude = sensorsToInclude;
         this.moves = this.transitionTable.getTransitions()[0].keySet().toArray(new Move[0]);
@@ -92,7 +94,7 @@ public class FSMDescription implements IEnvironmentDescription {
 
     @Override
     public int getRandomState() {
-        Random random = new Random(System.currentTimeMillis());
+
         int nonGoalStates = this.transitionTable.getNumberOfStates() - 1;
         return random.nextInt(nonGoalStates);
     }
