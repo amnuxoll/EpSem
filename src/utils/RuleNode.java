@@ -265,8 +265,19 @@ public class RuleNode {
     }
 
     protected void unvisit(){
-        visited = false;
-        //TODO: Make recursive
+        if (visited) {
+            visited = false;
+
+            if (children == null || children.isEmpty()) {
+                return;
+            }
+
+            for (ArrayList<RuleNode> childArray : children.values()) {
+                for (RuleNode child : childArray) {
+                    child.unvisit();
+                }
+            }
+        }
     }
 
     public Move getBestMove(){
