@@ -81,7 +81,6 @@ public class Runner {
                     new RulesAgentProvider(new SuffixNodeProvider(), new Heuristic(0.5, -1)),
                     new RulesAgentProvider(new SuffixNodeProvider(), new Heuristic(0.5, 0)),
                     new RulesAgentProvider(new SuffixNodeProvider(), new Heuristic(0.5, 1)),
-                    new RulesAgentProvider(new SuffixNodeProvider(), new Heuristic(0, 0)),
                     new RulesAgentProvider(new SuffixNodeProvider(), new Heuristic(1, -1)),
                     new RulesAgentProvider(new SuffixNodeProvider(), new Heuristic(1, 0)),
                     new RulesAgentProvider(new SuffixNodeProvider(), new Heuristic(1, 1))
@@ -217,7 +216,7 @@ public class Runner {
     public static void main(String[] args) {
         try {
             File outputDirectory = DirectoryUtils.generateNewOutputDirectory();
-            Runner.SingleHeuristicTest.run(new FileResultWriterProvider(outputDirectory));
+            Runner.HeuristicTest.run(new FileResultWriterProvider(outputDirectory));
         } catch (OutOfMemoryError mem) {
             mem.printStackTrace();
         } catch (Exception ex) {
