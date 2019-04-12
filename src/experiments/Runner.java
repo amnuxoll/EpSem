@@ -96,7 +96,7 @@ public class Runner {
                     //new FSMDescriptionProvider(new FSMTransitionTableBuilder(4, 50, Random.getFalse()), EnumSet.of(FSMDescription.Sensor.EVEN_ODD, FSMDescription.Sensor.MOD_3))
             },
             new IAgentProvider[] {
-                    new RulesAgentProvider(new SuffixNodeProvider(), new Heuristic(1, 1))
+                    new RulesAgentProvider(new SuffixNodeProvider(), new Heuristic(1, 0))
             }
     );
 

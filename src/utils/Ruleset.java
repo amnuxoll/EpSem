@@ -46,7 +46,7 @@ public class Ruleset {
             Optional<Double> expectation = node.getExpectation(current, true, heuristic);
             //if (expectation.isPresent()) System.out.print("" + expectation.get() +",");
             //else System.out.print(",");
-            if (expectation.isPresent() && (bestEV == -1 || expectation.get() < bestEV)){
+            if (expectation.isPresent() && (bestEV == -1 || expectation.get() <= bestEV)){
                 if (node.getBestMove() != null) {
                     bestEV = expectation.get();
                     bestMove = node.getBestMove();
@@ -93,7 +93,7 @@ public class Ruleset {
             current.clear();
             current.add(root);
             //System.out.print("G");
-            //root.reachedGoal();
+            root.reachedGoal();
         }
 
         for (int i = 0; i < current.size(); i++){

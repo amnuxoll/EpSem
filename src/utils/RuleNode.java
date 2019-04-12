@@ -165,7 +165,7 @@ public class RuleNode {
      *
      * @param current The nodes in current. Needed so that EV calculation fails if it hits another current node.
      * @param top Whether this node is in current. Should be true unless called recursively. Causes code to ignore current check.
-     * @param h The heuristic to value unexplored moves
+     * @param heuristic The heuristic to value unexplored moves
      * @return The expected value (if it is defined)
      *
      * Side effects:
@@ -212,6 +212,7 @@ public class RuleNode {
 
     protected Optional<Double> getEVRecursive(ArrayList<RuleNode> current, Heuristic heuristic){
         Optional<Double> best = Optional.empty();
+        int bestMoveFrequency = 0;
         double h = heuristic.getHeuristic(currentDepth);
         Move bestMove = null;
         boolean madeMove = false;
@@ -221,6 +222,7 @@ public class RuleNode {
                     bestMove = potentialMoves[i];
                     best = Optional.of(h);
                     explore = true;
+                    bestMoveFrequency = 0;
                 }
             } else {
                 madeMove = true;
@@ -228,12 +230,13 @@ public class RuleNode {
                 final int frequency = moveFrequencies[i];
                 Optional<Double> moveEV = getMoveEV(childArray, frequency, current, heuristic);
                 if (moveEV.isPresent()){
-                    Double ev = moveEV.get();
+                    double ev = moveEV.get();
                     //System.out.print("" + potentialMoves[i].toString() + ev + ",");
-                    if (!best.isPresent() || ev < best.get()){
+                    if (!best.isPresent() || ev < best.get() || (ev == best.get() && bestMoveFrequency > moveFrequencies[i])){
                         bestMove = potentialMoves[i];
                         best = Optional.of(ev);
                         explore = false;
+                        bestMoveFrequency = moveFrequencies[i];
                     }
                 }
             }
@@ -263,6 +266,7 @@ public class RuleNode {
 
     protected void unvisit(){
         visited = false;
+        //TODO: Make recursive
     }
 
     public Move getBestMove(){

@@ -62,11 +62,12 @@ public class RuleNodeRoot extends RuleNode {
         return (childArray.get(0).getFrequency()+1)/((double)frequency+1);
     }
 
+    //NOTE: Uncomment to enable caching
     public void reachedGoal(){
-        visited = false;
+        /*visited = false;
         for (RuleNode child : childArray){
             child.unvisit();
-        }
+        }*/
     }
 
     @Override
