@@ -17,6 +17,8 @@ classpathify = $(subst $(eval) ,:,$(wildcard $1))
 default: all 
 
 all:
+	#create the 'out' subfolder if it doesn't exist
+	[ -d out ] && echo "" || mkdir out
 	$(JC) $(JARGS) $(ALLSRC)
 
 runexperiments: all

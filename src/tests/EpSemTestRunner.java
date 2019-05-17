@@ -45,6 +45,7 @@ public class EpSemTestRunner {
     //endregion
 
     //region Private Static Methods
+    @SuppressWarnings("unchecked")  //TODO:  can we resolve this more cleanly?
     private static ArrayList<UnitTestClass> getUnitTestClasses(ClassLoader classLoader, File directory) {
         ArrayList<UnitTestClass> files = new ArrayList<>();
         if (directory.isFile()) {

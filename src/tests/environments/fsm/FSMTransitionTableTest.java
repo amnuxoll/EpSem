@@ -23,6 +23,7 @@ public class FSMTransitionTableTest {
     }
 
     @EpSemTest
+    @SuppressWarnings("unchecked")
     public void constructorValidatesTransitionTableNotAllTransitionsContainSameMoveCount() {
         HashMap<Move, Integer> transitionSet1 = new HashMap<>();
         transitionSet1.put(new Move("a"), 1);
@@ -39,6 +40,7 @@ public class FSMTransitionTableTest {
     }
 
     @EpSemTest
+    @SuppressWarnings("unchecked")
     public void constructorValidatesTransitionTableNotAllTransitionsContainSameMoves() {
         HashMap<Move, Integer> transitionSet1 = new HashMap<>();
         transitionSet1.put(new Move("a"), 1);

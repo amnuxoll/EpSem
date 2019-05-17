@@ -15,7 +15,21 @@ import java.util.HashSet;
 import java.util.Map;
 
 /**
+ * This is Zach's "discriminator" agent.  It stands on an underlying assumption:
+ * that the state you were in just before you reached the goal is always the
+ * same state provided you took the same action.  This is false, but it's close
+ * enough to true that the agent can learn based upon that assumption.
  *
+ * Each time the agent reaches the goal it examines the sensor values and
+ * compares them to previous times it reached the goal from the same action.  If
+ * a particular has a high variance, discr assumes that it's a random/un-useful
+ * sensor.  If it has a low variance, then it puts increasing trust in that
+ * sensor.
+ *
+ * These trust levels, in turn, are used to compare episodes in hopes that the
+ * agent can begin to discriminate/identify each unique state.
+ * 
+ * 
  * @author Zachary Paul Faltersack
  * @version 0.95
  */

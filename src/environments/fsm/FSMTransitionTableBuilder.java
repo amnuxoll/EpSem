@@ -60,6 +60,7 @@ public class FSMTransitionTableBuilder {
     //endregion
 
     //region Private Methods
+    @SuppressWarnings("unchecked")
     private HashMap<Move, Integer>[] buildTransitionTable() {
         HashMap<Move, Integer>[] transitions = new HashMap[this.numStates];
         // All goal state transitions should loop back to the goal state

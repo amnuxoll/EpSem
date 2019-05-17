@@ -120,12 +120,13 @@ public class WeightTableTest {
 
     public class TestWeightTable extends WeightTable{
 
-        /**
-         * makes a weight table with 'windowSize' rows
-         *
-         * @param windowSize number of rows to store weights for
-         */
-        public TestWeightTable(int windowSize) {
+       /**
+        * makes a weight table with 'windowSize' rows
+        *
+        * @param windowSize number of rows to store weights for
+        */
+        @SuppressWarnings("unchecked") 
+       public TestWeightTable(int windowSize) {
             super(windowSize);
             double actionWeight= .3;
             HashMap<String, Double> sensorWeights= new HashMap<>();

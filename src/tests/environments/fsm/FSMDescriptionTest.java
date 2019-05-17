@@ -32,6 +32,7 @@ public class FSMDescriptionTest {
 
     //region getMoves Tests
     @EpSemTest
+    @SuppressWarnings("unchecked")
     public void getMovesFSMDescriptionInfersMoveSets() {
         HashMap<Move, Integer> transitionSet1 = new HashMap<>();
         transitionSet1.put(new Move("a"), 1);
@@ -57,6 +58,7 @@ public class FSMDescriptionTest {
 
     //region transition Tests
     @EpSemTest
+    @SuppressWarnings("unchecked")
     public void transitionStateLessThanZeroThrowsException() {
         HashMap<Move, Integer> transitionSet1 = new HashMap<>();
         transitionSet1.put(new Move("a"), 1);
@@ -70,6 +72,7 @@ public class FSMDescriptionTest {
     }
 
     @EpSemTest
+    @SuppressWarnings("unchecked")
     public void transitionStateTooLargeThrowsException() {
         HashMap<Move, Integer> transitionSet1 = new HashMap<>();
         transitionSet1.put(new Move("a"), 0);
@@ -83,6 +86,7 @@ public class FSMDescriptionTest {
     }
 
     @EpSemTest
+    @SuppressWarnings("unchecked")
     public void transitionNullMoveThrowsException() {
         HashMap<Move, Integer> transitionSet1 = new HashMap<>();
         transitionSet1.put(new Move("a"), 0);
@@ -96,6 +100,7 @@ public class FSMDescriptionTest {
     }
 
     @EpSemTest
+    @SuppressWarnings("unchecked")
     public void transitionInvalidMoveThrowsException() {
         HashMap<Move, Integer> transitionSet1 = new HashMap<>();
         transitionSet1.put(new Move("a"), 0);
@@ -109,6 +114,7 @@ public class FSMDescriptionTest {
     }
 
     @EpSemTest
+    @SuppressWarnings("unchecked")
     public void transitionReturnsNewState() {
         HashMap<Move, Integer> transitionSet1 = new HashMap<>();
         transitionSet1.put(new Move("a"), 1);
@@ -147,6 +153,7 @@ public class FSMDescriptionTest {
     //endregion
 
     //region Helper Methods
+    @SuppressWarnings("unchecked")
     private FSMTransitionTable getFsmTransitionTable() {
         HashMap<Move, Integer> transitionSet1 = new HashMap<>();
         transitionSet1.put(new Move("a"), 1);

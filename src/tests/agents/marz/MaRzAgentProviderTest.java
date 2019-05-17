@@ -14,6 +14,7 @@ public class MaRzAgentProviderTest {
 
     // getAgent Tests
     @EpSemTest
+    @SuppressWarnings("unchecked")
     public void getAgentReturnsMaRzAgents() {
         MaRzAgentProvider provider = new MaRzAgentProvider(new SuffixNodeProvider());
         IAgent agent = provider.getAgent();

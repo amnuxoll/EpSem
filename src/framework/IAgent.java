@@ -13,7 +13,7 @@ public interface IAgent {
      * Set the available {@link Move}s for the agent in the current environment.
      * @param moves An array of {@link Move} representing the moves available to the agent.
      */
-    void initialize(Move[] moves, IIntrospector introspector);
+    public void initialize(Move[] moves, IIntrospector introspector);
 
     /**
      * Get the next move based on the provided sensorData.
@@ -21,7 +21,7 @@ public interface IAgent {
      * @return the next {@link Move} to attempt.
      * @throws Exception
      */
-    Move getNextMove(SensorData sensorData) throws Exception;
+    public Move getNextMove(SensorData sensorData) throws Exception;
     //endregion
 
     //region Defaulted Methods for gathering statistics

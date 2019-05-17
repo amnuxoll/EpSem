@@ -18,6 +18,7 @@ public class UnitTestClass {
     //endregion
 
     //region Constructors
+    @SuppressWarnings("unchecked")
     public UnitTestClass(Class testClass) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException {
         this.testClass = testClass;
         this.testClassInstance = this.testClass.getConstructor().newInstance();

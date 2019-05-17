@@ -15,30 +15,37 @@ public class EpisodicMemory<TEpisode extends Episode> {
     //endregion
 
     //region Public Methods
+
+    /** are there any episodes in here?  Hello?  Hellooo?! */
     public boolean any() {
         return this.episodicMemory.size() > 0;
     }
 
+    /** get the index of the most recent episode */
+    public int currentIndex() {
+        return this.episodicMemory.size() - 1;
+    }
+
+    /** get the most recent episode */
     public TEpisode current() {
         if (this.any())
             return this.episodicMemory.get(this.currentIndex());
         return null;
     }
 
-    public int currentIndex() {
-        return this.episodicMemory.size() - 1;
-    }
-
+    /** number of episodes in this memory */
     public int length() {
         return this.episodicMemory.size();
     }
 
+    /** append a new episode to this memory */
     public void add(TEpisode episode) {
         if (episode == null)
             throw new IllegalArgumentException("episode cannot be null.");
         this.episodicMemory.add(episode);
     }
 
+    /** get the episode at a particular index */
     public TEpisode get(int index) {
         // TODO -- update this so that negative is an offset index from the end and get rid of getFromOffset
         if (index < 0 || index >= this.episodicMemory.size())
@@ -46,6 +53,8 @@ public class EpisodicMemory<TEpisode extends Episode> {
         return this.episodicMemory.get(index);
     }
 
+
+    /** get the Nth most recent episode */
     public TEpisode getFromOffset(int offset) {
         // TODO -- This used to be "this.episodicMemory.size() - offset" but was updated to allow for 0-based offset
         // in particular, ensure that NSMAgent hasn't been negatively affected and that Semsode still functions
@@ -55,6 +64,7 @@ public class EpisodicMemory<TEpisode extends Episode> {
         return this.get(this.currentIndex() - offset);
     }
 
+    /** remove the most recent N episodes */
     public void trim(int count) {
         if (count < 0)
             throw new IllegalArgumentException("count cannot be less than 0");
@@ -64,10 +74,12 @@ public class EpisodicMemory<TEpisode extends Episode> {
         }
     }
 
+    /** get all episodes fron point N forward */
     public Episode[] subset(int startIndex) {
         return this.subset(startIndex, this.episodicMemory.size());
     }
 
+    /** get all episodes in a range of indexes */
     public Episode[] subset(int startIndex, int endIndex) {
         if (startIndex < 0)
             throw new IllegalArgumentException("startIndex cannot be less than 0.");
@@ -78,6 +90,9 @@ public class EpisodicMemory<TEpisode extends Episode> {
         return this.episodicMemory.subList(startIndex, endIndex).toArray(new Episode[0]);
     }
 
+    /** find the index of the first goal-episode that occurred after a given
+     * start index.  If the given refers to an episode with a goal then that
+     * index is returned. */
     public int lastGoalIndex(int startIndex) {
         if (startIndex < 0)
             throw new IllegalArgumentException("startIndex cannot be less than 0");

@@ -22,7 +22,7 @@ The following sections describe the techniques for creating new agents in the fr
 :: Writing an Agent
  1. Create package in: root/agents/X
  2. Make a new agent class that implements: framework.IAgent
- 3. While not required, it is recommended to use the utility class for EpisodicMemory, as it contains many commonly
+ 3. While not required, it is recommended to use the utility class utils.EpisodicMemory, as it contains many commonly
     used operations against a series of episodes.
  4. Make a new agent provider class that implements: framework.IAgentProvider which will create new instances of your
     agent.
@@ -139,10 +139,15 @@ public class ThisIsATestClass {
     }
 }
 
-When writing tests, nest them in the "tests" package in a directory structure that reflects the source code structure
-of the rest of the project.
+When writing tests, nest them in the "tests" package in a directory
+structure that reflects the source code structure of the rest of the
+project.  For example, if you have just created:
+   src/agents/foo/FooAgent.java
+and you want to write a test for it you would create this file:
+   src/tests/agents/foo/FooAgentTest.java
+    
 
-There exists an Assertions class that contains a variety of static assertion methods. Use these and if an assertion
+tests.Assertions contains a variety of static assertion methods. Use these and if an assertion
 does not exist for what you need, add it here and ensure it throws the correct AssertionFailedException.
 
 There is a test runner class called EpSemTestRunner that takes a single argument. If this argument is a directory, then

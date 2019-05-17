@@ -15,6 +15,7 @@ public class JunoAgentProviderTest {
 
     // getAgent Tests
     @EpSemTest
+    @SuppressWarnings("unchecked")
     public void getAgentReturnsMaRzAgents() {
         JunoAgentProvider provider = new JunoAgentProvider(new SuffixNodeProvider());
         IAgent agent = provider.getAgent();
