@@ -2,7 +2,6 @@ package environments.fsm;
 
 import framework.*;
 
-import java.lang.reflect.Array;
 import java.util.*;
 
 /**
@@ -130,8 +129,7 @@ public class FSMDescription implements IEnvironmentDescription {
             this.applyMod3Sensor(currentState, sensorData);
         }
         this.applyWithinNSensors(currentState, sensorData);
-        if (this.sensorsToInclude.contains(Sensor.NOISE))
-            this.applyNoiseSensor(currentState, sensorData);
+        this.applyNoiseSensors(sensorData);
         if (this.sensorsToInclude.contains(Sensor.TRANSITION_AGE))
             this.applyTransitionAgeSensor(lastState, move, sensorData);
     }
@@ -144,9 +142,20 @@ public class FSMDescription implements IEnvironmentDescription {
         sensorData.setSensor(Sensor.MOD_3.toString(), state % 3 == 0);
     }
 
+    private void applyNoiseSensors(SensorData sensorData) {
+        if (this.sensorsToInclude.contains(Sensor.NOISE1))
+            sensorData.setSensor(Sensor.NOISE1.toString(), Math.random() > 0.5);
+        if (this.sensorsToInclude.contains(Sensor.NOISE2))
+            sensorData.setSensor(Sensor.NOISE2.toString(), Math.random() > 0.5);
+        if (this.sensorsToInclude.contains(Sensor.NOISE3))
+            sensorData.setSensor(Sensor.NOISE3.toString(), Math.random() > 0.5);
+        if (this.sensorsToInclude.contains(Sensor.NOISE4))
+            sensorData.setSensor(Sensor.NOISE4.toString(), Math.random() > 0.5);
+    }
+
     private void applyNoiseSensor(int state, SensorData sensorData){
         boolean data = Math.random() > 0.5;
-        sensorData.setSensor(Sensor.NOISE.toString(), data);
+        sensorData.setSensor(Sensor.NOISE1.toString(), data);
     }
 
     private void applyWithinNSensors(int state, SensorData sensorData){
@@ -182,7 +191,10 @@ public class FSMDescription implements IEnvironmentDescription {
         /**
          * Identifies the noise sensor that can randomly be applied to a state.
          */
-        NOISE,
+        NOISE1,
+        NOISE2,
+        NOISE3,
+        NOISE4,
         TRANSITION_AGE;
 
         /**

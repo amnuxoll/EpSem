@@ -124,7 +124,7 @@ public class Runner {
     private static TestSuite JunoVMarz3_30 = new TestSuite(
             TestSuiteConfiguration.MEDIUM,
             new IEnvironmentDescriptionProvider[] {
-                    new FSMDescriptionProvider(new FSMTransitionTableBuilder(3, 30, Random.getTrue()), EnumSet.of(FSMDescription.Sensor.EVEN_ODD, FSMDescription.Sensor.NOISE)),
+                    new FSMDescriptionProvider(new FSMTransitionTableBuilder(3, 30, Random.getTrue()), EnumSet.of(FSMDescription.Sensor.EVEN_ODD, FSMDescription.Sensor.NOISE1)),
             },
             new IAgentProvider[] {
                     new JunoAgentProvider(new JunoConfiguration(true, .7, Double.MAX_VALUE)),
