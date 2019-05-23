@@ -14,7 +14,7 @@ import environments.meta.MetaEnvironmentDescriptionProvider;
 import framework.*;
 import utils.DirectoryUtils;
 import environments.fsm.FSMTransitionTableBuilder;
-import utils.Heuristic;
+import agents.marzrules.Heuristic;
 import utils.Random;
 
 import java.io.File;

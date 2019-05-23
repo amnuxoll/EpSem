@@ -1,10 +1,12 @@
-package tests.utils;
+package tests.agents.marzrules;
 
+import agents.marzrules.Heuristic;
+import agents.marzrules.RuleNode;
+import agents.marzrules.RuleNodeGoal;
+import agents.marzrules.TestHeuristic;
 import framework.Move;
 import tests.EpSemTest;
 import tests.EpSemTestClass;
-import utils.*;
-import utils.Random;
 
 import java.util.*;
 

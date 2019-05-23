@@ -5,6 +5,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 /**
+ * Contains some utility methods for working with directories.
  *
  * @author Zachary Paul Faltersack
  * @version 0.95
@@ -15,6 +16,12 @@ public class DirectoryUtils {
     //endregion
 
     //region Public Static Methods
+
+    /**
+     * Creates and returns a reference to a new output directory to use for an Agent test run.
+     *
+     * @return a {@link File} handle to the output directory.
+     */
     public static File generateNewOutputDirectory()
     {
         File file = new File(DirectoryUtils.outputRootDirectory, DirectoryUtils.getTimestamp(System.currentTimeMillis()));
@@ -22,6 +29,12 @@ public class DirectoryUtils {
         return file;
     }
 
+    /**
+     * Given a long, generates and returns the string representation of it in datetime format.
+     *
+     * @param timestamp the long to convert to a datetime format string.
+     * @return the string representation of the given timestamp in datetime format.
+     */
     public static String getTimestamp(long timestamp)
     {
         Date myDate = new Date(timestamp);

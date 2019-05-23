@@ -3,7 +3,6 @@ package agents.marzrules;
 import framework.Move;
 import framework.NamedOutput;
 import framework.Sequence;
-import utils.*;
 
 import java.util.ArrayList;
 import java.util.Arrays;

@@ -3,8 +3,8 @@ package agents.popr;
 import framework.Move;
 import framework.NamedOutput;
 import framework.Sequence;
-import utils.RuleNode;
-import utils.Ruleset;
+import agents.marzrules.RuleNode;
+import agents.marzrules.Ruleset;
 
 import java.util.ArrayList;
 import java.util.Arrays;

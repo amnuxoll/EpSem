@@ -1,10 +1,10 @@
-package tests.utils;
+package tests.agents.marzrules;
 
 import framework.Move;
 import tests.EpSemTest;
 import tests.EpSemTestClass;
-import utils.RuleNode;
-import utils.RuleNodeRoot;
+import agents.marzrules.RuleNode;
+import agents.marzrules.RuleNodeRoot;
 import static tests.Assertions.*;
 
 /**

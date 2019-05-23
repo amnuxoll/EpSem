@@ -1,8 +1,6 @@
 package agents.marzrules;
 
-import utils.Heuristic;
 import framework.*;
-import utils.Ruleset;
 import utils.SequenceGenerator;
 
 import java.util.ArrayList;

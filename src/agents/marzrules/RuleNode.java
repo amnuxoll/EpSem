@@ -1,4 +1,4 @@
-package utils;
+package agents.marzrules;
 
 import framework.Move;
 

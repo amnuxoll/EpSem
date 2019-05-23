@@ -1,9 +1,7 @@
 package agents.popr;
 
-import agents.popr.RuleSetEvaluator;
-
 import framework.*;
-import utils.Ruleset;
+import agents.marzrules.Ruleset;
 import utils.SequenceGenerator;
 
 import java.util.ArrayList;

@@ -1,13 +1,13 @@
-package tests.utils;
+package tests.agents.marzrules;
 
-import utils.Heuristic;
+import agents.marzrules.Heuristic;
 import framework.Move;
 import framework.SensorData;
 import tests.EpSemTest;
 import tests.EpSemTestClass;
-import utils.RuleNode;
-import utils.RuleNodeRoot;
-import utils.Ruleset;
+import agents.marzrules.RuleNode;
+import agents.marzrules.RuleNodeRoot;
+import agents.marzrules.Ruleset;
 
 import java.util.ArrayList;
 

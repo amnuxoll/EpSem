@@ -21,6 +21,7 @@ public class SequenceGenerator {
     //region Constructors
     /**
      * Create an instance of a SequenceGenerator based on the given moves.
+     *
      * @param moves The Move[] to build sequences from.
      */
     public SequenceGenerator(Move[] moves) {
@@ -36,6 +37,7 @@ public class SequenceGenerator {
     //region Public Methods
     /**
      * Gets the permutation at the given index.
+     *
      * @param index The index to retrieve the permutation for.
      * @return The Sequence that contains the move permutation.
      */
@@ -65,6 +67,7 @@ public class SequenceGenerator {
 
     /**
      * Calculates the canonical index of the given sequence.
+     *
      * @param sequence The sequence to get an ordering for.
      * @return The sequence index.
      */
