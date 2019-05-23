@@ -11,17 +11,7 @@ import framework.IAgentProvider;
  * @author Zachary Paul Faltersack
  * @version 0.95
  */
-public class MaRzAgentProvider<TSuffixNode extends SuffixNodeBase<TSuffixNode>> implements IAgentProvider {
-    //region Class Variables
-    protected ISuffixNodeBaseProvider<TSuffixNode> nodeProvider;
-    //endregion
-
-    //region Constructors
-    public MaRzAgentProvider(ISuffixNodeBaseProvider<TSuffixNode> nodeProvider) {
-        this.nodeProvider = nodeProvider;
-    }
-    //endregion
-
+public class MaRzAgentProvider implements IAgentProvider {
     //region IAgentProvider Members
     /**
      * Gets a MaRz agent.
@@ -29,7 +19,7 @@ public class MaRzAgentProvider<TSuffixNode extends SuffixNodeBase<TSuffixNode>> 
      */
     @Override
     public IAgent getAgent() {
-        return new MaRzAgent<>(this.nodeProvider);
+        return new MaRzAgent();
     }
 
     @Override

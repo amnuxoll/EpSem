@@ -1,8 +1,6 @@
 package agents.discr;
 
-import agents.marz.ISuffixNodeBaseProvider;
 import agents.marz.MaRzAgent;
-import agents.marz.SuffixNodeBase;
 import framework.Episode;
 import framework.Move;
 import utils.Discriminator;
@@ -33,7 +31,7 @@ import java.util.Map;
  * @author Zachary Paul Faltersack
  * @version 0.95
  */
-public class MaRzLearner<TSuffixNode extends SuffixNodeBase<TSuffixNode>> extends MaRzAgent<TSuffixNode> {
+public class MaRzLearner extends MaRzAgent {
     //region Class Variables
     private Discriminator discriminator = new Discriminator();
     private ArrayList<Integer> goalIndices = new ArrayList<>();
@@ -41,17 +39,6 @@ public class MaRzLearner<TSuffixNode extends SuffixNodeBase<TSuffixNode>> extend
     private Sequence goalSequence = null;
     private HashMap<Semsode, Move> goalSemsodes = new HashMap<>();
     private HashSet<Move> goalMoves = new HashSet<>();
-    //endregion
-
-    //region Constructors
-    /**
-     * MaRzAgent
-     *
-     * @param nodeProvider
-     */
-    public MaRzLearner(ISuffixNodeBaseProvider<TSuffixNode> nodeProvider) {
-        super(nodeProvider);
-    }
     //endregion
 
     //region MaRzAgent<TSuffixNode> Overrides

@@ -1,29 +1,26 @@
 package agents.juno;
 
-import agents.marz.ISuffixNodeBaseProvider;
 import agents.marz.MaRzAgentProvider;
-import agents.marz.SuffixNodeBase;
 import framework.IAgent;
 
-public class JunoAgentProvider<TSuffixNode extends SuffixNodeBase<TSuffixNode>> extends MaRzAgentProvider<TSuffixNode> {
+public class JunoAgentProvider extends MaRzAgentProvider {
     //region Class Variables
     private JunoConfiguration config;
     //endregion
 
     //region Constructors
-    public JunoAgentProvider(ISuffixNodeBaseProvider<TSuffixNode> nodeProvider, JunoConfiguration config) {
-        super(nodeProvider);
+    public JunoAgentProvider(JunoConfiguration config) {
         this.config= config;
     }
 
-    public JunoAgentProvider(ISuffixNodeBaseProvider<TSuffixNode> nodeProvider) {
-        this(nodeProvider, JunoConfiguration.DEFAULT);
+    public JunoAgentProvider() {
+        this(JunoConfiguration.DEFAULT);
     }
     //endregion
 
     //region MaRzAgentProvider Overrides
     @Override
-    public IAgent getAgent() { return new JunoAgent<>(this.nodeProvider, config); }
+    public IAgent getAgent() { return new JunoAgent(config); }
 
     @Override
     public String getAlias()

@@ -10,10 +10,10 @@ import java.util.*;
  * @author Zachary Paul Faltersack
  * @version 0.95
  */
-public class SuffixTree<TSuffixNode extends SuffixNodeBase<TSuffixNode>> {
+public class SuffixTree {
     //region Class Variables
     /** hash table of all nodes on the fringe of our search */
-    private HashMap<Sequence, TSuffixNode> hashFringe = new HashMap<>();
+    private HashMap<Sequence, SuffixNode> hashFringe = new HashMap<>();
     private int maxSize;
     //endregion
 
@@ -23,7 +23,7 @@ public class SuffixTree<TSuffixNode extends SuffixNodeBase<TSuffixNode>> {
      * @param maxSize The max allowed size of this tree.
      * @param rootNode The root node of the tree.
      */
-    public SuffixTree(int maxSize, TSuffixNode rootNode) {
+    public SuffixTree(int maxSize, SuffixNode rootNode) {
         if (maxSize < 1)
             throw new IllegalArgumentException("maxSize must be greater than 0");
         if (rootNode == null)
@@ -42,16 +42,16 @@ public class SuffixTree<TSuffixNode extends SuffixNodeBase<TSuffixNode>> {
     public boolean splitSuffix(Sequence sequence) {
         if (sequence == null)
             throw new IllegalArgumentException("sequence cannot be null");
-        TSuffixNode node = this.hashFringe.get(sequence);
+        SuffixNode node = this.hashFringe.get(sequence);
         if (node == null)
             return false;
-        TSuffixNode[] children = node.split();
+        SuffixNode[] children = node.split();
 
         if (children == null)
             return false;
 
         //Ready to commit:  add the children to the fringe and remove the parent
-        for (TSuffixNode aChildren : children) {
+        for (SuffixNode aChildren : children) {
             this.addNode(aChildren);
         }// for
 
@@ -64,10 +64,10 @@ public class SuffixTree<TSuffixNode extends SuffixNodeBase<TSuffixNode>> {
      *
      * finds node with lowest heuristic
      */
-    public TSuffixNode findBestNodeToTry() {
+    public SuffixNode findBestNodeToTry() {
         double bestWeight = Double.MAX_VALUE;
-        TSuffixNode bestNode = null;
-        for (TSuffixNode node : this.hashFringe.values()) {
+        SuffixNode bestNode = null;
+        for (SuffixNode node : this.hashFringe.values()) {
             double nodeWeight = node.getWeight();
             //System.out.println("Current best weight: " + bestWeight + " test against: " + nodeWeight);
             if (nodeWeight < bestWeight) {
@@ -84,7 +84,7 @@ public class SuffixTree<TSuffixNode extends SuffixNodeBase<TSuffixNode>> {
      * @param sequence The sequence to find a node for.
      * @return The Node that best matched the given Sequence.
      */
-    public TSuffixNode findBestMatch(Sequence sequence) {
+    public SuffixNode findBestMatch(Sequence sequence) {
         if (sequence == null)
             throw new IllegalArgumentException("sequence cannot be null");
         List<Sequence> suffixKeys = Arrays.asList(this.hashFringe.keySet().toArray(new Sequence[0]));
@@ -109,14 +109,14 @@ public class SuffixTree<TSuffixNode extends SuffixNodeBase<TSuffixNode>> {
     }
 
     public void printTree() {
-        for (TSuffixNode node : this.hashFringe.values()) {
+        for (SuffixNode node : this.hashFringe.values()) {
             System.out.println("Node: " + node);
         }
     }
     //endregion
 
     //region Private Methods
-    private void addNode(TSuffixNode node) {
+    private void addNode(SuffixNode node) {
         // Erase worst node in the hashFringe once we hit our Constant limit
         while (hashFringe.size() > this.maxSize) {
             Sequence worstSequence = this.findWorstNodeToTry();
@@ -129,7 +129,7 @@ public class SuffixTree<TSuffixNode extends SuffixNodeBase<TSuffixNode>> {
         double worstWeight = Double.MIN_VALUE;
         Sequence worstSequence = null;
         for (Sequence sequence : this.hashFringe.keySet()) {
-            TSuffixNode node = this.hashFringe.get(sequence);
+            SuffixNode node = this.hashFringe.get(sequence);
             double nodeWeight = node.getWeight();
             if (nodeWeight > worstWeight) {
                 worstWeight = nodeWeight;

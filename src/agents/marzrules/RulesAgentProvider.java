@@ -1,6 +1,5 @@
 package agents.marzrules;
 
-import agents.marz.ISuffixNodeBaseProvider;
 import utils.Heuristic;
 import framework.IAgent;
 import framework.IAgentProvider;
@@ -10,10 +9,8 @@ import framework.IAgentProvider;
  */
 public class RulesAgentProvider implements IAgentProvider {
     private Heuristic heuristic;
-    private ISuffixNodeBaseProvider nodeProvider;
 
-    public RulesAgentProvider(ISuffixNodeBaseProvider nodeProvider, Heuristic heuristic) {
-        this.nodeProvider = nodeProvider;
+    public RulesAgentProvider(Heuristic heuristic) {
         this.heuristic = heuristic;
     }
 

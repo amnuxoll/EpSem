@@ -4,7 +4,6 @@ import agents.discr.MaRzLearnerProvider;
 import agents.juno.JunoAgentProvider;
 import agents.juno.JunoConfiguration;
 import agents.marz.MaRzAgentProvider;
-import agents.marz.nodes.SuffixNodeProvider;
 import agents.marzrules.RulesAgentProvider;
 import agents.nsm.NSMAgentProvider;
 import environments.fsm.FSMDescription;
@@ -31,7 +30,7 @@ public class Runner {
                 new FSMDescriptionProvider(new FSMTransitionTableBuilder(3, 50, Random.getTrue()), EnumSet.of(FSMDescription.Sensor.EVEN_ODD))
             },
             new IAgentProvider[] {
-                    new JunoAgentProvider<>(new SuffixNodeProvider(), new JunoConfiguration(true, .7, Double.MAX_VALUE))
+                    new JunoAgentProvider(new JunoConfiguration(true, .7, Double.MAX_VALUE))
             }
     );
 
@@ -41,7 +40,7 @@ public class Runner {
                     new FSMDescriptionProvider(new FSMTransitionTableBuilder(4, 40, Random.getFalse()), FSMDescription.Sensor.NO_SENSORS),
             },
             new IAgentProvider[] {
-                    new MaRzAgentProvider<>(new SuffixNodeProvider())
+                    new MaRzAgentProvider()
             }
     );
 
@@ -51,7 +50,7 @@ public class Runner {
                     new FSMDescriptionProvider(new FSMTransitionTableBuilder(2, 25, Random.getFalse()), EnumSet.of(FSMDescription.Sensor.EVEN_ODD), true)
             },
             new IAgentProvider[] {
-                    new MaRzAgentProvider<>(new SuffixNodeProvider())
+                    new MaRzAgentProvider()
             }
     );
 
@@ -62,8 +61,8 @@ public class Runner {
                     new FSMDescriptionProvider(new FSMTransitionTableBuilder(2, 50, Random.getFalse()), FSMDescription.Sensor.NO_SENSORS)
             },
             new IAgentProvider[] {
-                    new RulesAgentProvider(new SuffixNodeProvider(), new Heuristic(1, 0)),
-                    new MaRzAgentProvider<>(new SuffixNodeProvider())
+                    new RulesAgentProvider(new Heuristic(1, 0)),
+                    new MaRzAgentProvider()
             }
     );
 
@@ -82,7 +81,7 @@ public class Runner {
                     //new RulesAgentProvider(new SuffixNodeProvider(), new Heuristic(0.5, 0)),
                     //new RulesAgentProvider(new SuffixNodeProvider(), new Heuristic(0.5, 1)),
                     //new RulesAgentProvider(new SuffixNodeProvider(), new Heuristic(1, -1)),
-                    new RulesAgentProvider(new SuffixNodeProvider(), new Heuristic(1, 0))
+                    new RulesAgentProvider(new Heuristic(1, 0))
                     //new RulesAgentProvider(new SuffixNodeProvider(), new Heuristic(1, 1))
             }
     );
@@ -95,8 +94,8 @@ public class Runner {
                     //new FSMDescriptionProvider(new FSMTransitionTableBuilder(4, 50, Random.getFalse()), EnumSet.of(FSMDescription.Sensor.EVEN_ODD, FSMDescription.Sensor.MOD_3))
             },
             new IAgentProvider[] {
-                    new RulesAgentProvider(new SuffixNodeProvider(), new Heuristic(1, 0)),
-                    new MaRzAgentProvider<>(new SuffixNodeProvider())
+                    new RulesAgentProvider(new Heuristic(1, 0)),
+                    new MaRzAgentProvider()
             }
     );
 
@@ -107,7 +106,7 @@ public class Runner {
             },
             new IAgentProvider[] {
                     new NSMAgentProvider(),
-                    new MaRzAgentProvider<>(new SuffixNodeProvider())
+                    new MaRzAgentProvider()
             }
     );
 
@@ -117,7 +116,7 @@ public class Runner {
                     new FSMDescriptionProvider(new FSMTransitionTableBuilder(3, 30, Random.getTrue()), FSMDescription.Sensor.ALL_SENSORS),
             },
             new IAgentProvider[] {
-                    new MaRzLearnerProvider<>(new SuffixNodeProvider()),
+                    new MaRzLearnerProvider(),
                     //new MaRzAgentProvider<>(new SuffixNodeProvider())
             }
     );
@@ -128,8 +127,8 @@ public class Runner {
                     new FSMDescriptionProvider(new FSMTransitionTableBuilder(3, 30, Random.getTrue()), EnumSet.of(FSMDescription.Sensor.EVEN_ODD, FSMDescription.Sensor.NOISE)),
             },
             new IAgentProvider[] {
-                    new JunoAgentProvider<>(new SuffixNodeProvider(), new JunoConfiguration(true, .7, Double.MAX_VALUE)),
-                    new MaRzAgentProvider<>(new SuffixNodeProvider())
+                    new JunoAgentProvider(new JunoConfiguration(true, .7, Double.MAX_VALUE)),
+                    new MaRzAgentProvider()
             }
     );
 
@@ -139,8 +138,8 @@ public class Runner {
                     new FSMDescriptionProvider(new FSMTransitionTableBuilder(3, 30, Random.getTrue()), EnumSet.of(FSMDescription.Sensor.EVEN_ODD)),
             },
             new IAgentProvider[] {
-                    new JunoAgentProvider<>(new SuffixNodeProvider()),
-                    new JunoAgentProvider<>(new SuffixNodeProvider(), new JunoConfiguration(true, 1, Double.MAX_VALUE))
+                    new JunoAgentProvider(),
+                    new JunoAgentProvider(new JunoConfiguration(true, 1, Double.MAX_VALUE))
             }
     );
 
@@ -150,7 +149,7 @@ public class Runner {
                     new FSMDescriptionProvider(new FSMTransitionTableBuilder(4, 40, Random.getTrue()), EnumSet.of(FSMDescription.Sensor.EVEN_ODD)),
             },
             new IAgentProvider[] {
-                    new JunoAgentProvider<>(new SuffixNodeProvider(), new JunoConfiguration(true, 2, Double.MAX_VALUE))
+                    new JunoAgentProvider(new JunoConfiguration(true, 2, Double.MAX_VALUE))
             }
     );
 
@@ -162,7 +161,7 @@ public class Runner {
                     MetaConfiguration.DEFAULT),
             },
             new IAgentProvider[] {
-                    new MaRzAgentProvider<>(new SuffixNodeProvider())
+                    new MaRzAgentProvider()
             }
     );
 
@@ -189,7 +188,7 @@ public class Runner {
                     new FSMDescriptionProvider(new FSMTransitionTableBuilder(4, 40, Random.getTrue()), EnumSet.of(FSMDescription.Sensor.WITHIN_1,FSMDescription.Sensor.WITHIN_2,FSMDescription.Sensor.WITHIN_4,FSMDescription.Sensor.WITHIN_8,FSMDescription.Sensor.WITHIN_10,FSMDescription.Sensor.WITHIN_20, FSMDescription.Sensor.EVEN_ODD)),
             },
             new IAgentProvider[] {
-                    new JunoAgentProvider<>(new SuffixNodeProvider(), new JunoConfiguration(true, 0.7, Double.MAX_VALUE)
+                    new JunoAgentProvider(new JunoConfiguration(true, 0.7, Double.MAX_VALUE)
         )
     });
 
@@ -199,7 +198,7 @@ public class Runner {
                     new FSMDescriptionProvider(new FSMTransitionTableBuilder(2, 100, Random.getTrue()), FSMDescription.Sensor.NO_SENSORS)
             },
             new IAgentProvider[] {
-                    new MaRzAgentProvider<>(new SuffixNodeProvider()),
+                    new MaRzAgentProvider(),
                     new NSMAgentProvider()
             },
             rootDirectory -> {

@@ -19,7 +19,7 @@ import java.util.*;
  * @author Andrew Nuxoll
  *
  */
-public class MaRzAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> implements IAgent {
+public class MaRzAgent implements IAgent {
 	//region Static Variables
 	private static final int NODE_LIST_SIZE = 10000;
 	public static final int MAX_EPISODES = 2000000;
@@ -29,10 +29,10 @@ public class MaRzAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> implemen
 	protected Sequence currentSequence = null;
 	protected int lastGoalIndex = 0;
 	protected EpisodicMemory<Episode> episodicMemory = new EpisodicMemory<>();
-	protected SuffixTree<TSuffixNode> suffixTree;
+	protected SuffixTree suffixTree;
 
 	/** this is the node we're currently using to search with */
-	private TSuffixNode activeNode = null;
+	private SuffixNode activeNode = null;
 
 	/**
 	 * each permutation has a number associated with it. This is used to track
@@ -47,8 +47,7 @@ public class MaRzAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> implemen
 	private Sequence lastSuccessfulSequence = null;
 	private SequenceGenerator sequenceGenerator;
 	private Move[] alphabet;
-	private HashMap<TSuffixNode, Long> permutationQueues = new HashMap<>();
-	private ISuffixNodeBaseProvider<TSuffixNode> nodeProvider;
+	private HashMap<SuffixNode, Long> permutationQueues = new HashMap<>();
 	private IIntrospector introspector;
 	private int goodDecisionCount = 0;
 	private int goodDecisionBailCount = 0;
@@ -63,8 +62,9 @@ public class MaRzAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> implemen
 	 * MaRzAgent
 	 *
 	 */
-	public MaRzAgent(ISuffixNodeBaseProvider<TSuffixNode> nodeProvider) {
-		this.nodeProvider = nodeProvider;
+	public MaRzAgent() {
+
+
 	}// ctor
 	//endregion
 
@@ -78,8 +78,8 @@ public class MaRzAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> implemen
 		this.alphabet = moves;
 		this.introspector = introspector;
 		this.sequenceGenerator = new SequenceGenerator(this.alphabet);
-		this.activeNode = this.nodeProvider.getNode(Sequence.EMPTY, this.alphabet, (index) -> this.episodicMemory.get(index));
-		this.suffixTree = new SuffixTree<>(MaRzAgent.NODE_LIST_SIZE, this.activeNode);
+		this.activeNode = new SuffixNode(Sequence.EMPTY, this.alphabet, (index) -> this.episodicMemory.get(index));
+		this.suffixTree = new SuffixTree(MaRzAgent.NODE_LIST_SIZE, this.activeNode);
 		this.setCurrentSequence(this.activeNode.getSuffix());
 	}
 
@@ -189,7 +189,7 @@ public class MaRzAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> implemen
 			// Was partial match so find the best node to update
 			Move[] moves = EpisodeUtils.selectMoves(this.episodicMemory.subset(this.lastGoalIndex + 1));
 			Sequence goalSequence = new Sequence(moves);
-			TSuffixNode node = this.suffixTree.findBestMatch(goalSequence);
+			SuffixNode node = this.suffixTree.findBestMatch(goalSequence);
 			// This will happen if we find the goal in fewer moves than a suffix that would exist in the fringe of our tree.
 			if (node != null) {
 				node.addSuccessIndex(this.episodicMemory.length() - node.getSuffix().getLength());
@@ -205,8 +205,8 @@ public class MaRzAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> implemen
 	}
 
 	protected Sequence selectNextSequence() {
-		TSuffixNode oldActiveNode= activeNode;
-		TSuffixNode newBestNode = this.suffixTree.findBestNodeToTry();
+		SuffixNode oldActiveNode= activeNode;
+		SuffixNode newBestNode = this.suffixTree.findBestNodeToTry();
 
 		this.setActiveNode(newBestNode);
 
@@ -224,7 +224,7 @@ public class MaRzAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> implemen
 	 *
 	 * @param newBestNode the sequence whcih marz will now be trying
 	 */
-	protected void setActiveNode(TSuffixNode newBestNode){
+	protected void setActiveNode(SuffixNode newBestNode){
 
 		if (newBestNode != this.activeNode) {
 			if(this.activeNode != null) {
@@ -241,7 +241,7 @@ public class MaRzAgent<TSuffixNode extends SuffixNodeBase<TSuffixNode>> implemen
 		}
 	}
 
-	protected TSuffixNode getActiveNode() {
+	protected SuffixNode getActiveNode() {
 		return activeNode;
 	}
 	//endregion

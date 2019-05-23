@@ -3,7 +3,6 @@ package tests.agents.juno;
 import agents.juno.JunoAgent;
 import agents.juno.JunoAgentProvider;
 import agents.marz.MaRzAgent;
-import agents.marz.nodes.SuffixNodeProvider;
 import framework.IAgent;
 
 import tests.EpSemTest;
@@ -17,7 +16,7 @@ public class JunoAgentProviderTest {
     @EpSemTest
     @SuppressWarnings("unchecked")
     public void getAgentReturnsMaRzAgents() {
-        JunoAgentProvider provider = new JunoAgentProvider(new SuffixNodeProvider());
+        JunoAgentProvider provider = new JunoAgentProvider();
         IAgent agent = provider.getAgent();
         assertTrue(agent instanceof JunoAgent);
         assertTrue(agent instanceof MaRzAgent);

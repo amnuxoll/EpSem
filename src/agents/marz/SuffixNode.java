@@ -1,9 +1,10 @@
-package agents.marz.nodes;
+package agents.marz;
 
 import framework.Sequence;
-import agents.marz.SuffixNodeBase;
 import framework.Episode;
 import framework.Move;
+
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.function.Function;
@@ -15,7 +16,7 @@ import java.util.function.Function;
  * @author Zachary Paul Faltersack
  * @version 0.95
  */
-public class SuffixNode extends SuffixNodeBase<SuffixNode> {
+public class SuffixNode {
     //region Static Variables
     // the likeliness to jump back to another node
     // (should be in the range (0.0 - 1.0)
@@ -26,6 +27,11 @@ public class SuffixNode extends SuffixNodeBase<SuffixNode> {
     private int g; // distance from root (ala A* search)
     private Move[] possibleMoves;
     private Function<Integer, Episode> lookupEpisode;
+    private double f; // the current overall potential of this suffix (f = g + h)
+    private Sequence suffix;
+    private ArrayList<Integer> successIndexList = new ArrayList<>();
+    private ArrayList<Integer> failsIndexList = new ArrayList<>();
+    private boolean foundGoal = false;
     //endregion
 
     //region Constructors
@@ -37,8 +43,9 @@ public class SuffixNode extends SuffixNodeBase<SuffixNode> {
      * creating inefficiencies.
      *
      */
-    SuffixNode(Sequence sequence, Move[] possibleMoves, Function<Integer, Episode> lookupEpisode) {
-        super(sequence);
+    public SuffixNode(Sequence sequence, Move[] possibleMoves, Function<Integer, Episode> lookupEpisode) {
+        this.suffix = sequence;
+        this.f = 0.0;
         this.g = 0;
         this.possibleMoves = possibleMoves;
         this.lookupEpisode = lookupEpisode;
@@ -46,7 +53,6 @@ public class SuffixNode extends SuffixNodeBase<SuffixNode> {
     //endregion
 
     //region SuffixNodeBase<SuffixNode> Overrides
-    @Override
     public SuffixNode[] split() {
         HashMap<Move, SuffixNode> children = new HashMap<>();
         for (Move move : this.possibleMoves) {
@@ -62,17 +68,16 @@ public class SuffixNode extends SuffixNodeBase<SuffixNode> {
         // Do not split of the children aren't viable
         SuffixNode[] childArray = children.values().toArray(new SuffixNode[0]);
         for (SuffixNode child : childArray) {
-            if (child.getFailIndices().size() == 0)
+            if (child.failsIndexList.size() == 0)
                 return null;
         }
 
         return childArray;
     }
 
-    @Override
     protected boolean canSplit() {
         // We can split after we've found the goal but then failed (or failed and then found the goal ;p)
-        return super.getFoundGoal() && this.getFailIndices().size() != 0;
+        return this.foundGoal && this.failsIndexList.size() != 0;
     }
 
     /**
@@ -80,7 +85,6 @@ public class SuffixNode extends SuffixNodeBase<SuffixNode> {
      *
      * Recalculate this node's heuristic value (h) and overall value(f)
      */
-    @Override
     protected void updateHeuristic() {
         double gWeight = this.g * G_WEIGHT;
 
@@ -88,10 +92,9 @@ public class SuffixNode extends SuffixNodeBase<SuffixNode> {
 
     }// updateHeuristic
 
-    @Override
     public double getNormalizedWeight(){
-        int successCount = this.getSuccessIndices().size();
-        int failCount = this.getFailIndices().size();
+        int successCount = this.successIndexList.size();
+        int failCount = this.failsIndexList.size();
 
         if (successCount + failCount == 0) {
             return 0;
@@ -101,9 +104,40 @@ public class SuffixNode extends SuffixNodeBase<SuffixNode> {
     }
     //endregion
 
+    //region Public Methods
+    /**
+     * Gets the suffix for this node.
+     * @return The sequence that contains the suffix of this node.
+     */
+    public Sequence getSuffix() {
+        return this.suffix;
+    }
+
+    /**
+     * Gets the weight of this node.
+     * @return The weight value as a double of this node.
+     */
+    public double getWeight() {
+        this.updateHeuristic();
+        return this.f;
+    }
+
+    public void setFoundGoal() {
+        this.foundGoal = true;
+    }
+
+    public void addSuccessIndex(int index) {
+        this.successIndexList.add(index);
+    }
+
+    public void addFailIndex(int index) {
+        this.failsIndexList.add(index);
+    }
+    //endregion
+
     //region Private Methods
     private void divyIndexes(HashMap<Move, SuffixNode> children, boolean success) {
-        List<Integer> parentList = (success ? this.getSuccessIndices() : this.getFailIndices());
+        List<Integer> parentList = (success ? this.successIndexList : this.failsIndexList);
         for (int parentIndex : parentList) {
             int index = parentIndex - 1;  //the -1 because child adds a letter
             //If we fall off the back of the epmem then it can't be matched
