@@ -19,7 +19,7 @@ default: all
 all:
 	#create the 'out' subfolder if it doesn't exist
 	[ -d out ] && echo "" || mkdir out
-	$(JC) $(JARGS) $(ALLSRC)
+	@$(JC) $(JARGS) $(ALLSRC)
 
 runexperiments: all
 	$(JVM) -cp $(CP) experiments.Runner

@@ -153,15 +153,6 @@ public class SensorDataTest {
     }
 
     @EpSemTest
-    public void testEqualsNullValuesAreEqual() {
-        SensorData sensorData1 = new SensorData(true);
-        sensorData1.setSensor("sensor1", null);
-        SensorData sensorData2 = new SensorData(true);
-        sensorData2.setSensor("sensor1", null);
-        assertEquals(sensorData1, sensorData2);
-    }
-
-    @EpSemTest
     public void testEqualsAllSensorsAreAccountedForNotAllEqual() {
         SensorData sensorData1 = new SensorData(true);
         sensorData1.setSensor("sensor1", 4);
@@ -196,6 +187,23 @@ public class SensorDataTest {
     }
     //endregion
 
+    //region contains Tests
+    @EpSemTest
+    public void testContains() {
+        SensorData sensorData1 = new SensorData(false);
+        SensorData sensorData2 = new SensorData(false);
+        assertFalse(sensorData1.contains(null));
+        assertTrue(sensorData1.contains(sensorData2));
+        sensorData1.setSensor("sensor1", 4);
+        assertTrue(sensorData1.contains(sensorData2));
+        sensorData2.setSensor("sensor1", 4);
+        sensorData2.setSensor("sensor2", 8);
+        assertFalse(sensorData1.contains(sensorData2));
+    }
+
+    //endregion
+
+    
     //region toString Tests
     @EpSemTest
     public void testToShortStringSingleSensorOverrideExcludesLabels() {

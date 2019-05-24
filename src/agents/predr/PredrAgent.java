@@ -1,5 +1,6 @@
 package agents.predr;
 
+import java.util.ArrayList;
 import framework.*;
 import utils.*;
 
@@ -34,6 +35,10 @@ public class PredrAgent implements framework.IAgent {
     private long nstNum = 1;  
     /** current "next sequence to try" */
     private Sequence nst = null;
+    /** the agent has an episodic memory of course */
+    private EpisodicMemory<Episode> epmem = new EpisodicMemory<Episode>();
+    /** all the rules that this agent has created so far */
+    private ArrayList<Rule> rules = new ArrayList<Rule>();
     
     /**
      * Set the available {@link Move}s for the agent in the current environment.
@@ -56,8 +61,35 @@ public class PredrAgent implements framework.IAgent {
         //first call will give me null for initialization but I don't care
         if (sensorData == null) return null;
 
-        return new Move("foo");
-    }
+        //Get the next next move
+        if (! nst.hasNext()) {
+            this.nst = nstGen.nextPermutation(nstNum);
+            nstNum++;
+        }
+        Move nextMove =  nst.next();
+
+        //Add a new episode
+        Episode nextEpisode = new Episode(nextMove);
+        nextEpisode.setSensorData(sensorData);
+
+        //Create a rule from this sensor and the previous episode
+        if (this.epmem.length() > 0) {
+            Episode prevEpisode = this.epmem.current();
+            
+            for(String sName : sensorData.getSensorNames()) {
+                Rule newRule = new Rule(prevEpisode.getSensorData(),
+                                        prevEpisode.getMove(),
+                                        sensorData,
+                                        sName,
+                                        this.epmem.currentIndex());
+                this.rules.add(newRule);
+            }
+        }//if
+
+        this.epmem.add(nextEpisode);
+        return nextMove;
+    }//getNextMove
+
 
     
 }//class PredrAgent
