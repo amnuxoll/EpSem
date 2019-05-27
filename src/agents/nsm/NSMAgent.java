@@ -48,8 +48,6 @@ public class NSMAgent implements IAgent {
     @Override
     public Move getNextMove(SensorData sensorData) {
         if (this.episodicMemory.any()) {
-            this.episodicMemory.current().setSensorData(sensorData);
-
             if (sensorData.isGoal()) {
                 this.Successes++;
                 if (this.randChance > this.qLearningConfiguration.MIN_RAND_CHANCE) {
@@ -61,7 +59,7 @@ public class NSMAgent implements IAgent {
         }
 
         Move move = this.selectNextMove();
-        this.episodicMemory.add(new QEpisode(move, this.qLearningConfiguration.REWARD_SUCCESS, this.qLearningConfiguration.REWARD_FAILURE));
+        this.episodicMemory.add(new QEpisode(sensorData, move, this.qLearningConfiguration.REWARD_SUCCESS, this.qLearningConfiguration.REWARD_FAILURE));
         return move;
     }//exploreEnvironment
     //endregion

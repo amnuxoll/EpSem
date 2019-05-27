@@ -32,7 +32,7 @@ public class WeightTableTest {
         };
 
         for(int i=0;i<12;i++){
-            episodes.add( new Episode(moves[i%moves.length]));
+            episodes.add( new Episode(null, moves[i%moves.length]));
         }
 
         assertThrows(IllegalArgumentException.class, () -> table.bestIndices(null,4, 0));
@@ -112,10 +112,7 @@ public class WeightTableTest {
     }
 
     private Episode makeEp(Move move, boolean isGoal){
-        Episode ep= new Episode(move);
-        ep.setSensorData(new SensorData(isGoal));
-
-        return ep;
+        return new Episode(new SensorData(isGoal), move);
     }
 
     public class TestWeightTable extends WeightTable{

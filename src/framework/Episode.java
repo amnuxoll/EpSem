@@ -19,20 +19,16 @@ public class Episode {
      * Create an Episode.
      * @param move The {@link Move} associated with the episode.
      */
-    public Episode(Move move) {
+    public Episode(SensorData sensorData, Move move) {
+        // TODO -- validate sensor data is not null
         if (move == null)
             throw new IllegalArgumentException("move cannot be null");
+        this.sensorData = sensorData;
         this.move = move;
     }
     //endregion
 
     //region Public Methods
-    public void setSensorData(SensorData sensorData) {
-        if (sensorData == null)
-            throw new IllegalArgumentException("sensorData cannot be null");
-        this.sensorData = sensorData;
-    }
-
     /**
      * Get the move for this episode.
      * @return The {@link Move} of the episode.
@@ -49,8 +45,7 @@ public class Episode {
         return this.sensorData;
     }
 
-    public boolean hitGoal()
-    {
+    public boolean hitGoal() {
         return this.sensorData.isGoal();
     }
     //endregion
@@ -63,12 +58,9 @@ public class Episode {
      */
     @Override
     public boolean equals(Object o) {
-        if (o == this) {
-            return true;
-        }
-        if (!(o instanceof Episode)) {
-            return false;
-        }
+        if (o == this) return true;
+        if (!(o instanceof Episode)) return false;
+
         Episode episode = (Episode) o;
         if (this.sensorData == null && episode.sensorData != null)
             return false;

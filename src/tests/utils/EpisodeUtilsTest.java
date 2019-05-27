@@ -25,9 +25,9 @@ public class EpisodeUtilsTest {
                 new Move("move3")
         };
         Episode[] episodes = new Episode[] {
-                new Episode(expectedMoves[0]),
-                new Episode(expectedMoves[1]),
-                new Episode(expectedMoves[2])
+                new Episode(null, expectedMoves[0]),
+                new Episode(null, expectedMoves[1]),
+                new Episode(null, expectedMoves[2])
         };
         Move[] actualMoves = EpisodeUtils.selectMoves(episodes);
         assertArrayEquals(expectedMoves, actualMoves);

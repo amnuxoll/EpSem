@@ -42,9 +42,6 @@ public class RAgent implements IAgent {
         Move nextMove = moves[(int)(Math.random() * moves.length)];
 
         if (episodicMemory.any()) {
-            episodicMemory.current().setSensorData(sensorData);
-
-
             if(episodicMemory.length() > 1){ //if we have enough memories to start making patterns
                 MemoryPattern currentPattern = new MemoryPattern(
                         episodicMemory.get(episodicMemory.length() -2).getSensorData(), //the previous episode's sensorData
@@ -66,7 +63,7 @@ public class RAgent implements IAgent {
             numGoalsFound++;
             //System.out.println("I found a goal!");
         }
-        episodicMemory.add(new Episode(nextMove));
+        episodicMemory.add(new Episode(sensorData, nextMove));
         return nextMove;
     }
 

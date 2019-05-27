@@ -91,34 +91,36 @@ public class MaRzAgent implements IAgent {
 	 */
 	@Override
 	public Move getNextMove(SensorData sensorData) {
-		if (episodicMemory.any())
-			episodicMemory.current().setSensorData(sensorData);
-		if (sensorData == null) {
-			// Very beginning of time so we need to select our very first sequence
+		// Our very first pass is going to be used to set up our first sequence.
+		// It is important that we don't update any internal state against the first sensor data because it is
+		// always going to indicate a goal, given the invariant of the environment. MaRz's algorithm is not set up
+		// to blindly handle that case (as of this writing) so instead use the very first call to set up our
+		// initial Next Sequence to Try.
+		if (episodicMemory.any() == false)
 			this.setCurrentSequence(this.nextPermutation());
-		}
-		else if (sensorData.isGoal()) {
-			this.markSuccess();
-			// if the sequence succeeded then try again!
-			this.currentSequence.reset();
-		}
 		else {
-			boolean shouldBail= shouldBail();
-			if (!this.currentSequence.hasNext() || shouldBail) {
-				this.markFailure();
+			if (sensorData.isGoal()) {
+				this.markSuccess();
+				// if the sequence succeeded then try again!
+				this.currentSequence.reset();
+			} else {
+				boolean shouldBail = shouldBail();
+				if (!this.currentSequence.hasNext() || shouldBail) {
+					this.markFailure();
 
-				if(shouldBail){
-					if (this.currentSequenceIsGood)
-						this.goodDecisionBailCount++;
-					else
-						this.badDecisionBailCount++;
+					if (shouldBail) {
+						if (this.currentSequenceIsGood)
+							this.goodDecisionBailCount++;
+						else
+							this.badDecisionBailCount++;
+					}
+
+					this.setCurrentSequence(this.selectNextSequence());
 				}
-
-				this.setCurrentSequence(this.selectNextSequence());
 			}
 		}
 		Move nextMove = this.currentSequence.next();
-		episodicMemory.add(new Episode(nextMove));
+		episodicMemory.add(new Episode(sensorData, nextMove));
 		return nextMove;
 	}
 

@@ -45,6 +45,7 @@ public class TestRunTest {
 
     @EpSemTest
     public void executeMarshalsCallsBetweenAgentAndEnvironmentSingleGoalWithResultWriter() {
+        // TODO -- this test is failing because we need to get our episodic memory validation caught up with the new inverted mechanism for sensor -> move
         TestAgent agent = new TestAgent();
         TestEnvironmentDescription environment = new TestEnvironmentDescription();
         TestGoalListener goalListener = new TestGoalListener();
@@ -61,11 +62,9 @@ public class TestRunTest {
         SensorData sensorC = new SensorData(true);
         sensorC.setSensor("c", "c");
 
-        Episode episodeA = new Episode(new Move("a"));
-        episodeA.setSensorData(sensorA);
-        Episode episodeB = new Episode(new Move("b"));
-        episodeB.setSensorData(sensorB);
-        Episode episodeC = new Episode(new Move("c"));
+        Episode episodeA = new Episode(sensorA, new Move("a"));
+        Episode episodeB = new Episode(sensorB, new Move("b"));
+        Episode episodeC = new Episode(null, new Move("c"));
         Episode[] expectedEpisodicMemory = new Episode[] {
                         episodeA, episodeB, episodeC
                 };
@@ -83,6 +82,7 @@ public class TestRunTest {
 
     @EpSemTest
     public void executeMarshalsCallsBetweenAgentAndEnvironmentMultipleGoalsWithResultWriter() {
+        // TODO -- this test is failing because we need to get our episodic memory validation caught up with the new inverted mechanism for sensor -> move
         TestAgent agent = new TestAgent();
         TestEnvironmentDescription environment = new TestEnvironmentDescription();
         TestGoalListener goalListener = new TestGoalListener();
@@ -99,17 +99,14 @@ public class TestRunTest {
         SensorData sensorC = new SensorData(true);
         sensorC.setSensor("c", "c");
 
-        Episode episodeA = new Episode(new Move("a"));
-        episodeA.setSensorData(sensorA);
-        Episode episodeB = new Episode(new Move("b"));
-        episodeB.setSensorData(sensorB);
-        Episode episodeC = new Episode(new Move("c"));
-        episodeC.setSensorData(sensorC);
+        Episode episodeA = new Episode(sensorA, new Move("a"));
+        Episode episodeB = new Episode(sensorB, new Move("b"));
+        Episode episodeC = new Episode(sensorC, new Move("c"));
 
         Episode[] expectedEpisodicMemory = new Episode[] {
                         episodeA, episodeB, episodeC,
                         episodeA, episodeB, episodeC,
-                        episodeA, episodeB, new Episode(new Move("c"))
+                        episodeA, episodeB, new Episode(null, new Move("c"))
                 };
         String[] expectedResultWriterLogs = new String[] {
                         "3,",
@@ -145,10 +142,8 @@ public class TestRunTest {
 
         @Override
         public Move getNextMove(SensorData sensorData) {
-            if (this.episodes.size() > 0)
-                this.episodes.get(this.episodes.size() - 1).setSensorData(sensorData);
             Move move = this.moves[this.moveIndex++];
-            Episode episode = new Episode(move);
+            Episode episode = new Episode(sensorData, move);
             this.episodes.add(episode);
             if (this.moveIndex >= this.moves.length)
                 this.moveIndex = 0;

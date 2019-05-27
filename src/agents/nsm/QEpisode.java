@@ -23,17 +23,10 @@ public class QEpisode extends Episode {
     //endregion
 
     //region Constructors
-    public QEpisode(Move move, double successReward, double failureReward) {
-        super(move);
+    public QEpisode(SensorData sensorData, Move move, double successReward, double failureReward) {
+        super(sensorData, move);
         this.successReward = successReward;
         this.failureReward = failureReward;
-    }
-    //endregion
-
-    //region Episode Overrides
-    @Override
-    public void setSensorData(SensorData sensorData) {
-        super.setSensorData(sensorData);
         if (sensorData.isGoal())
             this.reward = this.successReward;
         else
@@ -42,8 +35,7 @@ public class QEpisode extends Episode {
     //endregion
 
     //region Public Methods
-    public void updateQValue(double utility)
-    {
+    public void updateQValue(double utility) {
         this.qValue = (1.0 - LEARNING_RATE) * (this.qValue) + LEARNING_RATE * (this.reward + DISCOUNT * utility);
     }
     //endregion

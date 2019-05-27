@@ -193,9 +193,9 @@ public class Runner {
     });
 
     private static TestSuite TempExperiment = new TestSuite(
-            TestSuiteConfiguration.FULL,
+            TestSuiteConfiguration.QUICK,
             new IEnvironmentDescriptionProvider[] {
-                    new FSMDescriptionProvider(new FSMTransitionTableBuilder(2, 100, Random.getTrue()), FSMDescription.Sensor.NO_SENSORS)
+                    new FSMDescriptionProvider(new FSMTransitionTableBuilder(3, 15, Random.getTrue()), FSMDescription.Sensor.NO_SENSORS)
             },
             new IAgentProvider[] {
                     new MaRzAgentProvider(),
@@ -216,7 +216,7 @@ public class Runner {
     public static void main(String[] args) {
         try {
             File outputDirectory = DirectoryUtils.generateNewOutputDirectory();
-            Runner.HeuristicTest.run(new FileResultWriterProvider(outputDirectory));
+            Runner.TempExperiment.run(new FileResultWriterProvider(outputDirectory));
         } catch (OutOfMemoryError mem) {
             mem.printStackTrace();
         } catch (Exception ex) {

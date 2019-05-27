@@ -41,7 +41,7 @@ public class TestRun {
             int goalCount = 0;
             int moveCount = 0;
             this.agent.initialize(this.environmentDescription.getMoves(), this.environment);
-            SensorData sensorData = null; //TODO: Initialize first sensor data value?
+            SensorData sensorData = new SensorData(true); //TODO: Initialize first sensor data value?
             do {
                 Move move = this.agent.getNextMove(sensorData);
                 if(move == null) break;

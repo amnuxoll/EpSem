@@ -9,7 +9,7 @@ import tests.EpSemTest;
 import tests.EpSemTestClass;
 import static tests.Assertions.*;
 
-//temporarily removed until SuffixNode is fixed:  @EpSemTestClass
+@EpSemTestClass
 public class SuffixTreeTest {
 
     private static SuffixNode DEFAULT_NODE = new SuffixNode(new Sequence(new Move[] { new Move("A")}), new Move[] { new Move("A")}, index -> null);

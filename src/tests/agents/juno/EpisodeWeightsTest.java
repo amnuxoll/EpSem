@@ -22,14 +22,11 @@ public class EpisodeWeightsTest {
     public void updateWeightsTest() {
         EpisodeWeights weights = new EpisodeWeights();
         Move move = new Move("a");
-        Episode ep1 = new Episode(move);
-        Episode ep2 = new Episode(move);
 
         SensorData data = new SensorData(false);
         data.setSensor("sensor", true);
-
-        ep1.setSensorData(data);
-        ep2.setSensorData(data);
+        Episode ep1 = new Episode(data, move);
+        Episode ep2 = new Episode(data, move);
 
         weights.updateWeights(ep1, ep2, 0.5);
 
@@ -43,18 +40,15 @@ public class EpisodeWeightsTest {
     @EpSemTest
     public void episodeSensorsMatchTest() {
         EpisodeWeights weights = new EpisodeWeights();
-        Move move = new Move("a");
-        Episode ep1 = new Episode(move);
-        Episode ep2 = new Episode(move);
 
         SensorData data1 = new SensorData(false);
         SensorData data2 = new SensorData(false);
 
         data1.setSensor("sensy", true);
         data2.setSensor("sensy", true);
-
-        ep1.setSensorData(data1);
-        ep2.setSensorData(data2);
+        Move move = new Move("a");
+        Episode ep1 = new Episode(data1, move);
+        Episode ep2 = new Episode(data2, move);
 
         assertTrue(weights.episodeSensorsMatch(ep1, ep2, "sensy"));
 
@@ -65,8 +59,8 @@ public class EpisodeWeightsTest {
         data3.setSensor("thanos", true);
         data3.setSensor("thanos", false);
 
-        ep1.setSensorData(data3);
-        ep2.setSensorData(data4);
+        ep1 = new Episode(data3, ep1.getMove());
+        ep2 = new Episode(data4, ep2.getMove());
 
         assertFalse(weights.episodeSensorsMatch(ep1, ep2, "thanos"));
     }

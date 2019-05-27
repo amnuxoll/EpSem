@@ -69,8 +69,7 @@ public class PredrAgent implements framework.IAgent {
         Move nextMove =  nst.next();
 
         //Add a new episode
-        Episode nextEpisode = new Episode(nextMove);
-        nextEpisode.setSensorData(sensorData);
+        Episode nextEpisode = new Episode(sensorData, nextMove);
 
         //Create a rule from this sensor and the previous episode
         if (this.epmem.length() > 0) {
