@@ -93,7 +93,7 @@ public class Assertions {
 
     public static void assertEquals(Object object1, Object object2, String message) {
         if (!object1.equals(object2))
-            Assertions.throwException("Objects did not match. Expected " + object1.toString() + " and recieved " + object2.toString(), message);
+            Assertions.throwException("Objects did not match. Expected " + object1.toString() + " and received " + object2.toString(), message);
     }
 
     public static void assertNotEquals(Object object1, Object object2) {

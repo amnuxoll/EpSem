@@ -52,7 +52,7 @@ public class SuffixNode {
     }// ctor
     //endregion
 
-    //region SuffixNodeBase<SuffixNode> Overrides
+    //region Public Methods
     public SuffixNode[] split() {
         HashMap<Move, SuffixNode> children = new HashMap<>();
         for (Move move : this.possibleMoves) {
@@ -75,22 +75,10 @@ public class SuffixNode {
         return childArray;
     }
 
-    protected boolean canSplit() {
+    public boolean canSplit() {
         // We can split after we've found the goal but then failed (or failed and then found the goal ;p)
         return this.foundGoal && this.failsIndexList.size() != 0;
     }
-
-    /**
-     * updateHeuristic
-     *
-     * Recalculate this node's heuristic value (h) and overall value(f)
-     */
-    protected void updateHeuristic() {
-        double gWeight = this.g * G_WEIGHT;
-
-        this.f= gWeight + getNormalizedWeight();
-
-    }// updateHeuristic
 
     public double getNormalizedWeight(){
         int successCount = this.successIndexList.size();
@@ -102,9 +90,7 @@ public class SuffixNode {
 
         return (double) failCount / ((double) failCount + (double) successCount);
     }
-    //endregion
 
-    //region Public Methods
     /**
      * Gets the suffix for this node.
      * @return The sequence that contains the suffix of this node.
@@ -136,6 +122,13 @@ public class SuffixNode {
     //endregion
 
     //region Private Methods
+    private void updateHeuristic() {
+        double gWeight = this.g * G_WEIGHT;
+
+        this.f= gWeight + getNormalizedWeight();
+
+    }// updateHeuristic
+
     private void divyIndexes(HashMap<Move, SuffixNode> children, boolean success) {
         List<Integer> parentList = (success ? this.successIndexList : this.failsIndexList);
         for (int parentIndex : parentList) {

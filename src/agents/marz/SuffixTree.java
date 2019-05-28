@@ -1,5 +1,6 @@
 package agents.marz;
 
+import framework.NamedOutput;
 import framework.Sequence;
 import java.util.*;
 
@@ -69,9 +70,7 @@ public class SuffixTree {
         SuffixNode bestNode = null;
         for (SuffixNode node : this.hashFringe.values()) {
             double nodeWeight = node.getWeight();
-            //System.out.println("Current best weight: " + bestWeight + " test against: " + nodeWeight);
             if (nodeWeight < bestWeight) {
-//                System.out.println("New best weight found.");
                 bestWeight = nodeWeight;
                 bestNode = node;
             }
@@ -108,9 +107,13 @@ public class SuffixTree {
         return this.hashFringe.containsKey(suffix);
     }
 
+    /**
+     * Prints the nodes in the suffix tree.
+     */
     public void printTree() {
+        NamedOutput output = NamedOutput.getInstance();
         for (SuffixNode node : this.hashFringe.values()) {
-            System.out.println("Node: " + node);
+            output.writeLine("SUFFIX_TREE", "Node: " + node);
         }
     }
     //endregion

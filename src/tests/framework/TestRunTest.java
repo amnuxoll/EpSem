@@ -45,7 +45,6 @@ public class TestRunTest {
 
     @EpSemTest
     public void executeMarshalsCallsBetweenAgentAndEnvironmentSingleGoalWithResultWriter() {
-        // TODO -- this test is failing because we need to get our episodic memory validation caught up with the new inverted mechanism for sensor -> move
         TestAgent agent = new TestAgent();
         TestEnvironmentDescription environment = new TestEnvironmentDescription();
         TestGoalListener goalListener = new TestGoalListener();
@@ -59,12 +58,10 @@ public class TestRunTest {
         sensorA.setSensor("a", "a");
         SensorData sensorB = new SensorData(false);
         sensorB.setSensor("b", "b");
-        SensorData sensorC = new SensorData(true);
-        sensorC.setSensor("c", "c");
 
-        Episode episodeA = new Episode(sensorA, new Move("a"));
-        Episode episodeB = new Episode(sensorB, new Move("b"));
-        Episode episodeC = new Episode(null, new Move("c"));
+        Episode episodeA = new Episode(new SensorData(true), new Move("a"));
+        Episode episodeB = new Episode(sensorA, new Move("b"));
+        Episode episodeC = new Episode(sensorB, new Move("c"));
         Episode[] expectedEpisodicMemory = new Episode[] {
                         episodeA, episodeB, episodeC
                 };
@@ -99,14 +96,15 @@ public class TestRunTest {
         SensorData sensorC = new SensorData(true);
         sensorC.setSensor("c", "c");
 
-        Episode episodeA = new Episode(sensorA, new Move("a"));
-        Episode episodeB = new Episode(sensorB, new Move("b"));
-        Episode episodeC = new Episode(sensorC, new Move("c"));
+        Episode episodeA = new Episode(sensorC, new Move("a"));
+        Episode episodeB = new Episode(sensorA, new Move("b"));
+        Episode episodeC = new Episode(sensorB, new Move("c"));
 
+        // The first sensor data is the base GOAL template provided by the framework
         Episode[] expectedEpisodicMemory = new Episode[] {
+                new Episode(new SensorData(true), new Move("a")), episodeB, episodeC,
                         episodeA, episodeB, episodeC,
-                        episodeA, episodeB, episodeC,
-                        episodeA, episodeB, new Episode(null, new Move("c"))
+                        episodeA, episodeB, episodeC
                 };
         String[] expectedResultWriterLogs = new String[] {
                         "3,",
