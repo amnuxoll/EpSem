@@ -40,14 +40,14 @@ public class FSMDescriptionProviderTest {
     public void getEnvironmentDescriptionHeedsConfiguration1() {
         FSMDescriptionProvider descriptionProvider = new FSMDescriptionProvider(new FSMTransitionTableBuilder(1, 1, Random.getTrue()), FSMDescription.Sensor.ALL_SENSORS);
         FSMDescription description = (FSMDescription)descriptionProvider.getEnvironmentDescription();
-        assertEquals(1, description.getMoves().length);
+        assertEquals(1, description.getActions().length);
     }
 
     @EpSemTest
     public void getEnvironmentDescriptionHeedsConfiguration2() {
         FSMDescriptionProvider descriptionProvider = new FSMDescriptionProvider(new FSMTransitionTableBuilder(13, 42, Random.getTrue()), EnumSet.of(FSMDescription.Sensor.EVEN_ODD));
         FSMDescription description = (FSMDescription)descriptionProvider.getEnvironmentDescription();
-        assertEquals(13, description.getMoves().length);
+        assertEquals(13, description.getActions().length);
     }
     //endregion
 

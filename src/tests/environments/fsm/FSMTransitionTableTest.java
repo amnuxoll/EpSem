@@ -1,7 +1,7 @@
 package tests.environments.fsm;
 
 import environments.fsm.FSMTransitionTable;
-import framework.Move;
+import framework.Action;
 
 import java.util.HashMap;
 
@@ -25,14 +25,14 @@ public class FSMTransitionTableTest {
     @EpSemTest
     @SuppressWarnings("unchecked")
     public void constructorValidatesTransitionTableNotAllTransitionsContainSameMoveCount() {
-        HashMap<Move, Integer> transitionSet1 = new HashMap<>();
-        transitionSet1.put(new Move("a"), 1);
-        transitionSet1.put(new Move("b"), 1);
-        transitionSet1.put(new Move("c"), 1);
-        HashMap<Move, Integer> transitionSet2 = new HashMap<>();
-        transitionSet2.put(new Move("a"), 1);
-        transitionSet2.put(new Move("b"), 1);
-        HashMap<Move, Integer>[] transitionTable = new HashMap[] {
+        HashMap<Action, Integer> transitionSet1 = new HashMap<>();
+        transitionSet1.put(new Action("a"), 1);
+        transitionSet1.put(new Action("b"), 1);
+        transitionSet1.put(new Action("c"), 1);
+        HashMap<Action, Integer> transitionSet2 = new HashMap<>();
+        transitionSet2.put(new Action("a"), 1);
+        transitionSet2.put(new Action("b"), 1);
+        HashMap<Action, Integer>[] transitionTable = new HashMap[] {
                 transitionSet1,
                 transitionSet2
         };
@@ -42,15 +42,15 @@ public class FSMTransitionTableTest {
     @EpSemTest
     @SuppressWarnings("unchecked")
     public void constructorValidatesTransitionTableNotAllTransitionsContainSameMoves() {
-        HashMap<Move, Integer> transitionSet1 = new HashMap<>();
-        transitionSet1.put(new Move("a"), 1);
-        transitionSet1.put(new Move("b"), 1);
-        transitionSet1.put(new Move("c"), 1);
-        HashMap<Move, Integer> transitionSet2 = new HashMap<>();
-        transitionSet2.put(new Move("a"), 1);
-        transitionSet2.put(new Move("b"), 1);
-        transitionSet2.put(new Move("d"), 1);
-        HashMap<Move, Integer>[] transitionTable = new HashMap[] {
+        HashMap<Action, Integer> transitionSet1 = new HashMap<>();
+        transitionSet1.put(new Action("a"), 1);
+        transitionSet1.put(new Action("b"), 1);
+        transitionSet1.put(new Action("c"), 1);
+        HashMap<Action, Integer> transitionSet2 = new HashMap<>();
+        transitionSet2.put(new Action("a"), 1);
+        transitionSet2.put(new Action("b"), 1);
+        transitionSet2.put(new Action("d"), 1);
+        HashMap<Action, Integer>[] transitionTable = new HashMap[] {
                 transitionSet1,
                 transitionSet2
         };

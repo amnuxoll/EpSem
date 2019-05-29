@@ -1,6 +1,6 @@
 package agents.marzrules;
 
-import framework.Move;
+import framework.Action;
 
 import java.util.ArrayList;
 import java.util.Optional;
@@ -9,14 +9,14 @@ import java.util.Optional;
  * Created by Ryan on 2/7/2019.
  */
 public class RuleNodeGoal extends RuleNode{
-    public RuleNodeGoal(Move[] potentialMoves, int currentDepth){
-        super(potentialMoves, -1, 0, currentDepth);
+    public RuleNodeGoal(Action[] potentialActions, int currentDepth){
+        super(potentialActions, -1, 0, currentDepth);
         expectation = 0;
     }
 
     // BASE CASE 4
     @Override
-    public double getGoalProbability(ArrayList<Move> moves, int moveIdx) {
+    public double getGoalProbability(ArrayList<Action> actions, int moveIdx) {
         return 1;
     }
 

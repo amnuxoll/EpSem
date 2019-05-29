@@ -3,38 +3,38 @@ package framework;
 import java.util.Objects;
 
 /**
- * An Episode describes a pairing of a {@link SensorData} and {@link Move} where the move was selected
+ * An Episode describes a pairing of a {@link SensorData} and {@link Action} where the action was selected
  * as a result of the sensor data.
  * @author Zachary Paul Faltersack
  * @version 0.95
  */
 public class Episode {
     //region Class Variables
-    private Move move;
+    private Action action;
     private SensorData sensorData;
     //endregion
 
     //region Constructors
     /**
      * Create an Episode.
-     * @param move The {@link Move} associated with the episode.
+     * @param action The {@link Action} associated with the episode.
      */
-    public Episode(SensorData sensorData, Move move) {
+    public Episode(SensorData sensorData, Action action) {
         // TODO -- validate sensor data is not null
-        if (move == null)
-            throw new IllegalArgumentException("move cannot be null");
+        if (action == null)
+            throw new IllegalArgumentException("action cannot be null");
         this.sensorData = sensorData;
-        this.move = move;
+        this.action = action;
     }
     //endregion
 
     //region Public Methods
     /**
-     * Get the move for this episode.
-     * @return The {@link Move} of the episode.
+     * Get the action for this episode.
+     * @return The {@link Action} of the episode.
      */
-    public Move getMove() {
-        return this.move;
+    public Action getAction() {
+        return this.action;
     }
 
     /**
@@ -68,17 +68,17 @@ public class Episode {
             return false;
         if (this.sensorData != null && !this.sensorData.equals(episode.sensorData))
             return false;
-        return this.move.equals(episode.move);
+        return this.action.equals(episode.action);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(this.move, this.sensorData);
+        return Objects.hash(this.action, this.sensorData);
     }
 
     @Override
     public String toString() {
-        String value = this.move.toString();
+        String value = this.action.toString();
         if (this.sensorData != null)
             value = this.sensorData.toString(false) + value;
         return value;

@@ -2,7 +2,7 @@ package agents.marz;
 
 import framework.Sequence;
 import framework.Episode;
-import framework.Move;
+import framework.Action;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -25,7 +25,7 @@ public class SuffixNode {
 
     //region Class Variables
     private int g; // distance from root (ala A* search)
-    private Move[] possibleMoves;
+    private Action[] possibleActions;
     private Function<Integer, Episode> lookupEpisode;
     private double f; // the current overall potential of this suffix (f = g + h)
     private Sequence suffix;
@@ -43,22 +43,22 @@ public class SuffixNode {
      * creating inefficiencies.
      *
      */
-    public SuffixNode(Sequence sequence, Move[] possibleMoves, Function<Integer, Episode> lookupEpisode) {
+    public SuffixNode(Sequence sequence, Action[] possibleActions, Function<Integer, Episode> lookupEpisode) {
         this.suffix = sequence;
         this.f = 0.0;
         this.g = 0;
-        this.possibleMoves = possibleMoves;
+        this.possibleActions = possibleActions;
         this.lookupEpisode = lookupEpisode;
     }// ctor
     //endregion
 
     //region Public Methods
     public SuffixNode[] split() {
-        HashMap<Move, SuffixNode> children = new HashMap<>();
-        for (Move move : this.possibleMoves) {
-            SuffixNode child = new SuffixNode(this.getSuffix().buildChildSequence(move), this.possibleMoves, this.lookupEpisode);
+        HashMap<Action, SuffixNode> children = new HashMap<>();
+        for (Action action : this.possibleActions) {
+            SuffixNode child = new SuffixNode(this.getSuffix().buildChildSequence(action), this.possibleActions, this.lookupEpisode);
             child.g = this.g + 1;
-            children.put(move, child);
+            children.put(action, child);
         }// for
 
         //Divy the successes and failures among the children
@@ -129,7 +129,7 @@ public class SuffixNode {
 
     }// updateHeuristic
 
-    private void divyIndexes(HashMap<Move, SuffixNode> children, boolean success) {
+    private void divyIndexes(HashMap<Action, SuffixNode> children, boolean success) {
         List<Integer> parentList = (success ? this.successIndexList : this.failsIndexList);
         for (int parentIndex : parentList) {
             int index = parentIndex - 1;  //the -1 because child adds a letter
@@ -143,11 +143,11 @@ public class SuffixNode {
                 continue;
             }// if
 
-            Move move = episode.getMove();
+            Action action = episode.getAction();
             if (success)
-                children.get(move).addSuccessIndex(index);
+                children.get(action).addSuccessIndex(index);
             else
-                children.get(move).addFailIndex(index);
+                children.get(action).addFailIndex(index);
         }// for
     }//divyIndexes
     //endregion

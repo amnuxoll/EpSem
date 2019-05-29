@@ -11,22 +11,22 @@ public class PredrAgentTest {
 
 
     /** A quick test to see if PredrAgent will generate the correct
-        sequence of moves given the alphabet: [a,b]; */
+        sequence of actions given the alphabet: [a,b]; */
     @EpSemTest
     public void testGetNextMove() {
         //create a PredrAgent with the right alphabet
-        Move[] moves = new Move[2];
-        moves[0] = new Move("a");
-        moves[1] = new Move("b");
+        Action[] actions = new Action[2];
+        actions[0] = new Action("a");
+        actions[1] = new Action("b");
         PredrAgent testme = new PredrAgent();
-        testme.initialize(moves, null);
+        testme.initialize(actions, null);
 
-        //Extract the first 10 moves
+        //Extract the first 10 actions
         SensorData anyOldSensorDataWillDo = new SensorData(false);
         anyOldSensorDataWillDo.setSensor("foo", 1);
         anyOldSensorDataWillDo.setSensor("bar", 2);
         anyOldSensorDataWillDo.setSensor("baz", 3);
-        Move[] results = new Move[10];
+        Action[] results = new Action[10];
         for(int i = 0; i < 10; ++i) {
             try {
                 results[i] = testme.getNextMove(anyOldSensorDataWillDo);
@@ -40,7 +40,7 @@ public class PredrAgentTest {
         String[] correct = {"a", "b", "a", "a", "a", "b", "b", "a", "b", "b" };
         for(int i = 0; i < 10; ++i) {
             Assertions.assertTrue(results[i].getName() == correct[i],
-                                  "\nThe moves in results: " + Arrays.toString(results) +
+                                  "\nThe actions in results: " + Arrays.toString(results) +
                                   "\n      does not equal: " + Arrays.toString(correct));
         }
         

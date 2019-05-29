@@ -4,30 +4,30 @@ import java.util.*;
 
 /**
  * Sequence
- * Represents a sequence of {@link Move}s.
+ * Represents a sequence of {@link Action}s.
  *
  * @author Zachary Paul Faltersack
  * @version 0.95
  */
 public class Sequence implements Comparable<Sequence> {
     //region Static Sequences
-    public static final Sequence EMPTY = new Sequence(new Move[0]);
+    public static final Sequence EMPTY = new Sequence(new Action[0]);
     //endregion
 
     //region Class Variables
-    private Move[] moves;
+    private Action[] actions;
     private int currentIndex = -1;
     //endregion
 
     //region Constructors
     /**
      * Create an instance of a Sequence.
-     * @param moves The moves in the sequence.
+     * @param actions The actions in the sequence.
      */
-    public Sequence(Move[] moves) {
-        if (moves == null)
-            throw new IllegalArgumentException("moves cannot be null");
-        this.moves = moves;
+    public Sequence(Action[] actions) {
+        if (actions == null)
+            throw new IllegalArgumentException("actions cannot be null");
+        this.actions = actions;
     }
     //endregion
 
@@ -40,27 +40,27 @@ public class Sequence implements Comparable<Sequence> {
     public boolean endsWith(Sequence sequence) {
         if (sequence == null)
             throw new IllegalArgumentException("sequence cannot be null.");
-        if (sequence.moves.length > this.moves.length)
+        if (sequence.actions.length > this.actions.length)
             return false;
-        if (sequence.moves.length == 0)
+        if (sequence.actions.length == 0)
             return true;
-        List<Move> myMoves = new ArrayList<>(Arrays.asList(this.moves));
-        List<Move> otherMoves = new ArrayList<>(Arrays.asList(sequence.moves));
-        Collections.reverse(myMoves);
-        Collections.reverse(otherMoves);
-        for (int i = 0; i < otherMoves.size(); i++) {
-            if (!myMoves.get(i).equals(otherMoves.get(i)))
+        List<Action> myActions = new ArrayList<>(Arrays.asList(this.actions));
+        List<Action> otherActions = new ArrayList<>(Arrays.asList(sequence.actions));
+        Collections.reverse(myActions);
+        Collections.reverse(otherActions);
+        for (int i = 0; i < otherActions.size(); i++) {
+            if (!myActions.get(i).equals(otherActions.get(i)))
                 return false;
         }
         return true;
     }
 
     /**
-     * Gets the moves in this sequence.
-     * @return the Move[].
+     * Gets the actions in this sequence.
+     * @return the Action[].
      */
-    public Move[] getMoves() {
-        return this.moves;
+    public Action[] getActions() {
+        return this.actions;
     }
 
     /**
@@ -71,9 +71,9 @@ public class Sequence implements Comparable<Sequence> {
     public Sequence getSubsequence(int startIndex) {
         if (startIndex < 0)
             throw new IllegalArgumentException("startIndex cannot be less than 0");
-        if (startIndex >= this.moves.length)
+        if (startIndex >= this.actions.length)
             return Sequence.EMPTY;
-        Move[] subsequence = Arrays.copyOfRange(this.moves, startIndex, this.moves.length);
+        Action[] subsequence = Arrays.copyOfRange(this.actions, startIndex, this.actions.length);
         return new Sequence(subsequence);
     }
 
@@ -85,11 +85,11 @@ public class Sequence implements Comparable<Sequence> {
     public Sequence take(int length) {
         if (length < 0)
             throw new IllegalArgumentException("length cannot be less than zero.");
-        if (length > this.moves.length)
+        if (length > this.actions.length)
             throw new IllegalArgumentException("length is too large.");
         if (length == 0)
             return Sequence.EMPTY;
-        Move[] subsequence = Arrays.copyOfRange(this.moves, 0, length);
+        Action[] subsequence = Arrays.copyOfRange(this.actions, 0, length);
         return new Sequence(subsequence);
     }
 
@@ -98,20 +98,20 @@ public class Sequence implements Comparable<Sequence> {
      * @return the length of the sequence.
      */
     public int getLength() {
-        return this.moves.length;
+        return this.actions.length;
     }
 
     /**
      * Builds a new sequence by prepending the given move to the front of this sequence.
-     * @param newMove The new move to prepend to this sequence.
+     * @param newAction The new move to prepend to this sequence.
      * @return The new sequence.
      */
-    public Sequence buildChildSequence(Move newMove) {
-        if (newMove == null)
-            throw new IllegalArgumentException("newMove cannot be null");
-        List<Move> childMoves = new LinkedList<>(Arrays.asList(this.moves));
-        childMoves .add(0, newMove);
-        return new Sequence(childMoves.toArray(new Move[0]));
+    public Sequence buildChildSequence(Action newAction) {
+        if (newAction == null)
+            throw new IllegalArgumentException("newAction cannot be null");
+        List<Action> childActions = new LinkedList<>(Arrays.asList(this.actions));
+        childActions.add(0, newAction);
+        return new Sequence(childActions.toArray(new Action[0]));
     }
 
     /**
@@ -122,9 +122,9 @@ public class Sequence implements Comparable<Sequence> {
     public Sequence concat(Sequence sequence) {
         if (sequence == null)
             throw new IllegalArgumentException("sequence cannot be null.");
-        List<Move> concatenated = new LinkedList<>(Arrays.asList(this.moves));
-        concatenated.addAll(Arrays.asList(sequence.getMoves()));
-        return new Sequence(concatenated.toArray(new Move[0]));
+        List<Action> concatenated = new LinkedList<>(Arrays.asList(this.actions));
+        concatenated.addAll(Arrays.asList(sequence.getActions()));
+        return new Sequence(concatenated.toArray(new Action[0]));
     }
 
     /**
@@ -132,19 +132,19 @@ public class Sequence implements Comparable<Sequence> {
      * @return true if a next move exists; otherwise false.
      */
     public boolean hasNext() {
-        return this.currentIndex < (this.moves.length - 1);
+        return this.currentIndex < (this.actions.length - 1);
     }
 
     /**
      * Increments to the next index and returns the move at that index.
      * @return The next move in the sequence.
      */
-    public Move next() {
+    public Action next() {
         if (!this.hasNext())
             // For simplicity just use a generic unchecked exception
-            throw new RuntimeException("Sequence has no next Move.");
+            throw new RuntimeException("Sequence has no next Action.");
         this.currentIndex++;
-        return this.moves[this.currentIndex];
+        return this.actions[this.currentIndex];
     }
 
     /**
@@ -163,9 +163,9 @@ public class Sequence implements Comparable<Sequence> {
     @Override
     public int compareTo(Sequence o) {
         // Sort from longest to shortest
-        if (this.moves.length > o.moves.length)
+        if (this.actions.length > o.actions.length)
             return -1;
-        if (this.moves.length < o.moves.length)
+        if (this.actions.length < o.actions.length)
             return 1;
         return 0;
     }
@@ -181,10 +181,10 @@ public class Sequence implements Comparable<Sequence> {
             return false;
         }
         Sequence sequence = (Sequence) o;
-        if (this.moves.length != sequence.moves.length)
+        if (this.actions.length != sequence.actions.length)
             return false;
-        for (int i = 0; i < this.moves.length; i++) {
-            if (!this.moves[i].equals(sequence.moves[i]))
+        for (int i = 0; i < this.actions.length; i++) {
+            if (!this.actions[i].equals(sequence.actions[i]))
                 return false;
         }
         return true;
@@ -192,14 +192,14 @@ public class Sequence implements Comparable<Sequence> {
 
     @Override
     public int hashCode() {
-        return Arrays.hashCode(this.moves);
+        return Arrays.hashCode(this.actions);
     }
 
     @Override
     public String toString() {
         StringBuilder representation = new StringBuilder();
-        for (Move move : this.moves) {
-            representation.append(move.toString());
+        for (Action action : this.actions) {
+            representation.append(action.toString());
         }
         return representation.toString();
     }

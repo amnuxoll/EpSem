@@ -1,12 +1,12 @@
 package tests.agents.juno;
 
 import agents.juno.EpisodeWeights;
+import framework.Action;
 import framework.Episode;
-import framework.Move;
 import framework.SensorData;
 
 import tests.EpSemTest;
-import tests.EpSemTestClass;
+
 import static tests.Assertions.*;
 
 //temporarily removed as these tests don't pass anymore:  @EpSemTestClass
@@ -21,12 +21,12 @@ public class EpisodeWeightsTest {
     @EpSemTest
     public void updateWeightsTest() {
         EpisodeWeights weights = new EpisodeWeights();
-        Move move = new Move("a");
+        Action action = new Action("a");
 
         SensorData data = new SensorData(false);
         data.setSensor("sensor", true);
-        Episode ep1 = new Episode(data, move);
-        Episode ep2 = new Episode(data, move);
+        Episode ep1 = new Episode(data, action);
+        Episode ep2 = new Episode(data, action);
 
         weights.updateWeights(ep1, ep2, 0.5);
 
@@ -46,9 +46,9 @@ public class EpisodeWeightsTest {
 
         data1.setSensor("sensy", true);
         data2.setSensor("sensy", true);
-        Move move = new Move("a");
-        Episode ep1 = new Episode(data1, move);
-        Episode ep2 = new Episode(data2, move);
+        Action action = new Action("a");
+        Episode ep1 = new Episode(data1, action);
+        Episode ep2 = new Episode(data2, action);
 
         assertTrue(weights.episodeSensorsMatch(ep1, ep2, "sensy"));
 
@@ -59,8 +59,8 @@ public class EpisodeWeightsTest {
         data3.setSensor("thanos", true);
         data3.setSensor("thanos", false);
 
-        ep1 = new Episode(data3, ep1.getMove());
-        ep2 = new Episode(data4, ep2.getMove());
+        ep1 = new Episode(data3, ep1.getAction());
+        ep2 = new Episode(data4, ep2.getAction());
 
         assertFalse(weights.episodeSensorsMatch(ep1, ep2, "thanos"));
     }
@@ -69,8 +69,8 @@ public class EpisodeWeightsTest {
     public void matchScoreTest() {
         fail("This method requires greater testing");
 //        EpisodeWeights weights = new EpisodeWeights();
-//        Move a = new Move("a");
-//        Move b = new Move("b");
+//        Action a = new Action("a");
+//        Action b = new Action("b");
 //        Episode ep1 = new Episode(a);
 //        Episode ep2 = new Episode(a);
 //
@@ -86,7 +86,7 @@ public class EpisodeWeightsTest {
 
         //assertEquals(ep1.matchScore(ep2, weights), weights.matchScore(ep1, ep2));
 
-//        Move move = new Move("a");
+//        Action move = new Action("a");
 //        Episode episode1 = new Episode(move);
 //        Episode episode2 = new Episode(move);
 //        SensorData data1 = new SensorData(false);

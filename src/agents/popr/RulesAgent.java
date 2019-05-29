@@ -11,17 +11,17 @@ import java.util.ArrayList;
  */
 public class RulesAgent implements IAgent {
     private Ruleset ruleset;
-    private Move previousMove = null;
+    private Action previousAction = null;
     private IIntrospector introspector;
     private RuleSetEvaluator ruleSetEvaluator;
 
     public RulesAgent() { }
 
     @Override
-    public void initialize(Move[] moves, IIntrospector introspector) {
+    public void initialize(Action[] actions, IIntrospector introspector) {
         this.introspector = introspector;
-        this.ruleset = new Ruleset(moves, 1000);
-        SequenceGenerator generator = new SequenceGenerator(moves);
+        this.ruleset = new Ruleset(actions, 1000);
+        SequenceGenerator generator = new SequenceGenerator(actions);
         ArrayList<Sequence> evaluationSuffixes = new ArrayList<>();
         for (int i = 1; i <= 15; i++) {
             evaluationSuffixes.add(generator.nextPermutation(i));
@@ -30,14 +30,14 @@ public class RulesAgent implements IAgent {
     }
 
     @Override
-    public Move getNextMove(SensorData sensorData) {
+    public Action getNextMove(SensorData sensorData) {
         if (sensorData != null) {
-            ruleset.update(previousMove, sensorData);
+            ruleset.update(previousAction, sensorData);
         }
 
-        previousMove = ruleset.falsify();
+        previousAction = ruleset.falsify();
 
-        return previousMove;
+        return previousAction;
 
 
     }

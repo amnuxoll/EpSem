@@ -24,7 +24,7 @@ public class NSMAgent implements IAgent {
     private double randChance;  //how frequently the agent make a random move
     private QEpisodicMemory episodicMemory;
     private int Successes = 0;
-    private Move[] moves;
+    private Action[] actions;
     private QLearningConfiguration qLearningConfiguration;
     //endregion
 
@@ -40,13 +40,13 @@ public class NSMAgent implements IAgent {
 
     //region IAgent Members
     @Override
-    public void initialize(Move[] moves, IIntrospector introspector) {
-        this.moves = moves;
+    public void initialize(Action[] actions, IIntrospector introspector) {
+        this.actions = actions;
         this.episodicMemory = new QEpisodicMemory();
     }
 
     @Override
-    public Move getNextMove(SensorData sensorData) {
+    public Action getNextMove(SensorData sensorData) {
         if (this.episodicMemory.any()) {
             if (sensorData.isGoal()) {
                 this.Successes++;
@@ -58,14 +58,14 @@ public class NSMAgent implements IAgent {
             this.updateAllLittleQ();
         }
 
-        Move move = this.selectNextMove();
-        this.episodicMemory.add(new QEpisode(sensorData, move, this.qLearningConfiguration.REWARD_SUCCESS, this.qLearningConfiguration.REWARD_FAILURE));
-        return move;
+        Action action = this.selectNextMove();
+        this.episodicMemory.add(new QEpisode(sensorData, action, this.qLearningConfiguration.REWARD_SUCCESS, this.qLearningConfiguration.REWARD_FAILURE));
+        return action;
     }//exploreEnvironment
     //endregion
 
     //region Private Methods
-    private Move selectNextMove() {
+    private Action selectNextMove() {
         // We can't use NSM until we've found the goal at least once
         // (if not using random action) select the action that has the neighborhood with the highest Q-value
         if(this.Successes > 0 && NSMAgent.random.nextDouble() >= this.randChance) {
@@ -73,7 +73,7 @@ public class NSMAgent implements IAgent {
             return this.selectedNHood.getMove();
         }//if
         this.selectedNHood = null;
-        return this.moves[NSMAgent.random.nextInt(this.moves.length)];
+        return this.actions[NSMAgent.random.nextInt(this.actions.length)];
     }
 
     /**
@@ -86,9 +86,9 @@ public class NSMAgent implements IAgent {
     private NHood getBestNeighborhood() {
         //Create a new neighborhood for each command
         NHood bestNHood = null;
-        for (Move move : this.moves)
+        for (Action action : this.actions)
         {
-            NHood nhood = this.episodicMemory.buildNeighborhoodForMove(move);
+            NHood nhood = this.episodicMemory.buildNeighborhoodForMove(action);
             if (bestNHood == null || nhood.getQValue() > bestNHood.getQValue())
                 bestNHood = nhood;
         }//for

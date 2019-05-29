@@ -2,7 +2,6 @@ package agents.predr;
 
 import java.util.ArrayList;
 import framework.*;
-import utils.*;
 
 
 /**
@@ -20,7 +19,7 @@ import utils.*;
  */
 public class Rule {
     private ArrayList<SensorData> LHSsensors = new ArrayList<SensorData>();
-    private ArrayList<Move> LHSmoves = new ArrayList<Move>();
+    private ArrayList<Action> LHSmoves = new ArrayList<Action>();
     private SensorData RHS = null;
     private int epmemIndex;
 
@@ -31,14 +30,14 @@ public class Rule {
      * this ctor, it's assumed no wildcards on the LHS
      *
      * @param initLHS         the sensors on the LHS of the rule
-     * @param initMove        the move taken on the LHS
+     * @param initAction        the move taken on the LHS
      * @param initRHS         the sensors that resulted (one of these will be used for the rule
      * @param sensorToTarget  the name of the sensor that won't be wildcarded on the RHS
      * @param initEpmemIndex  the index of the of the leftmost episode in LHS in the episodic memory
      */
-    public Rule(SensorData initLHS, Move initMove, SensorData initRHS, String sensorToTarget, int initEpmemIndex) {
+    public Rule(SensorData initLHS, Action initAction, SensorData initRHS, String sensorToTarget, int initEpmemIndex) {
         this.LHSsensors.add(initLHS);
-        this.LHSmoves.add(initMove);
+        this.LHSmoves.add(initAction);
         this.RHS = new SensorData(initRHS.isGoal());
         if (! sensorToTarget.equals(SensorData.goalSensor))
         {
@@ -61,7 +60,7 @@ public class Rule {
      * @param initMove        the move taken on the LHS
      * @param initRHS         the sensors that resulted (one of these will be used for the rule
      */
-    private Rule(ArrayList<SensorData> initLHSsensors, ArrayList<Move> initLHSmoves, SensorData initRHS) {
+    private Rule(ArrayList<SensorData> initLHSsensors, ArrayList<Action> initLHSmoves, SensorData initRHS) {
         this.LHSsensors = initLHSsensors;
         this.LHSmoves = initLHSmoves;
         this.RHS = initRHS;
@@ -72,7 +71,7 @@ public class Rule {
         return this.LHSsensors;
     }
     
-    public ArrayList<Move> getMoves() {
+    public ArrayList<Action> getMoves() {
         return this.LHSmoves;
     }
     

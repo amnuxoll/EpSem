@@ -5,13 +5,13 @@ package framework;
  * @author Zachary Paul Faltersack
  * @version 0.95
  */
-public class Move {
+public class Action {
     //region Class Variables
     private String name;
     //endregion
 
     //region Constructors
-    public Move(String name) throws IllegalArgumentException {
+    public Action(String name) throws IllegalArgumentException {
         if (name == null)
             throw new IllegalArgumentException("name cannot be null");
         if (name.isEmpty())
@@ -37,11 +37,11 @@ public class Move {
         if (o == this) {
             return true;
         }
-        if (!(o instanceof Move)) {
+        if (!(o instanceof Action)) {
             return false;
         }
-        Move move = (Move)o;
-        return this.name.equals(move.name);
+        Action action = (Action)o;
+        return this.name.equals(action.name);
     }
 
     @Override

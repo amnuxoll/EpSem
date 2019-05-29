@@ -70,7 +70,7 @@ public class JunoAgent extends MaRzAgent {
         Sequence marzSuggestion= super.selectNextSequence();
 
         //if we haven't hit a goal yet || if we haven't done enough marz goals || if we haven't done a 'window size'
-        // of moves yet, go with marz
+        // of actions yet, go with marz
         if(this.lastGoalIndex <= 0 || goals < marzGoals || lastGoalIndex >= episodicMemory.length() - weightTable.size()){
             marzCount++;
             this.tableSizeOnMatch= -1;
@@ -264,10 +264,10 @@ public class JunoAgent extends MaRzAgent {
     }
 
     /**
-     * creates a sequence of moves from the start index to the next goal
+     * creates a sequence of actions from the start index to the next goal
      *
      * @param startIndex index at which to start
-     * @return the sequence of moves that brought the agent from the episode at
+     * @return the sequence of actions that brought the agent from the episode at
      *          start index to the goal,
      *          null if no goal as since been hit
      */
@@ -279,8 +279,8 @@ public class JunoAgent extends MaRzAgent {
             }
             index++;
         }
-        Move[] moves = EpisodeUtils.selectMoves(episodicMemory.subset(startIndex + 1, index + 1));
-        return new Sequence(moves);
+        Action[] actions = EpisodeUtils.selectMoves(episodicMemory.subset(startIndex + 1, index + 1));
+        return new Sequence(actions);
     }
 
     /**

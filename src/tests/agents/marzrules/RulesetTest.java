@@ -1,7 +1,7 @@
 package tests.agents.marzrules;
 
 import agents.marzrules.Heuristic;
-import framework.Move;
+import framework.Action;
 import framework.SensorData;
 import tests.EpSemTest;
 import tests.EpSemTestClass;
@@ -25,24 +25,24 @@ public class RulesetTest {
 
     @EpSemTest
     public void emptyAlphabetTest() {
-        assertThrows(IllegalArgumentException.class, () -> new Ruleset(new Move[] {}, 2, new Heuristic(1, 0)));
+        assertThrows(IllegalArgumentException.class, () -> new Ruleset(new Action[] {}, 2, new Heuristic(1, 0)));
     }
 
     @EpSemTest
     public void assertConstructorNoThrows() {
         assertNotNull(
-                new Ruleset(new Move[] {new Move("a")}, 1, new Heuristic(1, 0))
+                new Ruleset(new Action[] {new Action("a")}, 1, new Heuristic(1, 0))
         );
     }
 
     @EpSemTest
     public void testRulesetUpdates() {
-        Ruleset ruleset = new Ruleset(new Move[] {new Move("a")},2, new Heuristic(1, 0));
+        Ruleset ruleset = new Ruleset(new Action[] {new Action("a")},2, new Heuristic(1, 0));
 
         RuleNodeRoot root = (RuleNodeRoot)ruleset.getCurrent().get(0);
         assertNotNull(root);
 
-        ruleset.update(new Move("a"), new SensorData(false));
+        ruleset.update(new Action("a"), new SensorData(false));
 
         ArrayList<RuleNode> current = ruleset.getCurrent();
         assertTrue(!current.isEmpty());

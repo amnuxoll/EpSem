@@ -1,16 +1,17 @@
 package utils;
 
+import framework.Action;
 import framework.Episode;
 
 /**
  * A {@link Semsode} is just grouping of {@link Episode}.
  *
- * Since an {@link Episode} is defined by the {@link framework.Move} and resulting {@link framework.SensorData}, the
+ * Since an {@link Episode} is defined by the {@link Action} and resulting {@link framework.SensorData}, the
  * {@link Semsode} is considered to be the following:
  *
- * M = Move
+ * M = Action
  * S = SensorData
- * MS = Episode(Move, SensorData)
+ * MS = Episode(Action, SensorData)
  *
  * S,MS,MS,MS = Semsode
  *
@@ -54,7 +55,7 @@ public class Semsode {
         for (int i = 1; i < this.episodes.length; i++)
         {
             Episode episode = episodicMemory.getFromOffset(this.episodes.length - i);
-            if (!episode.getMove().equals(this.episodes[i].getMove()))
+            if (!episode.getAction().equals(this.episodes[i].getAction()))
                 return false;
             if (!discriminator.match(episode.getSensorData(), this.episodes[i].getSensorData()))
                 return false;

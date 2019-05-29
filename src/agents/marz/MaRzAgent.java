@@ -46,7 +46,7 @@ public class MaRzAgent implements IAgent {
 	 */
 	private Sequence lastSuccessfulSequence = null;
 	private SequenceGenerator sequenceGenerator;
-	private Move[] alphabet;
+	private Action[] alphabet;
 	private HashMap<SuffixNode, Long> permutationQueues = new HashMap<>();
 	private IIntrospector introspector;
 	private int goodDecisionCount = 0;
@@ -70,12 +70,12 @@ public class MaRzAgent implements IAgent {
 
 	//region IAgent Members
 	/**
-	 * Sets up the state of the agent based on the given moves.
-	 * @param moves An array of {@link Move} representing the moves available to the agent.
+	 * Sets up the state of the agent based on the given actions.
+	 * @param actions An array of {@link Action} representing the actions available to the agent.
 	 */
 	@Override
-	public void initialize(Move[] moves, IIntrospector introspector) {
-		this.alphabet = moves;
+	public void initialize(Action[] actions, IIntrospector introspector) {
+		this.alphabet = actions;
 		this.introspector = introspector;
 		this.sequenceGenerator = new SequenceGenerator(this.alphabet);
 		this.activeNode = new SuffixNode(Sequence.EMPTY, this.alphabet, (index) -> this.episodicMemory.get(index));
@@ -87,10 +87,10 @@ public class MaRzAgent implements IAgent {
 	 * Gets a subsequent move based on the provided sensorData.
 	 *
 	 * @param sensorData The {@link SensorData} from the current move.
-	 * @return the next Move to try.
+	 * @return the next Action to try.
 	 */
 	@Override
-	public Move getNextMove(SensorData sensorData) {
+	public Action getNextMove(SensorData sensorData) {
 		// Our very first pass is going to be used to set up our first sequence.
 		// It is important that we don't update any internal state against the first sensor data because it is
 		// always going to indicate a goal, given the invariant of the environment. MaRz's algorithm is not set up
@@ -119,9 +119,9 @@ public class MaRzAgent implements IAgent {
 				}
 			}
 		}
-		Move nextMove = this.currentSequence.next();
-		episodicMemory.add(new Episode(sensorData, nextMove));
-		return nextMove;
+		Action nextAction = this.currentSequence.next();
+		episodicMemory.add(new Episode(sensorData, nextAction));
+		return nextAction;
 	}
 
 	@Override
@@ -189,10 +189,10 @@ public class MaRzAgent implements IAgent {
 
 		if (this.currentSequence.hasNext()) {
 			// Was partial match so find the best node to update
-			Move[] moves = EpisodeUtils.selectMoves(this.episodicMemory.subset(this.lastGoalIndex + 1));
-			Sequence goalSequence = new Sequence(moves);
+			Action[] actions = EpisodeUtils.selectMoves(this.episodicMemory.subset(this.lastGoalIndex + 1));
+			Sequence goalSequence = new Sequence(actions);
 			SuffixNode node = this.suffixTree.findBestMatch(goalSequence);
-			// This will happen if we find the goal in fewer moves than a suffix that would exist in the fringe of our tree.
+			// This will happen if we find the goal in fewer actions than a suffix that would exist in the fringe of our tree.
 			if (node != null) {
 				node.addSuccessIndex(this.episodicMemory.length() - node.getSuffix().getLength());
 			}

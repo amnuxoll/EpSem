@@ -3,14 +3,14 @@ package tests.agents.juno;
 import agents.juno.EpisodeWeights;
 import agents.juno.WeightTable;
 import framework.Episode;
-import framework.Move;
+import framework.Action;
 import framework.SensorData;
 import utils.EpisodicMemory;
 
 import java.util.HashMap;
 
 import tests.EpSemTest;
-import tests.EpSemTestClass;
+
 import static tests.Assertions.*;
 
 //temporarily removed as these tests don't pass anymore:  @EpSemTestClass
@@ -25,14 +25,14 @@ public class WeightTableTest {
         WeightTable table= new WeightTable(2);
 
         EpisodicMemory<Episode> episodes= new EpisodicMemory<>();
-        Move[] moves= {
-                new Move("a"),
-                new Move("b"),
-                new Move("c"),
+        Action[] actions = {
+                new Action("a"),
+                new Action("b"),
+                new Action("c"),
         };
 
         for(int i=0;i<12;i++){
-            episodes.add( new Episode(null, moves[i%moves.length]));
+            episodes.add( new Episode(null, actions[i% actions.length]));
         }
 
         assertThrows(IllegalArgumentException.class, () -> table.bestIndices(null,4, 0));
@@ -41,8 +41,8 @@ public class WeightTableTest {
 
     @EpSemTest
     public void bestIndices(){
-        Move a= new Move("a");
-        Move b= new Move("b");
+        Action a= new Action("a");
+        Action b= new Action("b");
 
         EpisodicMemory<Episode> episodes= new EpisodicMemory<>();
 
@@ -66,8 +66,8 @@ public class WeightTableTest {
 
     @EpSemTest
     public void testMatchScore(){
-        Move a= new Move("a");
-        Move b= new Move("b");
+        Action a= new Action("a");
+        Action b= new Action("b");
 
         EpisodicMemory<Episode> episodes= new EpisodicMemory<>();
 
@@ -87,8 +87,8 @@ public class WeightTableTest {
 
     @EpSemTest
     public void updateOnFailure(){
-        Move a= new Move("a");
-        Move b= new Move("b");
+        Action a= new Action("a");
+        Action b= new Action("b");
 
         EpisodicMemory<Episode> episodes= new EpisodicMemory<>();
 
@@ -111,8 +111,8 @@ public class WeightTableTest {
         assertEquals(.8, ((TestWeightTable) table).getActionWeight(1), .001);
     }
 
-    private Episode makeEp(Move move, boolean isGoal){
-        return new Episode(new SensorData(isGoal), move);
+    private Episode makeEp(Action action, boolean isGoal){
+        return new Episode(new SensorData(isGoal), action);
     }
 
     public class TestWeightTable extends WeightTable{

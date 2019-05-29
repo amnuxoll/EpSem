@@ -21,18 +21,18 @@ public class MetaEnvironmentDescriptionTest {
     }
     //endregion
 
-    //region getMoves Tests
+    //region getActions Tests
     @EpSemTest
     public void getMoves() {
         TestEnvironmentDescriptionProvider provider = new TestEnvironmentDescriptionProvider();
         MetaEnvironmentDescription description= new MetaEnvironmentDescription(provider, MetaConfiguration.DEFAULT);
 
         //move arrays match
-        Move[] expected = {
-                new Move("a"),
-                new Move("b")
+        Action[] expected = {
+                new Action("a"),
+                new Action("b")
         };
-        assertArrayEquals(expected, description.getMoves());
+        assertArrayEquals(expected, description.getActions());
     }
     //endregion
 
@@ -42,7 +42,7 @@ public class MetaEnvironmentDescriptionTest {
         TestEnvironmentDescriptionProvider provider = new TestEnvironmentDescriptionProvider();
         MetaEnvironmentDescription description = new MetaEnvironmentDescription(provider, MetaConfiguration.DEFAULT);
 
-        TransitionResult result = description.transition(0, new Move("a"));
+        TransitionResult result = description.transition(0, new Action("a"));
         assertEquals(10, result.getState());
         assertTrue(result.getSensorData().isGoal());
         assertEquals(1, provider.numGenerated);
@@ -55,7 +55,7 @@ public class MetaEnvironmentDescriptionTest {
 
         int expectedResetcount = 3;
         for (int i = 0; i < 2 * expectedResetcount; i++) {
-            TransitionResult result = description.transition(0, new Move("a"));
+            TransitionResult result = description.transition(0, new Action("a"));
             assertEquals(10, result.getState());
             assertTrue(result.getSensorData().isGoal());
         }
@@ -84,16 +84,16 @@ public class MetaEnvironmentDescriptionTest {
     private class TestEnvironmentDescription implements  IEnvironmentDescription {
 
         @Override
-        public Move[] getMoves() {
-            Move[] moves= {
-                    new Move("a"),
-                    new Move("b")
+        public Action[] getActions() {
+            Action[] actions = {
+                    new Action("a"),
+                    new Action("b")
             };
-            return moves;
+            return actions;
         }
 
         @Override
-        public TransitionResult transition(int currentState, Move move) {
+        public TransitionResult transition(int currentState, Action action) {
             return new TransitionResult(10, new SensorData(true));
         }
 

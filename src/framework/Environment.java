@@ -27,14 +27,14 @@ public class Environment implements IIntrospector {
 
     //region Public Methods
     /**
-     * Apply a {@link Move} to this {@link Environment} instance.
-     * @param move The {@link Move} to apply.
-     * @return The {@link SensorData} that resutled from the move.
+     * Apply a {@link Action} to this {@link Environment} instance.
+     * @param action The {@link Action} to apply.
+     * @return The {@link SensorData} that resutled from the action.
      */
-    public SensorData tick(Move move) {
-        if (move == null)
-            throw new IllegalArgumentException("move cannot be null");
-        TransitionResult result = this.environmentDescription.transition(this.currentState, move);
+    public SensorData tick(Action action) {
+        if (action == null)
+            throw new IllegalArgumentException("action cannot be null");
+        TransitionResult result = this.environmentDescription.transition(this.currentState, action);
         this.currentState = result.getState();
         return result.getSensorData();
     }
@@ -53,8 +53,8 @@ public class Environment implements IIntrospector {
         if (sequence == null)
             throw new IllegalArgumentException("sequence cannot be null.");
         int tempState = this.currentState;
-        for (Move move : sequence.getMoves()){
-            TransitionResult result = this.environmentDescription.transition(tempState, move);
+        for (Action action : sequence.getActions()){
+            TransitionResult result = this.environmentDescription.transition(tempState, action);
             if (result.getSensorData().isGoal())
                 return true;
             tempState = result.getState();

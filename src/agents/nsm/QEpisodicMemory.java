@@ -1,6 +1,6 @@
 package agents.nsm;
 
-import framework.Move;
+import framework.Action;
 import utils.EpisodicMemory;
 
 /**
@@ -10,12 +10,12 @@ import utils.EpisodicMemory;
  */
 public class QEpisodicMemory extends EpisodicMemory<QEpisode> {
     //region Public Methods
-    public NHood buildNeighborhoodForMove(Move move)
+    public NHood buildNeighborhoodForMove(Action action)
     {
-        NHood nHood = new NHood(move);
+        NHood nHood = new NHood(action);
         //find the kNN
         for(int i = 0; i <= this.currentIndex(); ++i) {
-            int matchLen = this.matchedMemoryStringLength(move, i);
+            int matchLen = this.matchedMemoryStringLength(action, i);
             if ((matchLen > 0) && ((nHood.shortest <= matchLen) || (nHood.nbors.size() < nHood.K_NEAREST))) {
                 nHood.addNBor(new NBor(i, matchLen, this.episodicMemory.get(i)));
             }
@@ -29,14 +29,14 @@ public class QEpisodicMemory extends EpisodicMemory<QEpisode> {
      * matchedMemoryStringLength
      *
      * Starts from a given index and the end of the Agent's episodic memory and
-     * moves backwards, comparing each episode to the present episode and it
+     * actions backwards, comparing each episode to the present episode and it
      * prededessors until the corresponding episdoes no longer match.
      *
      * @param endOfStringIndex The index from which to start the backwards search
      * @return the number of consecutive matching characters
      */
-    private int matchedMemoryStringLength(Move nHoodMove, int endOfStringIndex) {
-        if (!nHoodMove.equals(this.episodicMemory.get(endOfStringIndex).getMove()))
+    private int matchedMemoryStringLength(Action nHoodAction, int endOfStringIndex) {
+        if (!nHoodAction.equals(this.episodicMemory.get(endOfStringIndex).getAction()))
             return 0;
         int length = 0;
         endOfStringIndex--;

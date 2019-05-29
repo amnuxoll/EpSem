@@ -2,8 +2,6 @@ package environments.meta;
 
 import framework.*;
 
-import java.util.LinkedList;
-
 /**
  * A MetaEnvironmentDescription is a special case of {@link IEnvironmentDescription} that wraps a different description
  * type. After a certain number of goals, the nested {@link IEnvironmentDescription} is regenerated. This is for
@@ -32,21 +30,21 @@ public class MetaEnvironmentDescription implements IEnvironmentDescription {
 
     //region IEnvironmentDescription Members
     @Override
-    public Move[] getMoves() {
-        return this.currDescription.getMoves();
+    public Action[] getActions() {
+        return this.currDescription.getActions();
     }
 
     /**
-     * query to determine result of a move
+     * query to determine result of a action
      * @param currentState The state to transition from.
-     * @param move The move to make from the current state.
-     * @return The state resulting from the move from currentState
+     * @param action The action to make from the current state.
+     * @return The state resulting from the action from currentState
      */
     @Override
-    public TransitionResult transition(int currentState, Move move) {
+    public TransitionResult transition(int currentState, Action action) {
         // We can't assume the validity of any input because we could be holding any type of IEnvironmentDescription,
         // so let our internal IEnvironmentDescription perform its own validation.
-        TransitionResult result = this.currDescription.transition(currentState, move);
+        TransitionResult result = this.currDescription.transition(currentState, action);
         if (result.getSensorData().isGoal() && ++this.numGoals % this.config.getResetGoalCount() == 0)
             this.currDescription = this.environmentDescriptionProvider.getEnvironmentDescription();
         return result;

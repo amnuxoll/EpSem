@@ -2,7 +2,7 @@ package tests.environments.fsm;
 
 import environments.fsm.FSMDescription;
 import environments.fsm.FSMTransitionTable;
-import framework.Move;
+import framework.Action;
 
 import java.util.HashMap;
 import java.util.Random;
@@ -30,29 +30,29 @@ public class FSMDescriptionTest {
     }
     //endregion
 
-    //region getMoves Tests
+    //region getActions Tests
     @EpSemTest
     @SuppressWarnings("unchecked")
     public void getMovesFSMDescriptionInfersMoveSets() {
-        HashMap<Move, Integer> transitionSet1 = new HashMap<>();
-        transitionSet1.put(new Move("a"), 1);
-        transitionSet1.put(new Move("b"), 1);
-        transitionSet1.put(new Move("c"), 1);
-        HashMap<Move, Integer> transitionSet2 = new HashMap<>();
-        transitionSet2.put(new Move("a"), 1);
-        transitionSet2.put(new Move("b"), 1);
-        transitionSet2.put(new Move("c"), 1);
-        HashMap<Move, Integer>[] transitionTable = new HashMap[] {
+        HashMap<Action, Integer> transitionSet1 = new HashMap<>();
+        transitionSet1.put(new Action("a"), 1);
+        transitionSet1.put(new Action("b"), 1);
+        transitionSet1.put(new Action("c"), 1);
+        HashMap<Action, Integer> transitionSet2 = new HashMap<>();
+        transitionSet2.put(new Action("a"), 1);
+        transitionSet2.put(new Action("b"), 1);
+        transitionSet2.put(new Action("c"), 1);
+        HashMap<Action, Integer>[] transitionTable = new HashMap[] {
                         transitionSet1,
                         transitionSet2
                 };
         FSMDescription description = new FSMDescription(new FSMTransitionTable(transitionTable));
-        Move[] expectedMoves = new Move[] {
-                        new Move("a"),
-                        new Move("b"),
-                        new Move("c"),
+        Action[] expectedActions = new Action[] {
+                        new Action("a"),
+                        new Action("b"),
+                        new Action("c"),
                 };
-        assertArrayEquals(expectedMoves, description.getMoves());
+        assertArrayEquals(expectedActions, description.getActions());
     }
     //endregion
 
@@ -60,39 +60,39 @@ public class FSMDescriptionTest {
     @EpSemTest
     @SuppressWarnings("unchecked")
     public void transitionStateLessThanZeroThrowsException() {
-        HashMap<Move, Integer> transitionSet1 = new HashMap<>();
-        transitionSet1.put(new Move("a"), 1);
-        transitionSet1.put(new Move("b"), 1);
-        transitionSet1.put(new Move("c"), 1);
-        HashMap<Move, Integer>[] transitionTable = new HashMap[] {
+        HashMap<Action, Integer> transitionSet1 = new HashMap<>();
+        transitionSet1.put(new Action("a"), 1);
+        transitionSet1.put(new Action("b"), 1);
+        transitionSet1.put(new Action("c"), 1);
+        HashMap<Action, Integer>[] transitionTable = new HashMap[] {
                         transitionSet1
                 };
         FSMDescription description = new FSMDescription(new FSMTransitionTable(transitionTable));
-        assertThrows(IllegalArgumentException.class, () -> description.transition(-1, new Move("a")));
+        assertThrows(IllegalArgumentException.class, () -> description.transition(-1, new Action("a")));
     }
 
     @EpSemTest
     @SuppressWarnings("unchecked")
     public void transitionStateTooLargeThrowsException() {
-        HashMap<Move, Integer> transitionSet1 = new HashMap<>();
-        transitionSet1.put(new Move("a"), 0);
-        transitionSet1.put(new Move("b"), 0);
-        transitionSet1.put(new Move("c"), 0);
-        HashMap<Move, Integer>[] transitionTable = new HashMap[] {
+        HashMap<Action, Integer> transitionSet1 = new HashMap<>();
+        transitionSet1.put(new Action("a"), 0);
+        transitionSet1.put(new Action("b"), 0);
+        transitionSet1.put(new Action("c"), 0);
+        HashMap<Action, Integer>[] transitionTable = new HashMap[] {
                         transitionSet1
                 };
         FSMDescription description = new FSMDescription(new FSMTransitionTable(transitionTable));
-        assertThrows(IllegalArgumentException.class, () -> description.transition(1, new Move("a")));
+        assertThrows(IllegalArgumentException.class, () -> description.transition(1, new Action("a")));
     }
 
     @EpSemTest
     @SuppressWarnings("unchecked")
     public void transitionNullMoveThrowsException() {
-        HashMap<Move, Integer> transitionSet1 = new HashMap<>();
-        transitionSet1.put(new Move("a"), 0);
-        transitionSet1.put(new Move("b"), 0);
-        transitionSet1.put(new Move("c"), 0);
-        HashMap<Move, Integer>[] transitionTable = new HashMap[] {
+        HashMap<Action, Integer> transitionSet1 = new HashMap<>();
+        transitionSet1.put(new Action("a"), 0);
+        transitionSet1.put(new Action("b"), 0);
+        transitionSet1.put(new Action("c"), 0);
+        HashMap<Action, Integer>[] transitionTable = new HashMap[] {
                         transitionSet1
                 };
         FSMDescription description = new FSMDescription(new FSMTransitionTable(transitionTable));
@@ -102,29 +102,29 @@ public class FSMDescriptionTest {
     @EpSemTest
     @SuppressWarnings("unchecked")
     public void transitionInvalidMoveThrowsException() {
-        HashMap<Move, Integer> transitionSet1 = new HashMap<>();
-        transitionSet1.put(new Move("a"), 0);
-        transitionSet1.put(new Move("b"), 0);
-        transitionSet1.put(new Move("c"), 0);
-        HashMap<Move, Integer>[] transitionTable = new HashMap[] {
+        HashMap<Action, Integer> transitionSet1 = new HashMap<>();
+        transitionSet1.put(new Action("a"), 0);
+        transitionSet1.put(new Action("b"), 0);
+        transitionSet1.put(new Action("c"), 0);
+        HashMap<Action, Integer>[] transitionTable = new HashMap[] {
                         transitionSet1
                 };
         FSMDescription description = new FSMDescription(new FSMTransitionTable(transitionTable));
-        assertThrows(IllegalArgumentException.class, () -> description.transition(0, new Move("d")));
+        assertThrows(IllegalArgumentException.class, () -> description.transition(0, new Action("d")));
     }
 
     @EpSemTest
     @SuppressWarnings("unchecked")
     public void transitionReturnsNewState() {
-        HashMap<Move, Integer> transitionSet1 = new HashMap<>();
-        transitionSet1.put(new Move("a"), 1);
-        transitionSet1.put(new Move("b"), 2);
-        transitionSet1.put(new Move("c"), 3);
-        HashMap<Move, Integer>[] transitionTable = new HashMap[] {
+        HashMap<Action, Integer> transitionSet1 = new HashMap<>();
+        transitionSet1.put(new Action("a"), 1);
+        transitionSet1.put(new Action("b"), 2);
+        transitionSet1.put(new Action("c"), 3);
+        HashMap<Action, Integer>[] transitionTable = new HashMap[] {
                         transitionSet1
                 };
         FSMDescription description = new FSMDescription(new FSMTransitionTable(transitionTable));
-        assertEquals(2, description.transition(0, new Move("b")).getState());
+        assertEquals(2, description.transition(0, new Action("b")).getState());
     }
     //endregion
 
@@ -155,19 +155,19 @@ public class FSMDescriptionTest {
     //region Helper Methods
     @SuppressWarnings("unchecked")
     private FSMTransitionTable getFsmTransitionTable() {
-        HashMap<Move, Integer> transitionSet1 = new HashMap<>();
-        transitionSet1.put(new Move("a"), 1);
-        transitionSet1.put(new Move("b"), 1);
-        transitionSet1.put(new Move("c"), 1);
-        HashMap<Move, Integer> transitionSet2 = new HashMap<>();
-        transitionSet2.put(new Move("a"), 1);
-        transitionSet2.put(new Move("b"), 1);
-        transitionSet2.put(new Move("c"), 1);
-        HashMap<Move, Integer> transitionSet3 = new HashMap<>();
-        transitionSet3.put(new Move("a"), 1);
-        transitionSet3.put(new Move("b"), 1);
-        transitionSet3.put(new Move("c"), 1);
-        HashMap<Move, Integer>[] transitionTable = new HashMap[] {
+        HashMap<Action, Integer> transitionSet1 = new HashMap<>();
+        transitionSet1.put(new Action("a"), 1);
+        transitionSet1.put(new Action("b"), 1);
+        transitionSet1.put(new Action("c"), 1);
+        HashMap<Action, Integer> transitionSet2 = new HashMap<>();
+        transitionSet2.put(new Action("a"), 1);
+        transitionSet2.put(new Action("b"), 1);
+        transitionSet2.put(new Action("c"), 1);
+        HashMap<Action, Integer> transitionSet3 = new HashMap<>();
+        transitionSet3.put(new Action("a"), 1);
+        transitionSet3.put(new Action("b"), 1);
+        transitionSet3.put(new Action("c"), 1);
+        HashMap<Action, Integer>[] transitionTable = new HashMap[] {
                 transitionSet1,
                 transitionSet2,
                 transitionSet3

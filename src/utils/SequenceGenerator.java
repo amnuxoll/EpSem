@@ -1,35 +1,35 @@
 package utils;
 
-import framework.Move;
+import framework.Action;
 import framework.Sequence;
 
 import java.util.*;
 
 /**
  * SequenceGenerator
- * Builds sequences based on sets of {@link Move} with a canonical ordering.
+ * Builds sequences based on sets of {@link Action} with a canonical ordering.
  *
  * @author Zachary Paul Faltersack
  * @version 0.95
  */
 public class SequenceGenerator {
     //region Class Variables
-    private Move[] moves;
-    private HashMap<Move, Integer> moveIndex = new HashMap<>();
+    private Action[] actions;
+    private HashMap<Action, Integer> moveIndex = new HashMap<>();
     //endregion
 
     //region Constructors
     /**
-     * Create an instance of a SequenceGenerator based on the given moves.
+     * Create an instance of a SequenceGenerator based on the given actions.
      *
-     * @param moves The Move[] to build sequences from.
+     * @param actions The Action[] to build sequences from.
      */
-    public SequenceGenerator(Move[] moves) {
-        if (moves == null)
-            throw new IllegalArgumentException("moves cannot be null.");
-        this.moves = moves;
-        for (int i = 0; i < this.moves.length; i++) {
-            this.moveIndex.put(this.moves[i], i);
+    public SequenceGenerator(Action[] actions) {
+        if (actions == null)
+            throw new IllegalArgumentException("actions cannot be null.");
+        this.actions = actions;
+        for (int i = 0; i < this.actions.length; i++) {
+            this.moveIndex.put(this.actions[i], i);
         }
     }
     //endregion
@@ -46,23 +46,23 @@ public class SequenceGenerator {
             throw new IndexOutOfBoundsException("index must be a positive number.  Has your next permutation index overflowed?");
         }// if
 
-        if (this.moves.length == 0)
+        if (this.actions.length == 0)
             return Sequence.EMPTY;
 
-        List<Move> nextSequence = new ArrayList<>();
-        if (index <= this.moves.length) {
-            nextSequence.add(this.moves[(int)index - 1]);
+        List<Action> nextSequence = new ArrayList<>();
+        if (index <= this.actions.length) {
+            nextSequence.add(this.actions[(int)index - 1]);
         }// if
         else {
             while (index > 0) {
                 index--;
-                long movesIndex= index % this.moves.length;
-                nextSequence.add(0, this.moves[(int)movesIndex]);
-                index /= this.moves.length;
+                long movesIndex= index % this.actions.length;
+                nextSequence.add(0, this.actions[(int)movesIndex]);
+                index /= this.actions.length;
             }// while
         }
 
-        return new Sequence(nextSequence.toArray(new Move[0]));
+        return new Sequence(nextSequence.toArray(new Action[0]));
     }// nextPermutation
 
     /**
@@ -74,13 +74,13 @@ public class SequenceGenerator {
     public long getCanonicalIndex(Sequence sequence) {
         if (sequence == null)
             throw new IllegalArgumentException("sequence cannot be null");
-        ArrayList<Move> moves = new ArrayList<>(Arrays.asList(sequence.getMoves()));
-        Collections.reverse(moves);
+        ArrayList<Action> actions = new ArrayList<>(Arrays.asList(sequence.getActions()));
+        Collections.reverse(actions);
         double total = 0;
-        for (int i = 0; i < moves.size(); i++)
+        for (int i = 0; i < actions.size(); i++)
         {
-            int index = this.moveIndex.get(moves.get(i)) + 1;
-            total += Math.pow(this.moves.length, i) * index;
+            int index = this.moveIndex.get(actions.get(i)) + 1;
+            total += Math.pow(this.actions.length, i) * index;
         }
         return (long)total;
     }

@@ -1,7 +1,7 @@
 package tests.agents.RAgent;
 
 import agents.RAgent.MemoryPattern;
-import framework.Move;
+import framework.Action;
 import framework.SensorData;
 import tests.EpSemTest;
 import tests.EpSemTestClass;
@@ -24,8 +24,8 @@ public class MemoryPatternTest {
         SensorData post2 = new SensorData(false);
         post2.setSensor("sensor1", false);
 
-        Move a1 = new Move("a");
-        Move a2 = new Move("a");
+        Action a1 = new Action("a");
+        Action a2 = new Action("a");
 
         MemoryPattern mp1 = new MemoryPattern(pre1, a1, post1);
         MemoryPattern mp2 = new MemoryPattern(pre2, a2, post2);

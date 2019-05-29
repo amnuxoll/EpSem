@@ -1,6 +1,6 @@
 package tests.framework;
 
-import framework.Move;
+import framework.Action;
 
 import tests.EpSemTest;
 import tests.EpSemTestClass;
@@ -16,45 +16,45 @@ public class MoveTest {
     //region Constructor Tests
     @EpSemTest
     public void testConstructorNullNameThrowsException() {
-        assertThrows(IllegalArgumentException.class, () -> new Move(null));
+        assertThrows(IllegalArgumentException.class, () -> new Action(null));
     }
 
     @EpSemTest
     public void testConstructorEmptyNameThrowsException() {
-        assertThrows(IllegalArgumentException.class, () -> new Move(""));
+        assertThrows(IllegalArgumentException.class, () -> new Action(""));
     }
     //endregion
 
     //region getName Tests
     @EpSemTest
     public void testGetName() {
-        Move move = new Move("move");
-        assertEquals("move", move.getName());
+        Action action = new Action("action");
+        assertEquals("action", action.getName());
     }
     //endregion
 
     //region equals Tests
     @EpSemTest
     public void testEqualsAreEqual() {
-        Move move1 = new Move("move");
-        Move move2 = new Move("move");
-        assertEquals(move1, move2);
+        Action action1 = new Action("move");
+        Action action2 = new Action("move");
+        assertEquals(action1, action2);
     }
 
     @EpSemTest
     public void testEqualsAreNotEqual() {
-        Move move1 = new Move("move1");
-        Move move2 = new Move("move2");
-        assertNotEquals(move1, move2);
+        Action action1 = new Action("action1");
+        Action action2 = new Action("action2");
+        assertNotEquals(action1, action2);
     }
     //endregion
 
     //region hashCode Tests
     @EpSemTest
     public void testHashCodeAreEqual() {
-        Move move1 = new Move("move");
-        Move move2 = new Move("move");
-        assertEquals(move1.hashCode(), move2.hashCode());
+        Action action1 = new Action("move");
+        Action action2 = new Action("move");
+        assertEquals(action1.hashCode(), action2.hashCode());
     }
     //endregion
 
@@ -62,8 +62,8 @@ public class MoveTest {
     @EpSemTest
     public void toStringIsName()
     {
-        Move move = new Move("move");
-        assertEquals("move", move.toString());
+        Action action = new Action("action");
+        assertEquals("action", action.toString());
     }
     //endregion
 }

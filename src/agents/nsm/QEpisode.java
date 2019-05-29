@@ -1,7 +1,7 @@
 package agents.nsm;
 
 import framework.Episode;
-import framework.Move;
+import framework.Action;
 import framework.SensorData;
 
 /**
@@ -23,8 +23,8 @@ public class QEpisode extends Episode {
     //endregion
 
     //region Constructors
-    public QEpisode(SensorData sensorData, Move move, double successReward, double failureReward) {
-        super(sensorData, move);
+    public QEpisode(SensorData sensorData, Action action, double successReward, double failureReward) {
+        super(sensorData, action);
         this.successReward = successReward;
         this.failureReward = failureReward;
         if (sensorData.isGoal())

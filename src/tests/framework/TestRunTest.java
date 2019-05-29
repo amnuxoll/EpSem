@@ -40,7 +40,7 @@ public class TestRunTest {
         TestEnvironmentDescription environmentDescription = new TestEnvironmentDescription();
         TestRun testRun = new TestRun(agent, environmentDescription, 1);
         testRun.execute();
-        assertArrayEquals(environmentDescription.getMoves(), agent.moves);
+        assertArrayEquals(environmentDescription.getActions(), agent.actions);
     }
 
     @EpSemTest
@@ -59,9 +59,9 @@ public class TestRunTest {
         SensorData sensorB = new SensorData(false);
         sensorB.setSensor("b", "b");
 
-        Episode episodeA = new Episode(new SensorData(true), new Move("a"));
-        Episode episodeB = new Episode(sensorA, new Move("b"));
-        Episode episodeC = new Episode(sensorB, new Move("c"));
+        Episode episodeA = new Episode(new SensorData(true), new Action("a"));
+        Episode episodeB = new Episode(sensorA, new Action("b"));
+        Episode episodeC = new Episode(sensorB, new Action("c"));
         Episode[] expectedEpisodicMemory = new Episode[] {
                         episodeA, episodeB, episodeC
                 };
@@ -96,13 +96,13 @@ public class TestRunTest {
         SensorData sensorC = new SensorData(true);
         sensorC.setSensor("c", "c");
 
-        Episode episodeA = new Episode(sensorC, new Move("a"));
-        Episode episodeB = new Episode(sensorA, new Move("b"));
-        Episode episodeC = new Episode(sensorB, new Move("c"));
+        Episode episodeA = new Episode(sensorC, new Action("a"));
+        Episode episodeB = new Episode(sensorA, new Action("b"));
+        Episode episodeC = new Episode(sensorB, new Action("c"));
 
         // The first sensor data is the base GOAL template provided by the framework
         Episode[] expectedEpisodicMemory = new Episode[] {
-                new Episode(new SensorData(true), new Move("a")), episodeB, episodeC,
+                new Episode(new SensorData(true), new Action("a")), episodeB, episodeC,
                         episodeA, episodeB, episodeC,
                         episodeA, episodeB, episodeC
                 };
@@ -125,7 +125,7 @@ public class TestRunTest {
 
     //region "mock" classes
     private class TestAgent implements IAgent {
-        public Move[] moves;
+        public Action[] actions;
 
         public ArrayList<Episode> episodes = new ArrayList<>();
         public boolean testRunComplete = false;
@@ -134,18 +134,18 @@ public class TestRunTest {
         private int moveIndex = 0;
 
         @Override
-        public void initialize(Move[] moves, IIntrospector introspector) {
-            this.moves = moves;
+        public void initialize(Action[] actions, IIntrospector introspector) {
+            this.actions = actions;
         }
 
         @Override
-        public Move getNextMove(SensorData sensorData) {
-            Move move = this.moves[this.moveIndex++];
-            Episode episode = new Episode(sensorData, move);
+        public Action getNextMove(SensorData sensorData) {
+            Action action = this.actions[this.moveIndex++];
+            Episode episode = new Episode(sensorData, action);
             this.episodes.add(episode);
-            if (this.moveIndex >= this.moves.length)
+            if (this.moveIndex >= this.actions.length)
                 this.moveIndex = 0;
-            return move;
+            return action;
         }
 
         @Override
@@ -177,14 +177,14 @@ public class TestRunTest {
 
     private  class TestEnvironmentDescription implements IEnvironmentDescription {
         @Override
-        public Move[] getMoves() {
-            return new Move[] { new Move("a"), new Move("b"), new Move("c") };
+        public Action[] getActions() {
+            return new Action[] { new Action("a"), new Action("b"), new Action("c") };
         }
 
         @Override
-        public TransitionResult transition(int currentState, Move move) {
-            SensorData sensorData = new SensorData(move.equals(this.getMoves()[2]));
-            sensorData.setSensor(move.getName(), move.getName());
+        public TransitionResult transition(int currentState, Action action) {
+            SensorData sensorData = new SensorData(action.equals(this.getActions()[2]));
+            sensorData.setSensor(action.getName(), action.getName());
             return new TransitionResult(0, sensorData);
         }
 

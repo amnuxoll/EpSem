@@ -215,13 +215,13 @@ public class TestSuiteTest {
             this.includeAdditionalStatistics = includeAdditionalStatistics;
         }
         @Override
-        public void initialize(Move[] moves, IIntrospector introspector) {
+        public void initialize(Action[] actions, IIntrospector introspector) {
 
         }
 
         @Override
-        public Move getNextMove(SensorData sensorData) {
-            return new Move("a");
+        public Action getNextMove(SensorData sensorData) {
+            return new Action("a");
         }
 
         @Override
@@ -258,12 +258,12 @@ public class TestSuiteTest {
     private class TestEnvironmentDescription implements IEnvironmentDescription {
 
         @Override
-        public Move[] getMoves() {
-            return new Move[] { new Move("a") };
+        public Action[] getActions() {
+            return new Action[] { new Action("a") };
         }
 
         @Override
-        public TransitionResult transition(int currentState, Move move) {
+        public TransitionResult transition(int currentState, Action action) {
             return new TransitionResult(0, new SensorData(true));
         }
 

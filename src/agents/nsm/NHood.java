@@ -1,6 +1,7 @@
 package agents.nsm;
 
-import framework.Move;
+import framework.Action;
+
 import java.util.ArrayList;
 import java.util.Collections;
 
@@ -19,20 +20,20 @@ public class NHood {
     //endregion
 
     //region Class Variables
-    public Move command;           // action associated with this neighborhood
+    public Action command;           // action associated with this neighborhood
     public ArrayList<NBor> nbors;  // neigbhors in the hood
     public int shortest = 0;       //length of shortest neighbor
     //endregion
 
     //region Constructors
-    public NHood(Move initMove) {
-        this.command = initMove;
+    public NHood(Action initAction) {
+        this.command = initAction;
         nbors = new ArrayList<NBor>();
     }
     //endregion
 
     //region Public Methods
-    public Move getMove()
+    public Action getMove()
     {
         return this.command;
     }

@@ -28,7 +28,7 @@ import utils.*;
  */
 public class PredrAgent implements framework.IAgent {
 
-    private Move[] moves = null;
+    private Action[] actions = null;
     /** used to generate the "next sequence to try" */
     private SequenceGenerator nstGen = null;
     /** index of the "next sequence to try" in nstGen */
@@ -41,12 +41,12 @@ public class PredrAgent implements framework.IAgent {
     private ArrayList<Rule> rules = new ArrayList<Rule>();
     
     /**
-     * Set the available {@link Move}s for the agent in the current environment.
-     * @param moves An array of {@link Move} representing the moves available to the agent.
+     * Set the available {@link Action}s for the agent in the current environment.
+     * @param actions An array of {@link Action} representing the actions available to the agent.
      */
-    public void initialize(Move[] moves, IIntrospector introspector) {
-        this.moves = moves;
-        this.nstGen = new SequenceGenerator(moves);
+    public void initialize(Action[] actions, IIntrospector introspector) {
+        this.actions = actions;
+        this.nstGen = new SequenceGenerator(actions);
         this.nst = nstGen.nextPermutation(nstNum);
         nstNum++;
     }
@@ -54,10 +54,10 @@ public class PredrAgent implements framework.IAgent {
     /**
      * Get the next move based on the provided sensorData.
      * @param sensorData The {@link SensorData} from the current move.
-     * @return the next {@link Move} to attempt.
+     * @return the next {@link Action} to attempt.
      * @throws Exception
      */
-    public Move getNextMove(SensorData sensorData) throws Exception {
+    public Action getNextMove(SensorData sensorData) throws Exception {
         //first call will give me null for initialization but I don't care
         if (sensorData == null) return null;
 
@@ -66,10 +66,10 @@ public class PredrAgent implements framework.IAgent {
             this.nst = nstGen.nextPermutation(nstNum);
             nstNum++;
         }
-        Move nextMove =  nst.next();
+        Action nextAction =  nst.next();
 
         //Add a new episode
-        Episode nextEpisode = new Episode(sensorData, nextMove);
+        Episode nextEpisode = new Episode(sensorData, nextAction);
 
         //Create a rule from this sensor and the previous episode
         if (this.epmem.length() > 0) {
@@ -77,7 +77,7 @@ public class PredrAgent implements framework.IAgent {
             
             for(String sName : sensorData.getSensorNames()) {
                 Rule newRule = new Rule(prevEpisode.getSensorData(),
-                                        prevEpisode.getMove(),
+                                        prevEpisode.getAction(),
                                         sensorData,
                                         sName,
                                         this.epmem.currentIndex());
@@ -86,7 +86,7 @@ public class PredrAgent implements framework.IAgent {
         }//if
 
         this.epmem.add(nextEpisode);
-        return nextMove;
+        return nextAction;
     }//getNextMove
 
 

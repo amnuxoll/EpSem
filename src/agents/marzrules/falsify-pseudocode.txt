@@ -4,7 +4,7 @@
 
 // equivalently, iterate over current, look for the shallowest rule to falsify that could even conceivably be reached
 
-// function which returns a single move in order to "falsify" superstitions
+// function which returns a single action in order to "falsify" superstitions
 
 public Move falsify(ArrayList<RuleNode> current) {
     Move toTake = null;//TODO: make random?
@@ -16,11 +16,11 @@ public Move falsify(ArrayList<RuleNode> current) {
         if (i <= bestDepth){ // because current has one rule of each depth, i also effectively measures depth of parent RuleNode
             break;
         }
-        for (Move move : alphabet) {
-            RuleNode superstition = getNextTestable(current[i], move);
+        for (Move action : alphabet) {
+            RuleNode superstition = getNextTestable(current[i], action);
             //TODO: this assumes depth means something more intuitive than what I think is reflected in our implementation
             if (superstition.depth < bestDepth){ //TODO: superstition.depth + 1 to enforce choice of simplest rules?
-                toTake = move;
+                toTake = action;
             }
         }
     }
@@ -31,10 +31,10 @@ public Move falsify(ArrayList<RuleNode> current) {
 //breadth first search for nearest testable child
 //this function is called twice (in a 2-alphabet) per node in current, which I'd like do more simply but alas alack
 
-public RuleNode getNextTestable(RuleNode parent, Move move){
+public RuleNode getNextTestable(RuleNode parent, Move action){
     ArrayDeque<RuleNode> q = null;
     RuleNode p = parent;
-    ArrayList<RuleNode> moveChildren = p.children.get(move);
+    ArrayList<RuleNode> moveChildren = p.children.get(action);
     q.addAll(moveChildren); //initial queue is the specific branch of children that the caller of this function was looking at
     while(queue.length() > 0) {
         p = queue.remove();

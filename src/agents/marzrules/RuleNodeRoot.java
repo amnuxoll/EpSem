@@ -1,6 +1,6 @@
 package agents.marzrules;
 
-import framework.Move;
+import framework.Action;
 
 import java.util.ArrayList;
 import java.util.Map;
@@ -12,36 +12,36 @@ import java.util.Optional;
 public class RuleNodeRoot extends RuleNode {
     private ArrayList<RuleNode> childArray;
 
-    public RuleNodeRoot(Move[] potentialMoves, int maxDepth){
-        super(potentialMoves, -1, maxDepth, 0);
+    public RuleNodeRoot(Action[] potentialActions, int maxDepth){
+        super(potentialActions, -1, maxDepth, 0);
         if (maxDepth  <= 0 ){
             throw new IllegalArgumentException("Must have max depth of at least 1");
         }
         childArray = new ArrayList<>();
-        childArray.add(new RuleNodeGoal(potentialMoves, 1));
-        for (Map.Entry<Move,ArrayList<RuleNode>> entry : children.entrySet()){
+        childArray.add(new RuleNodeGoal(potentialActions, 1));
+        for (Map.Entry<Action,ArrayList<RuleNode>> entry : children.entrySet()){
             entry.setValue(childArray);
         }
         visited = true;
     }
 
     @Override
-    protected int getMoveFrequency(Move move) {
+    protected int getMoveFrequency(Action action) {
         return frequency;
     }
 
     @Override
-    public int incrementMoveFrequency(Move move) {
-        //Don't actually increase frequency, since all moves are the same to root, and it will already by incremented by occurs() call
+    public int incrementMoveFrequency(Action action) {
+        //Don't actually increase frequency, since all actions are the same to root, and it will already by incremented by occurs() call
         return frequency;
     }
 
     @Override
-    public RuleNode getNextChild(Move move, int nextSense) {
-        if (move == null){
+    public RuleNode getNextChild(Action action, int nextSense) {
+        if (action == null){
             return super.getChildBySense(childArray, nextSense);
         }
-        return super.getNextChild(move, nextSense);
+        return super.getNextChild(action, nextSense);
     }
 
 

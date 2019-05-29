@@ -10,18 +10,18 @@ import java.util.ArrayList;
 public interface IAgent {
     //region Methods
     /**
-     * Set the available {@link Move}s for the agent in the current environment.
-     * @param moves An array of {@link Move} representing the moves available to the agent.
+     * Set the available {@link Action}s for the agent in the current environment.
+     * @param actions An array of {@link Action} representing the actions available to the agent.
      */
-    public void initialize(Move[] moves, IIntrospector introspector);
+    public void initialize(Action[] actions, IIntrospector introspector);
 
     /**
      * Get the next move based on the provided sensorData.
      * @param sensorData The {@link SensorData} from the current move.
-     * @return the next {@link Move} to attempt.
+     * @return the next {@link Action} to attempt.
      * @throws Exception
      */
-    public Move getNextMove(SensorData sensorData) throws Exception;
+    public Action getNextMove(SensorData sensorData) throws Exception;
     //endregion
 
     //region Defaulted Methods for gathering statistics

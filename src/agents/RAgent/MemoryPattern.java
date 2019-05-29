@@ -1,6 +1,6 @@
 package agents.RAgent;
 
-import framework.Move;
+import framework.Action;
 import framework.SensorData;
 
 /**
@@ -14,11 +14,11 @@ import framework.SensorData;
 
 public class MemoryPattern {
     private SensorData currentSensors;
-    private Move action;
+    private Action action;
     private SensorData resultSensors;
     int timesSeen;
 
-    public MemoryPattern(SensorData current, Move action, SensorData result){
+    public MemoryPattern(SensorData current, Action action, SensorData result){
         this.currentSensors = current;
         this.action = action;
         this.resultSensors = result;

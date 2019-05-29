@@ -57,16 +57,16 @@ public class MetaEnvironmentDescriptionProviderTest {
     private class TestEnvironmentDescription implements  IEnvironmentDescription {
 
         @Override
-        public Move[] getMoves() {
-            Move[] moves = {
-                    new Move("a"),
-                    new Move("b")
+        public Action[] getActions() {
+            Action[] actions = {
+                    new Action("a"),
+                    new Action("b")
             };
-            return moves;
+            return actions;
         }
 
         @Override
-        public TransitionResult transition(int currentState, Move move) {
+        public TransitionResult transition(int currentState, Action action) {
             return null;
         }
 

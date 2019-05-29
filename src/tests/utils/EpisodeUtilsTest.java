@@ -1,7 +1,7 @@
 package tests.utils;
 
+import framework.Action;
 import framework.Episode;
-import framework.Move;
 import utils.EpisodeUtils;
 
 import tests.EpSemTest;
@@ -19,18 +19,18 @@ public class EpisodeUtilsTest {
     @EpSemTest
     public void selectMoves()
     {
-        Move[] expectedMoves = new Move[] {
-                new Move("move1"),
-                new Move("move2"),
-                new Move("move3")
+        Action[] expectedActions = new Action[] {
+                new Action("move1"),
+                new Action("move2"),
+                new Action("move3")
         };
         Episode[] episodes = new Episode[] {
-                new Episode(null, expectedMoves[0]),
-                new Episode(null, expectedMoves[1]),
-                new Episode(null, expectedMoves[2])
+                new Episode(null, expectedActions[0]),
+                new Episode(null, expectedActions[1]),
+                new Episode(null, expectedActions[2])
         };
-        Move[] actualMoves = EpisodeUtils.selectMoves(episodes);
-        assertArrayEquals(expectedMoves, actualMoves);
+        Action[] actualActions = EpisodeUtils.selectMoves(episodes);
+        assertArrayEquals(expectedActions, actualActions);
     }
 
     @EpSemTest

@@ -170,8 +170,8 @@ public class WeightTable {
         //also, if there is no previos goal, do nothing
         if(previousGoalIndex < 0) return;
 
-        Move[] moves = EpisodeUtils.selectMoves(episodes.subset(goalSequenceIndex));
-        Sequence goalSequence = new Sequence(moves);
+        Action[] actions = EpisodeUtils.selectMoves(episodes.subset(goalSequenceIndex));
+        Sequence goalSequence = new Sequence(actions);
 
         int nextGoalIndex= previousGoalIndex;
         //nextGoalIndex is the index of the goal after the current window
@@ -191,7 +191,7 @@ public class WeightTable {
                     return;
                 }
             }
-            Move[] moves2 = EpisodeUtils.selectMoves(episodes.subset(i + 1,nextGoalIndex + 1));
+            Action[] moves2 = EpisodeUtils.selectMoves(episodes.subset(i + 1,nextGoalIndex + 1));
             Sequence goalSequence2 = new Sequence(moves2);
             double attemptSimilarity = getAttemptSimlarity(goalSequence, goalSequence2);
             double actualSimilarity = getActualSimilarity(goalSequence, goalSequence2);
@@ -274,11 +274,11 @@ public class WeightTable {
     private double getAttemptSimlarity(Sequence goalSequence1, Sequence goalSequence2){
         int m= Math.min(goalSequence1.getLength(),goalSequence2.getLength());
         int i = 0;
-        Move[] gs1Moves = goalSequence1.getMoves();
-        Move[] gs2Moves = goalSequence2.getMoves();
+        Action[] gs1Actions = goalSequence1.getActions();
+        Action[] gs2Actions = goalSequence2.getActions();
 
         for(; i<m; i++) {
-            if(gs1Moves[i] != gs2Moves[i]) break;
+            if(gs1Actions[i] != gs2Actions[i]) break;
         }
 
         return (double) i/m;

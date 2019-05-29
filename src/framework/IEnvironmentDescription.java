@@ -9,18 +9,18 @@ package framework;
 public interface IEnvironmentDescription {
     //region Methods
     /**
-     * Get the valid moves for this environment description.
-     * @return an array of {@link Move} for this environment description.
+     * Get the valid actions for this environment description.
+     * @return an array of {@link Action} for this environment description.
      */
-    Move[] getMoves();
+    Action[] getActions();
 
     /**
-     * Get the next state from the given move at the current state.
+     * Get the next state from the given action at the current state.
      * @param currentState The state to transition from.
-     * @param move The move to make from the current state.
+     * @param action The action to make from the current state.
      * @return The resulting state.
      */
-    TransitionResult transition(int currentState, Move move);
+    TransitionResult transition(int currentState, Action action);
 
     /**
      * Get the number of states in this environment description.

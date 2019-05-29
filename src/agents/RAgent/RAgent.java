@@ -8,7 +8,7 @@ import java.util.ArrayList;
 /**
  * RAgent Class
  *
- * an agent that makes random moves in an FSM to measure the most commonly occurring patterns
+ * an agent that makes random actions in an FSM to measure the most commonly occurring patterns
  * in the agent's episodic memory
  *
  * @author Patrick Maloney
@@ -16,7 +16,7 @@ import java.util.ArrayList;
  */
 public class RAgent implements IAgent {
 
-    private Move[] moves;
+    private Action[] actions;
     private int movesMade;
     private int numMovesToMake;
     protected EpisodicMemory<Episode> episodicMemory = new EpisodicMemory<>();
@@ -31,21 +31,21 @@ public class RAgent implements IAgent {
     }
 
     @Override
-    public void initialize(Move[] alphabet, IIntrospector introspector){
+    public void initialize(Action[] alphabet, IIntrospector introspector){
         this.patternsSeen = new ArrayList<>();
-        this.moves = alphabet;
+        this.actions = alphabet;
     }
 
     @Override
-    public Move getNextMove(SensorData sensorData){
+    public Action getNextMove(SensorData sensorData){
         movesMade++;
-        Move nextMove = moves[(int)(Math.random() * moves.length)];
+        Action nextAction = actions[(int)(Math.random() * actions.length)];
 
         if (episodicMemory.any()) {
             if(episodicMemory.length() > 1){ //if we have enough memories to start making patterns
                 MemoryPattern currentPattern = new MemoryPattern(
                         episodicMemory.get(episodicMemory.length() -2).getSensorData(), //the previous episode's sensorData
-                        episodicMemory.get(episodicMemory.length() -1).getMove(), //the previous episodes move
+                        episodicMemory.get(episodicMemory.length() -1).getAction(), //the previous episodes move
                         sensorData); //the sensordata that we saw as a result of that move
 
                 if(!containsPattern(patternsSeen, currentPattern)){ //if we haven't seen this pattern yet, add it to the list
@@ -57,14 +57,14 @@ public class RAgent implements IAgent {
         }
 
         if(movesMade %1000 == 0) {
-            System.out.println("made "+movesMade+" moves.");
+            System.out.println("made "+movesMade+" actions.");
         }
         if(sensorData != null && sensorData.isGoal()) {
             numGoalsFound++;
             //System.out.println("I found a goal!");
         }
-        episodicMemory.add(new Episode(sensorData, nextMove));
-        return nextMove;
+        episodicMemory.add(new Episode(sensorData, nextAction));
+        return nextAction;
     }
 
     private boolean containsPattern(ArrayList<MemoryPattern> patternsSeen, MemoryPattern pattern){

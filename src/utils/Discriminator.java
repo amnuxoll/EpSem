@@ -1,6 +1,6 @@
 package utils;
 
-import framework.Move;
+import framework.Action;
 import framework.SensorData;
 
 import java.util.HashMap;
@@ -8,7 +8,7 @@ import java.util.HashSet;
 import java.util.Map;
 
 /**
- * The {@link Discriminator} will track the variance of sensor values received after a given {@link Move} is
+ * The {@link Discriminator} will track the variance of sensor values received after a given {@link Action} is
  * executed. The INVARIANT here is that the entity using this class has some reasonable understanding that the
  * {@link SensorData} that are tracked are all received when entering the same state.
  *
@@ -29,23 +29,23 @@ import java.util.Map;
 public class Discriminator {
     //region Class Variables
     private String[] sensors;
-    private HashMap<Move, Match> matchingMaps = new HashMap<>();
+    private HashMap<Action, Match> matchingMaps = new HashMap<>();
     //endregion
 
     //region Public Methods
     /**
-     * Update the variance of sensor data using the given sensor against the given move.
+     * Update the variance of sensor data using the given sensor against the given action.
      *
-     * @param sensor the {@link SensorData} received after executing the given Move and entering a known state.
-     * @param move the {@link Move} that was just executed.
+     * @param sensor the {@link SensorData} received after executing the given Action and entering a known state.
+     * @param action the {@link Action} that was just executed.
      */
-    public void add(SensorData sensor, Move move) {
+    public void add(SensorData sensor, Action action) {
         if (this.sensors == null)
             this.sensors = sensor.getSensorNames().toArray(new String[0]);
-        if (this.matchingMaps.containsKey(move))
-            this.matchingMaps.get(move).update(sensor);
+        if (this.matchingMaps.containsKey(action))
+            this.matchingMaps.get(action).update(sensor);
         else
-            this.matchingMaps.put(move, new Match(sensor));
+            this.matchingMaps.put(action, new Match(sensor));
     }
 
     /**

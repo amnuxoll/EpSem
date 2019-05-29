@@ -1,6 +1,6 @@
 package tests.agents.marzrules;
 
-import framework.Move;
+import framework.Action;
 import tests.EpSemTest;
 import tests.EpSemTestClass;
 import agents.marzrules.RuleNode;
@@ -14,20 +14,20 @@ import static tests.Assertions.*;
 public class RuleNodeRootTest {
 
     public static RuleNodeRoot setup(){
-        Move[] moves = { new Move("a"), new Move("b"), new Move("c") };
-        return new RuleNodeRoot(moves, 4);
+        Action[] actions = { new Action("a"), new Action("b"), new Action("c") };
+        return new RuleNodeRoot(actions, 4);
     }
 
     //region Constructor tests
     @EpSemTest
     public void testZeroMaxDepth(){
-        assertThrows(IllegalArgumentException.class, () -> new RuleNodeRoot(new Move[] {new Move("a") }, 0));
-        assertThrows(IllegalArgumentException.class, () -> new RuleNodeRoot(new Move[] {new Move("a") }, -1));
+        assertThrows(IllegalArgumentException.class, () -> new RuleNodeRoot(new Action[] {new Action("a") }, 0));
+        assertThrows(IllegalArgumentException.class, () -> new RuleNodeRoot(new Action[] {new Action("a") }, -1));
     }
 
     @EpSemTest
     public void testNoThrow(){
-        assertNotNull(new RuleNodeRoot(new Move[] {new Move("a")}, 1));
+        assertNotNull(new RuleNodeRoot(new Action[] {new Action("a")}, 1));
     }
     //endregion
 
@@ -42,26 +42,26 @@ public class RuleNodeRootTest {
     @EpSemTest
     public void testSameSenseSameMove(){
         RuleNodeRoot root = setup();
-        Move move = new Move("a");
-        RuleNode child1 = root.getNextChild(move, 0);
-        RuleNode child2 = root.getNextChild(move, 0);
+        Action action = new Action("a");
+        RuleNode child1 = root.getNextChild(action, 0);
+        RuleNode child2 = root.getNextChild(action, 0);
         assertEquals(child1, child2);
     }
 
     @EpSemTest
     public void testSameSenseDifferentMove(){
         RuleNodeRoot root = setup();
-        RuleNode child1 = root.getNextChild(new Move("a"), 0);
-        RuleNode child2 = root.getNextChild(new Move("b"), 0);
+        RuleNode child1 = root.getNextChild(new Action("a"), 0);
+        RuleNode child2 = root.getNextChild(new Action("b"), 0);
         assertEquals(child1, child2);
     }
 
     @EpSemTest
     public void testDifferentSense(){
         RuleNodeRoot root = setup();
-        Move move = new Move("a");
-        RuleNode child1 = root.getNextChild(move, 0);
-        RuleNode child2 = root.getNextChild(move, 1);
+        Action action = new Action("a");
+        RuleNode child1 = root.getNextChild(action, 0);
+        RuleNode child2 = root.getNextChild(action, 1);
         assertNotEquals(child1, child2);
     }
     //endregion

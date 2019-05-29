@@ -1,6 +1,6 @@
 package agents.marzrules;
 
-import framework.Move;
+import framework.Action;
 import framework.NamedOutput;
 import framework.Sequence;
 
@@ -16,7 +16,7 @@ import java.util.Arrays;
 public class RuleSetEvaluator {
     //region Class Variables
     Sequence[] sequences;
-    ArrayList<ArrayList<Move>> suffixSequences;
+    ArrayList<ArrayList<Action>> suffixSequences;
     //endregion
 
     //region Constructors
@@ -24,7 +24,7 @@ public class RuleSetEvaluator {
         this.sequences = sequences;
         this.suffixSequences = new ArrayList<>();
         for (Sequence suffix : sequences) {
-            suffixSequences.add(new ArrayList<>(Arrays.asList(suffix.getMoves())));
+            suffixSequences.add(new ArrayList<>(Arrays.asList(suffix.getActions())));
         }
     }
     //endregion
@@ -37,8 +37,8 @@ public class RuleSetEvaluator {
         this.writeSuffixLine();
         for (RuleNode node : ruleSet.getCurrent()) {
            namedOutput.write("RuleSetEvaluator", node.toString() + ",");
-           for (ArrayList<Move> moves : this.suffixSequences) {
-               namedOutput.write("RuleSetEvaluator", node.getGoalProbability(moves, 0) + ",");
+           for (ArrayList<Action> actions : this.suffixSequences) {
+               namedOutput.write("RuleSetEvaluator", node.getGoalProbability(actions, 0) + ",");
            }
             namedOutput.writeLine("RuleSetEvaluator");
         }

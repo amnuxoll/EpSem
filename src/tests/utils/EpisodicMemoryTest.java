@@ -1,7 +1,7 @@
 package tests.utils;
 
+import framework.Action;
 import framework.Episode;
-import framework.Move;
 import framework.SensorData;
 import utils.EpisodicMemory;
 
@@ -26,7 +26,7 @@ public class EpisodicMemoryTest {
     @EpSemTest
     public void anyNotEmpty() {
         EpisodicMemory<Episode> episodicMemory = new EpisodicMemory<>();
-        episodicMemory.add(new Episode(new SensorData(false), new Move("move")));
+        episodicMemory.add(new Episode(new SensorData(false), new Action("move")));
         assertTrue(episodicMemory.any());
     }
     //endregion
@@ -41,11 +41,11 @@ public class EpisodicMemoryTest {
     @EpSemTest
     public void currentReturnsLastItem() {
         EpisodicMemory<Episode> episodicMemory = new EpisodicMemory<>();
-        episodicMemory.add(new Episode(new SensorData(false), new Move("move1")));
-        episodicMemory.add(new Episode(new SensorData(false), new Move("move2")));
-        episodicMemory.add(new Episode(new SensorData(false), new Move("move3")));
+        episodicMemory.add(new Episode(new SensorData(false), new Action("move1")));
+        episodicMemory.add(new Episode(new SensorData(false), new Action("move2")));
+        episodicMemory.add(new Episode(new SensorData(false), new Action("move3")));
         Episode currrent = episodicMemory.current();
-        assertEquals(new Move("move3"), currrent.getMove());
+        assertEquals(new Action("move3"), currrent.getAction());
     }
     //endregion
 
@@ -59,9 +59,9 @@ public class EpisodicMemoryTest {
     @EpSemTest
     public void currentIndex() {
         EpisodicMemory<Episode> episodicMemory = new EpisodicMemory<>();
-        episodicMemory.add(new Episode(new SensorData(false), new Move("move1")));
-        episodicMemory.add(new Episode(new SensorData(false), new Move("move2")));
-        episodicMemory.add(new Episode(new SensorData(false), new Move("move3")));
+        episodicMemory.add(new Episode(new SensorData(false), new Action("move1")));
+        episodicMemory.add(new Episode(new SensorData(false), new Action("move2")));
+        episodicMemory.add(new Episode(new SensorData(false), new Action("move3")));
         assertEquals(2, episodicMemory.currentIndex());
     }
     //endregion
@@ -76,9 +76,9 @@ public class EpisodicMemoryTest {
     @EpSemTest
     public void length() {
         EpisodicMemory<Episode> episodicMemory = new EpisodicMemory<>();
-        episodicMemory.add(new Episode(new SensorData(false), new Move("move1")));
-        episodicMemory.add(new Episode(new SensorData(false), new Move("move2")));
-        episodicMemory.add(new Episode(new SensorData(false), new Move("move3")));
+        episodicMemory.add(new Episode(new SensorData(false), new Action("move1")));
+        episodicMemory.add(new Episode(new SensorData(false), new Action("move2")));
+        episodicMemory.add(new Episode(new SensorData(false), new Action("move3")));
         assertEquals(3, episodicMemory.length());
     }
     //endregion
@@ -86,7 +86,7 @@ public class EpisodicMemoryTest {
     //region add Tests
     @EpSemTest
     public void add() {
-        Episode expected = new Episode(new SensorData(false), new Move("move"));
+        Episode expected = new Episode(new SensorData(false), new Action("move"));
         EpisodicMemory<Episode> episodicMemory = new EpisodicMemory<>();
         episodicMemory.add(expected);
         Episode actual = episodicMemory.current();
@@ -104,17 +104,17 @@ public class EpisodicMemoryTest {
     @EpSemTest
     public void getFirst() {
         EpisodicMemory<Episode> episodicMemory = new EpisodicMemory<>();
-        episodicMemory.add(new Episode(new SensorData(false), new Move("move1")));
-        assertEquals(new Episode(new SensorData(false), new Move("move1")), episodicMemory.get(0));
+        episodicMemory.add(new Episode(new SensorData(false), new Action("move1")));
+        assertEquals(new Episode(new SensorData(false), new Action("move1")), episodicMemory.get(0));
     }
 
     @EpSemTest
     public void getLast() {
         EpisodicMemory<Episode> episodicMemory = new EpisodicMemory<>();
-        episodicMemory.add(new Episode(new SensorData(false), new Move("move1")));
-        episodicMemory.add(new Episode(new SensorData(false), new Move("move2")));
-        episodicMemory.add(new Episode(new SensorData(false), new Move("move3")));
-        assertEquals(new Episode(new SensorData(false), new Move("move3")), episodicMemory.get(2));
+        episodicMemory.add(new Episode(new SensorData(false), new Action("move1")));
+        episodicMemory.add(new Episode(new SensorData(false), new Action("move2")));
+        episodicMemory.add(new Episode(new SensorData(false), new Action("move3")));
+        assertEquals(new Episode(new SensorData(false), new Action("move3")), episodicMemory.get(2));
     }
 
     @EpSemTest
@@ -132,7 +132,7 @@ public class EpisodicMemoryTest {
     @EpSemTest
     public void getIndexTooLargeThrowsException() {
         EpisodicMemory<Episode> episodicMemory = new EpisodicMemory<>();
-        episodicMemory.add(new Episode(new SensorData(false), new Move("move1")));
+        episodicMemory.add(new Episode(new SensorData(false), new Action("move1")));
         assertThrows(IllegalArgumentException.class, () -> episodicMemory.get(1));
     }
     //endregion
@@ -141,17 +141,17 @@ public class EpisodicMemoryTest {
     @EpSemTest
     public void getFromOffsetFirst() {
         EpisodicMemory<Episode> episodicMemory = new EpisodicMemory<>();
-        episodicMemory.add(new Episode(new SensorData(false), new Move("move1")));
-        assertEquals(new Episode(new SensorData(false), new Move("move1")), episodicMemory.getFromOffset(0));
+        episodicMemory.add(new Episode(new SensorData(false), new Action("move1")));
+        assertEquals(new Episode(new SensorData(false), new Action("move1")), episodicMemory.getFromOffset(0));
     }
 
     @EpSemTest
     public void getFromOffsetLast() {
         EpisodicMemory<Episode> episodicMemory = new EpisodicMemory<>();
-        episodicMemory.add(new Episode(new SensorData(false), new Move("move1")));
-        episodicMemory.add(new Episode(new SensorData(false), new Move("move2")));
-        episodicMemory.add(new Episode(new SensorData(false), new Move("move3")));
-        assertEquals(new Episode(new SensorData(false), new Move("move1")), episodicMemory.getFromOffset(2));
+        episodicMemory.add(new Episode(new SensorData(false), new Action("move1")));
+        episodicMemory.add(new Episode(new SensorData(false), new Action("move2")));
+        episodicMemory.add(new Episode(new SensorData(false), new Action("move3")));
+        assertEquals(new Episode(new SensorData(false), new Action("move1")), episodicMemory.getFromOffset(2));
     }
 
     @EpSemTest
@@ -169,7 +169,7 @@ public class EpisodicMemoryTest {
     @EpSemTest
     public void getFromOffsetIndexTooLargeThrowsException() {
         EpisodicMemory<Episode> episodicMemory = new EpisodicMemory<>();
-        episodicMemory.add(new Episode(new SensorData(false), new Move("move1")));
+        episodicMemory.add(new Episode(new SensorData(false), new Action("move1")));
         assertThrows(IllegalArgumentException.class, () -> episodicMemory.getFromOffset(1));
     }
     //endregion
@@ -178,9 +178,9 @@ public class EpisodicMemoryTest {
     @EpSemTest
     public void trim() {
         EpisodicMemory<Episode> episodicMemory = new EpisodicMemory<>();
-        episodicMemory.add(new Episode(new SensorData(false), new Move("move1")));
-        episodicMemory.add(new Episode(new SensorData(false), new Move("move2")));
-        episodicMemory.add(new Episode(new SensorData(false), new Move("move3")));
+        episodicMemory.add(new Episode(new SensorData(false), new Action("move1")));
+        episodicMemory.add(new Episode(new SensorData(false), new Action("move2")));
+        episodicMemory.add(new Episode(new SensorData(false), new Action("move3")));
         episodicMemory.trim(2);
         assertEquals(1, episodicMemory.length());
     }
@@ -196,13 +196,13 @@ public class EpisodicMemoryTest {
     @EpSemTest
     public void subsetTakesRest() {
         EpisodicMemory<Episode> episodicMemory = new EpisodicMemory<>();
-        episodicMemory.add(new Episode(new SensorData(false), new Move("move1")));
-        episodicMemory.add(new Episode(new SensorData(false), new Move("move2")));
-        episodicMemory.add(new Episode(new SensorData(false), new Move("move3")));
+        episodicMemory.add(new Episode(new SensorData(false), new Action("move1")));
+        episodicMemory.add(new Episode(new SensorData(false), new Action("move2")));
+        episodicMemory.add(new Episode(new SensorData(false), new Action("move3")));
         Episode[] subset = episodicMemory.subset(1);
         Episode[] expected = new Episode[] {
-                new Episode(new SensorData(false), new Move("move2")),
-                new Episode(new SensorData(false), new Move("move3")),
+                new Episode(new SensorData(false), new Action("move2")),
+                new Episode(new SensorData(false), new Action("move3")),
         };
         assertArrayEquals(expected, subset);
     }
@@ -210,13 +210,13 @@ public class EpisodicMemoryTest {
     @EpSemTest
     public void subset() {
         EpisodicMemory<Episode> episodicMemory = new EpisodicMemory<>();
-        episodicMemory.add(new Episode(new SensorData(false), new Move("move1")));
-        episodicMemory.add(new Episode(new SensorData(false), new Move("move2")));
-        episodicMemory.add(new Episode(new SensorData(false), new Move("move3")));
+        episodicMemory.add(new Episode(new SensorData(false), new Action("move1")));
+        episodicMemory.add(new Episode(new SensorData(false), new Action("move2")));
+        episodicMemory.add(new Episode(new SensorData(false), new Action("move3")));
         Episode[] subset = episodicMemory.subset(0, 2);
         Episode[] expected = new Episode[] {
-                new Episode(new SensorData(false), new Move("move1")),
-                new Episode(new SensorData(false), new Move("move2")),
+                new Episode(new SensorData(false), new Action("move1")),
+                new Episode(new SensorData(false), new Action("move2")),
         };
         assertArrayEquals(expected, subset);
     }
@@ -230,7 +230,7 @@ public class EpisodicMemoryTest {
     @EpSemTest
     public void subsetEndGreaterThanLengthThrowsException() {
         EpisodicMemory<Episode> episodicMemory = new EpisodicMemory<>();
-        episodicMemory.add(new Episode(new SensorData(false), new Move("move1")));
+        episodicMemory.add(new Episode(new SensorData(false), new Action("move1")));
         assertThrows(IllegalArgumentException.class, () -> episodicMemory.subset(0, 2));
     }
 
@@ -247,7 +247,7 @@ public class EpisodicMemoryTest {
         // 2 and 5 will be goal
         EpisodicMemory<Episode> episodicMemory = new EpisodicMemory<>();
         for (int i = 0; i < 6; i++) {
-            episodicMemory.add(new Episode(new SensorData(i % 3 == 2), new Move(Integer.toString(i))));
+            episodicMemory.add(new Episode(new SensorData(i % 3 == 2), new Action(Integer.toString(i))));
         }
         assertEquals(5, episodicMemory.lastGoalIndex(5));
         assertEquals(2, episodicMemory.lastGoalIndex(4));
@@ -264,9 +264,9 @@ public class EpisodicMemoryTest {
     @EpSemTest
     public void countLessThanZeroReturnsEmptyArray() {
         EpisodicMemory<Episode> episodicMemory = new EpisodicMemory<>();
-        episodicMemory.add(new Episode(new SensorData(false), new Move("move1")));
-        episodicMemory.add(new Episode(new SensorData(false), new Move("move2")));
-        episodicMemory.add(new Episode(new SensorData(false), new Move("move3")));
+        episodicMemory.add(new Episode(new SensorData(false), new Action("move1")));
+        episodicMemory.add(new Episode(new SensorData(false), new Action("move2")));
+        episodicMemory.add(new Episode(new SensorData(false), new Action("move3")));
         Episode[] subset = episodicMemory.last(-1);
         Episode[] expected = new Episode[0];
         assertArrayEquals(expected, subset);
@@ -275,9 +275,9 @@ public class EpisodicMemoryTest {
     @EpSemTest
     public void countZeroReturnsEmptyArray() {
         EpisodicMemory<Episode> episodicMemory = new EpisodicMemory<>();
-        episodicMemory.add(new Episode(new SensorData(false), new Move("move1")));
-        episodicMemory.add(new Episode(new SensorData(false), new Move("move2")));
-        episodicMemory.add(new Episode(new SensorData(false), new Move("move3")));
+        episodicMemory.add(new Episode(new SensorData(false), new Action("move1")));
+        episodicMemory.add(new Episode(new SensorData(false), new Action("move2")));
+        episodicMemory.add(new Episode(new SensorData(false), new Action("move3")));
         Episode[] subset = episodicMemory.last(0);
         Episode[] expected = new Episode[0];
         assertArrayEquals(expected, subset);
@@ -286,12 +286,12 @@ public class EpisodicMemoryTest {
     @EpSemTest
     public void countOneReturnsLastEpisode() {
         EpisodicMemory<Episode> episodicMemory = new EpisodicMemory<>();
-        episodicMemory.add(new Episode(new SensorData(false), new Move("move1")));
-        episodicMemory.add(new Episode(new SensorData(false), new Move("move2")));
-        episodicMemory.add(new Episode(new SensorData(false), new Move("move3")));
+        episodicMemory.add(new Episode(new SensorData(false), new Action("move1")));
+        episodicMemory.add(new Episode(new SensorData(false), new Action("move2")));
+        episodicMemory.add(new Episode(new SensorData(false), new Action("move3")));
         Episode[] subset = episodicMemory.last(1);
         Episode[] expected = new Episode[] {
-                new Episode(new SensorData(false), new Move("move3"))
+                new Episode(new SensorData(false), new Action("move3"))
         };
         assertArrayEquals(expected, subset);
     }
@@ -299,14 +299,14 @@ public class EpisodicMemoryTest {
     @EpSemTest
     public void countMemoryLengthReturnsAllEpisodes() {
         EpisodicMemory<Episode> episodicMemory = new EpisodicMemory<>();
-        episodicMemory.add(new Episode(new SensorData(false), new Move("move1")));
-        episodicMemory.add(new Episode(new SensorData(false), new Move("move2")));
-        episodicMemory.add(new Episode(new SensorData(false), new Move("move3")));
+        episodicMemory.add(new Episode(new SensorData(false), new Action("move1")));
+        episodicMemory.add(new Episode(new SensorData(false), new Action("move2")));
+        episodicMemory.add(new Episode(new SensorData(false), new Action("move3")));
         Episode[] subset = episodicMemory.last(3);
         Episode[] expected = new Episode[] {
-                new Episode(new SensorData(false), new Move("move1")),
-                new Episode(new SensorData(false), new Move("move2")),
-                new Episode(new SensorData(false), new Move("move3"))
+                new Episode(new SensorData(false), new Action("move1")),
+                new Episode(new SensorData(false), new Action("move2")),
+                new Episode(new SensorData(false), new Action("move3"))
         };
         assertArrayEquals(expected, subset);
     }
@@ -314,14 +314,14 @@ public class EpisodicMemoryTest {
     @EpSemTest
     public void countLargerThanMemoryLengthReturnsAllEpisodes() {
         EpisodicMemory<Episode> episodicMemory = new EpisodicMemory<>();
-        episodicMemory.add(new Episode(new SensorData(false), new Move("move1")));
-        episodicMemory.add(new Episode(new SensorData(false), new Move("move2")));
-        episodicMemory.add(new Episode(new SensorData(false), new Move("move3")));
+        episodicMemory.add(new Episode(new SensorData(false), new Action("move1")));
+        episodicMemory.add(new Episode(new SensorData(false), new Action("move2")));
+        episodicMemory.add(new Episode(new SensorData(false), new Action("move3")));
         Episode[] subset = episodicMemory.last(10);
         Episode[] expected = new Episode[] {
-                new Episode(new SensorData(false), new Move("move1")),
-                new Episode(new SensorData(false), new Move("move2")),
-                new Episode(new SensorData(false), new Move("move3"))
+                new Episode(new SensorData(false), new Action("move1")),
+                new Episode(new SensorData(false), new Action("move2")),
+                new Episode(new SensorData(false), new Action("move3"))
         };
         assertArrayEquals(expected, subset);
     }

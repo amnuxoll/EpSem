@@ -2,7 +2,7 @@ package tests.environments.fsm;
 
 import environments.fsm.FSMTransitionTable;
 import environments.fsm.FSMTransitionTableBuilder;
-import framework.Move;
+import framework.Action;
 import utils.Random;
 
 import java.util.HashMap;
@@ -36,7 +36,7 @@ public class FSMTransitionTableBuilderTest {
         FSMTransitionTableBuilder builder = new FSMTransitionTableBuilder(1, 1, Random.getTrue());
         FSMTransitionTable transitionTable = builder.getTransitionTable();
         assertEquals(1, transitionTable.getTransitions().length);
-        HashMap<Move, Integer> goalTransitions = transitionTable.getTransitions()[0];
+        HashMap<Action, Integer> goalTransitions = transitionTable.getTransitions()[0];
         this.validateGoalTransitions(1, 0, goalTransitions);
     }
 
@@ -45,13 +45,13 @@ public class FSMTransitionTableBuilderTest {
         FSMTransitionTableBuilder builder = new FSMTransitionTableBuilder(13, 1, Random.getTrue());
         FSMTransitionTable transitionTable = builder.getTransitionTable();
         assertEquals(1, transitionTable.getTransitions().length);
-        HashMap<Move, Integer> goalTransitions = transitionTable.getTransitions()[0];
+        HashMap<Action, Integer> goalTransitions = transitionTable.getTransitions()[0];
         this.validateGoalTransitions(13, 0, goalTransitions);
     }
     //endregion
 
     //region Helper Methods
-    private void validateGoalTransitions(int expectedMoveCount, int goalState, HashMap<Move, Integer> transitions) {
+    private void validateGoalTransitions(int expectedMoveCount, int goalState, HashMap<Action, Integer> transitions) {
         assertEquals(expectedMoveCount, transitions.size());
         for (int state : transitions.values()) {
             assertEquals(goalState, state);

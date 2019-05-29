@@ -29,7 +29,7 @@ public class EpisodeWeights {
      * @param ep2
      */
     public void updateWeights(Episode ep1, Episode ep2, double adjustValue){
-        if(ep1.getMove().equals(ep2.getMove())) {
+        if(ep1.getAction().equals(ep2.getAction())) {
             actionWeight= addAndCap(actionWeight, adjustValue, 0, 1);
         }
         else {
@@ -66,7 +66,7 @@ public class EpisodeWeights {
      */
     public double matchScore(Episode ep1, Episode ep2){
         double score= 0;
-        if(ep2.getMove().equals(ep1.getMove())) {
+        if(ep2.getAction().equals(ep1.getAction())) {
             score+= this.getActionWeight();
         }
         //find match of each sensor

@@ -1,6 +1,6 @@
 package agents.marzrules;
 
-import framework.Move;
+import framework.Action;
 import framework.SensorData;
 
 import java.util.ArrayList;
@@ -18,11 +18,11 @@ public class Ruleset {
     private RuleNode driver;
     private ArrayList<RuleNode> current;
     private ArrayList<Double> goalProbabilities;
-    private Move[] alphabet;
+    private Action[] alphabet;
     private int explores;
     private Heuristic heuristic;
 
-    public Ruleset(Move[] alphabet, int maxDepth, Heuristic heuristic){
+    public Ruleset(Action[] alphabet, int maxDepth, Heuristic heuristic){
         if (alphabet == null) throw new IllegalArgumentException();
         if (alphabet.length == 0) throw new IllegalArgumentException();
 
@@ -34,7 +34,7 @@ public class Ruleset {
     }
 
     //for popper-bot
-    public Ruleset(Move[] alphabet, int maxDepth){
+    public Ruleset(Action[] alphabet, int maxDepth){
         if (alphabet == null) throw new IllegalArgumentException();
         if (alphabet.length == 0) throw new IllegalArgumentException();
 
@@ -45,16 +45,16 @@ public class Ruleset {
         this.alphabet = alphabet;
     }
 
-    public Move getBestMove(){
+    public Action getBestMove(){
 
-        if(driver != null && driver.getBestMove() != null){
+        if(driver != null && driver.getBestAction() != null){
             if (driver.getExplore()) explores++;
-            return driver.getBestMove();
+            return driver.getBestAction();
         }
 
         double bestEV = -1;
         boolean explore = false;
-        Move bestMove = alphabet[0];
+        Action bestAction = alphabet[0];
         for (RuleNode node : current){
             heuristic.setGoalProbability(root.getIncreasedGoalProbability());
             //double h = heuristic.getHeuristic(root.getIncreasedGoalProbability(), node.getCurrentDepth());
@@ -62,9 +62,9 @@ public class Ruleset {
             //if (expectation.isPresent()) System.out.print("" + expectation.get() +",");
             //else System.out.print(",");
             if (expectation.isPresent() && (bestEV == -1 || expectation.get() <= bestEV)){
-                if (node.getBestMove() != null) {
+                if (node.getBestAction() != null) {
                     bestEV = expectation.get();
-                    bestMove = node.getBestMove();
+                    bestAction = node.getBestAction();
                     explore = node.getExplore();
                     driver = node;
                 }
@@ -72,8 +72,8 @@ public class Ruleset {
         }
         //System.out.println("---");
         if (explore) explores++;
-        //System.out.print(bestMove);
-        return bestMove;
+        //System.out.print(bestAction);
+        return bestAction;
     }
 
     public ArrayList<RuleNode> getCurrent(){
@@ -86,7 +86,7 @@ public class Ruleset {
         return goalProbabilities;
     }
 
-    public void update(Move move, SensorData sensorData){
+    public void update(Action action, SensorData sensorData){
         boolean isGoal = sensorData.isGoal();
         int sense = 0;
 
@@ -102,8 +102,8 @@ public class Ruleset {
 
         if (isGoal){
             for (RuleNode ruleNode : current){
-                ruleNode.incrementMoveFrequency(move);
-                RuleNode node = ruleNode.getGoalChild(move);
+                ruleNode.incrementMoveFrequency(action);
+                RuleNode node = ruleNode.getGoalChild(action);
                 if (node != null) node.occurs();
             }
             current.clear();
@@ -115,8 +115,8 @@ public class Ruleset {
 
         for (int i = 0; i < current.size(); i++){
             RuleNode node = current.get(i);
-            node.incrementMoveFrequency(move);
-            RuleNode child = node.getNextChild(move, sense);
+            node.incrementMoveFrequency(action);
+            RuleNode child = node.getNextChild(action, sense);
             if (child != null) {
                 child.occurs();
             }
@@ -133,23 +133,23 @@ public class Ruleset {
         //setGoalProbabilities();
     }
 
-    public double evaluateMoves(Move[] moves) {
-        ArrayList<Move> movesList = new ArrayList<>(Arrays.asList(moves));
+    public double evaluateMoves(Action[] actions) {
+        ArrayList<Action> movesList = new ArrayList<>(Arrays.asList(actions));
         return root.getGoalProbability(movesList, 0);
     }
 
     private void setGoalProbabilities() {
         goalProbabilities = new ArrayList<>();
         for (RuleNode node : current) {
-            ArrayList<Move> moves = new ArrayList<>(Arrays.asList(node.potentialMoves));
-            goalProbabilities.add(node.getGoalProbability(moves, 0));
+            ArrayList<Action> actions = new ArrayList<>(Arrays.asList(node.potentialActions));
+            goalProbabilities.add(node.getGoalProbability(actions, 0));
         }
     }
 
 
     //region PopperBotStuff
-    public Move falsify() {
-        Move toTake = null;//TODO: make random?
+    public Action falsify() {
+        Action toTake = null;//TODO: make random?
         int bestDepth = 500; //arbitrary; right now just max depth limit
         for (int i = 0; i < current.size(); i++) {
             if ( current.get(i) instanceof RuleNodeRoot ) { // Note : I don't think we need to look at 0-deep rules, might be wrong
@@ -159,12 +159,12 @@ public class Ruleset {
                 break;
             }
 
-            for (Move move : alphabet) {
-                RuleNode superstition = getNextTestable(current.get(i), move);
+            for (Action action : alphabet) {
+                RuleNode superstition = getNextTestable(current.get(i), action);
                 //TODO: this assumes depth means something more intuitive than what I think is reflected in our implementation
 
                 if (superstition.getCurrentDepth() < bestDepth){ //TODO: superstition.depth + 1 to enforce choice of simplest rules?
-                    toTake = move;
+                    toTake = action;
                 }
             }
         }
@@ -173,10 +173,10 @@ public class Ruleset {
     //breadth first search for nearest testable child
     //this function is called twice (in a 2-alphabet) per node in current, which I'd like do more elegantly but alas alack
 
-    public RuleNode getNextTestable(RuleNode parent, Move move) {
+    public RuleNode getNextTestable(RuleNode parent, Action action) {
         ArrayDeque<RuleNode> queue = new ArrayDeque<>();
         RuleNode p = parent;
-        ArrayList<RuleNode> moveChildren = p.children.get(move);
+        ArrayList<RuleNode> moveChildren = p.children.get(action);
         queue.addAll(moveChildren); //initial queue is just the specific branch of children that the caller of this function was looking at
         while(queue.size() > 0) {
             p = queue.remove();
@@ -185,7 +185,7 @@ public class Ruleset {
                 continue;
             }
 
-            for (Move m : alphabet){ //to get each set of child nodes
+            for (Action m : alphabet){ //to get each set of child nodes
                 moveChildren = p.children.get(m);
                 if (moveChildren.size() == 1){ //i.e. this node has never been expanded, only instantiated with goal child
                     return p;
@@ -200,10 +200,10 @@ public class Ruleset {
 
     @Override
     public String toString(){
-        ArrayList<Move> moves = new ArrayList<>(
-                Arrays.asList(new Move("a"), new Move("b"), new Move("a"), new Move("b"), new Move("a"))
+        ArrayList<Action> actions = new ArrayList<>(
+                Arrays.asList(new Action("a"), new Action("b"), new Action("a"), new Action("b"), new Action("a"))
         );
-        return "Ruleset:\n" + root.toString() + "\n" + root.getGoalProbability(moves, 0);
+        return "Ruleset:\n" + root.toString() + "\n" + root.getGoalProbability(actions, 0);
     }
 
     public RuleNodeRoot getRoot() {
