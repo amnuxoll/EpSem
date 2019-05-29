@@ -19,7 +19,7 @@ public class TestRunTest {
     //region constructor Tests
     @EpSemTest
     public void constructorNullAgentThrowsException() {
-        assertThrows(IllegalArgumentException.class, () -> new TestRun(null, new TestEnvironmentDescription(), 1));
+        assertThrows(IllegalArgumentException.class, () -> new TestRun(null, new TestEnvironment(), 1));
     }
 
     @EpSemTest
@@ -29,7 +29,7 @@ public class TestRunTest {
 
     @EpSemTest
     public void constructorNumberOfGoalsToFindLessThan1ThrowsException() {
-        assertThrows(IllegalArgumentException.class, () -> new TestRun(new TestAgent(), new TestEnvironmentDescription(), 0));
+        assertThrows(IllegalArgumentException.class, () -> new TestRun(new TestAgent(), new TestEnvironment(), 0));
     }
     //endregion
 
@@ -37,7 +37,7 @@ public class TestRunTest {
     @EpSemTest
     public void executeInitializesAgentWithMoves() {
         TestAgent agent = new TestAgent();
-        TestEnvironmentDescription environmentDescription = new TestEnvironmentDescription();
+        TestEnvironment environmentDescription = new TestEnvironment();
         TestRun testRun = new TestRun(agent, environmentDescription, 1);
         testRun.execute();
         assertArrayEquals(environmentDescription.getActions(), agent.actions);
@@ -46,7 +46,7 @@ public class TestRunTest {
     @EpSemTest
     public void executeMarshalsCallsBetweenAgentAndEnvironmentSingleGoalWithResultWriter() {
         TestAgent agent = new TestAgent();
-        TestEnvironmentDescription environment = new TestEnvironmentDescription();
+        TestEnvironment environment = new TestEnvironment();
         TestGoalListener goalListener = new TestGoalListener();
         TestRun testRun = new TestRun(agent, environment, 1);
         testRun.addGoalListener(goalListener);
@@ -81,7 +81,7 @@ public class TestRunTest {
     public void executeMarshalsCallsBetweenAgentAndEnvironmentMultipleGoalsWithResultWriter() {
         // TODO -- this test is failing because we need to get our episodic memory validation caught up with the new inverted mechanism for sensor -> move
         TestAgent agent = new TestAgent();
-        TestEnvironmentDescription environment = new TestEnvironmentDescription();
+        TestEnvironment environment = new TestEnvironment();
         TestGoalListener goalListener = new TestGoalListener();
         TestRun testRun = new TestRun(agent, environment, 3);
         testRun.addGoalListener(goalListener);
@@ -175,22 +175,27 @@ public class TestRunTest {
         }
     }
 
-    private  class TestEnvironmentDescription implements IEnvironmentDescription {
+    private  class TestEnvironment implements IEnvironment {
         @Override
         public Action[] getActions() {
             return new Action[] { new Action("a"), new Action("b"), new Action("c") };
         }
 
         @Override
-        public TransitionResult transition(int currentState, Action action) {
-            SensorData sensorData = new SensorData(action.equals(this.getActions()[2]));
-            sensorData.setSensor(action.getName(), action.getName());
-            return new TransitionResult(0, sensorData);
+        public SensorData getNewStart() {
+            return new SensorData(true);
         }
 
         @Override
-        public int getRandomState() {
-            return 0;
+        public Boolean validateSequence(Sequence sequence) {
+            return false;
+        }
+
+        @Override
+        public SensorData applyAction(Action action) {
+            SensorData sensorData = new SensorData(action.equals(this.getActions()[2]));
+            sensorData.setSensor(action.getName(), action.getName());
+            return sensorData;
         }
     }
 

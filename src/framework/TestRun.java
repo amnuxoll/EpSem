@@ -9,27 +9,25 @@ import java.util.List;
  * @author Zachary Paul Faltersack
  * @version 0.95
  */
-public class TestRun {
+public class TestRun implements IIntrospector {
     //region Class Variables
     private IAgent agent;
-    private IEnvironmentDescription environmentDescription;
+    private IEnvironment environment;
     private int numberOfGoalsToFind;
-    private Environment environment;
     private List<IGoalListener> goalListeners = new ArrayList<>();
     private List<IAgentFinishedListener> agentFinishedListeners = new ArrayList<>();
     //endregion
 
     //region Constructors
-    public TestRun(IAgent agent, IEnvironmentDescription environmentDescription, int numberOfGoalsToFind) throws IllegalArgumentException {
+    public TestRun(IAgent agent, IEnvironment environment, int numberOfGoalsToFind) throws IllegalArgumentException {
         if (agent == null)
             throw new IllegalArgumentException("agent cannot be null");
-        if (environmentDescription == null)
-            throw new IllegalArgumentException("environmentDescription cannot be null");
+        if (environment == null)
+            throw new IllegalArgumentException("environment cannot be null");
         if (numberOfGoalsToFind < 1)
             throw new IllegalArgumentException("numberOfGoalsToFind cannot be less than 1");
 
-        this.environmentDescription = environmentDescription;
-        this.environment = new Environment(this.environmentDescription);
+        this.environment = environment;
         this.agent = agent;
         this.numberOfGoalsToFind = numberOfGoalsToFind;
     }
@@ -40,12 +38,12 @@ public class TestRun {
         try {
             int goalCount = 0;
             int moveCount = 0;
-            this.agent.initialize(this.environmentDescription.getActions(), this.environment);
-            SensorData sensorData = new SensorData(true); //TODO: Initialize first sensor data value?
+            this.agent.initialize(this.environment.getActions(), this);
+            SensorData sensorData = this.environment.getNewStart();
             do {
                 Action action = this.agent.getNextAction(sensorData);
                 if(action == null) break;
-                sensorData = this.environment.tick(action);
+                sensorData = this.environment.applyAction(action);
                 moveCount++;
 
                 if (sensorData.isGoal()) {
@@ -53,7 +51,6 @@ public class TestRun {
                     this.fireGoalEvent(moveCount);
                     goalCount++;
                     moveCount = 0;
-                    this.environment.reset();
                 }
             } while (goalCount < this.numberOfGoalsToFind);
             this.fireAgentFinishedEvent();
@@ -85,6 +82,13 @@ public class TestRun {
         for(IAgentFinishedListener listener : this.agentFinishedListeners){
             listener.agentFinished(event);
         }
+    }
+    //endregion
+
+    //region IIntrospector Members
+    @Override
+    public boolean validateSequence(Sequence sequence) {
+        return this.environment.validateSequence(sequence);
     }
     //endregion
 }

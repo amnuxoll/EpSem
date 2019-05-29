@@ -6,7 +6,7 @@ import java.util.HashMap;
 import java.util.Random;
 
 /**
- * An FSMTransitionTableBuilder is used to build transition tables for a {@link FSMDescription}.
+ * An FSMTransitionTableBuilder is used to build transition tables for a {@link FSMEnvironment}.
  * @author Zachary Paul Faltersack
  * @version 0.95
  *

@@ -25,7 +25,7 @@ public class TestSuiteTest {
     //region constructor Tests
     @EpSemTest
     public void constructorNullTestSuiteConfigurationThrowsException() {
-        assertThrows(IllegalArgumentException.class,() -> new TestSuite(null, new IEnvironmentDescriptionProvider[] { new TestEnvironmentDescriptionProvider() }, new IAgentProvider[] { new TestAgentProvider(false) }));
+        assertThrows(IllegalArgumentException.class,() -> new TestSuite(null, new IEnvironmentProvider[] { new TestEnvironmentProvider() }, new IAgentProvider[] { new TestAgentProvider(false) }));
     }
 
     @EpSemTest
@@ -35,23 +35,23 @@ public class TestSuiteTest {
 
     @EpSemTest
     public void constructorEmptyEnvironmentDescriptionProvidersThrowsException() {
-        assertThrows(IllegalArgumentException.class,() -> new TestSuite(this.testConfiguration, new IEnvironmentDescriptionProvider[0], new IAgentProvider[] { new TestAgentProvider(false) }));
+        assertThrows(IllegalArgumentException.class,() -> new TestSuite(this.testConfiguration, new IEnvironmentProvider[0], new IAgentProvider[] { new TestAgentProvider(false) }));
     }
 
     @EpSemTest
     public void constructorNullAgentProvidersThrowsException() {
-        assertThrows(IllegalArgumentException.class,() -> new TestSuite(this.testConfiguration, new IEnvironmentDescriptionProvider[] { new TestEnvironmentDescriptionProvider() }, null));
+        assertThrows(IllegalArgumentException.class,() -> new TestSuite(this.testConfiguration, new IEnvironmentProvider[] { new TestEnvironmentProvider() }, null));
     }
 
     @EpSemTest
     public void constructorEmptyAgentProvidersThrowsException() {
-        assertThrows(IllegalArgumentException.class,() -> new TestSuite(this.testConfiguration, new IEnvironmentDescriptionProvider[] { new TestEnvironmentDescriptionProvider() }, new IAgentProvider[0]));
+        assertThrows(IllegalArgumentException.class,() -> new TestSuite(this.testConfiguration, new IEnvironmentProvider[] { new TestEnvironmentProvider() }, new IAgentProvider[0]));
     }
 
     @EpSemTest
     public void constructorNullBeforeRunThrowsException()
     {
-        assertThrows(IllegalArgumentException.class,() -> new TestSuite(this.testConfiguration, new IEnvironmentDescriptionProvider[] { new TestEnvironmentDescriptionProvider() }, new IAgentProvider[] { new TestAgentProvider(false) }, null));
+        assertThrows(IllegalArgumentException.class,() -> new TestSuite(this.testConfiguration, new IEnvironmentProvider[] { new TestEnvironmentProvider() }, new IAgentProvider[] { new TestAgentProvider(false) }, null));
     }
     //endregion
 
@@ -61,15 +61,15 @@ public class TestSuiteTest {
         IAgentProvider[] agentProviders = new IAgentProvider[] {
                         new TestAgentProvider(false)
                 };
-        IEnvironmentDescriptionProvider[] environmentDescriptionProviders = new IEnvironmentDescriptionProvider[] {
-                new TestEnvironmentDescriptionProvider()
+        IEnvironmentProvider[] environmentDescriptionProviders = new IEnvironmentProvider[] {
+                new TestEnvironmentProvider()
         };
         TestSuite testSuite = new TestSuite(this.testConfiguration, environmentDescriptionProviders, agentProviders);
         TestResultWriterProvider resultWriterProvider = new TestResultWriterProvider();
         testSuite.run(resultWriterProvider);
 
         assertEquals(this.testConfiguration.getNumberOfIterations(), ((TestAgentProvider)agentProviders[0]).generatedAgents);
-        assertEquals(this.testConfiguration.getNumberOfIterations(), ((TestEnvironmentDescriptionProvider)environmentDescriptionProviders[0]).generatedEnvironmentDescriptions);
+        assertEquals(this.testConfiguration.getNumberOfIterations(), ((TestEnvironmentProvider)environmentDescriptionProviders[0]).generatedEnvironmentDescriptions);
         assertEquals(1, resultWriterProvider.generatedResultWriters.size());
         this.validateResultWriter(resultWriterProvider.generatedResultWriters.get("env_EnvAlias_0_agent_AgAlias_0_steps"));
     }
@@ -80,8 +80,8 @@ public class TestSuiteTest {
                         new TestAgentProvider(false),
                         new TestAgentProvider(false)
                 };
-        IEnvironmentDescriptionProvider[] environmentDescriptionProviders = new IEnvironmentDescriptionProvider[] {
-                new TestEnvironmentDescriptionProvider()
+        IEnvironmentProvider[] environmentDescriptionProviders = new IEnvironmentProvider[] {
+                new TestEnvironmentProvider()
         };
         TestSuite testSuite = new TestSuite(this.testConfiguration, environmentDescriptionProviders, agentProviders);
         TestResultWriterProvider resultWriterProvider = new TestResultWriterProvider();
@@ -89,7 +89,7 @@ public class TestSuiteTest {
 
         assertEquals(this.testConfiguration.getNumberOfIterations(), ((TestAgentProvider)agentProviders[0]).generatedAgents);
         assertEquals(this.testConfiguration.getNumberOfIterations(), ((TestAgentProvider)agentProviders[1]).generatedAgents);
-        assertEquals(2 * this.testConfiguration.getNumberOfIterations(), ((TestEnvironmentDescriptionProvider)environmentDescriptionProviders[0]).generatedEnvironmentDescriptions);
+        assertEquals(2 * this.testConfiguration.getNumberOfIterations(), ((TestEnvironmentProvider)environmentDescriptionProviders[0]).generatedEnvironmentDescriptions);
 
         assertEquals(2, resultWriterProvider.generatedResultWriters.size());
         this.validateResultWriter(resultWriterProvider.generatedResultWriters.get("env_EnvAlias_0_agent_AgAlias_0_steps"));
@@ -101,17 +101,17 @@ public class TestSuiteTest {
         IAgentProvider[] agentProviders = new IAgentProvider[] {
                 new TestAgentProvider(false)
         };
-        IEnvironmentDescriptionProvider[] environmentDescriptionProviders = new IEnvironmentDescriptionProvider[] {
-                new TestEnvironmentDescriptionProvider(),
-                new TestEnvironmentDescriptionProvider()
+        IEnvironmentProvider[] environmentDescriptionProviders = new IEnvironmentProvider[] {
+                new TestEnvironmentProvider(),
+                new TestEnvironmentProvider()
         };
         TestSuite testSuite = new TestSuite(this.testConfiguration, environmentDescriptionProviders, agentProviders);
         TestResultWriterProvider resultWriterProvider = new TestResultWriterProvider();
         testSuite.run(resultWriterProvider);
 
         assertEquals(2 * this.testConfiguration.getNumberOfIterations(), ((TestAgentProvider)agentProviders[0]).generatedAgents);
-        assertEquals(this.testConfiguration.getNumberOfIterations(), ((TestEnvironmentDescriptionProvider)environmentDescriptionProviders[0]).generatedEnvironmentDescriptions);
-        assertEquals(this.testConfiguration.getNumberOfIterations(), ((TestEnvironmentDescriptionProvider)environmentDescriptionProviders[1]).generatedEnvironmentDescriptions);
+        assertEquals(this.testConfiguration.getNumberOfIterations(), ((TestEnvironmentProvider)environmentDescriptionProviders[0]).generatedEnvironmentDescriptions);
+        assertEquals(this.testConfiguration.getNumberOfIterations(), ((TestEnvironmentProvider)environmentDescriptionProviders[1]).generatedEnvironmentDescriptions);
         assertEquals(2, resultWriterProvider.generatedResultWriters.size());
         this.validateResultWriter(resultWriterProvider.generatedResultWriters.get("env_EnvAlias_0_agent_AgAlias_0_steps"));
         this.validateResultWriter(resultWriterProvider.generatedResultWriters.get("env_EnvAlias_1_agent_AgAlias_0_steps"));
@@ -123,9 +123,9 @@ public class TestSuiteTest {
                 new TestAgentProvider(false),
                 new TestAgentProvider(false)
         };
-        IEnvironmentDescriptionProvider[] environmentDescriptionProviders = new IEnvironmentDescriptionProvider[] {
-                new TestEnvironmentDescriptionProvider(),
-                new TestEnvironmentDescriptionProvider()
+        IEnvironmentProvider[] environmentDescriptionProviders = new IEnvironmentProvider[] {
+                new TestEnvironmentProvider(),
+                new TestEnvironmentProvider()
         };
         TestSuite testSuite = new TestSuite(this.testConfiguration, environmentDescriptionProviders, agentProviders);
         TestResultWriterProvider resultWriterProvider = new TestResultWriterProvider();
@@ -133,8 +133,8 @@ public class TestSuiteTest {
 
         assertEquals(2 * this.testConfiguration.getNumberOfIterations(), ((TestAgentProvider)agentProviders[1]).generatedAgents);
         assertEquals(2 * this.testConfiguration.getNumberOfIterations(), ((TestAgentProvider)agentProviders[0]).generatedAgents);
-        assertEquals(2 * this.testConfiguration.getNumberOfIterations(), ((TestEnvironmentDescriptionProvider)environmentDescriptionProviders[0]).generatedEnvironmentDescriptions);
-        assertEquals(2 * this.testConfiguration.getNumberOfIterations(), ((TestEnvironmentDescriptionProvider)environmentDescriptionProviders[1]).generatedEnvironmentDescriptions);
+        assertEquals(2 * this.testConfiguration.getNumberOfIterations(), ((TestEnvironmentProvider)environmentDescriptionProviders[0]).generatedEnvironmentDescriptions);
+        assertEquals(2 * this.testConfiguration.getNumberOfIterations(), ((TestEnvironmentProvider)environmentDescriptionProviders[1]).generatedEnvironmentDescriptions);
         assertEquals(4, resultWriterProvider.generatedResultWriters.size());
         this.validateResultWriter(resultWriterProvider.generatedResultWriters.get("env_EnvAlias_0_agent_AgAlias_0_steps"));
         this.validateResultWriter(resultWriterProvider.generatedResultWriters.get("env_EnvAlias_1_agent_AgAlias_0_steps"));
@@ -147,15 +147,15 @@ public class TestSuiteTest {
         IAgentProvider[] agentProviders = new IAgentProvider[] {
                 new TestAgentProvider(true)
         };
-        IEnvironmentDescriptionProvider[] environmentDescriptionProviders = new IEnvironmentDescriptionProvider[] {
-                new TestEnvironmentDescriptionProvider()
+        IEnvironmentProvider[] environmentDescriptionProviders = new IEnvironmentProvider[] {
+                new TestEnvironmentProvider()
         };
         TestSuite testSuite = new TestSuite(this.testConfiguration, environmentDescriptionProviders, agentProviders);
         TestResultWriterProvider resultWriterProvider = new TestResultWriterProvider();
         testSuite.run(resultWriterProvider);
 
         assertEquals(this.testConfiguration.getNumberOfIterations(), ((TestAgentProvider)agentProviders[0]).generatedAgents);
-        assertEquals(this.testConfiguration.getNumberOfIterations(), ((TestEnvironmentDescriptionProvider)environmentDescriptionProviders[0]).generatedEnvironmentDescriptions);
+        assertEquals(this.testConfiguration.getNumberOfIterations(), ((TestEnvironmentProvider)environmentDescriptionProviders[0]).generatedEnvironmentDescriptions);
         assertEquals(2, resultWriterProvider.generatedResultWriters.size());
         this.validateResultWriter(resultWriterProvider.generatedResultWriters.get("env_EnvAlias_0_agent_AgAlias_0_steps"));
         this.validateResultWriter(resultWriterProvider.generatedResultWriters.get("env_EnvAlias_0_agent_AgAlias_0_additionalStat"));
@@ -166,8 +166,8 @@ public class TestSuiteTest {
         IAgentProvider[] agentProviders = new IAgentProvider[] {
                 new TestAgentProvider(false)
         };
-        IEnvironmentDescriptionProvider[] environmentDescriptionProviders = new IEnvironmentDescriptionProvider[] {
-                new TestEnvironmentDescriptionProvider()
+        IEnvironmentProvider[] environmentDescriptionProviders = new IEnvironmentProvider[] {
+                new TestEnvironmentProvider()
         };
         AtomicBoolean beforeRunTriggered = new AtomicBoolean(false);
         Consumer<File> beforeRun = file -> { beforeRunTriggered.set(true); };
@@ -240,11 +240,11 @@ public class TestSuiteTest {
         }
     }
 
-    private class TestEnvironmentDescriptionProvider implements IEnvironmentDescriptionProvider {
+    private class TestEnvironmentProvider implements IEnvironmentProvider {
         public int generatedEnvironmentDescriptions = 0;
 
         @Override
-        public IEnvironmentDescription getEnvironmentDescription() {
+        public IEnvironment getEnvironment() {
             this.generatedEnvironmentDescriptions++;
             return new TestEnvironmentDescription();
         }
@@ -255,7 +255,7 @@ public class TestSuiteTest {
         }
     }
 
-    private class TestEnvironmentDescription implements IEnvironmentDescription {
+    private class TestEnvironmentDescription implements IEnvironment {
 
         @Override
         public Action[] getActions() {
@@ -263,13 +263,18 @@ public class TestSuiteTest {
         }
 
         @Override
-        public TransitionResult transition(int currentState, Action action) {
-            return new TransitionResult(0, new SensorData(true));
+        public SensorData applyAction(Action action) {
+            return new SensorData(true);
         }
 
         @Override
-        public int getRandomState() {
-            return 0;
+        public SensorData getNewStart() {
+            return new SensorData(true);
+        }
+
+        @Override
+        public Boolean validateSequence(Sequence sequence) {
+            return false;
         }
     }
 

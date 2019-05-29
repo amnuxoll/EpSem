@@ -1,29 +1,28 @@
 package environments.fsm;
 
-import framework.IEnvironmentDescription;
-import framework.IEnvironmentDescriptionProvider;
+import framework.*;
 
 import java.util.*;
 
 /**
- * An FSMDescriptionProvider generates new {@link FSMDescription}s for consecutive test runs.
+ * An FSMEnvironmentProvider generates new {@link FSMEnvironment}s for consecutive test runs.
  * @author Zachary Paul Faltersack
  * @version 0.95
  */
-public class FSMDescriptionProvider implements IEnvironmentDescriptionProvider {
+public class FSMEnvironmentProvider implements IEnvironmentProvider {
     //region Class Variables
     private FSMTransitionTableBuilder transitionTableBuilder;
-    private EnumSet<FSMDescription.Sensor> sensorsToInclude;
+    private EnumSet<FSMEnvironment.Sensor> sensorsToInclude;
     private boolean serialize = false;
     //endregion
 
     //region Constructors
     /**
-     * Create an instance of a {@link FSMDescriptionProvider}.
+     * Create an instance of a {@link FSMEnvironmentProvider}.
      * @param transitionTableBuilder The transition table builder for FSMs.
      * @param sensorsToInclude The sensor data to include when navigating the FSM.
      */
-    public FSMDescriptionProvider(FSMTransitionTableBuilder transitionTableBuilder, EnumSet<FSMDescription.Sensor> sensorsToInclude) {
+    public FSMEnvironmentProvider(FSMTransitionTableBuilder transitionTableBuilder, EnumSet<FSMEnvironment.Sensor> sensorsToInclude) {
         if (transitionTableBuilder == null)
             throw new IllegalArgumentException("transitionTableBuilder cannot be null");
         if (sensorsToInclude == null)
@@ -32,7 +31,7 @@ public class FSMDescriptionProvider implements IEnvironmentDescriptionProvider {
         this.sensorsToInclude = sensorsToInclude;
     }
 
-    public FSMDescriptionProvider(FSMTransitionTableBuilder transitionTableBuilder, EnumSet<FSMDescription.Sensor> sensorsToInclude, boolean serialize){
+    public FSMEnvironmentProvider(FSMTransitionTableBuilder transitionTableBuilder, EnumSet<FSMEnvironment.Sensor> sensorsToInclude, boolean serialize){
         this(transitionTableBuilder, sensorsToInclude);
         this.serialize = serialize;
     }
@@ -40,19 +39,19 @@ public class FSMDescriptionProvider implements IEnvironmentDescriptionProvider {
 
     //region IEnvironmentDescriptionProvider Members
     /**
-     * Get a new instance of a {@link FSMDescription}.
-     * @return The new {@link FSMDescription}.
+     * Get a new instance of a {@link FSMEnvironment}.
+     * @return The new {@link FSMEnvironment}.
      */
     @Override
-    public IEnvironmentDescription getEnvironmentDescription() {
+    public IEnvironment getEnvironment() {
         FSMTransitionTable transitionTable = this.transitionTableBuilder.getTransitionTable();
         if(serialize) System.out.println(transitionTable.toString());
-        return new FSMDescription(transitionTable, this.sensorsToInclude);
+        return new FSMEnvironment(transitionTable, this.sensorsToInclude);
     }
 
     @Override
     public String getAlias() {
-        return "FSMDescription";
+        return "FSMEnvironment";
     }
     //endregion
 }

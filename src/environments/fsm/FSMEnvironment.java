@@ -5,11 +5,12 @@ import framework.*;
 import java.util.*;
 
 /**
- * An FSMDescription provides information to {@link framework.Environment} for running an experiment.
+ * An FSMEnvironment is an environment modeled as a Finite State Machine.
+ *
  * @author Zachary Paul Faltersack
  * @version 0.95
  */
-public class FSMDescription implements IEnvironmentDescription {
+public class FSMEnvironment implements IEnvironment {
     //region Class Variables
     private FSMTransitionTable transitionTable;
     private Action[] actions;
@@ -20,23 +21,24 @@ public class FSMDescription implements IEnvironmentDescription {
     // Variables for generating the rules
     private HashMap<Episode, HashMap<String, Double>> rules;
 
+    private int currentState;
     //endregion
 
     //region Constructors
     /**
-     * Create an instance of a {@link FSMDescription}.
+     * Create an instance of a {@link FSMEnvironment}.
      * @param transitionTable The transition table that indicates the structure of a FSM.
      */
-    public FSMDescription(FSMTransitionTable transitionTable) {
+    public FSMEnvironment(FSMTransitionTable transitionTable) {
         this(transitionTable, EnumSet.noneOf(Sensor.class));
     }
 
     /**
-     * Create an instance of a {@link FSMDescription} that includes possible sensor data.
+     * Create an instance of a {@link FSMEnvironment} that includes possible sensor data.
      * @param transitionTable The transition table that indicates the structure of a FSM.
      * @param sensorsToInclude The sensors to include when navigating the FSM.
      */
-    public FSMDescription(FSMTransitionTable transitionTable, EnumSet<Sensor> sensorsToInclude) {
+    public FSMEnvironment(FSMTransitionTable transitionTable, EnumSet<Sensor> sensorsToInclude) {
         if (transitionTable == null)
             throw new IllegalArgumentException("transitionTable cannot be null");
         if (sensorsToInclude == null)
@@ -54,6 +56,7 @@ public class FSMDescription implements IEnvironmentDescription {
             }
             this.transitionSensorTable.add(transitions);
         }
+        this.currentState = this.getRandomState();
     }
     //endregion
 
@@ -67,14 +70,37 @@ public class FSMDescription implements IEnvironmentDescription {
         return this.actions;
     }
 
+    @Override
+    public SensorData applyAction(Action action) {
+        TransitionResult result = this.transition(this.currentState, action);
+        SensorData sensorData = result.getSensorData();
+        if (sensorData.isGoal() == false) {
+            this.currentState = result.getState();
+            return sensorData;
+        }
+        this.currentState = this.getRandomState();
+        return this.getNewStart();
+    }
+
+    @Override
+    public SensorData getNewStart() {
+        SensorData sensorData = new SensorData(true);
+        this.applySensors(this.currentState, null, this.currentState, sensorData);
+        return sensorData;
+    }
+
+    @Override
+    public Boolean validateSequence(Sequence sequence) {
+        return false;
+    }
+
     /**
      * Get the transition state based on the given current state and action.
      * @param currentState The state to transition from.
      * @param action The action to make from the current state.
      * @return The new state.
      */
-    @Override
-    public TransitionResult transition(int currentState, Action action) {
+    private TransitionResult transition(int currentState, Action action) {
         if (currentState < 0)
             throw new IllegalArgumentException("currentState cannot be less than 0");
         if (currentState >= this.transitionTable.getNumberOfStates())
@@ -91,30 +117,11 @@ public class FSMDescription implements IEnvironmentDescription {
         return new TransitionResult(newState, sensorData);
     }
 
-    @Override
-    public int getRandomState() {
-
+    private int getRandomState() {
         int nonGoalStates = this.transitionTable.getNumberOfStates() - 1;
         return random.nextInt(nonGoalStates);
     }
-    //endregion
 
-    //region Public Methods
-    public void tweakTable(int numSwaps, Random random) {
-        if (numSwaps < 0)
-            throw new IllegalArgumentException("numSwaps must be greater than or equal to zero.");
-        if (random == null)
-            throw new IllegalArgumentException("random cannot be null.");
-        for(FSMTransitionTable.Tweak tweak : this.transitionTable.tweakTable(numSwaps, random))
-        {
-            //update the sensor table to reflect the "new" transitions
-            this.transitionSensorTable.get(tweak.state).put(this.actions[tweak.move1], 0);
-            this.transitionSensorTable.get(tweak.state).put(this.actions[tweak.move2], 0);
-        }
-    }
-    //endregion
-
-    //region Private Methods
     /**
      * Apply sensor data for the given state to the provided {@link SensorData}.
      * @param lastState The state that was transitioned from.
@@ -153,21 +160,19 @@ public class FSMDescription implements IEnvironmentDescription {
             sensorData.setSensor(Sensor.NOISE4.toString(), Math.random() > 0.5);
     }
 
-    private void applyNoiseSensor(int state, SensorData sensorData){
-        boolean data = Math.random() > 0.5;
-        sensorData.setSensor(Sensor.NOISE1.toString(), data);
-    }
-
     private void applyWithinNSensors(int state, SensorData sensorData){
-        for(int i = 0; i< 20; i++){
-            if(sensorsToInclude.contains(Sensor.fromString("WITHIN_"+i))){
-                sensorData.setSensor("WITHIN_" + i, this.transitionTable.getShortestSequences().get(state).size() <= i);
-            }
-        }
+//        for(int i = 0; i< 20; i++){
+//            if(sensorsToInclude.contains(Sensor.fromString("WITHIN_"+i))){
+//                sensorData.setSensor("WITHIN_" + i, this.transitionTable.getShortestSequences().get(state).size() <= i);
+//            }
+//        }
     }
 
     private void applyTransitionAgeSensor(int lastState, Action action, SensorData sensorData) {
-        sensorData.setSensor("Transition age", this.transitionSensorTable.get(lastState).get(action) <= 5);
+        // This is also used to generate sensor data for the current state statically, in which case no move occurred to
+        // get here, and there is no transition age to apply.
+        if (action != null)
+            sensorData.setSensor("Transition age", this.transitionSensorTable.get(lastState).get(action) <= 5);
     }
     //endregion
 

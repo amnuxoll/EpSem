@@ -1,7 +1,7 @@
 package environments.meta;
 
 /**
- * a class with configurations for a MetaEnvironmentDescription
+ * a class with configurations for a MetaEnvironment
  */
 public class MetaConfiguration {
     //region Static MetaConfigurations

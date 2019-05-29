@@ -14,24 +14,24 @@ import java.util.function.Function;
 public class TestSuite implements IGoalListener, IAgentFinishedListener {
     //region Class Variables
     private TestSuiteConfiguration configuration;
-    private IEnvironmentDescriptionProvider[] environmentDescriptionProviders;
+    private IEnvironmentProvider[] environmentProviders;
     private IAgentProvider[] agentProviders;
     private HashMap<String, IResultWriter> resultWriters;
     private Consumer<File> beforeRun;
     //endregion
 
     //region Constructors
-    public TestSuite(TestSuiteConfiguration configuration, IEnvironmentDescriptionProvider[] environmentDescriptionProviders, IAgentProvider[] agentProviders) {
-        this(configuration, environmentDescriptionProviders, agentProviders, rootDirectory -> { });
+    public TestSuite(TestSuiteConfiguration configuration, IEnvironmentProvider[] environmentProviders, IAgentProvider[] agentProviders) {
+        this(configuration, environmentProviders, agentProviders, rootDirectory -> { });
     }
 
-    public TestSuite(TestSuiteConfiguration configuration, IEnvironmentDescriptionProvider[] environmentDescriptionProviders, IAgentProvider[] agentProviders, Consumer<File> beforeRun) {
+    public TestSuite(TestSuiteConfiguration configuration, IEnvironmentProvider[] environmentProviders, IAgentProvider[] agentProviders, Consumer<File> beforeRun) {
         if (configuration == null)
             throw new IllegalArgumentException("configuration cannot be null.");
-        if (environmentDescriptionProviders == null)
-            throw new IllegalArgumentException("environmentDescriptionProviders cannot be null.");
-        if (environmentDescriptionProviders.length == 0)
-            throw new IllegalArgumentException("environmentDescriptionProviders cannot be empty.");
+        if (environmentProviders == null)
+            throw new IllegalArgumentException("environmentProviders cannot be null.");
+        if (environmentProviders.length == 0)
+            throw new IllegalArgumentException("environmentProviders cannot be empty.");
         if (agentProviders == null)
             throw new IllegalArgumentException("agentProviders cannot be null.");
         if (agentProviders.length == 0)
@@ -39,7 +39,7 @@ public class TestSuite implements IGoalListener, IAgentFinishedListener {
         if (beforeRun == null)
             throw new IllegalArgumentException("beforeRun cannot be null");
         this.configuration = configuration;
-        this.environmentDescriptionProviders = environmentDescriptionProviders;
+        this.environmentProviders = environmentProviders;
         this.agentProviders = agentProviders;
         this.beforeRun = beforeRun;
     }
@@ -60,7 +60,7 @@ public class TestSuite implements IGoalListener, IAgentFinishedListener {
             this.writeMetaData();
 
             int numberOfIterations = this.configuration.getNumberOfIterations();
-            for (int environmentIndex = 0; environmentIndex < this.environmentDescriptionProviders.length; environmentIndex++) {
+            for (int environmentIndex = 0; environmentIndex < this.environmentProviders.length; environmentIndex++) {
                 for (int agentIndex = 0; agentIndex < this.agentProviders.length; agentIndex++) {
                     IAgentProvider agentProvider = this.agentProviders[agentIndex];
                     namedOutput.writeLine("framework", "Beginning agent: " + agentProvider.getAlias() + " " + agentIndex);
@@ -68,10 +68,10 @@ public class TestSuite implements IGoalListener, IAgentFinishedListener {
                         namedOutput.writeLine("framework");
                         namedOutput.writeLine("framework", "Beginning iteration: " + numberOfMachines);
                         IAgent agent = agentProvider.getAgent();
-                        IEnvironmentDescription environmentDescription = this.environmentDescriptionProviders[environmentIndex].getEnvironmentDescription();
+                        IEnvironment environment = this.environmentProviders[environmentIndex].getEnvironment();
                         if (numberOfMachines == 0)
-                            this.generateResultWriters(resultWriterProvider, this.environmentDescriptionProviders[environmentIndex].getAlias(), environmentIndex, agentProvider.getAlias(), agentIndex, agent.getStatisticTypes());
-                        TestRun testRun = new TestRun(agent, environmentDescription, this.configuration.getNumberOfGoals());
+                            this.generateResultWriters(resultWriterProvider, this.environmentProviders[environmentIndex].getAlias(), environmentIndex, agentProvider.getAlias(), agentIndex, agent.getStatisticTypes());
+                        TestRun testRun = new TestRun(agent, environment, this.configuration.getNumberOfGoals());
                         testRun.addGoalListener(this);
                         testRun.addAgentFinishedListener(this);
                         this.beginAgentTestRun();
@@ -139,7 +139,7 @@ public class TestSuite implements IGoalListener, IAgentFinishedListener {
         metadataBuilder.append("Number of Machines: " + configuration.getNumberOfIterations() + "\n");
         metadataBuilder.append("\n");
         metadataBuilder.append("== ENVIRONMENTS ==\n");
-        for (IEnvironmentDescriptionProvider environmentDescriptionProvider : this.environmentDescriptionProviders) {
+        for (IEnvironmentProvider environmentDescriptionProvider : this.environmentProviders) {
             metadataBuilder.append("Environment provider type: " + environmentDescriptionProvider.getClass().getName() + "\n");
             metadataBuilder.append("With Alias: " + environmentDescriptionProvider.getAlias() + "\n");
         }
