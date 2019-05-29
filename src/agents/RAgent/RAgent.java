@@ -37,7 +37,7 @@ public class RAgent implements IAgent {
     }
 
     @Override
-    public Action getNextMove(SensorData sensorData){
+    public Action getNextAction(SensorData sensorData){
         movesMade++;
         Action nextAction = actions[(int)(Math.random() * actions.length)];
 

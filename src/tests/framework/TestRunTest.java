@@ -139,7 +139,7 @@ public class TestRunTest {
         }
 
         @Override
-        public Action getNextMove(SensorData sensorData) {
+        public Action getNextAction(SensorData sensorData) {
             Action action = this.actions[this.moveIndex++];
             Episode episode = new Episode(sensorData, action);
             this.episodes.add(episode);

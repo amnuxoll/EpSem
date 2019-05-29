@@ -220,7 +220,7 @@ public class TestSuiteTest {
         }
 
         @Override
-        public Action getNextMove(SensorData sensorData) {
+        public Action getNextAction(SensorData sensorData) {
             return new Action("a");
         }
 

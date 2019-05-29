@@ -90,7 +90,7 @@ public class MaRzAgent implements IAgent {
 	 * @return the next Action to try.
 	 */
 	@Override
-	public Action getNextMove(SensorData sensorData) {
+	public Action getNextAction(SensorData sensorData) {
 		// Our very first pass is going to be used to set up our first sequence.
 		// It is important that we don't update any internal state against the first sensor data because it is
 		// always going to indicate a goal, given the invariant of the environment. MaRz's algorithm is not set up

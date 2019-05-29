@@ -46,7 +46,7 @@ public class NSMAgent implements IAgent {
     }
 
     @Override
-    public Action getNextMove(SensorData sensorData) {
+    public Action getNextAction(SensorData sensorData) {
         if (this.episodicMemory.any()) {
             if (sensorData.isGoal()) {
                 this.Successes++;

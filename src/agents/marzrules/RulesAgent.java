@@ -32,7 +32,7 @@ public class RulesAgent implements IAgent {
     }
 
     @Override
-    public Action getNextMove(SensorData sensorData) {
+    public Action getNextAction(SensorData sensorData) {
         if (sensorData != null) {
             ruleset.update(previousAction, sensorData);
         }
@@ -44,7 +44,7 @@ public class RulesAgent implements IAgent {
         return previousAction;
 
         /*
-        previousAction = super.getNextMove(sensorData);
+        previousAction = super.getNextAction(sensorData);
         return previousAction;
         */
     }

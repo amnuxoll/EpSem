@@ -57,7 +57,7 @@ public class PredrAgent implements framework.IAgent {
      * @return the next {@link Action} to attempt.
      * @throws Exception
      */
-    public Action getNextMove(SensorData sensorData) throws Exception {
+    public Action getNextAction(SensorData sensorData) throws Exception {
         //first call will give me null for initialization but I don't care
         if (sensorData == null) return null;
 
@@ -87,7 +87,7 @@ public class PredrAgent implements framework.IAgent {
 
         this.epmem.add(nextEpisode);
         return nextAction;
-    }//getNextMove
+    }//getNextAction
 
 
     

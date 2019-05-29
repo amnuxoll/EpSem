@@ -29,9 +29,9 @@ public class PredrAgentTest {
         Action[] results = new Action[10];
         for(int i = 0; i < 10; ++i) {
             try {
-                results[i] = testme.getNextMove(anyOldSensorDataWillDo);
+                results[i] = testme.getNextAction(anyOldSensorDataWillDo);
             } catch(Exception e) {
-                throw new AssertionFailedException("Error:  could not call getNextMove on PredrAgent object" + ExceptionUtils.getStacktrace(e));
+                throw new AssertionFailedException("Error:  could not call getNextAction on PredrAgent object" + ExceptionUtils.getStacktrace(e));
             }
             
         }
