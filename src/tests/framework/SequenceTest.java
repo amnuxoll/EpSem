@@ -17,13 +17,6 @@ import static tests.Assertions.*;
  */
 @EpSemTestClass
 public class SequenceTest {
-    //region constructor Tests
-    @EpSemTest
-    public void constructorNullMovesThrowsException() {
-        assertThrows(IllegalArgumentException.class, () -> new Sequence(null));
-    }
-    //endregion
-
     //region endsWith Tests
     @EpSemTest
     public void endsWithNullSequenceThrowsException() {

@@ -11,13 +11,24 @@ public class Action {
     //endregion
 
     //region Constructors
-    public Action(String name) throws IllegalArgumentException {
+    public Action(String name) {
         if (name == null)
             throw new IllegalArgumentException("name cannot be null");
         if (name.isEmpty())
             throw new IllegalArgumentException("name cannot be empty");
         this.name = name;
     }
+
+    /**
+     * copy constructor (deep copy)
+     */
+    public Action(Action other) {
+        if (other == null)
+            throw new IllegalArgumentException("cannot copy a null Action");
+        this.name = other.name;
+    }
+
+    
     //endregion
 
     //region Public Methods

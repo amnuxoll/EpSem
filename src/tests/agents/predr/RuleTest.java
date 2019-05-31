@@ -21,17 +21,19 @@ public class RuleTest {
         lhs2.setSensor("foo", 3);
         lhs2.setSensor("bar", 2);
         lhs2.setSensor("baz", 1);
-        Rule rule1 = new Rule(lhs1, action, rhs, SensorData.goalSensor, 0);
-        Rule rule2 = new Rule(lhs2, action, rhs, SensorData.goalSensor, 0);
+        Episode ep1 = new Episode(lhs1, action);
+        Episode ep2 = new Episode(lhs2, action);
+        Rule rule1 = new Rule(ep1, rhs, SensorData.goalSensor, 0);
+        Rule rule2 = new Rule(ep2, rhs, SensorData.goalSensor, 0);
 
         //Merge them
         Rule result = rule1.mergeWith(rule2);
 
         //Verify they merged correctly
         Assertions.assertNotNull(result);
-        Assertions.assertTrue(result.getLHS().get(0).getSensorNames().size() == 2);  //bar and GOAL
-        Assertions.assertTrue(result.getLHS().get(0).hasSensor("bar"));
-        Assertions.assertTrue(result.getMoves().get(0).equals(action));
+        Assertions.assertTrue(result.getLHS().get(0).getSensorData().getSensorNames().size() == 2);  //bar and GOAL
+        Assertions.assertTrue(result.getLHS().get(0).getSensorData().hasSensor("bar"));
+        Assertions.assertTrue(result.getLHS().get(0).getAction().equals(action));
         Assertions.assertTrue(result.getRHS().hasSensor(SensorData.goalSensor));
         
     }//testGetNextMove

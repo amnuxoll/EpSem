@@ -15,19 +15,22 @@ public class Sequence implements Comparable<Sequence> {
     //endregion
 
     //region Class Variables
-    private Action[] actions;
+    private Action[] actions = new Action[0];
     private int currentIndex = -1;
     //endregion
 
     //region Constructors
     /**
+     * Create an instance of a Sequence with no actions
+     */
+    public Sequence() { /* do nothing more */ }
+    
+    /**
      * Create an instance of a Sequence.
      * @param actions The actions in the sequence.
      */
     public Sequence(Action[] actions) {
-        if (actions == null)
-            throw new IllegalArgumentException("actions cannot be null");
-        this.actions = actions;
+        if (actions != null) this.actions = actions;
     }
     //endregion
 

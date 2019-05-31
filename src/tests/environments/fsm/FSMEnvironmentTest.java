@@ -1,23 +1,23 @@
-//package tests.environments.fsm;
-//
-//import environments.fsm.FSMEnvironment;
-//import environments.fsm.FSMTransitionTable;
-//import framework.Action;
-//
-//import java.util.HashMap;
-//import java.util.Random;
-//
-//import tests.EpSemTest;
-//import tests.EpSemTestClass;
-//import static tests.Assertions.*;
-//
-///**
-// *
-// * @author Zachary Paul Faltersack
-// * @version 0.95
-// */
-//@EpSemTestClass
-//public class FSMDescriptionTest {
+package tests.environments.fsm;
+
+import environments.fsm.FSMEnvironment;
+import environments.fsm.FSMTransitionTable;
+import framework.Action;
+
+import java.util.HashMap;
+import java.util.Random;
+
+import tests.EpSemTest;
+import tests.EpSemTestClass;
+import static tests.Assertions.*;
+
+/**
+ *
+ * @author Zachary Paul Faltersack
+ * @version 0.95
+ */
+@EpSemTestClass
+public class FSMEnvironmentTest {
 //    //region constructor Tests
 //    @EpSemTest
 //    public void constructorNullTransitionTableThrowsException() {
@@ -175,4 +175,4 @@
 //        return new FSMTransitionTable(transitionTable);
 //    }
 //    //endregion
-//}
+}

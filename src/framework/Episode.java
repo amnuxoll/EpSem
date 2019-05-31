@@ -26,6 +26,15 @@ public class Episode {
         this.sensorData = sensorData;
         this.action = action;
     }
+    /**
+     * copy constructor
+     */
+    public Episode(Episode orig) {
+        if (orig == null)
+            throw new IllegalArgumentException("cannot copy a null episode");
+        this.sensorData = new SensorData(orig.getSensorData());
+        this.action = new Action(orig.getAction());
+    }
     //endregion
 
     //region Public Methods
@@ -78,10 +87,7 @@ public class Episode {
 
     @Override
     public String toString() {
-        String value = this.action.toString();
-        if (this.sensorData != null)
-            value = this.sensorData.toString(false) + value;
-        return value;
+        return this.sensorData.toString(false) + this.action.toString();
     }
     //endregion
 }

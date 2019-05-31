@@ -22,6 +22,14 @@ public class SensorData {
         this.data = new HashMap<>();
         this.data.put(SensorData.goalSensor, isGoal);
     }
+    /**
+     * copy constructor
+     */
+    @SuppressWarnings("unchecked")
+    public SensorData(SensorData other) {
+        this.data = (HashMap<String, Object>)(other.data.clone());
+    }
+    
     //endregion
 
     //region Public Methods

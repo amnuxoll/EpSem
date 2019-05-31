@@ -14,7 +14,7 @@ public interface IEnvironment {
 
     SensorData getNewStart();
 
-    Boolean validateSequence(Sequence sequence);
+    default Boolean validateSequence(Sequence sequence) {return null;}
 
 //    @Override
 //    public boolean validateSequence(Sequence sequence) {

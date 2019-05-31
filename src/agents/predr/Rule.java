@@ -18,9 +18,22 @@ import framework.*;
  * @author Faltersack and Nuxoll
  */
 public class Rule {
-    private ArrayList<SensorData> LHSsensors = new ArrayList<SensorData>();
-    private ArrayList<Action> LHSmoves = new ArrayList<Action>();
+    /** a set of episodes on the left-hand-side of the rule.  Sensors that have
+        been "wildcarded" are simply removed from the SensorData in the
+        Episode. */
+    private ArrayList<Episode> LHS = new ArrayList<Episode>();
+
+    /** the right-hand-side of the rule.  This will only contain one
+        sensor-value pair (at least for now).*/
     private SensorData RHS = null;
+
+    /** index into the agent's episodic memory where this rule was derived
+        from.
+        TODO:  This should be an arraylist since a rule can be derived from
+               multiple epsiodes.  For now, a single index is enough and we
+               are using -1 to indicate that a rule is the result of merging two
+               other rules.
+    */
     private int epmemIndex;
 
     /**
@@ -29,15 +42,13 @@ public class Rule {
      * initializes a new rule from a single episode and rhs sensors array. In
      * this ctor, it's assumed no wildcards on the LHS
      *
-     * @param initLHS         the sensors on the LHS of the rule
-     * @param initAction        the move taken on the LHS
+     * @param initLHS         the episode on the LHS of the rule (initially there is only one)
      * @param initRHS         the sensors that resulted (one of these will be used for the rule
      * @param sensorToTarget  the name of the sensor that won't be wildcarded on the RHS
      * @param initEpmemIndex  the index of the of the leftmost episode in LHS in the episodic memory
      */
-    public Rule(SensorData initLHS, Action initAction, SensorData initRHS, String sensorToTarget, int initEpmemIndex) {
-        this.LHSsensors.add(initLHS);
-        this.LHSmoves.add(initAction);
+    public Rule(Episode initLHS, SensorData initRHS, String sensorToTarget, int initEpmemIndex) {
+        this.LHS.add(initLHS);
         this.RHS = new SensorData(initRHS.isGoal());
         if (! sensorToTarget.equals(SensorData.goalSensor))
         {
@@ -60,19 +71,14 @@ public class Rule {
      * @param initMove        the move taken on the LHS
      * @param initRHS         the sensors that resulted (one of these will be used for the rule
      */
-    private Rule(ArrayList<SensorData> initLHSsensors, ArrayList<Action> initLHSmoves, SensorData initRHS) {
-        this.LHSsensors = initLHSsensors;
-        this.LHSmoves = initLHSmoves;
+    private Rule(ArrayList<Episode> initLHS, SensorData initRHS) {
+        this.LHS = initLHS;
         this.RHS = initRHS;
-        this.epmemIndex = -1; //TODO:  this won't work!!  
+        this.epmemIndex = -1; //TODO:  fix this someday
     }//ctor
 
-    public ArrayList<SensorData> getLHS() {
-        return this.LHSsensors;
-    }
-    
-    public ArrayList<Action> getMoves() {
-        return this.LHSmoves;
+    public ArrayList<Episode> getLHS() {
+        return this.LHS;
     }
     
     public SensorData getRHS() {
@@ -83,26 +89,30 @@ public class Rule {
     @Override
     public String toString() {
         String result = "{ ";
-        for(int i = 0; i < LHSsensors.size(); ++i) {
-            result += LHSsensors.get(i).toString(true);
-            result += LHSmoves.get(i).getName();
-            if (i < LHSsensors.size() - 1) {
-                result += ", ";
-            }
+        for(Episode ep : this.LHS) {
+            result += ep.toString() + ", ";
         }
+        result = result.substring(0, result.length() - 2);
         result += " } -> ";
         result += RHS.toString(true);
         return result;
     }//toString
 
-    /** @return true if the RHS of a given Rule matches this one
+    /** @return true iff:
+     *      1.  each corresponding episode on the LHS of each Rule has the same
+     *          action 
+     *      2.  the RHS of a given Rule matches this one
+     *
      * CAVEAT:  For now, this method assumes that the LHS will always have the
      *          same sensor set
      */
     public boolean canMerge(Rule other) {
-        if (other.LHSsensors.size() != this.LHSsensors.size()) return false;
-        if (other.LHSmoves.size() != this.LHSmoves.size()) return false;
-        if (! other.LHSmoves.get(0).equals(this.LHSmoves.get(0))) return false;
+        if (other.LHS.size() != this.LHS.size()) return false;
+        for(int i = 0; i < this.LHS.size(); ++i) {
+            Action thisAct = this.LHS.get(i).getAction();
+            Action otherAct = other.LHS.get(i).getAction();
+            if (! thisAct.equals(otherAct)) return false;
+        }
         return this.RHS.equals(other.RHS);
     }
 
@@ -119,14 +129,21 @@ public class Rule {
      * @return null if the merge fails
      */
     public Rule mergeWith(Rule other) {
-        ArrayList<SensorData> newLHSsensors = new ArrayList<SensorData>();
-        for(int i = 0; i < other.LHSsensors.size(); ++i) {
-            newLHSsensors.add(this.LHSsensors.get(i).intersection(other.LHSsensors.get(i)));
+        ArrayList<Episode> newLHS = new ArrayList<Episode>();
+        //For each position in the 'this' and 'other' LHS, create a new episode
+        //that is the intersection of the two (actions should match)
+        for(int i = 0; i < other.LHS.size(); ++i) {
+            SensorData thisSD = this.LHS.get(i).getSensorData();
+            SensorData otherSD = other.LHS.get(i).getSensorData();
+            SensorData newSD = thisSD.intersection(otherSD);
+            Episode newEp = new Episode(newSD, this.LHS.get(i).getAction());
+            newLHS.add(newEp);
         }
 
-        Rule result = new Rule(newLHSsensors, this.LHSmoves, this.RHS);
+        Rule result = new Rule(newLHS, this.RHS);
 
         return result;
     }//mergeWith
+
     
 }//class Rule

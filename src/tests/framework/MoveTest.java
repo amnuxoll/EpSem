@@ -16,7 +16,7 @@ public class MoveTest {
     //region Constructor Tests
     @EpSemTest
     public void testConstructorNullNameThrowsException() {
-        assertThrows(IllegalArgumentException.class, () -> new Action(null));
+        assertThrows(IllegalArgumentException.class, () -> new Action((String)null));
     }
 
     @EpSemTest
