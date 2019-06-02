@@ -27,7 +27,6 @@ public interface IAgent {
     //region Defaulted Methods for gathering statistics
     default String[] getStatisticTypes() { return new String[0]; };
     default ArrayList<Datum> getGoalData() { return new ArrayList<>(); };
-    default ArrayList<Datum> getAgentFinishedData() {return new ArrayList<>();};
     default void onGoalFound() { };
     default void onTestRunComplete() { };
     //endregion

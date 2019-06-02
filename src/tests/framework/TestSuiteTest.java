@@ -268,12 +268,7 @@ public class TestSuiteTest {
         }
 
         @Override
-        public SensorData getNewStart() {
-            return new SensorData(true);
-        }
-
-        @Override
-        public Boolean validateSequence(Sequence sequence) {
+        public boolean validateSequence(Sequence sequence) {
             return false;
         }
     }

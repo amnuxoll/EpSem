@@ -3,6 +3,7 @@ package agents.RAgent;
 import framework.*;
 import utils.EpisodicMemory;
 
+import javax.naming.Name;
 import java.util.ArrayList;
 
 /**
@@ -89,17 +90,11 @@ public class RAgent implements IAgent {
     }
 
     @Override
-    public ArrayList<Datum> getAgentFinishedData(){
-
-        ArrayList<Datum> data = new ArrayList<>();
-        for(MemoryPattern mp : patternsSeen){
-            data.add(new Datum("patternFrequency", mp.toString()+" : "+mp.timesSeen));
-        }
-        return data;
-    }
-
-    @Override
     public void onTestRunComplete() {
+        NamedOutput namedOutput = NamedOutput.getInstance();
+        for(MemoryPattern mp : patternsSeen){
+            namedOutput.writeLine("patternFrequency", mp.toString()+" : " + mp.timesSeen);
+        }
         System.out.println("iteration complete");
     }
 }

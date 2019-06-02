@@ -142,15 +142,15 @@ public class MaRzAgent implements IAgent {
 			data.add(new Datum("goodDecisionBail", (double)this.goodDecisionBailCount/this.goodDecisionCount));
 			data.add(new Datum("badDecisionBail", (double)this.badDecisionBailCount/(this.decisionsMade-this.goodDecisionCount)));
 		} else {
-			data.add(new Datum("agentDidAGood", ""));
-			data.add(new Datum("goodDecisionBail", ""));
-			data.add(new Datum("badDecisionBail", ""));
+			data.add(new Datum("agentDidAGood", 0));
+			data.add(new Datum("goodDecisionBail", 0));
+			data.add(new Datum("badDecisionBail", 0));
 		}
 
 		if (this.badDecisionBailCount+this.goodDecisionBailCount > 0) {
 			data.add(new Datum("properBails", (double)this.badDecisionBailCount/(this.badDecisionBailCount+this.goodDecisionBailCount)));
 		} else {
-			data.add(new Datum("properBails", ""));
+			data.add(new Datum("properBails", 0));
 		}
 		return data;
 	}

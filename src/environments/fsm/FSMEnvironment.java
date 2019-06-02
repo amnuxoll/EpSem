@@ -7,6 +7,10 @@ import java.util.*;
 /**
  * An FSMEnvironment is an environment modeled as a Finite State Machine.
  *
+ *
+ * TODO -- Add back in some variation of the transition age sensor.
+ * TODO -- Add a configuration that allows the FSM to tweak its transition table every N goals.
+ *
  * @author Zachary Paul Faltersack
  * @version 0.95
  */
@@ -15,7 +19,6 @@ public class FSMEnvironment implements IEnvironment {
     private FSMTransitionTable transitionTable;
     private Action[] actions;
     private EnumSet<Sensor> sensorsToInclude;
-    private ArrayList<HashMap<Action, Integer>> transitionSensorTable;
     private Random random;
 
     // Variables for generating the rules
@@ -47,20 +50,11 @@ public class FSMEnvironment implements IEnvironment {
         this.transitionTable = transitionTable;
         this.sensorsToInclude = sensorsToInclude;
         this.actions = this.transitionTable.getTransitions()[0].keySet().toArray(new Action[0]);
-        int numberOfStates = this.transitionTable.getNumberOfStates();
-        this.transitionSensorTable = new ArrayList<>();
-        for(int i = 0; i < numberOfStates; i++) {
-            HashMap<Action, Integer> transitions = new HashMap<>();
-            for (Action m : getActions()) {
-                transitions.put(m, 0);
-            }
-            this.transitionSensorTable.add(transitions);
-        }
         this.currentState = this.getRandomState();
     }
     //endregion
 
-    //region IEnvironmentDescription Members
+    //region IEnvironment Members
     /**
      * Get the {@link Action}s for this environment description.
      * @return The array of valid {@link Action}s.
@@ -70,53 +64,46 @@ public class FSMEnvironment implements IEnvironment {
         return this.actions;
     }
 
+    /**
+     *
+     * @param action null or invalid action return sensor data for current state with the GOAL flag set.
+     * @return
+     */
     @Override
     public SensorData applyAction(Action action) {
-        TransitionResult result = this.transition(this.currentState, action);
-        SensorData sensorData = result.getSensorData();
-        if (sensorData.isGoal() == false) {
-            this.currentState = result.getState();
+        SensorData sensorData;
+        HashMap<Action, Integer> transitions = this.transitionTable.getTransitions()[this.currentState];
+        if (action == null || !transitions.containsKey(action)) {
+            sensorData = new SensorData(true);
+            this.applySensors(this.currentState, sensorData);
             return sensorData;
         }
-        this.currentState = this.getRandomState();
-        return this.getNewStart();
-    }
-
-    @Override
-    public SensorData getNewStart() {
-        SensorData sensorData = new SensorData(true);
-        this.applySensors(this.currentState, null, this.currentState, sensorData);
+        this.currentState = transitions.get(action);
+        if (this.transitionTable.isGoalState(this.currentState)) {
+            sensorData = new SensorData(true);
+            this.currentState = this.getRandomState();
+        }
+        else
+            sensorData = new SensorData(false);
+        this.applySensors(this.currentState, sensorData);
         return sensorData;
     }
 
     @Override
-    public Boolean validateSequence(Sequence sequence) {
+    public boolean validateSequence(Sequence sequence) {
+        if (sequence == null)
+            throw new IllegalArgumentException("sequence cannot be null.");
+        int tempState = this.currentState;
+        for (Action action : sequence.getActions()) {
+            tempState = this.transitionTable.getTransitions()[tempState].get(action);
+            if (this.transitionTable.isGoalState(tempState))
+                return true;
+        }
         return false;
     }
+    //endregion
 
-    /**
-     * Get the transition state based on the given current state and action.
-     * @param currentState The state to transition from.
-     * @param action The action to make from the current state.
-     * @return The new state.
-     */
-    private TransitionResult transition(int currentState, Action action) {
-        if (currentState < 0)
-            throw new IllegalArgumentException("currentState cannot be less than 0");
-        if (currentState >= this.transitionTable.getNumberOfStates())
-            throw new IllegalArgumentException("currentState does not exist");
-        if (action == null)
-            throw new IllegalArgumentException("action cannot be null");
-        HashMap<Action, Integer> transitions = this.transitionTable.getTransitions()[currentState];
-        if (!transitions.containsKey(action))
-            throw new IllegalArgumentException("action is invalid for this environment");
-        this.transitionSensorTable.get(currentState).put(action, this.transitionSensorTable.get(currentState).get(action)+1);
-        int newState = transitions.get(action);
-        SensorData sensorData = new SensorData(this.transitionTable.isGoalState(newState));
-        this.applySensors(currentState, action, newState, sensorData);
-        return new TransitionResult(newState, sensorData);
-    }
-
+    //region Private Methods
     private int getRandomState() {
         int nonGoalStates = this.transitionTable.getNumberOfStates() - 1;
         return random.nextInt(nonGoalStates);
@@ -124,12 +111,10 @@ public class FSMEnvironment implements IEnvironment {
 
     /**
      * Apply sensor data for the given state to the provided {@link SensorData}.
-     * @param lastState The state that was transitioned from.
-     * @param action The {@link Action} that was applied.
      * @param currentState The state that was transitioned to.
      * @param sensorData The {@link SensorData} to apply sensors to.
      */
-    private void applySensors(int lastState, Action action, int currentState, SensorData sensorData) {
+    private void applySensors(int currentState, SensorData sensorData) {
         if (this.sensorsToInclude.contains(Sensor.EVEN_ODD))
             this.applyEvenOddSensor(currentState, sensorData);
         if (this.sensorsToInclude.contains(Sensor.MOD_3)){
@@ -137,8 +122,6 @@ public class FSMEnvironment implements IEnvironment {
         }
         this.applyWithinNSensors(currentState, sensorData);
         this.applyNoiseSensors(sensorData);
-        if (this.sensorsToInclude.contains(Sensor.TRANSITION_AGE))
-            this.applyTransitionAgeSensor(lastState, action, sensorData);
     }
 
     private void applyEvenOddSensor(int state, SensorData sensorData) {
@@ -166,13 +149,6 @@ public class FSMEnvironment implements IEnvironment {
 //                sensorData.setSensor("WITHIN_" + i, this.transitionTable.getShortestSequences().get(state).size() <= i);
 //            }
 //        }
-    }
-
-    private void applyTransitionAgeSensor(int lastState, Action action, SensorData sensorData) {
-        // This is also used to generate sensor data for the current state statically, in which case no move occurred to
-        // get here, and there is no transition age to apply.
-        if (action != null)
-            sensorData.setSensor("Transition age", this.transitionSensorTable.get(lastState).get(action) <= 5);
     }
     //endregion
 

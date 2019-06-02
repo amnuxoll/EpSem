@@ -152,7 +152,16 @@ public class Assertions {
 
     public static void assertSame(Object instance1, Object instance2, String message) {
         if (instance1 != instance2)
-            Assertions.throwException("objects are not same instance.", message);
+            Assertions.throwException("objects are not the same instance.", message);
+    }
+
+    public static void assertNotSame(Object instance1, Object instance2) {
+        Assertions.assertNotSame(instance1, instance2, null);
+    }
+
+    public static void assertNotSame(Object instance1, Object instance2, String message) {
+        if (instance1 == instance2)
+            Assertions.throwException("objects are the same instance.", message);
     }
     //endregion
 

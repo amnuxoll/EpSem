@@ -5,13 +5,16 @@ import java.util.Objects;
 /**
  * An Episode describes a pairing of a {@link SensorData} and {@link Action} where the action was selected
  * as a result of the sensor data.
+ *
  * @author Zachary Paul Faltersack
  * @version 0.95
  */
 public class Episode {
     //region Class Variables
+
     private Action action;
     private SensorData sensorData;
+
     //endregion
 
     //region Constructors

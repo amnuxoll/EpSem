@@ -15,7 +15,6 @@ public class TestRun implements IIntrospector {
     private IEnvironment environment;
     private int numberOfGoalsToFind;
     private List<IGoalListener> goalListeners = new ArrayList<>();
-    private List<IAgentFinishedListener> agentFinishedListeners = new ArrayList<>();
     //endregion
 
     //region Constructors
@@ -39,7 +38,7 @@ public class TestRun implements IIntrospector {
             int goalCount = 0;
             int moveCount = 0;
             this.agent.initialize(this.environment.getActions(), this);
-            SensorData sensorData = this.environment.getNewStart();
+            SensorData sensorData = this.environment.applyAction(null);
             do {
                 Action action = this.agent.getNextAction(sensorData);
                 if(action == null) break;
@@ -53,7 +52,6 @@ public class TestRun implements IIntrospector {
                     moveCount = 0;
                 }
             } while (goalCount < this.numberOfGoalsToFind);
-            this.fireAgentFinishedEvent();
             this.agent.onTestRunComplete();
         } catch (Exception ex) {
             NamedOutput.getInstance().write("framework", ex);
@@ -63,13 +61,10 @@ public class TestRun implements IIntrospector {
     public synchronized void addGoalListener(IGoalListener listener) {
         this.goalListeners.add(listener);
     }
-
-    public synchronized void addAgentFinishedListener(IAgentFinishedListener listener) {
-        this.agentFinishedListeners.add(listener);
-    }
     //endregion
 
     //region Private Methods
+
     private synchronized void fireGoalEvent(int stepsToGoal) throws IOException {
         GoalEvent goal = new GoalEvent(this, stepsToGoal, this.agent.getGoalData());
         for (IGoalListener listener : this.goalListeners) {
@@ -77,12 +72,6 @@ public class TestRun implements IIntrospector {
         }
     }
 
-    private synchronized void fireAgentFinishedEvent() throws IOException {
-        AgentFinishedEvent event = new AgentFinishedEvent(this, this.agent.getAgentFinishedData());
-        for(IAgentFinishedListener listener : this.agentFinishedListeners){
-            listener.agentFinished(event);
-        }
-    }
     //endregion
 
     //region IIntrospector Members

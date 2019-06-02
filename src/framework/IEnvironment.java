@@ -12,9 +12,7 @@ public interface IEnvironment {
 
     SensorData applyAction(Action action);
 
-    SensorData getNewStart();
-
-    default Boolean validateSequence(Sequence sequence) {return null;}
+    default boolean validateSequence(Sequence sequence) { return false; }
 
 //    @Override
 //    public boolean validateSequence(Sequence sequence) {

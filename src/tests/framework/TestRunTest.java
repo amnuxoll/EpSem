@@ -182,17 +182,14 @@ public class TestRunTest {
         }
 
         @Override
-        public SensorData getNewStart() {
-            return new SensorData(true);
-        }
-
-        @Override
-        public Boolean validateSequence(Sequence sequence) {
+        public boolean validateSequence(Sequence sequence) {
             return false;
         }
 
         @Override
         public SensorData applyAction(Action action) {
+            if (action == null)
+                return new SensorData(true);
             SensorData sensorData = new SensorData(action.equals(this.getActions()[2]));
             sensorData.setSensor(action.getName(), action.getName());
             return sensorData;

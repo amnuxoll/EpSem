@@ -80,32 +80,6 @@ public class FSMTransitionTable {
         }
         return this.universalSequence;
     }
-
-    public Tweak[] tweakTable(int numSwaps, Random random) {
-        ArrayList<Tweak> tweaks = new ArrayList<>();
-        for(int i = 0;i<numSwaps; i++) {
-            int stateToSwitch = random.nextInt(this.transitions.length); //pick which state whose actions will be swapped
-            //pick two actions from a state's possible actions to exchange
-            //don't allow the selected actions to be the same one
-            int selectedMove1, selectedMove2;
-            do {
-                selectedMove1 = random.nextInt(this.actions.length);
-                selectedMove2 = random.nextInt(this.actions.length);
-            } while(selectedMove1 == selectedMove2 && this.actions.length != 1);
-
-            //save value to temp and put new values in swapped places
-            Integer temp = this.transitions[stateToSwitch].get(this.actions[selectedMove1]);
-            this.transitions[stateToSwitch].put(this.actions[selectedMove1], this.transitions[stateToSwitch].get(this.actions[selectedMove2]));
-            this.transitions[stateToSwitch].put(this.actions[selectedMove2], temp);
-
-            Tweak tweak = new Tweak();
-            tweak.state = stateToSwitch;
-            tweak.move1 = selectedMove1;
-            tweak.move2 = selectedMove2;
-            tweaks.add(tweak);
-        }
-        return tweaks.toArray(new Tweak[0]);
-    }
     //endregion
 
     @Override
@@ -128,14 +102,4 @@ public class FSMTransitionTable {
         return builder.toString();
 
     }
-
-    //region Nested Classes
-    protected class Tweak {
-        //region Class Variables
-        public int state;
-        public int move1;
-        public int move2;
-        //endregion
-    }
-    //endregion
 }

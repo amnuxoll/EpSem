@@ -194,7 +194,7 @@ public class Runner {
     private static TestSuite TempExperiment = new TestSuite(
             TestSuiteConfiguration.QUICK,
             new IEnvironmentProvider[] {
-                    new FSMEnvironmentProvider(new FSMTransitionTableBuilder(3, 15, Random.getTrue()), FSMEnvironment.Sensor.NO_SENSORS)
+                    new FSMEnvironmentProvider(new FSMTransitionTableBuilder(3, 15, Random.getTrue()), EnumSet.of(FSMEnvironment.Sensor.EVEN_ODD))
             },
             new IAgentProvider[] {
                     new MaRzAgentProvider(),

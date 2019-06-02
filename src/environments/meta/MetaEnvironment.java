@@ -10,20 +10,20 @@ import framework.*;
  */
 public class MetaEnvironment implements IEnvironment {
     //region Class Variables
-    private IEnvironmentProvider environmentDescriptionProvider;
+    private IEnvironmentProvider environmentProvider;
     private MetaConfiguration config;
-    private IEnvironment currDescription;
+    private IEnvironment currEnvironment;
     private int numGoals = 0;
     //endregion
 
     //region Constructors
-    public MetaEnvironment(IEnvironmentProvider environmentDescriptionProvider, MetaConfiguration config) {
-        if (environmentDescriptionProvider == null)
-            throw new IllegalArgumentException("environmentDescriptionProvider cannot be null");
+    public MetaEnvironment(IEnvironmentProvider environmentProvider, MetaConfiguration config) {
+        if (environmentProvider == null)
+            throw new IllegalArgumentException("environmentProvider cannot be null");
         if (config == null)
             throw new IllegalArgumentException("config cannot be null");
-        this.environmentDescriptionProvider = environmentDescriptionProvider;
-        this.currDescription = environmentDescriptionProvider.getEnvironment();
+        this.environmentProvider = environmentProvider;
+        this.currEnvironment = environmentProvider.getEnvironment();
         this.config = config;
     }
     //endregion
@@ -31,7 +31,7 @@ public class MetaEnvironment implements IEnvironment {
     //region IEnvironmentDescription Members
     @Override
     public Action[] getActions() {
-        return this.currDescription.getActions();
+        return this.currEnvironment.getActions();
     }
 
     /**
@@ -41,22 +41,17 @@ public class MetaEnvironment implements IEnvironment {
      */
     @Override
     public SensorData applyAction(Action action) {
-        // We can't assume the validity of any input because we could be holding any type of IEnvironmentDescription,
-        // so let our internal IEnvironmentDescription perform its own validation.
-        SensorData result = this.currDescription.applyAction(action);
+        // We can't assume the validity of any input because we could be holding any IEnvironment,
+        // so let our internal IEnvironment perform its own validation.
+        SensorData result = this.currEnvironment.applyAction(action);
         if (result.isGoal() && ++this.numGoals % this.config.getResetGoalCount() == 0)
-            this.currDescription = this.environmentDescriptionProvider.getEnvironment();
+            this.currEnvironment = this.environmentProvider.getEnvironment();
         return result;
     }
 
     @Override
-    public SensorData getNewStart() {
-        return null;
-    }
-
-    @Override
-    public Boolean validateSequence(Sequence sequence) {
-        return null;
+    public boolean validateSequence(Sequence sequence) {
+        return this.currEnvironment.validateSequence(sequence);
     }
     //endregion
 }

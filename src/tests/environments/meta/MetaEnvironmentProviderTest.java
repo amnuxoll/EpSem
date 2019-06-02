@@ -71,13 +71,8 @@ public class MetaEnvironmentProviderTest {
         }
 
         @Override
-        public SensorData getNewStart() {
-            return null;
-        }
-
-        @Override
-        public Boolean validateSequence(Sequence sequence) {
-            return null;
+        public boolean validateSequence(Sequence sequence) {
+            return false;
         }
     }
     //endregion
