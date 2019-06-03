@@ -310,6 +310,11 @@ public class TestSuiteTest {
             this.completed = true;
             this.iterationCountAtcompleted = this.iterationCount;
         }
+
+        @Override
+        public void close() {
+
+        }
     }
     //endregion
 }

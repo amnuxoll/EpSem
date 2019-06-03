@@ -83,13 +83,13 @@ public class FileResultWriterProviderTest {
         try {
             this.outputDirectory.mkdirs();
             FileResultWriterProvider resultWriterProvider = new FileResultWriterProvider(this.outputDirectory);
-            IResultWriter resultWriter = resultWriterProvider.getResultWriter("myagent", "myagent");
-            assertTrue(resultWriter instanceof FileResultWriter);
-            FileResultWriter fileResultWriter = (FileResultWriter) resultWriter;
-            File file = this.outputDirectory.listFiles()[0];
-            assertTrue(file.getName().matches("^.*myagent\\.\\d+\\.csv"));
-            fileResultWriter.closeFile();
-            file.delete();
+            try (IResultWriter resultWriter = resultWriterProvider.getResultWriter("myagent", "myagent")) {
+                assertTrue(resultWriter instanceof FileResultWriter);
+            } finally {
+                File file = this.outputDirectory.listFiles()[0];
+                assertTrue(file.getName().matches("^.*myagent\\.\\d+\\.csv"));
+                file.delete();
+            }
         } finally {
             this.outputDirectory.delete();
         }

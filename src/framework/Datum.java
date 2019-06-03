@@ -10,7 +10,10 @@ package framework;
 public class Datum {
     //region Class Variables
 
+    /** the string name of this {@link Datum}. */
     private String statistic;
+
+    /** the string value of this {@link Datum}. */
     private String datum;
 
     //endregion

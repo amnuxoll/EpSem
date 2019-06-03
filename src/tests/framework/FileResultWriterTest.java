@@ -41,8 +41,7 @@ public class FileResultWriterTest {
     @EpSemTest
     public void logResultSingle() throws Exception {
         File file = new File("output.csv");
-        try {
-            FileResultWriter writer = new FileResultWriter("agent", file);
+        try (FileResultWriter writer = new FileResultWriter("agent", file)) {
             writer.logResult(Integer.toString(13));
             try {
                 List<String> lines = Files.readAllLines(Paths.get(file.getAbsolutePath()));
@@ -64,8 +63,7 @@ public class FileResultWriterTest {
     @EpSemTest
     public void logResultMultiple() throws Exception {
         File file = new File("output.csv");
-        try {
-            FileResultWriter writer = new FileResultWriter("agent", file);
+        try (FileResultWriter writer = new FileResultWriter("agent", file)) {
             writer.logResult(Integer.toString(13));
             writer.logResult(Integer.toString(7));
             writer.logResult(Integer.toString(2));
@@ -92,8 +90,7 @@ public class FileResultWriterTest {
     @EpSemTest
     public void beginNewRunSingleRun() throws Exception {
         File file = new File("output.csv");
-        try {
-            FileResultWriter writer = new FileResultWriter("agent", file);
+        try (FileResultWriter writer = new FileResultWriter("agent", file)) {
             writer.beginNewRun();
             try {
                 List<String> lines = Files.readAllLines(Paths.get(file.getAbsolutePath()));
@@ -117,8 +114,7 @@ public class FileResultWriterTest {
     @EpSemTest
     public void beginNewRunMultipleRuns() throws Exception {
         File file = new File("output.csv");
-        try {
-            FileResultWriter writer = new FileResultWriter("agent", file);
+        try (FileResultWriter writer = new FileResultWriter("agent", file)) {
             writer.beginNewRun();
             writer.beginNewRun();
             writer.beginNewRun();
@@ -151,8 +147,7 @@ public class FileResultWriterTest {
     @EpSemTest
     public void testCompleteFinalizesStandardReportRun() throws Exception {
         File file = new File("output.csv");
-        try {
-            FileResultWriter writer = new FileResultWriter("agent", file);
+        try (FileResultWriter writer = new FileResultWriter("agent", file)) {
             for (int runs = 0; runs < 10; runs++) {
                 writer.beginNewRun();
                 for (int goals = 0; goals < 30; goals++) {

@@ -2,6 +2,7 @@ package tests.utils;
 
 import framework.Action;
 import framework.Episode;
+import framework.SensorData;
 import utils.EpisodeUtils;
 
 import tests.EpSemTest;
@@ -25,9 +26,9 @@ public class EpisodeUtilsTest {
                 new Action("move3")
         };
         Episode[] episodes = new Episode[] {
-                new Episode(null, expectedActions[0]),
-                new Episode(null, expectedActions[1]),
-                new Episode(null, expectedActions[2])
+                new Episode(new SensorData(false), expectedActions[0]),
+                new Episode(new SensorData(false), expectedActions[1]),
+                new Episode(new SensorData(false), expectedActions[2])
         };
         Action[] actualActions = EpisodeUtils.selectMoves(episodes);
         assertArrayEquals(expectedActions, actualActions);

@@ -7,22 +7,28 @@ import java.io.IOException;
 /**
  * A FileResultWriter will take result logging statements and write them in a structured way
  * to some provided file.
+ *
  * @author Zachary Paul Faltersack
  * @version 0.95
  */
 public class FileResultWriter implements IResultWriter {
+
     //region Class Variables
+
     private File file;
     private FileWriter fileWriter;
     private int currentNumberOfResults = 0;
     private int maxNumberOfResults = 0;
     private int numberOfRuns = 0;
     private String agent;
+
     //endregion
 
     //region Constructors
+
     /**
      * Create an instance of a {@link FileResultWriter} that writes to the given file path.
+     *
      * @param outputFile The path to an output file which will receive the results.
      */
     public FileResultWriter(String agent, File outputFile) throws IOException {
@@ -36,11 +42,14 @@ public class FileResultWriter implements IResultWriter {
         this.file = outputFile;
         this.fileWriter = new FileWriter(file);
     }
+
     //endregion
 
     //region IResultWriter Members
+
     /**
      * Log the number of steps taken to reach the current goal.
+     *
      * @param result The step length to the current located goal.
      */
     @Override
@@ -89,17 +98,23 @@ public class FileResultWriter implements IResultWriter {
             this.fileWriter.write("=average(" + leftColumn + row + ":" + rightColumn + row + "),");
         }
         this.fileWriter.write(",,,");
-        this.fileWriter.close();
+        this.fileWriter.flush();
     }
-    //endregion
 
-    //region Public Methods
-    public void closeFile() throws IOException {
+    /**
+     * Closes any underlying resources used to write results.
+     *
+     * @throws IOException
+     */
+    @Override
+    public void close() throws IOException {
         this.fileWriter.close();
     }
+
     //endregion
 
     //region Private Methods
+
     private String convertToColumn(int column) {
         if (column <= 0)
             return "";
@@ -107,5 +122,6 @@ public class FileResultWriter implements IResultWriter {
         int right = column % 26;
         return this.convertToColumn(column / 26) + (char)(((int)'A') + right);
     }
+
     //endregion
 }

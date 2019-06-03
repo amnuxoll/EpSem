@@ -53,11 +53,22 @@ public class Action {
 
     //region Object Overrides
 
+    /**
+     * Gets the string representation of an {@link Action}.
+     *
+     * @return the name of the {@link Action}.
+     */
     @Override
     public String toString() {
         return this.name;
     }
 
+    /**
+     * Compares whether or not this and the given object are equal.
+     *
+     * @param o the object to compare to this one.
+     * @return true if the objects are equal; otherwise false.
+     */
     @Override
     public boolean equals(Object o) {
         if (o == this) {
@@ -70,6 +81,9 @@ public class Action {
         return this.name.equals(action.name);
     }
 
+    /**
+     * @return the hashcode of this object.
+     */
     @Override
     public int hashCode() {
         return this.name.hashCode();
