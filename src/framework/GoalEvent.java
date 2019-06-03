@@ -5,16 +5,24 @@ import java.util.EventObject;
 
 /**
  * A GoalEvent is used to indicate that a goal was located while traversing an {@link Environment}.
+ *
  * @author Zachary Paul Faltersack
  * @version 0.95
  */
 public class GoalEvent extends EventObject {
+
     //region Class Variables
+
+    /** The string representation of the number of steps taken to reach the goal. */
     private String stepCountToGoal;
+
+    /** The collection of {@link Datum} representing additional {@link IAgent} statistical data. */
     private ArrayList<Datum> agentData;
+
     //endregion
 
     //region Constructors
+
     /**
      * Constructs a prototypical Event.
      *
@@ -31,17 +39,25 @@ public class GoalEvent extends EventObject {
         else
             this.agentData = agentData;
     }
+
     //endregion
 
     //region Public Methods
+
     /**
      * Get the number of steps taken before the goal was reached.
+     *
      * @return the number of steps.
      */
     public String getStepCountToGoal() {
         return this.stepCountToGoal;
     }
 
+    /**
+     * Get the additional statistical data provided by the {@link IAgent}.
+     *
+     * @return the list of additional statistical data.
+     */
     public ArrayList<Datum> getAgentData() {
         return this.agentData;
     }
