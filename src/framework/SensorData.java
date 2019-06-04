@@ -4,26 +4,42 @@ import java.util.*;
 import java.util.Map.Entry;
 
 /**
+ * Wraps the sensors received from actions in an environment.
  *
  * @author Zachary Paul Faltersack
  * @version 0.95
  */
 public class SensorData {
+
     //region Static Variables
+
+    /** the goal sensor name. */
     public static final String goalSensor = "GOAL";
+
     //endregion
 
     //region Class Variables
+
     private HashMap<String, Object> data;
+
     //endregion
 
     //region Constructors
+
+    /**
+     * Creates an instance of a {@link SensorData} configured with the goal sensor either on or off.
+     *
+     * @param isGoal indicates whether or not to set the goal sensor on.
+     */
     public SensorData(boolean isGoal) {
         this.data = new HashMap<>();
         this.data.put(SensorData.goalSensor, isGoal);
     }
+
     /**
      * copy constructor
+     *
+     * @param other the {@link SensorData} to copy.
      */
     @SuppressWarnings("unchecked")
     public SensorData(SensorData other) {
@@ -33,6 +49,14 @@ public class SensorData {
     //endregion
 
     //region Public Methods
+
+    /**
+     * Assigns a sensor value to the given sensor name.
+     *
+     * @param sensorName the name of the sensor to set.
+     * @param sensorValue the value of the sensor to set.
+     * @throws IllegalArgumentException
+     */
     public void setSensor(String sensorName, Object sensorValue) throws IllegalArgumentException {
         if (sensorName == null)
             throw new IllegalArgumentException("sensorName cannot be null");
@@ -43,6 +67,12 @@ public class SensorData {
         this.data.put(sensorName, sensorValue);
     }
 
+    /**
+     * Removes the given sensor.
+     *
+     * @param sensorName the name of the sensor to remove.
+     * @throws IllegalArgumentException
+     */
     public void removeSensor(String sensorName) throws IllegalArgumentException {
         if (sensorName == null)
             throw new IllegalArgumentException("sensorName cannot be null");
@@ -51,6 +81,13 @@ public class SensorData {
         this.data.remove(sensorName);
     }
 
+    /**
+     * Gets the value of the sensor with the given name.
+     *
+     * @param sensorName the name of the sensor to retrieve.
+     * @return the value of the sensor.
+     * @throws IllegalArgumentException
+     */
     public Object getSensor(String sensorName) throws IllegalArgumentException {
         if (sensorName == null)
             throw new IllegalArgumentException("sensorName cannot be null");
@@ -59,6 +96,13 @@ public class SensorData {
         return this.data.get(sensorName);
     }
 
+    /**
+     * Determines whether or not the indicated sensor is set on this {@link SensorData}.
+     *
+     * @param sensorName the name of the sensor to search for.
+     * @return true if the sensor is set; otherwise false.
+     * @throws IllegalArgumentException
+     */
     public boolean hasSensor(String sensorName) throws IllegalArgumentException {
         if (sensorName == null)
             throw new IllegalArgumentException("sensorName cannot be null");
@@ -67,10 +111,22 @@ public class SensorData {
         return this.data.containsKey(sensorName);
     }
 
+    /**
+     * Determines if the goal was hit.
+     *
+     * @return true if the goal sensor was triggered; otherwise false.
+     */
     public boolean isGoal() {
         return ((boolean)this.data.get(SensorData.goalSensor));
     }
 
+    /**
+     * Performs a pretty-print of the sensor set and its values by formatting the output in
+     * sorted key-value pairs.
+     *
+     * @param includeSensorLabels if true, the sensor names will be included in the string.
+     * @return the string representation of this {@link SensorData}.
+     */
     public String toString(boolean includeSensorLabels) {
         ArrayList<Entry<String, Object>> entries = new ArrayList<>(this.data.entrySet());
         entries.sort((o1, o2) -> {
@@ -100,12 +156,19 @@ public class SensorData {
         return stringBuilder.toString();
     }
 
+    /**
+     * Gets all the sensors that are configured in this {@link SensorData}.
+     *
+     * @return the set of all sensor names.
+     */
     public Set<String> getSensorNames(){
         return data.keySet();
     }
+
     //endregion
 
     //region Object Overrides
+
     @Override
     public boolean equals(Object o) {
         if (o == this) {
@@ -181,5 +244,6 @@ public class SensorData {
     public String toString() {
         return this.toString(false);
     }
+
     //endregion
 }

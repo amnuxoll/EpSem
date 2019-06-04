@@ -22,11 +22,15 @@ import framework.Episode;
  * @version 0.95
  */
 public class Semsode {
+
     //region Class Variables
+
     private Episode[] episodes;
+
     //endregion
 
     //region Constructors
+
     /**
      * Creates an instance of a {@link Semsode}.
      *
@@ -35,9 +39,11 @@ public class Semsode {
     public Semsode(Episode[] episodes) {
         this.episodes = episodes;
     }
+
     //endregion
 
     //region Public Methods
+
     /**
      * Using the given {@link Discriminator}, determine if this {@link Semsode} matches the most recent experiences
      * as defined by the end of the given {@link EpisodicMemory}.
@@ -62,9 +68,11 @@ public class Semsode {
         }
         return true;
     }
+
     //endregion
 
     //region Object Overrides
+
     @Override
     public String toString() {
         String me = "";
@@ -74,5 +82,6 @@ public class Semsode {
         }
         return me;
     }
+
     //endregion
 }

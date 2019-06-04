@@ -10,16 +10,24 @@ import java.util.*;
  * @version 0.95
  */
 public class Sequence implements Comparable<Sequence> {
+
     //region Static Sequences
+
+    /** this is the default empty sequence. */
     public static final Sequence EMPTY = new Sequence(new Action[0]);
+
     //endregion
 
     //region Class Variables
+
     private Action[] actions = new Action[0];
+
     private int currentIndex = -1;
+
     //endregion
 
     //region Constructors
+
     /**
      * Create an instance of a Sequence with no actions
      */
@@ -27,16 +35,20 @@ public class Sequence implements Comparable<Sequence> {
     
     /**
      * Create an instance of a Sequence.
+     *
      * @param actions The actions in the sequence.
      */
     public Sequence(Action[] actions) {
         if (actions != null) this.actions = actions;
     }
+
     //endregion
 
     //region Public Methods
+
     /**
      * Determines whether or not this sequence ends with the provided sequence.
+     *
      * @param sequence the sequent to check as a suffix.
      * @return true if this sequence ends with the given sequence; otherwise false.
      */
@@ -60,6 +72,7 @@ public class Sequence implements Comparable<Sequence> {
 
     /**
      * Gets the actions in this sequence.
+     *
      * @return the Action[].
      */
     public Action[] getActions() {
@@ -68,6 +81,7 @@ public class Sequence implements Comparable<Sequence> {
 
     /**
      * Gets a subsequence of this sequence starting from the given index.
+     *
      * @param startIndex the index to start from.
      * @return A subsequence starting at the given index.
      */
@@ -82,6 +96,7 @@ public class Sequence implements Comparable<Sequence> {
 
     /**
      * Gets a subsequence starting from the beginning of this sequence that is of the indicated length.
+     *
      * @param length the length of the subsequence to retrieve.
      * @return the new Sequence.
      */
@@ -98,6 +113,7 @@ public class Sequence implements Comparable<Sequence> {
 
     /**
      * Gets the length of this sequence.
+     *
      * @return the length of the sequence.
      */
     public int getLength() {
@@ -106,6 +122,7 @@ public class Sequence implements Comparable<Sequence> {
 
     /**
      * Builds a new sequence by prepending the given move to the front of this sequence.
+     *
      * @param newAction The new move to prepend to this sequence.
      * @return The new sequence.
      */
@@ -119,6 +136,7 @@ public class Sequence implements Comparable<Sequence> {
 
     /**
      * Concatenates two sequences.
+     *
      * @param sequence The sequence to concatenate to this sequence.
      * @return A new sequence that starts with this sequence and ends with the given sequence.
      */
@@ -132,6 +150,7 @@ public class Sequence implements Comparable<Sequence> {
 
     /**
      * Indicates whether or not there is a next move in the sequence.
+     *
      * @return true if a next move exists; otherwise false.
      */
     public boolean hasNext() {
@@ -140,6 +159,7 @@ public class Sequence implements Comparable<Sequence> {
 
     /**
      * Increments to the next index and returns the move at that index.
+     *
      * @return The next move in the sequence.
      */
     public Action next() {
@@ -157,12 +177,26 @@ public class Sequence implements Comparable<Sequence> {
         this.currentIndex = -1;
     }
 
+    /**
+     * Gets the current index in the sequence.
+     *
+     * @return the current index.
+     */
     public int getCurrentIndex() {
         return currentIndex;
     }
+
     //endregion
 
     //region Comparable<Sequence> Members
+
+    /**
+     * Compares two sequences to sort them by length.
+     *
+     * @param o the other sequence.
+     * @return -1 if this is longer than the other sequence; 0 if they are equal in length; 1 if this is shorter
+     * than the other sequence.
+     */
     @Override
     public int compareTo(Sequence o) {
         // Sort from longest to shortest

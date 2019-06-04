@@ -13,7 +13,9 @@ import java.util.stream.Collectors;
  * @version 0.95
  */
 public class EpisodeUtils {
+
     //region Public Static Methods
+
     /**
      * Extracts the array of {@link Action} from the array of {@link Episode}.
      *
@@ -25,5 +27,6 @@ public class EpisodeUtils {
             throw new IllegalArgumentException("episodes cannot be null.");
         return Arrays.stream(episodes).map(ep -> ep.getAction()).collect(Collectors.toList()).toArray(new Action[0]);
     }
+
     //endregion
 }

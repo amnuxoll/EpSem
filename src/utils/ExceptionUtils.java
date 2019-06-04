@@ -10,7 +10,9 @@ import java.io.StringWriter;
  * @version 0.95
  */
 public class ExceptionUtils {
+
     //region Public Static Methods
+
     /**
      * Extracts the exception's stack trace as a string for custom operations.
      *
@@ -25,5 +27,6 @@ public class ExceptionUtils {
         exception.printStackTrace(printWriter);
         return stringWriter.toString();
     }
+
     //endregion
 }

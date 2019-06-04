@@ -11,11 +11,15 @@ import java.util.ArrayList;
  * @version 0.95
  */
 public class EpisodicMemory<TEpisode extends Episode> {
+
     //region Class Variables
+
     protected ArrayList<TEpisode> episodicMemory = new ArrayList<>();
+
     //endregion
 
     //region Public Methods
+
     /**
      * Determines whether or not there are any {@link Episode} in the memory.
      *
@@ -163,17 +167,6 @@ public class EpisodicMemory<TEpisode extends Episode> {
             count = epMemSize;
         return this.subset(epMemSize - count);
     }
-    //endregion
-
-    @Override
-    public String toString(){
-        StringBuilder value = new StringBuilder();
-        for (TEpisode episode : episodicMemory){
-            value.append(episode.toString());
-            value.append(",");
-        }
-        return value.toString();
-    }
 
     /**
      * Builds a string of the last count episodes.
@@ -189,4 +182,21 @@ public class EpisodicMemory<TEpisode extends Episode> {
         }
         return value.toString();
     }
+
+    //endregion
+
+    //region Object Overrides
+
+    @Override
+    public String toString(){
+        StringBuilder value = new StringBuilder();
+        for (TEpisode episode : episodicMemory){
+            value.append(episode.toString());
+            value.append(",");
+        }
+        return value.toString();
+    }
+
+    //endregion
+
 }

@@ -27,12 +27,17 @@ import java.util.Map;
  * @version 0.95
  */
 public class Discriminator {
+
     //region Class Variables
+
     private String[] sensors;
+
     private HashMap<Action, Match> matchingMaps = new HashMap<>();
+
     //endregion
 
     //region Public Methods
+
     /**
      * Update the variance of sensor data using the given sensor against the given action.
      *
@@ -63,6 +68,7 @@ public class Discriminator {
         }
         return true;
     }
+
     //endregion
 
     //region Private Methods
@@ -82,9 +88,11 @@ public class Discriminator {
         }
         return true;
     }
+
     //endregion
 
     //region Object Overrides
+
     @Override
     public String toString() {
         String me = "";
@@ -94,6 +102,7 @@ public class Discriminator {
         }
         return me;
     }
+
     //endregion
 
     //region Nested Classes
@@ -102,10 +111,15 @@ public class Discriminator {
      * Tracks the variance of {@link SensorData}.
      */
     private class Match {
+
         //region Class Variables
+
         private double tolerance = 0.25;
+
         private HashMap<String, Consistency> consistencyMapping;
+
         private SensorData sensorData;
+
         //endregion
 
         //region Constructors
@@ -125,6 +139,7 @@ public class Discriminator {
                 this.consistencyMapping.put(sensor, consistency);
             }
         }
+
         //endregion
 
         //region Public Methods
@@ -163,9 +178,11 @@ public class Discriminator {
         public boolean isConsistent(String sensorName) {
             return this.consistencyMapping.get(sensorName).calculate() < this.tolerance;
         }
+
         //endregion
 
         //region Object Overrides
+
         @Override
         public String toString() {
             String me = "";
@@ -175,6 +192,7 @@ public class Discriminator {
             }
             return me;
         }
+
         //endregion
 
         //region Nested Classes
@@ -184,11 +202,15 @@ public class Discriminator {
          * sensor values.
          */
         private class Consistency {
+
             //region Class Variables
-            // The distinct values seen for a given sensor.
+
+            /** The distinct values seen for a given sensor. */
             public HashSet<Object> distinctValues = new HashSet<>();
-            // The total times a sensor has been seen.
+
+            /** The total times a sensor has been seen. */
             public int total = 1;
+
             //endregion
 
             //region Public Methods
@@ -201,9 +223,12 @@ public class Discriminator {
             public double calculate() {
                 return (double)this.distinctValues.size() / this.total;
             }
+
             //endregion
         }
+
         //endregion
     }
+
     //endregion
 }

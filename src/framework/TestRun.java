@@ -5,19 +5,40 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
+ * {@link TestRun} will marshal calls between a single {@link IAgent} and a single {@link IEnvironment}
+ * for a specific given N runs to the goal.
  *
  * @author Zachary Paul Faltersack
  * @version 0.95
  */
 public class TestRun implements IIntrospector {
+
     //region Class Variables
+
+    /** The {@link IAgent} to run in the environment. */
     private IAgent agent;
+
+    /** The {@link IEnvironment} to operate in. */
     private IEnvironment environment;
+
+    /** The number of goals to find in the environment. */
     private int numberOfGoalsToFind;
+
+    /** Subscribers to the goal found event. */
     private List<IGoalListener> goalListeners = new ArrayList<>();
+
     //endregion
 
     //region Constructors
+
+    /**
+     * Creates an instance of a {@link TestRun} for the given agent and environment.
+     *
+     * @param agent the {@link IAgent} to run.
+     * @param environment the {@link IEnvironment} to run.
+     * @param numberOfGoalsToFind the number of goals to find in the environment.
+     * @throws IllegalArgumentException
+     */
     public TestRun(IAgent agent, IEnvironment environment, int numberOfGoalsToFind) throws IllegalArgumentException {
         if (agent == null)
             throw new IllegalArgumentException("agent cannot be null");
@@ -30,9 +51,14 @@ public class TestRun implements IIntrospector {
         this.agent = agent;
         this.numberOfGoalsToFind = numberOfGoalsToFind;
     }
+
     //endregion
 
     //region Public Methods
+
+    /**
+     * Begins execution of the {@link TestRun}.
+     */
     public void execute() {
         try {
             int goalCount = 0;
@@ -58,9 +84,15 @@ public class TestRun implements IIntrospector {
         }
     }
 
+    /**
+     * Allows new subscribers to the goal event to be registered.
+     *
+     * @param listener the goal event subscriber to register.
+     */
     public synchronized void addGoalListener(IGoalListener listener) {
         this.goalListeners.add(listener);
     }
+
     //endregion
 
     //region Private Methods
@@ -75,9 +107,17 @@ public class TestRun implements IIntrospector {
     //endregion
 
     //region IIntrospector Members
+
+    /**
+     * Determines if the execution of the given {@link Sequence} would result in hitting a goal at any point.
+     *
+     * @param sequence the {@link Sequence} to validate.
+     * @return true if the goal would be hit; otherwise false.
+     */
     @Override
     public boolean validateSequence(Sequence sequence) {
         return this.environment.validateSequence(sequence);
     }
+
     //endregion
 }

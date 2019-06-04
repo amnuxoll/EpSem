@@ -8,6 +8,7 @@ package utils;
  * @version 0.95
  */
 public class Random {
+
     //region Public Static Methods
 
     /**
@@ -27,5 +28,6 @@ public class Random {
     public static java.util.Random getFalse() {
         return new java.util.Random(13);
     }
+
     //endregion
 }

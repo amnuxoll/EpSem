@@ -11,8 +11,12 @@ import java.util.Date;
  * @version 0.95
  */
 public class DirectoryUtils {
+
     //region Static Variables
+
+    /** Provides a standard directory in the user's home directory for all statistical output. */
     private final static File outputRootDirectory = new File(System.getProperty("user.home"), "fsm_output");
+
     //endregion
 
     //region Public Static Methods

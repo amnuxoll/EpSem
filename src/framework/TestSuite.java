@@ -7,24 +7,56 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
+ * A {@link TestSuite} allows for the definition of multiple agents and multiple environments and will run
+ * the cross-product of the sets to optimally and with simplicity allow the gathering of a lot of data in a
+ * single run of the engine.
  *
  * @author Zachary Paul Faltersack
  * @version 0.95
  */
 public class TestSuite implements IGoalListener {
+
     //region Class Variables
+
+    /** The {@link TestSuiteConfiguration} to use for this suite. */
     private TestSuiteConfiguration configuration;
+
+    /** The collection of {@link IEnvironmentProvider} to use for creating {@link TestRun}. */
     private IEnvironmentProvider[] environmentProviders;
+
+    /** The collection of {@link IAgentProvider} to use for creating {@link TestRun}. */
     private IAgentProvider[] agentProviders;
+
+    /** The map of {@link IResultWriter} to use for logging statistical data during test runs. */
     private HashMap<String, IResultWriter> resultWriters;
+
+    /** A delegate to invoke prior to executing any test runs. */
     private Consumer<File> beforeRun;
+
     //endregion
 
     //region Constructors
+
+    /**
+     * Creates an instance of a {@link TestSuite}.
+     *
+     * @param configuration the {@link TestSuiteConfiguration} to define the tests being run.
+     * @param environmentProviders the {@link IEnvironmentProvider} set to use for test runs.
+     * @param agentProviders the {@link IAgentProvider} set to use for test runs.
+     */
     public TestSuite(TestSuiteConfiguration configuration, IEnvironmentProvider[] environmentProviders, IAgentProvider[] agentProviders) {
         this(configuration, environmentProviders, agentProviders, rootDirectory -> { });
     }
 
+    /**
+     * Creates an instance of a {@link TestSuite}.
+     *
+     * @param configuration the {@link TestSuiteConfiguration} to define the tests being run.
+     * @param environmentProviders the {@link IEnvironmentProvider} set to use for test runs.
+     * @param agentProviders the {@link IAgentProvider} set to use for test runs.
+     * @param beforeRun a delegate to invoke prior to executing any test runs. It should receive a directory where
+     *                  output will be written.
+     */
     public TestSuite(TestSuiteConfiguration configuration, IEnvironmentProvider[] environmentProviders, IAgentProvider[] agentProviders, Consumer<File> beforeRun) {
         if (configuration == null)
             throw new IllegalArgumentException("configuration cannot be null.");
@@ -43,9 +75,11 @@ public class TestSuite implements IGoalListener {
         this.agentProviders = agentProviders;
         this.beforeRun = beforeRun;
     }
+
     //endregion
 
     //region Public Methods
+
     /**
      * Executes the test suite and writes all result data to the provided {@code resultWriterProvider}.
      *
@@ -83,9 +117,11 @@ public class TestSuite implements IGoalListener {
             NamedOutput.getInstance().write("framework", ex);
         }
     }
+
     //endregion
 
     //region IGoalListener Members
+
     /**
      * Callback for receiving a goal {@link GoalEvent}.
      * @param event The event to receive.
@@ -97,9 +133,11 @@ public class TestSuite implements IGoalListener {
             this.resultWriters.get(datum.getStatistic()).logResult(datum.getDatum());
         }
     }
+
     //endregion
 
     //region Private Methods
+
     private void beginAgentTestRun() throws IOException {
         for (IResultWriter writer : this.resultWriters.values()) {
             writer.beginNewRun();
@@ -141,5 +179,6 @@ public class TestSuite implements IGoalListener {
         }
         NamedOutput.getInstance().writeLine("metadata", metadataBuilder.toString());
     }
+
     //endregion
 }
