@@ -6,6 +6,7 @@ import agents.juno.JunoConfiguration;
 import agents.marz.MaRzAgentProvider;
 import agents.marzrules.RulesAgentProvider;
 import agents.nsm.NSMAgentProvider;
+import agents.predr.PredrAgentProvider;
 import environments.fsm.FSMEnvironment;
 import environments.fsm.FSMEnvironmentProvider;
 import environments.meta.MetaConfiguration;
@@ -197,8 +198,7 @@ public class Runner {
                     new FSMEnvironmentProvider(new FSMTransitionTableBuilder(3, 15, Random.getTrue()), EnumSet.of(FSMEnvironment.Sensor.EVEN_ODD))
             },
             new IAgentProvider[] {
-                    new MaRzAgentProvider(),
-                    new NSMAgentProvider()
+                    new PredrAgentProvider(),
             },
             rootDirectory -> {
                 NamedOutput namedOutput = NamedOutput.getInstance();

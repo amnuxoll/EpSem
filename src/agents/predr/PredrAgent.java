@@ -39,6 +39,45 @@ public class PredrAgent implements framework.IAgent {
     private EpisodicMemory<Episode> epmem = new EpisodicMemory<Episode>();
     /** all the rules that this agent has created so far */
     private ArrayList<Rule> rules = new ArrayList<Rule>();
+
+    /** should only be used for unit tests!
+     *  creates an agent at the point it would be at if it had experienced the
+     *  given episodic memory
+     */
+    public void initWithEpmem(ArrayList<Episode> initEps) {
+        this.epmem = new EpisodicMemory<Episode>();
+        this.rules.clear();
+        this.nstNum = 1;
+        this.nst = nstGen.nextPermutation(nstNum);
+
+        //this should work...I think
+        for(Episode ep : initEps) {
+            adjustRulesForNewSensorData(ep.getSensorData());
+            this.epmem.add(ep);
+        }
+
+        //DEBUG
+        for(Rule r : this.rules) {
+            System.err.println("INIT RULE: " + r);
+        }
+        
+    }
+    
+    /** should only be used for unit tests!
+     *
+     *  @return the current sequence
+     */
+    public Sequence getNST() { return this.nst; }
+    
+    /** should only be used for unit tests!
+     *
+     *  sets the current value of nstNum
+     */
+    public void setNSTNum(long initVal) {
+        this.nstNum = initVal;
+        this.nst = nstGen.nextPermutation(nstNum);
+    }
+    
     
     /**
      * Set the available {@link Action}s for the agent in the current environment.
@@ -117,7 +156,7 @@ public class PredrAgent implements framework.IAgent {
     }//adjustRulesForNewEpisode
 
     /**
-     * getMatchingRules
+     * getMatchingRules <-- not currently being used.  Delete?
      *
      * returns a list of all the Rule objects in this.rules that match the
      * current sensing and episodic memory.
@@ -159,21 +198,105 @@ public class PredrAgent implements framework.IAgent {
 
 
     /**
-     * findRuleBasedSequence
+     * findRuleBasedSequence       ***RECURSIVE***
      *
      * finds a sequence of actions that can reach the goal in N steps or less
      *
      * @param steps      - max length of the sequence
      * @param sensorData - the sensor data that should match the LHS of the rules used
      *
+     * TODO:  The candNextSteps variable should be a HashTable<ArrayList<Rule>>
+     *        where each arraylist contains all the rules whose LHS action
+     *        sequences match.  This allows us to dodge the dodginess with
+     *        lastRuleUsed and shortestRule below.
      * TODO:  This should eventually support rules with multiple episodes on the LHS
+     *
+     * @return the shortest valid seuqence to goal (according to the rules) or
+     *         an empty sequence if one is not found.
      */
     private Sequence findRuleBasedSequence(int steps, SensorData sensorData) {
-        Sequence result = new Sequence();
+        if (steps == 0) return Sequence.EMPTY;  // base case
 
-        //TODO:  START HERE NEXT TIME!
+        //DEBUG
+        System.err.println("--------------------------------------------------");
+        System.err.println("DEBUG - steps: " + steps);
+        System.err.println("DEBUG - sensorData: " + sensorData.toString(true));
 
-        return result;
+        //Search all the rules to find the ones where the LHS matches the given
+        //sensor data
+        ArrayList<Rule> candNextSteps = new ArrayList<Rule>();
+        for (Rule rule : rules) {
+            Episode ep = rule.getLHS().get(0);  //punt: this assumes only one ep in LHS
+            if (! sensorData.contains(ep.getSensorData())) continue;
+
+            //if this rule leads to a goal then we're done
+            if ( (rule.getRHS().hasSensor(SensorData.goalSensor))
+                  && (rule.getRHS().isGoal()) ) {
+                System.err.println("DEBUG - GOAL FOUND with action " + ep.getAction());
+                
+                return Sequence.EMPTY.buildChildSequence(ep.getAction());
+            } else {
+                candNextSteps.add(rule);
+            }
+        }//for
+
+        //DEBUG
+        for(Rule r : candNextSteps) {
+            System.err.println("DEBUG - rule: " + r);
+        }
+        
+        //If we reach this point, no single step paths to goal were found but
+        //any matching rules are in candNextSteps.  So, we make a recursive call
+        //with each and keep the the shortest sequence that we get back
+        Sequence shortestSeq = null;
+        Rule shortestRule = null;  // rule whose LHS goes with shortestSeq result
+        for(Action act : this.actions) {
+            
+            SensorData sd = new SensorData(true);
+            sd.removeSensor(SensorData.goalSensor);
+            Rule lastRuleUsed = null;
+            for(Rule nextStep : candNextSteps) {
+                //we can't combined RHS of rules unless they all have the same
+                //action on the LHS (punt:  in the future there will be a
+                //sequence of actions on the LHS that all need to match)
+                if (nextStep.getLHS().get(0).getAction().equals(act)) {
+                    SensorData rhs = nextStep.getRHS();
+                    for(String name : rhs.getSensorNames()) {
+                        sd.setSensor(name, rhs.getSensor(name));
+                    }
+
+                    //We need to save a ref to one of the rules that was used
+                    //here so we can can use the rule to build a sequence after
+                    //the loop is done.
+                    lastRuleUsed = nextStep;
+                }
+            }
+
+            //recursive call
+            Sequence result = findRuleBasedSequence(steps - 1, sd);
+
+            //is this the shortest one we've seen so far?
+            if (! result.equals(Sequence.EMPTY)) {
+                System.err.println("DEBUG - found new cand subseq: " + result);
+                if ((shortestSeq == null)
+                    || (shortestSeq.getLength() > result.getLength()) ) {
+                    shortestSeq = result;
+                    //save this to build a sequence with
+                    shortestRule = lastRuleUsed;  
+                }
+            }
+        }//for
+        
+        //At this point we have the shortest sequence and the rule that led to
+        //it so we can prepend the rule's action to complete the sequence
+        if (shortestSeq != null) {
+            Sequence front = new Sequence(EpisodeUtils.selectMoves(shortestRule.getLHS()));
+            Sequence result = front.concat(shortestSeq);
+            System.err.println("DEBUG - prepending " + front + " to " + shortestSeq);
+            return result;
+        }
+
+        return Sequence.EMPTY;  //no paths found (also a base case)
     }//findRuleBasedSequence
 
     /**
@@ -189,12 +312,18 @@ public class PredrAgent implements framework.IAgent {
         //Now that we've taken another step, update rules based on what we've learned
         adjustRulesForNewSensorData(sensorData);
 
-        //TODO: See if our rules suggest a good move
-        
-        //Get the next next move
-        if (! nst.hasNext()) {
-            this.nst = nstGen.nextPermutation(nstNum);
-            nstNum++;
+        //First, see if our rules suggest a good move
+        Sequence rulesSeq = findRuleBasedSequence(nst.stepsRemaining(), sensorData);
+        if (! rulesSeq.equals(Sequence.EMPTY)) {
+            this.nst = rulesSeq;
+            nstNum--; //we'll try the replaced sequence later
+            
+        } else {
+            //Get the next next move from the permutation
+            if (! nst.hasNext()) {
+                this.nst = nstGen.nextPermutation(nstNum);
+                nstNum++;
+            }
         }
         Action nextAction =  nst.next();
 

@@ -37,7 +37,7 @@ public class EpisodeUtilsTest {
     @EpSemTest
     public void selectMovesNullEpisodesThrowsException()
     {
-        assertThrows(IllegalArgumentException.class, () -> EpisodeUtils.selectMoves(null));
+        assertThrows(IllegalArgumentException.class, () -> EpisodeUtils.selectMoves((Episode[])null));
     }
     //endregion
 }

@@ -22,7 +22,7 @@ all:
 	@$(JC) $(JARGS) $(ALLSRC)
 
 runexperiments: all
-	$(JVM) -cp $(CP) experiments.Runner
+	$(JVM) -cp $(call classpathify,$(OUTDIRS)) experiments.Runner
 
 runtests: all
 	$(JVM) -cp $(call classpathify,$(OUTDIRS)) tests.EpSemTestRunner out/tests

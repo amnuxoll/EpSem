@@ -1,0 +1,152 @@
+INITEP: [GOAL:false;bar:0;baz:0;foo:1;qux:0]a
+INITEP: [GOAL:false;bar:1;baz:1;foo:0;qux:0]a
+INITEP: [GOAL:false;bar:0;baz:0;foo:1;qux:0]c
+INITEP: [GOAL:false;bar:0;baz:0;foo:0;qux:1]c
+INITEP: [GOAL:true;bar:1;baz:1;foo:0;qux:0]b
+INITEP: [GOAL:false;bar:0;baz:0;foo:1;qux:1]b
+INIT RULE: { [GOAL:false;bar:0;baz:0;foo:1;qux:0]a } -> [bar:1]
+INIT RULE: { [GOAL:false;bar:0;baz:0;foo:1;qux:0]a } -> [foo:0]
+INIT RULE: { [GOAL:false;bar:0;baz:0;foo:1;qux:0]a } -> [baz:1]
+INIT RULE: { [GOAL:false;qux:0]a } -> [GOAL:false]
+INIT RULE: { [GOAL:false;bar:1;baz:1;foo:0;qux:0]a } -> [bar:0]
+INIT RULE: { [GOAL:false;qux:0]a } -> [qux:0]
+INIT RULE: { [GOAL:false;bar:1;baz:1;foo:0;qux:0]a } -> [foo:1]
+INIT RULE: { [GOAL:false;bar:1;baz:1;foo:0;qux:0]a } -> [baz:0]
+INIT RULE: { [GOAL:false;bar:0;baz:0;foo:1;qux:0]c } -> [GOAL:false]
+INIT RULE: { [GOAL:false;bar:0;baz:0;foo:1;qux:0]c } -> [bar:0]
+INIT RULE: { [GOAL:false;bar:0;baz:0;foo:1;qux:0]c } -> [qux:1]
+INIT RULE: { [GOAL:false;bar:0;baz:0;foo:1;qux:0]c } -> [baz:0]
+INIT RULE: { [GOAL:false;bar:0;baz:0;foo:0;qux:1]c } -> [GOAL:true]
+INIT RULE: { [GOAL:false;bar:0;baz:0;foo:0;qux:1]c } -> [bar:1]
+INIT RULE: { [GOAL:false;bar:0;baz:0;foo:0;qux:1]c } -> [qux:0]
+INIT RULE: { [GOAL:false;bar:0;baz:0]c } -> [foo:0]
+INIT RULE: { [GOAL:false;bar:0;baz:0;foo:0;qux:1]c } -> [baz:1]
+INIT RULE: { [GOAL:true;bar:1;baz:1;foo:0;qux:0]b } -> [GOAL:false]
+INIT RULE: { [GOAL:true;bar:1;baz:1;foo:0;qux:0]b } -> [bar:0]
+INIT RULE: { [GOAL:true;bar:1;baz:1;foo:0;qux:0]b } -> [qux:1]
+INIT RULE: { [GOAL:true;bar:1;baz:1;foo:0;qux:0]b } -> [foo:1]
+INIT RULE: { [GOAL:true;bar:1;baz:1;foo:0;qux:0]b } -> [baz:0]
+--------------------------------------------------
+DEBUG - steps: 4
+DEBUG - sensorData: [GOAL:false;bar:0;baz:0;foo:1;qux:0]
+DEBUG - rule: { [GOAL:false;bar:0;baz:0;foo:1;qux:0]a } -> [bar:1]
+DEBUG - rule: { [GOAL:false;bar:0;baz:0;foo:1;qux:0]a } -> [foo:0]
+DEBUG - rule: { [GOAL:false;bar:0;baz:0;foo:1;qux:0]a } -> [baz:1]
+DEBUG - rule: { [GOAL:false;qux:0]a } -> [GOAL:false]
+DEBUG - rule: { [GOAL:false;qux:0]a } -> [qux:0]
+DEBUG - rule: { [GOAL:false;bar:0;baz:0;foo:1;qux:0]c } -> [GOAL:false]
+DEBUG - rule: { [GOAL:false;bar:0;baz:0;foo:1;qux:0]c } -> [bar:0]
+DEBUG - rule: { [GOAL:false;bar:0;baz:0;foo:1;qux:0]c } -> [qux:1]
+DEBUG - rule: { [GOAL:false;bar:0;baz:0;foo:1;qux:0]c } -> [baz:0]
+DEBUG - rule: { [GOAL:false;bar:0;baz:0]c } -> [foo:0]
+--------------------------------------------------
+DEBUG - steps: 3
+DEBUG - sensorData: [GOAL:false;bar:1;baz:1;foo:0;qux:0]
+DEBUG - rule: { [GOAL:false;qux:0]a } -> [GOAL:false]
+DEBUG - rule: { [GOAL:false;bar:1;baz:1;foo:0;qux:0]a } -> [bar:0]
+DEBUG - rule: { [GOAL:false;qux:0]a } -> [qux:0]
+DEBUG - rule: { [GOAL:false;bar:1;baz:1;foo:0;qux:0]a } -> [foo:1]
+DEBUG - rule: { [GOAL:false;bar:1;baz:1;foo:0;qux:0]a } -> [baz:0]
+--------------------------------------------------
+DEBUG - steps: 2
+DEBUG - sensorData: [GOAL:false;bar:0;baz:0;foo:1;qux:0]
+DEBUG - rule: { [GOAL:false;bar:0;baz:0;foo:1;qux:0]a } -> [bar:1]
+DEBUG - rule: { [GOAL:false;bar:0;baz:0;foo:1;qux:0]a } -> [foo:0]
+DEBUG - rule: { [GOAL:false;bar:0;baz:0;foo:1;qux:0]a } -> [baz:1]
+DEBUG - rule: { [GOAL:false;qux:0]a } -> [GOAL:false]
+DEBUG - rule: { [GOAL:false;qux:0]a } -> [qux:0]
+DEBUG - rule: { [GOAL:false;bar:0;baz:0;foo:1;qux:0]c } -> [GOAL:false]
+DEBUG - rule: { [GOAL:false;bar:0;baz:0;foo:1;qux:0]c } -> [bar:0]
+DEBUG - rule: { [GOAL:false;bar:0;baz:0;foo:1;qux:0]c } -> [qux:1]
+DEBUG - rule: { [GOAL:false;bar:0;baz:0;foo:1;qux:0]c } -> [baz:0]
+DEBUG - rule: { [GOAL:false;bar:0;baz:0]c } -> [foo:0]
+--------------------------------------------------
+DEBUG - steps: 1
+DEBUG - sensorData: [GOAL:false;bar:1;baz:1;foo:0;qux:0]
+DEBUG - rule: { [GOAL:false;qux:0]a } -> [GOAL:false]
+DEBUG - rule: { [GOAL:false;bar:1;baz:1;foo:0;qux:0]a } -> [bar:0]
+DEBUG - rule: { [GOAL:false;qux:0]a } -> [qux:0]
+DEBUG - rule: { [GOAL:false;bar:1;baz:1;foo:0;qux:0]a } -> [foo:1]
+DEBUG - rule: { [GOAL:false;bar:1;baz:1;foo:0;qux:0]a } -> [baz:0]
+--------------------------------------------------
+DEBUG - steps: 1
+DEBUG - sensorData: ]
+--------------------------------------------------
+DEBUG - steps: 1
+DEBUG - sensorData: [GOAL:false;bar:0;baz:0;foo:0;qux:1]
+DEBUG - GOAL FOUND with action c
+DEBUG - found new cand subseq: c
+DEBUG - prepending c to c
+DEBUG - found new cand subseq: cc
+--------------------------------------------------
+DEBUG - steps: 2
+DEBUG - sensorData: ]
+--------------------------------------------------
+DEBUG - steps: 1
+DEBUG - sensorData: ]
+--------------------------------------------------
+DEBUG - steps: 1
+DEBUG - sensorData: ]
+--------------------------------------------------
+DEBUG - steps: 1
+DEBUG - sensorData: ]
+--------------------------------------------------
+DEBUG - steps: 2
+DEBUG - sensorData: ]
+--------------------------------------------------
+DEBUG - steps: 1
+DEBUG - sensorData: ]
+--------------------------------------------------
+DEBUG - steps: 1
+DEBUG - sensorData: ]
+--------------------------------------------------
+DEBUG - steps: 1
+DEBUG - sensorData: ]
+DEBUG - prepending a to cc
+DEBUG - found new cand subseq: acc
+--------------------------------------------------
+DEBUG - steps: 3
+DEBUG - sensorData: ]
+--------------------------------------------------
+DEBUG - steps: 2
+DEBUG - sensorData: ]
+--------------------------------------------------
+DEBUG - steps: 1
+DEBUG - sensorData: ]
+--------------------------------------------------
+DEBUG - steps: 1
+DEBUG - sensorData: ]
+--------------------------------------------------
+DEBUG - steps: 1
+DEBUG - sensorData: ]
+--------------------------------------------------
+DEBUG - steps: 2
+DEBUG - sensorData: ]
+--------------------------------------------------
+DEBUG - steps: 1
+DEBUG - sensorData: ]
+--------------------------------------------------
+DEBUG - steps: 1
+DEBUG - sensorData: ]
+--------------------------------------------------
+DEBUG - steps: 1
+DEBUG - sensorData: ]
+--------------------------------------------------
+DEBUG - steps: 2
+DEBUG - sensorData: ]
+--------------------------------------------------
+DEBUG - steps: 1
+DEBUG - sensorData: ]
+--------------------------------------------------
+DEBUG - steps: 1
+DEBUG - sensorData: ]
+--------------------------------------------------
+DEBUG - steps: 1
+DEBUG - sensorData: ]
+--------------------------------------------------
+DEBUG - steps: 3
+DEBUG - sensorData: [GOAL:false;bar:0;baz:0;foo:0;qux:1]
+DEBUG - GOAL FOUND with action c
+DEBUG - found new cand subseq: c
+DEBUG - prepending c to c
+NST result: cc

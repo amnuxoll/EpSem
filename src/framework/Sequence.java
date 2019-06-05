@@ -186,6 +186,14 @@ public class Sequence implements Comparable<Sequence> {
         return currentIndex;
     }
 
+    /**
+     * @return the number of actions left to take in this sequence
+     *
+     */
+    public int stepsRemaining() {
+        return this.getLength() - (currentIndex + 1);
+    }
+    
     //endregion
 
     //region Comparable<Sequence> Members
@@ -241,4 +249,6 @@ public class Sequence implements Comparable<Sequence> {
         return representation.toString();
     }
     //endregion
+
+    
 }

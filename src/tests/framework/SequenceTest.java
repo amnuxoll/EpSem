@@ -333,5 +333,32 @@ public class SequenceTest {
         Sequence start = new Sequence(new Action[] { new Action("a"), new Action("b") });
         assertThrows(IllegalArgumentException.class, () -> start.concat(null));
     }
+
+    
     //endregion
+
+    //region stepsRemaining Tests
+    @EpSemTest
+    public void testStepsRemainingEmptySequence() {
+        assertEquals(Sequence.EMPTY.stepsRemaining(), 0);
+    }
+
+    @EpSemTest
+    public void testStepsRemainingNormal() {
+        Sequence testme = new Sequence(new Action[] { new Action("a"), new Action("b"), new Action("c"), new Action("d") });
+        assertEquals(4, testme.stepsRemaining());
+        testme.next();
+        assertEquals(3, testme.stepsRemaining());
+        testme.next();
+        assertEquals(2, testme.stepsRemaining());
+        testme.next();
+        assertEquals(1, testme.stepsRemaining());
+        testme.next();
+        assertEquals(0, testme.stepsRemaining());
+    }
+
+    //endregion
+
+
+
 }

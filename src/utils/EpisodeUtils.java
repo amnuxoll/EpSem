@@ -5,6 +5,7 @@ import framework.Episode;
 
 import java.util.Arrays;
 import java.util.stream.Collectors;
+import java.util.ArrayList;
 
 /**
  * Provides helper methods for operating against {@link Episode}.
@@ -28,5 +29,9 @@ public class EpisodeUtils {
         return Arrays.stream(episodes).map(ep -> ep.getAction()).collect(Collectors.toList()).toArray(new Action[0]);
     }
 
+    /** overload of above for arraylist */
+    public static Action[] selectMoves(ArrayList<Episode> episodes) {
+        return selectMoves(episodes.toArray(new Episode[0]));
+    }
     //endregion
 }
