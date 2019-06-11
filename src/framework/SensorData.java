@@ -150,8 +150,11 @@ public class SensorData {
             stringBuilder.append(entry.getValue());
             stringBuilder.append(";");
         }
-        // safe because there is always at least the goal sensor
-        stringBuilder.setLength(stringBuilder.length() - 1);
+        // remove the unnecessary final semi-colon (if present)
+        if (stringBuilder.length() > 1) {
+            stringBuilder.setLength(stringBuilder.length() - 1);
+        }
+        
         stringBuilder.append("]");
         return stringBuilder.toString();
     }

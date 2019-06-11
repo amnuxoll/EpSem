@@ -13,7 +13,7 @@ public class PredrAgentTest {
 
     /** A quick test to see if PredrAgent will generate the correct
         sequence of actions given the alphabet: [a,b]; */
-//DEBUG: Remove temporaily    @EpSemTest
+    @EpSemTest
     public void testGetNextMove() {
         //create a PredrAgent with the right alphabet
         Action[] actions = new Action[2];
@@ -34,7 +34,6 @@ public class PredrAgentTest {
             } catch(Exception e) {
                 throw new AssertionFailedException("Error:  could not call getNextAction on PredrAgent object" + ExceptionUtils.getStacktrace(e));
             }
-            
         }
 
         //Verify that it's a match
@@ -72,7 +71,7 @@ public class PredrAgentTest {
         initEpmem.add(quickEpMaker(1,0,0,0,false,"c"));
         initEpmem.add(quickEpMaker(0,0,0,1,false,"c"));
         initEpmem.add(quickEpMaker(0,1,1,0,true,"b"));
-        initEpmem.add(quickEpMaker(1,0,0,1,false,"b"));
+        initEpmem.add(quickEpMaker(1,1,0,1,false,"b"));
 
         //DEBUG
         for(Episode ep : initEpmem) {
@@ -106,10 +105,14 @@ public class PredrAgentTest {
 
         //Verify success
         System.err.println("NST result: " + testme.getNST());
-        Assertions.assertEquals("a", nextAct.getName());
-        Sequence nst = testme.getNST();
+        Assertions.assertEquals("c", nextAct.getName());
+
+        actions = new Action[2];
+        actions[0] = new Action("c");
+        actions[1] = new Action("c");
         Sequence correctSeq = new Sequence(actions);
-        Assertions.assertEquals(nst, correctSeq);
+        Sequence nst = testme.getNST();
+        Assertions.assertEquals(correctSeq, nst);
     
     }//testFindRuleBasedSequence
     

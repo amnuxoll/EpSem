@@ -107,7 +107,7 @@ public class EpisodeTest {
     public void toStringWithSensorData()
     {
         Episode episode = new Episode(new SensorData(true), new Action("move"));
-        assertEquals("[true]move", episode.toString());
+        assertEquals("[GOAL:true]move", episode.toString());
     }
 
     //endregion

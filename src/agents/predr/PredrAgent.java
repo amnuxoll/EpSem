@@ -198,7 +198,7 @@ public class PredrAgent implements framework.IAgent {
 
 
     /**
-     * findRuleBasedSequence       ***RECURSIVE***
+     * findRuleBasedSequence       ***RECURSIVE (w/ 3 base cases)***
      *
      * finds a sequence of actions that can reach the goal in N steps or less
      *
@@ -214,13 +214,13 @@ public class PredrAgent implements framework.IAgent {
      * @return the shortest valid seuqence to goal (according to the rules) or
      *         an empty sequence if one is not found.
      */
-    private Sequence findRuleBasedSequence(int steps, SensorData sensorData) {
-        if (steps == 0) return Sequence.EMPTY;  // base case
-
+    private Sequence findRuleBasedSequence(int steps, SensorData sensorData, String debug) {
         //DEBUG
         System.err.println("--------------------------------------------------");
-        System.err.println("DEBUG - steps: " + steps);
+        System.err.println("DEBUG - " + debug + "+" + steps);
         System.err.println("DEBUG - sensorData: " + sensorData.toString(true));
+
+        if (steps == 0) return Sequence.EMPTY;  // base case
 
         //Search all the rules to find the ones where the LHS matches the given
         //sensor data
@@ -239,6 +239,11 @@ public class PredrAgent implements framework.IAgent {
                 candNextSteps.add(rule);
             }
         }//for
+
+        //If no matching rules were found we are finished
+        if (candNextSteps.isEmpty()) {
+            return Sequence.EMPTY;  //base case #2
+        }
 
         //DEBUG
         for(Rule r : candNextSteps) {
@@ -272,19 +277,26 @@ public class PredrAgent implements framework.IAgent {
                 }
             }
 
-            //recursive call
-            Sequence result = findRuleBasedSequence(steps - 1, sd);
+            //make a recursive call if any rules were applied for this action
+            if (lastRuleUsed != null) {
+                System.err.println("DEBUG - recurse in with " + debug + act.getName() );
+                
+                Sequence result = findRuleBasedSequence(steps - 1, sd, debug + act.getName());
 
-            //is this the shortest one we've seen so far?
-            if (! result.equals(Sequence.EMPTY)) {
-                System.err.println("DEBUG - found new cand subseq: " + result);
-                if ((shortestSeq == null)
-                    || (shortestSeq.getLength() > result.getLength()) ) {
-                    shortestSeq = result;
-                    //save this to build a sequence with
-                    shortestRule = lastRuleUsed;  
+                System.err.println("DEBUG - recurse out to " + debug);
+
+                //is this the shortest one we've seen so far?
+                if (! result.equals(Sequence.EMPTY)) {
+                    System.err.println("DEBUG - found new cand seq: " + debug + result);
+                    if ((shortestSeq == null)
+                        || (shortestSeq.getLength() > result.getLength()) ) {
+                        shortestSeq = result;
+                        //save this to build a sequence with
+                        shortestRule = lastRuleUsed;  
+                    }
                 }
             }
+                
         }//for
         
         //At this point we have the shortest sequence and the rule that led to
@@ -313,7 +325,7 @@ public class PredrAgent implements framework.IAgent {
         adjustRulesForNewSensorData(sensorData);
 
         //First, see if our rules suggest a good move
-        Sequence rulesSeq = findRuleBasedSequence(nst.stepsRemaining(), sensorData);
+        Sequence rulesSeq = findRuleBasedSequence(nst.stepsRemaining(), sensorData, ">");
         if (! rulesSeq.equals(Sequence.EMPTY)) {
             this.nst = rulesSeq;
             nstNum--; //we'll try the replaced sequence later
