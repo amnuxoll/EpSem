@@ -168,6 +168,11 @@ public class SensorData {
         return data.keySet();
     }
 
+    /** @return true if there are no sensor values */
+    public boolean isEmpty() {
+        return data.size() == 0;
+    }
+    
     //endregion
 
     //region Object Overrides

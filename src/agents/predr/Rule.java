@@ -2,6 +2,7 @@ package agents.predr;
 
 import java.util.ArrayList;
 import framework.*;
+import utils.*;
 
 
 /**
@@ -27,19 +28,26 @@ public class Rule {
         sensor-value pair (at least for now).*/
     private SensorData RHS = null;
 
-    /** index into the agent's episodic memory where this rule was derived
-        from.
-        TODO:  This should be an arraylist since a rule can be derived from
-               multiple epsiodes.  For now, a single index is enough and we
-               are using -1 to indicate that a rule is the result of merging two
-               other rules.
+    /** index into the agent's episodic memory to the episode(s) this rule was
+        derived from.
     */
-    private int epmemIndex;
+    private ArrayList<Integer> epmemIndexes = new ArrayList<Integer>();
 
     /**
      * Rule ctor
      *
-     * initializes a new rule from a single episode and rhs sensors array. In
+     * Overload to initialize using a single episode.
+     *
+     */
+    public Rule(Episode initLHS, SensorData initRHS, String sensorToTarget, int initEpmemIndex) {
+        this(new ArrayList<Episode>(), initRHS, sensorToTarget, initEpmemIndex);
+        this.LHS.add(initLHS);
+    }//ctor
+
+    /**
+     * Rule ctor
+     *
+     * initializes a new rule from a set of episodes and rhs sensors array. In
      * this ctor, it's assumed no wildcards on the LHS
      *
      * @param initLHS         the episode on the LHS of the rule (initially there is only one)
@@ -47,8 +55,8 @@ public class Rule {
      * @param sensorToTarget  the name of the sensor that won't be wildcarded on the RHS
      * @param initEpmemIndex  the index of the of the leftmost episode in LHS in the episodic memory
      */
-    public Rule(Episode initLHS, SensorData initRHS, String sensorToTarget, int initEpmemIndex) {
-        this.LHS.add(initLHS);
+    public Rule(ArrayList<Episode> initLHS, SensorData initRHS, String sensorToTarget, int initEpmemIndex) {
+        this.LHS = initLHS;
         this.RHS = new SensorData(initRHS.isGoal());
         if (! sensorToTarget.equals(SensorData.goalSensor))
         {
@@ -59,8 +67,10 @@ public class Rule {
             //add the sensor we do want here
             this.RHS.setSensor(sensorToTarget, initRHS.getSensor(sensorToTarget));
         }
-        this.epmemIndex = initEpmemIndex;
+        
+        this.epmemIndexes.add(initEpmemIndex);
     }//ctor
+    
 
     /**
      * Rule ctor
@@ -71,10 +81,10 @@ public class Rule {
      * @param initMove        the move taken on the LHS
      * @param initRHS         the sensors that resulted (one of these will be used for the rule
      */
-    private Rule(ArrayList<Episode> initLHS, SensorData initRHS) {
+    private Rule(ArrayList<Episode> initLHS, SensorData initRHS, ArrayList<Integer> initIndexes) {
         this.LHS = initLHS;
         this.RHS = initRHS;
-        this.epmemIndex = -1; //TODO:  fix this someday
+        this.epmemIndexes = initIndexes;
     }//ctor
 
     public ArrayList<Episode> getLHS() {
@@ -83,6 +93,37 @@ public class Rule {
     
     public SensorData getRHS() {
         return this.RHS;
+    }
+
+    public boolean matches(EpisodicMemory<Episode> epmem) {
+        System.err.println("MATCHES - LHS Size: " + this.LHS.size());
+        
+        for (int i = 0; i < this.LHS.size(); ++i) {
+            System.err.println("MATCHES - Index: " + i);
+            Episode ruleEp = this.LHS.get(i);
+            Episode epmemEp = epmem.getFromOffset(this.LHS.size() - i);
+            SensorData ruleEpSd = ruleEp.getSensorData();
+            System.err.println("MATCHES - RuleEpSD: " + ruleEpSd);
+            SensorData epmemEpSd = epmemEp.getSensorData();
+            System.err.println("MATCHES - EpmemEpSD: " + epmemEpSd);
+            
+            if (! (epmemEpSd.contains(ruleEpSd)) &&
+                   epmemEp.getAction().equals(ruleEp.getAction())) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /** @return true if all SensorData objects in this rule's LHS are empty */
+    public boolean isAllWildcards() {
+        for(Episode ep : this.LHS) {
+            if (! ep.getSensorData().isEmpty()) {
+                return false;
+            }
+        }
+
+        return true;
     }
     
     /** possibly useful? */
@@ -121,8 +162,8 @@ public class Rule {
      * matches both.
      *
      * CAVEAT:  This method assumes that other {@link #canMerge} with this one
-     * CAVEAT:  For now, this method assumes that the LHS will always have the
-     *          same sensor set
+     * CAVEAT:  It is possible the merged rule with be all wildcards (no sensors
+     *          in the sensor data in the LHS episode(s))
      *
      * @param other to Rule to merge with this one
      *
@@ -131,7 +172,7 @@ public class Rule {
     public Rule mergeWith(Rule other) {
         ArrayList<Episode> newLHS = new ArrayList<Episode>();
         //For each position in the 'this' and 'other' LHS, create a new episode
-        //that is the intersection of the two (actions should match)
+        //that is the intersection of the two (actions should match).  
         for(int i = 0; i < other.LHS.size(); ++i) {
             SensorData thisSD = this.LHS.get(i).getSensorData();
             SensorData otherSD = other.LHS.get(i).getSensorData();
@@ -140,7 +181,12 @@ public class Rule {
             newLHS.add(newEp);
         }
 
-        Rule result = new Rule(newLHS, this.RHS);
+        //make an epmem indexes list for the new rule
+        ArrayList<Integer> newEI = new ArrayList<Integer>();
+        newEI.addAll(this.epmemIndexes);
+        newEI.addAll(other.epmemIndexes);
+
+        Rule result = new Rule(newLHS, this.RHS, newEI);
 
         return result;
     }//mergeWith

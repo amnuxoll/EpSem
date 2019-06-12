@@ -39,6 +39,8 @@ public class PredrAgent implements framework.IAgent {
     private EpisodicMemory<Episode> epmem = new EpisodicMemory<Episode>();
     /** all the rules that this agent has created so far */
     private ArrayList<Rule> rules = new ArrayList<Rule>();
+    /** we need to keep track of the longest rule we've seen so far */
+    private int longestRule = 1;
 
     /** should only be used for unit tests!
      *  creates an agent at the point it would be at if it had experienced the
@@ -110,8 +112,13 @@ public class PredrAgent implements framework.IAgent {
 
         //Merge or add as needed
         if (match != null) {
-            this.rules.remove(match);
-            this.rules.add(match.mergeWith(newRule));
+            Rule mergedRule = match.mergeWith(newRule);
+            if (! mergedRule.isAllWildcards()) {
+                this.rules.remove(match);
+                this.rules.add(mergedRule);
+            } else {
+                return false;
+            }
 
             //TODO: should check for a LHS with nothing in it (all wildcards) in
             //the new rule and extend/expand the old rule instead.  We may
@@ -140,18 +147,37 @@ public class PredrAgent implements framework.IAgent {
      * @param sensorData the new sensor data that occured after the current episode
      */
     private void adjustRulesForNewSensorData(SensorData sensorData) {
-        //Create a rule from this sensor and the previous episode
-        if (this.epmem.length() > 0) {
-            Episode prevEpisode = this.epmem.current();
+
+        // TODO -- Next time.
+        // We added a helper method to Rule that allows us to
+        // determine whether or not the rule matches the most recent
+        // experiences in EpisodicMemory.
+        // Use this to locate the single rule that matches and determine
+        // whether or not this can be merged with any new rules.
+        // If not, then add the new rules.
+
+        
+        //Try rules of all possible lengths until we find a match (or not)
+        boolean matchFound = false;
+        for(int i = 0; i < this.longestRule; ++i) {
+            //Create a rule from this sensor and the previous episode
+            if (this.epmem.length() > 0) {
+                Episode prevEpisode = this.epmem.current();
             
-            for(String sName : sensorData.getSensorNames()) {
-                Rule newRule = new Rule(new Episode(prevEpisode),
-                                        new SensorData(sensorData),
-                                        sName,
-                                        this.epmem.currentIndex());
-                mergeRule(newRule);
-            }
-        }//if
+                for(String sName : sensorData.getSensorNames()) {
+                    Rule newRule = new Rule(new Episode(prevEpisode),
+                                            new SensorData(sensorData),
+                                            sName,
+                                            this.epmem.currentIndex());
+                    mergeRule(newRule);
+                }
+            }//if
+        }
+
+        //If not match was found then we have found a new length:1 rule
+        if (!matchFound) {
+
+        }
 
     }//adjustRulesForNewEpisode
 

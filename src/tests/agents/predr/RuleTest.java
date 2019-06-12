@@ -1,6 +1,8 @@
 package tests.agents.predr;
 
+import java.util.ArrayList;
 import framework.*;
+import utils.*;
 import tests.*;
 import agents.predr.Rule;
 
@@ -38,6 +40,51 @@ public class RuleTest {
         
     }//testGetNextMove
 
+    @EpSemTest
+    public void testMatchesEpisodicMemory() {
+        System.err.println("MATCHES - begin test");
+        EpisodicMemory<Episode> epmem = new EpisodicMemory<Episode>();
+        epmem.add(quickEpMaker(1, 0, 0, 0, false, "a"));
+        epmem.add(quickEpMaker(0, 1, 0, 0, false, "b"));
+        epmem.add(quickEpMaker(0, 0, 1, 0, false, "a"));
+        epmem.add(quickEpMaker(0, 0, 0, 1, false, "c"));
+
+        ArrayList<Episode> lhs = new ArrayList<Episode>();
+        Episode ep = quickEpMaker(0, 0, 0, 1, false, "c");
+        lhs.add(ep);
+        SensorData rhs = new SensorData(false);
+        rhs.setSensor("alpha", 1);
+        Rule rule = new Rule(lhs, rhs, "alpha", 1);
+        Assertions.assertTrue(rule.matches(epmem));
+
+        SensorData sd = ep.getSensorData();
+        sd.removeSensor("alpha");
+        Assertions.assertTrue(rule.matches(epmem));
+
+        sd.removeSensor("beta");
+        Assertions.assertTrue(rule.matches(epmem));
+
+        sd.removeSensor("charlie");
+        Assertions.assertTrue(rule.matches(epmem));
+
+        sd.removeSensor("delta");
+        Assertions.assertTrue(rule.matches(epmem));
+
+        sd.removeSensor(SensorData.goalSensor);
+        Assertions.assertTrue(rule.matches(epmem));
+    }
+
+    private Episode quickEpMaker(int alpha, int beta, int charlie, int delta, boolean goal, String action) {
+        SensorData sd = new SensorData(goal);
+        sd.setSensor("alpha", alpha);
+        sd.setSensor("beta", beta);
+        sd.setSensor("charlie", charlie);
+        sd.setSensor("delta", delta);
+        return new Episode(sd, new Action(action));
+        
+    }//quickEpMaker
+
+                  
     /** TODO: a test for merging rules with multiple sensordata on the LHS.
      * Right now we aren't creating such rules but we will someday  */
     
