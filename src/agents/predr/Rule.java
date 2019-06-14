@@ -22,16 +22,16 @@ public class Rule {
     /** a set of episodes on the left-hand-side of the rule.  Sensors that have
         been "wildcarded" are simply removed from the SensorData in the
         Episode. */
-    private ArrayList<Episode> LHS = new ArrayList<Episode>();
+    private ArrayList<Episode> LHS;
 
     /** the right-hand-side of the rule.  This will only contain one
         sensor-value pair (at least for now).*/
-    private SensorData RHS = null;
+    private SensorData RHS;
 
     /** index into the agent's episodic memory to the episode(s) this rule was
         derived from.
     */
-    private ArrayList<Integer> epmemIndexes = new ArrayList<Integer>();
+    private ArrayList<Integer> epmemIndexes = new ArrayList<>();
 
     /**
      * Rule ctor
@@ -40,7 +40,7 @@ public class Rule {
      *
      */
     public Rule(Episode initLHS, SensorData initRHS, String sensorToTarget, int initEpmemIndex) {
-        this(new ArrayList<Episode>(), initRHS, sensorToTarget, initEpmemIndex);
+        this(new ArrayList<>(), initRHS, sensorToTarget, initEpmemIndex);
         this.LHS.add(initLHS);
     }//ctor
 
@@ -78,8 +78,8 @@ public class Rule {
      * this is only used internally to created merged rule results
      *
      * @param initLHS         the sensors on the LHS of the rule
-     * @param initMove        the move taken on the LHS
      * @param initRHS         the sensors that resulted (one of these will be used for the rule
+     * @param initIndexes     the indices where the sequences in epmem exist that create this rule
      */
     private Rule(ArrayList<Episode> initLHS, SensorData initRHS, ArrayList<Integer> initIndexes) {
         this.LHS = initLHS;
@@ -97,11 +97,15 @@ public class Rule {
 
     public boolean matches(EpisodicMemory<Episode> epmem) {
         System.err.println("MATCHES - LHS Size: " + this.LHS.size());
-        
+
+        if (epmem.length() < this.LHS.size())
+            return false;
+
         for (int i = 0; i < this.LHS.size(); ++i) {
             System.err.println("MATCHES - Index: " + i);
             Episode ruleEp = this.LHS.get(i);
-            Episode epmemEp = epmem.getFromOffset(this.LHS.size() - i);
+            // getFromOffset expects 0-based offsets so we need to drop size by 1
+            Episode epmemEp = epmem.getFromOffset(this.LHS.size() - 1 - i);
             SensorData ruleEpSd = ruleEp.getSensorData();
             System.err.println("MATCHES - RuleEpSD: " + ruleEpSd);
             SensorData epmemEpSd = epmemEp.getSensorData();

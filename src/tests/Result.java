@@ -1,5 +1,7 @@
 package tests;
 
+import utils.ExceptionUtils;
+
 /**
  *
  * @author Zachary Paul Faltersack
@@ -30,7 +32,7 @@ public class Result {
     public String toString() {
         if (this.success)
             return "SUCCESS :: " + this.testName;
-        return "FAIL    :: " + this.testName + ": " + this.exception.getMessage() + " {"+ this.exception.getClass().getName() + "}";
+        return "FAIL    :: " + this.testName + ": " + this.exception.getMessage() + " { \n" + ExceptionUtils.getStacktrace(this.exception) + "}";
     }
     //endregion
 }

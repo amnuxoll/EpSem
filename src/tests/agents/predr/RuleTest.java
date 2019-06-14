@@ -41,15 +41,25 @@ public class RuleTest {
     }//testGetNextMove
 
     @EpSemTest
-    public void testMatchesEpisodicMemory() {
+    public void testMatchesEpisodicMemoryEmptyRule() {
         System.err.println("MATCHES - begin test");
-        EpisodicMemory<Episode> epmem = new EpisodicMemory<Episode>();
-        epmem.add(quickEpMaker(1, 0, 0, 0, false, "a"));
-        epmem.add(quickEpMaker(0, 1, 0, 0, false, "b"));
-        epmem.add(quickEpMaker(0, 0, 1, 0, false, "a"));
+        EpisodicMemory<Episode> epmem = new EpisodicMemory<>();
         epmem.add(quickEpMaker(0, 0, 0, 1, false, "c"));
 
-        ArrayList<Episode> lhs = new ArrayList<Episode>();
+        ArrayList<Episode> lhs = new ArrayList<>();
+        SensorData rhs = new SensorData(false);
+        rhs.setSensor("alpha", 1);
+        Rule rule = new Rule(lhs, rhs, "alpha", 1);
+        Assertions.assertTrue(rule.matches(epmem));
+    }
+
+    @EpSemTest
+    public void testMatchesEpisodicMemorySingleEpisode() {
+        System.err.println("MATCHES - begin test");
+        EpisodicMemory<Episode> epmem = new EpisodicMemory<>();
+        epmem.add(quickEpMaker(0, 0, 0, 1, false, "c"));
+
+        ArrayList<Episode> lhs = new ArrayList<>();
         Episode ep = quickEpMaker(0, 0, 0, 1, false, "c");
         lhs.add(ep);
         SensorData rhs = new SensorData(false);
@@ -72,6 +82,86 @@ public class RuleTest {
 
         sd.removeSensor(SensorData.goalSensor);
         Assertions.assertTrue(rule.matches(epmem));
+    }
+
+    @EpSemTest
+    public void testMatchesFailsWhenSensorDataWrongEpisodicMemorySingleEpisode() {
+        System.err.println("MATCHES - begin test");
+        EpisodicMemory<Episode> epmem = new EpisodicMemory<>();
+        epmem.add(quickEpMaker(0, 0, 0, 1, false, "c"));
+
+        ArrayList<Episode> lhs = new ArrayList<>();
+        Episode ep = quickEpMaker(1, 0, 0, 0, false, "c");
+        lhs.add(ep);
+        SensorData rhs = new SensorData(false);
+        rhs.setSensor("alpha", 1);
+        Rule rule = new Rule(lhs, rhs, "alpha", 1);
+        Assertions.assertFalse(rule.matches(epmem));
+    }
+
+    @EpSemTest
+    public void testMatchesEpisodicMemoryMultipleEpisodes() {
+        System.err.println("MATCHES - begin test");
+        EpisodicMemory<Episode> epmem = new EpisodicMemory<>();
+        epmem.add(quickEpMaker(1, 0, 0, 0, false, "a"));
+        epmem.add(quickEpMaker(1, 1, 0, 0, false, "b"));
+        epmem.add(quickEpMaker(1, 0, 1, 0, false, "a"));
+        epmem.add(quickEpMaker(1, 0, 0, 1, false, "c"));
+
+        ArrayList<Episode> lhs = new ArrayList<>();
+        lhs.add(quickEpMaker(1, 1, 0, 0, false, "b"));
+        lhs.add(quickEpMaker(1, 0, 1, 0, false, "a"));
+        lhs.add(quickEpMaker(1, 0, 0, 1, false, "c"));
+        SensorData rhs = new SensorData(false);
+        rhs.setSensor("alpha", 1);
+
+        // This will test the complete full matches where all sensor values exist in the rule.
+        Rule rule = new Rule(lhs, rhs, "alpha", 1);
+        Assertions.assertTrue(rule.matches(epmem));
+
+        // For grins let's also do some validation where the episodes get wildcarded
+        lhs.get(0).getSensorData().removeSensor("alpha");
+        lhs.get(1).getSensorData().removeSensor("alpha");
+        lhs.get(2).getSensorData().removeSensor("alpha");
+        Assertions.assertTrue(rule.matches(epmem));
+    }
+
+    @EpSemTest
+    public void testMatchesFailsWhenAnySensorDataIsWrongEpisodicMemoryMultipleEpisodes() {
+        System.err.println("MATCHES - begin test");
+        EpisodicMemory<Episode> epmem = new EpisodicMemory<>();
+        epmem.add(quickEpMaker(1, 0, 0, 0, false, "a"));
+        epmem.add(quickEpMaker(1, 1, 0, 0, false, "b"));
+        epmem.add(quickEpMaker(1, 0, 1, 0, false, "a"));
+        epmem.add(quickEpMaker(1, 0, 0, 1, false, "c"));
+
+        ArrayList<Episode> lhs = new ArrayList<>();
+        lhs.add(quickEpMaker(1, 1, 0, 0, false, "b"));
+        lhs.add(quickEpMaker(0, 0, 1, 0, false, "a"));
+        lhs.add(quickEpMaker(1, 0, 0, 1, false, "c"));
+        SensorData rhs = new SensorData(false);
+        rhs.setSensor("alpha", 1);
+
+        // This will test the complete full matches where all sensor values exist in the rule.
+        Rule rule = new Rule(lhs, rhs, "alpha", 1);
+        Assertions.assertFalse(rule.matches(epmem));
+    }
+
+    @EpSemTest
+    public void testMatchesFailsWhenRuleTooLong() {
+        System.err.println("MATCHES - begin test");
+        EpisodicMemory<Episode> epmem = new EpisodicMemory<>();
+        epmem.add(quickEpMaker(1, 0, 0, 0, false, "a"));
+
+        ArrayList<Episode> lhs = new ArrayList<>();
+        lhs.add(quickEpMaker(1, 1, 0, 0, false, "b"));
+        lhs.add(quickEpMaker(1, 0, 1, 0, false, "a"));
+        SensorData rhs = new SensorData(false);
+        rhs.setSensor("alpha", 1);
+
+        // This will test the complete full matches where all sensor values exist in the rule.
+        Rule rule = new Rule(lhs, rhs, "alpha", 1);
+        Assertions.assertFalse(rule.matches(epmem));
     }
 
     private Episode quickEpMaker(int alpha, int beta, int charlie, int delta, boolean goal, String action) {
