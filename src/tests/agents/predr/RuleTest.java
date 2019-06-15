@@ -164,6 +164,7 @@ public class RuleTest {
         Assertions.assertFalse(rule.matches(epmem));
     }
 
+    /** helper method for tests to create a canned episode sequence */
     private Episode quickEpMaker(int alpha, int beta, int charlie, int delta, boolean goal, String action) {
         SensorData sd = new SensorData(goal);
         sd.setSensor("alpha", alpha);
@@ -178,4 +179,4 @@ public class RuleTest {
     /** TODO: a test for merging rules with multiple sensordata on the LHS.
      * Right now we aren't creating such rules but we will someday  */
     
-}//class PredrAgentTest
+}//class RuleTest

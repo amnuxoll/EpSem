@@ -1,6 +1,7 @@
 package agents.predr;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import framework.*;
 import utils.*;
 
@@ -80,6 +81,12 @@ public class PredrAgent implements framework.IAgent {
         this.nst = nstGen.nextPermutation(nstNum);
     }
     
+    /** should only be used for unit tests!
+     *
+     *  @return the rules
+     */
+    public ArrayList<Rule> getRules() { return this.rules; }
+    
     
     /**
      * Set the available {@link Action}s for the agent in the current environment.
@@ -133,6 +140,30 @@ public class PredrAgent implements framework.IAgent {
         return true;
     }//mergeRule
 
+    /**
+     * buildRuleFromIndex
+     *
+     * creates a new Rule that contains a subsequence of episodes from
+     * this.epmem.  These will be copies (clones) so they can be modified. 
+     *
+     * @param epIndex - index of the first episode in the subsequence
+     * @param length  - number of episodes to retrieve
+     * @param sensorData - the sensorData template for the RHS
+     * @param sName      - which sensor from sensorData to use
+     *
+     * @return the newly created Rule object
+     */
+    private Rule buildRuleFromIndex(int epIndex, int length, SensorData sensorData, String sName) {
+        Episode[] newLHSArr = this.epmem.subset(epIndex, epIndex + length);
+        ArrayList<Episode> newLHS = new ArrayList<Episode>();
+        for(Episode ep : newLHSArr) {
+            newLHS.add(new Episode(ep));
+        }
+        Rule newRule = new Rule(newLHS, sensorData, sName, epIndex);
+
+        return newRule;
+        
+    }//buildRuleFromIndex
     
     /**
      * adjustRulesForNewSensorData
@@ -148,36 +179,101 @@ public class PredrAgent implements framework.IAgent {
      */
     private void adjustRulesForNewSensorData(SensorData sensorData) {
 
-        // TODO -- Next time.
-        // We added a helper method to Rule that allows us to
-        // determine whether or not the rule matches the most recent
-        // experiences in EpisodicMemory.
-        // Use this to locate the single rule that matches and determine
-        // whether or not this can be merged with any new rules.
-        // If not, then add the new rules.
-
+        //Need at least one episode
+        if (this.epmem.length() == 0) return;
         
-        //Try rules of all possible lengths until we find a match (or not)
-        boolean matchFound = false;
-        for(int i = 0; i < this.longestRule; ++i) {
-            //Create a rule from this sensor and the previous episode
-            if (this.epmem.length() > 0) {
-                Episode prevEpisode = this.epmem.current();
-            
-                for(String sName : sensorData.getSensorNames()) {
-                    Rule newRule = new Rule(new Episode(prevEpisode),
-                                            new SensorData(sensorData),
-                                            sName,
-                                            this.epmem.currentIndex());
-                    mergeRule(newRule);
+        //We will need to create/merge a new rule for each sensor
+        for(String sName : sensorData.getSensorNames()) {
+        
+            //Find the one matching rule whose LHS is from our current episodes and
+            //RHS is the given sensorData
+            Rule matchingRule = null;
+            for (Rule rule : this.rules) {
+                if (rule.canMerge(this.epmem, sensorData, sName)) {
+                    matchingRule = rule;
+                    break;
                 }
-            }//if
-        }
+            }
 
-        //If not match was found then we have found a new length:1 rule
-        if (!matchFound) {
+            //If no match was found this is a new rule and no merge is needed
+            if (matchingRule == null) {
+                Rule newRule = new Rule(new Episode(this.epmem.current()),
+                                        new SensorData(sensorData),
+                                        sName,
+                                        this.epmem.currentIndex());
+                this.rules.add(newRule);
+                continue;
+            }
 
-        }
+            //Remove the old rule as we'll be replacing it
+            this.rules.remove(matchingRule);
+
+            
+            //We need to merge, so create a new rule of the same length from the
+            //current position in this.epmem and the given SensorData
+            int newIndex = this.epmem.length() - matchingRule.getLHS().size();
+            Rule newRule = buildRuleFromIndex(newIndex,
+                                              matchingRule.getLHS().size(),
+                                              sensorData,
+                                              sName); 
+
+            //Merge our new rule with the one that currently matches.
+            Rule mergedRule = matchingRule.mergeWith(newRule);
+
+            //If there are any sensor values left the merge has
+            //succeeded and we are done
+            if (! mergedRule.isAllWildcards()) {
+                this.rules.add(mergedRule);
+                continue;
+            }
+
+            //If we reach this point, the merge failed.  So more work is
+            //needed...
+
+            
+            //First, split apart the old rule into its consituents and extend
+            //each consituent by one action.  Then sort the results by
+            //what action is being prepended
+            HashMap< Action, ArrayList<Rule> > cons = new HashMap<>();
+            for(int epIndex : mergedRule.getEpmemIndexes()) {
+                //corner case:  if the rule can't be extended it has to be
+                //discarded
+                if (epIndex == 0) continue;
+
+                //Create an extended version of the rule and add to the list
+                Rule consRule = buildRuleFromIndex(epIndex - 1,
+                                                   mergedRule.getLHS().size() + 1,
+                                                   sensorData,
+                                                   sName);
+
+                //Extract the new extended action to use as a hashmap key
+                Action key = consRule.getLHS().get(0).getAction();
+
+                //Add the new the hashmap
+                ArrayList<Rule> al = null;
+                if (! cons.containsKey(key)) {
+                    cons.put(key, new ArrayList<Rule>());
+                }
+                al = cons.get(key);
+                al.add(consRule);
+            }//for
+
+            //Second, re-merge each subset of rules and add them to this.rules
+            for(ArrayList<Rule> sublist : cons.values()) {
+                mergedRule = sublist.remove(0);
+                while(! sublist.isEmpty()) {
+                    Rule mergeMe = sublist.remove(0);
+                    mergedRule = mergedRule.mergeWith(mergeMe);
+                }
+                this.rules.add(mergedRule);
+
+                //TODO:  Could this new merged Rule also be all wildcards??  If
+                //so we need a recursive method to handle 
+            }
+            
+        }//for (each sName)
+
+
 
     }//adjustRulesForNewEpisode
 
@@ -334,6 +430,7 @@ public class PredrAgent implements framework.IAgent {
             return result;
         }
 
+        System.err.println("DEBUG - no rules based sequence found");
         return Sequence.EMPTY;  //no paths found (also a base case)
     }//findRuleBasedSequence
 

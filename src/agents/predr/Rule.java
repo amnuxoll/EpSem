@@ -95,6 +95,14 @@ public class Rule {
         return this.RHS;
     }
 
+    public ArrayList<Integer> getEpmemIndexes() {
+        return this.epmemIndexes;
+    }
+
+    /**
+     * @return true if the episodes at the end of a given episodic memory match
+     * this rule
+     */
     public boolean matches(EpisodicMemory<Episode> epmem) {
         System.err.println("MATCHES - LHS Size: " + this.LHS.size());
 
@@ -119,30 +127,50 @@ public class Rule {
         return true;
     }
 
-    /** @return true if all SensorData objects in this rule's LHS are empty */
-    public boolean isAllWildcards() {
-        for(Episode ep : this.LHS) {
-            if (! ep.getSensorData().isEmpty()) {
+    /**
+     * @return true iff the actions in the LHS of this rule match the given
+     * episodic memory and the RHS of this rule matches the given sensor value
+     * as specified by a SensorData object and the name of a particular sensor
+     * in it.
+     *
+     * example:
+     *    epmem:  01b,00a
+     *       sd:  01
+     *    sName:  alpha (presuming alpha is the first sensor)
+     * matches:
+     *     rule:  01b,..a->0.
+     */
+    public boolean canMerge(EpisodicMemory<Episode> epmem,
+                            SensorData sd, String sName) {
+
+        if (epmem.length() < this.LHS.size())
+            return false;
+
+        //check a RHS sensor name match
+        if (! this.RHS.hasSensor(sName)) {
+            return false;
+        }
+
+        //check RHS sensor values
+        Object myVal = this.RHS.getSensor(sName);
+        Object sdVal = sd.getSensor(sName);
+        if (!myVal.equals(sdVal)) {
+            return false;
+        }
+
+        //Make sure the actions match
+        for (int i = 0; i < this.LHS.size(); ++i) {
+            Episode ruleEp = this.LHS.get(i);
+            Episode epmemEp = epmem.getFromOffset(this.LHS.size() - 1 - i);
+            if (! epmemEp.getAction().equals(ruleEp.getAction())) {
                 return false;
             }
         }
-
+        
         return true;
-    }
-    
-    /** possibly useful? */
-    @Override
-    public String toString() {
-        String result = "{ ";
-        for(Episode ep : this.LHS) {
-            result += ep.toString() + ", ";
-        }
-        result = result.substring(0, result.length() - 2);
-        result += " } -> ";
-        result += RHS.toString(true);
-        return result;
-    }//toString
+    }//canMerge
 
+    
     /** @return true iff:
      *      1.  each corresponding episode on the LHS of each Rule has the same
      *          action 
@@ -195,5 +223,30 @@ public class Rule {
         return result;
     }//mergeWith
 
+    /** @return true if all SensorData objects in this rule's LHS are empty */
+    public boolean isAllWildcards() {
+        for(Episode ep : this.LHS) {
+            if (! ep.getSensorData().isEmpty()) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+    
+    /** possibly useful? */
+    @Override
+    public String toString() {
+        String result = "{ ";
+        for(Episode ep : this.LHS) {
+            result += ep.toString() + ", ";
+        }
+        result = result.substring(0, result.length() - 2);
+        result += " } -> ";
+        result += RHS.toString(true);
+        return result;
+    }//toString
+
+    
     
 }//class Rule
