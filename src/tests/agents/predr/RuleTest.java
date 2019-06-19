@@ -42,7 +42,6 @@ public class RuleTest {
 
     @EpSemTest
     public void testMatchesEpisodicMemoryEmptyRule() {
-        System.err.println("MATCHES - begin test");
         EpisodicMemory<Episode> epmem = new EpisodicMemory<>();
         epmem.add(quickEpMaker(0, 0, 0, 1, false, "c"));
 
@@ -55,7 +54,6 @@ public class RuleTest {
 
     @EpSemTest
     public void testMatchesEpisodicMemorySingleEpisode() {
-        System.err.println("MATCHES - begin test");
         EpisodicMemory<Episode> epmem = new EpisodicMemory<>();
         epmem.add(quickEpMaker(0, 0, 0, 1, false, "c"));
 
@@ -86,7 +84,6 @@ public class RuleTest {
 
     @EpSemTest
     public void testMatchesFailsWhenSensorDataWrongEpisodicMemorySingleEpisode() {
-        System.err.println("MATCHES - begin test");
         EpisodicMemory<Episode> epmem = new EpisodicMemory<>();
         epmem.add(quickEpMaker(0, 0, 0, 1, false, "c"));
 
@@ -101,7 +98,6 @@ public class RuleTest {
 
     @EpSemTest
     public void testMatchesEpisodicMemoryMultipleEpisodes() {
-        System.err.println("MATCHES - begin test");
         EpisodicMemory<Episode> epmem = new EpisodicMemory<>();
         epmem.add(quickEpMaker(1, 0, 0, 0, false, "a"));
         epmem.add(quickEpMaker(1, 1, 0, 0, false, "b"));
@@ -128,7 +124,6 @@ public class RuleTest {
 
     @EpSemTest
     public void testMatchesFailsWhenAnySensorDataIsWrongEpisodicMemoryMultipleEpisodes() {
-        System.err.println("MATCHES - begin test");
         EpisodicMemory<Episode> epmem = new EpisodicMemory<>();
         epmem.add(quickEpMaker(1, 0, 0, 0, false, "a"));
         epmem.add(quickEpMaker(1, 1, 0, 0, false, "b"));
@@ -149,7 +144,6 @@ public class RuleTest {
 
     @EpSemTest
     public void testMatchesFailsWhenRuleTooLong() {
-        System.err.println("MATCHES - begin test");
         EpisodicMemory<Episode> epmem = new EpisodicMemory<>();
         epmem.add(quickEpMaker(1, 0, 0, 0, false, "a"));
 

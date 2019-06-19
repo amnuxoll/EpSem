@@ -45,7 +45,7 @@ public class FSMEnvironmentProviderTest {
 
     @EpSemTest
     public void getEnvironmentDescriptionHeedsConfiguration2() {
-        FSMEnvironmentProvider descriptionProvider = new FSMEnvironmentProvider(new FSMTransitionTableBuilder(13, 42, Random.getTrue()), EnumSet.of(FSMEnvironment.Sensor.EVEN_ODD));
+        FSMEnvironmentProvider descriptionProvider = new FSMEnvironmentProvider(new FSMTransitionTableBuilder(13, 42, Random.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN));
         FSMEnvironment description = (FSMEnvironment)descriptionProvider.getEnvironment();
         assertEquals(13, description.getActions().length);
     }
@@ -54,7 +54,7 @@ public class FSMEnvironmentProviderTest {
     //region getAlias Tests
     @EpSemTest
     public void getAlias() {
-        FSMEnvironmentProvider descriptionProvider = new FSMEnvironmentProvider(new FSMTransitionTableBuilder(13, 42, Random.getTrue()), EnumSet.of(FSMEnvironment.Sensor.EVEN_ODD));
+        FSMEnvironmentProvider descriptionProvider = new FSMEnvironmentProvider(new FSMTransitionTableBuilder(13, 42, Random.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN));
         assertEquals("FSMEnvironment", descriptionProvider.getAlias());
     }
     //endregion

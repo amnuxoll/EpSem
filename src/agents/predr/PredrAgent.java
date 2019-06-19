@@ -42,6 +42,9 @@ public class PredrAgent implements framework.IAgent {
     private ArrayList<Rule> rules = new ArrayList<Rule>();
     /** we need to keep track of the longest rule we've seen so far */
     private int longestRule = 1;
+    /** keeps track of whether the current nst is generated from rules or from
+       the sequence generator */
+    private boolean inRuleSeq = false;
 
     /** should only be used for unit tests!
      *  creates an agent at the point it would be at if it had experienced the
@@ -164,6 +167,72 @@ public class PredrAgent implements framework.IAgent {
         return newRule;
         
     }//buildRuleFromIndex
+
+    /**
+     * extendRule    <!-- RECURSIVE! -->
+     *
+     * Given a rule that is all wildcards, this method pulls it apart into into
+     * its constituents, extends each one and then remerges them together.  This
+     * can result in multiple rules since extended rules constituents may no
+     * longer be compatible.  this.rules will be updated as a result of this
+     * call. 
+     *
+     *  Example:
+     *     original rule:  ..a->.1
+     *     constituents:   00a->.1,  11a->.1, 01a->.1
+     *     extended:       01b,00a->.1, 10a,11a->.1, 10a,01a->.1
+     *     re-merged:      01b,00a->.1, 10a,.1a->.1
+     *
+     * Note:  it's possible one of the re-merged rules will still be all
+     * wildcards.  In this case a recursive call is made to extend again.
+     * 
+     */
+    private void extendRule(Rule mergedRule, SensorData sensorData, String sName) {
+        //First, split apart the old rule into its consituents and extend
+        //each consituent by one action.  Then sort the results by
+        //what action is being prepended
+        HashMap< Action, ArrayList<Rule> > cons = new HashMap<>();
+        for(int epIndex : mergedRule.getEpmemIndexes()) {
+            //corner case:  if the rule can't be extended it has to be
+            //discarded
+            if (epIndex == 0) continue;
+
+            //Create an extended version of the rule and add to the list
+            Rule consRule = buildRuleFromIndex(epIndex - 1,
+                                               mergedRule.getLHS().size() + 1,
+                                               sensorData,
+                                               sName);
+
+            //Extract the new extended action to use as a hashmap key
+            Action key = consRule.getLHS().get(0).getAction();
+
+            //Add the new rule to the hashmap
+            ArrayList<Rule> al = null;
+            if (! cons.containsKey(key)) {
+                cons.put(key, new ArrayList<Rule>());
+            }
+            al = cons.get(key);
+            al.add(consRule);
+        }//for
+
+        //Second, re-merge each subset of rules and add them to this.rules
+        for(ArrayList<Rule> sublist : cons.values()) {
+            mergedRule = sublist.remove(0);
+            while(! sublist.isEmpty()) {
+                Rule mergeMe = sublist.remove(0);
+                mergedRule = mergedRule.mergeWith(mergeMe);
+            }
+
+            //If the result is still all wildcards we have to extend again
+            if (mergedRule.isAllWildcards()) {
+                extendRule(mergedRule, sensorData, sName); //recurse
+            } else {
+                this.rules.add(mergedRule);
+            }
+
+        }
+
+    }//extendRule
     
     /**
      * adjustRulesForNewSensorData
@@ -227,96 +296,15 @@ public class PredrAgent implements framework.IAgent {
                 continue;
             }
 
-            //If we reach this point, the merge failed.  So more work is
-            //needed...
-
-            
-            //First, split apart the old rule into its consituents and extend
-            //each consituent by one action.  Then sort the results by
-            //what action is being prepended
-            HashMap< Action, ArrayList<Rule> > cons = new HashMap<>();
-            for(int epIndex : mergedRule.getEpmemIndexes()) {
-                //corner case:  if the rule can't be extended it has to be
-                //discarded
-                if (epIndex == 0) continue;
-
-                //Create an extended version of the rule and add to the list
-                Rule consRule = buildRuleFromIndex(epIndex - 1,
-                                                   mergedRule.getLHS().size() + 1,
-                                                   sensorData,
-                                                   sName);
-
-                //Extract the new extended action to use as a hashmap key
-                Action key = consRule.getLHS().get(0).getAction();
-
-                //Add the new the hashmap
-                ArrayList<Rule> al = null;
-                if (! cons.containsKey(key)) {
-                    cons.put(key, new ArrayList<Rule>());
-                }
-                al = cons.get(key);
-                al.add(consRule);
-            }//for
-
-            //Second, re-merge each subset of rules and add them to this.rules
-            for(ArrayList<Rule> sublist : cons.values()) {
-                mergedRule = sublist.remove(0);
-                while(! sublist.isEmpty()) {
-                    Rule mergeMe = sublist.remove(0);
-                    mergedRule = mergedRule.mergeWith(mergeMe);
-                }
-                this.rules.add(mergedRule);
-
-                //TODO:  Could this new merged Rule also be all wildcards??  If
-                //so we need a recursive method to handle 
-            }
+            //If we reach this point, the merge failed.  So the merged rule
+            //needs to be extended
+            extendRule(mergedRule, sensorData, sName);
             
         }//for (each sName)
 
 
 
     }//adjustRulesForNewEpisode
-
-    /**
-     * getMatchingRules <-- not currently being used.  Delete?
-     *
-     * returns a list of all the Rule objects in this.rules that match the
-     * current sensing and episodic memory.
-     *
-     * For example, if the current sensor data is 01101  and the three most
-     * recent epsiodes in episodic memory are:  00101b, 01111b, 00100a then
-     * the following rules would both match:
-     *    0.10.b -> 1....
-     *    001..a, 0..0.a -> ...1.
-     *
-     * Specifically, the sensordata must match the LHS of the episode in the
-     * rule that is closest to the 'arrow' in the rule.  Previous episodes in
-     * the rules must match the most recent episodes in episodic memory.
-     */
-    public ArrayList<Rule> getMatchingRules(SensorData sensorData) {
-
-        ArrayList<Rule> result = new ArrayList<Rule>();
-
-        //Special case:  if the sensorData is empty, there should be no matching
-        //rules
-        if (sensorData.getSensorNames().size() == 0) return result;
-
-        //Find all rules that match the sensorData
-        for(Rule rule : this.rules) {
-            SensorData ruleSD = rule.getLHS().get(0).getSensorData();
-            if (ruleSD.contains(sensorData)) {
-                result.add(rule);
-            }
-        }
-
-
-        //TODO:  for rules with multiple episodes in the LHS they need to also
-        //match the corresponding most recent episodes in episodic memory.  For
-        //now, however, all our rules contain only one episode on the LHS.
-
-
-        return result;
-    }//getMatchingRules
 
 
     /**
@@ -337,11 +325,6 @@ public class PredrAgent implements framework.IAgent {
      *         an empty sequence if one is not found.
      */
     private Sequence findRuleBasedSequence(int steps, SensorData sensorData, String debug) {
-        //DEBUG
-        System.err.println("--------------------------------------------------");
-        System.err.println("DEBUG - " + debug + "+" + steps);
-        System.err.println("DEBUG - sensorData: " + sensorData.toString(true));
-
         if (steps == 0) return Sequence.EMPTY;  // base case
 
         //Search all the rules to find the ones where the LHS matches the given
@@ -354,7 +337,6 @@ public class PredrAgent implements framework.IAgent {
             //if this rule leads to a goal then we're done
             if ( (rule.getRHS().hasSensor(SensorData.goalSensor))
                   && (rule.getRHS().isGoal()) ) {
-                System.err.println("DEBUG - GOAL FOUND with action " + ep.getAction());
                 
                 return Sequence.EMPTY.buildChildSequence(ep.getAction());
             } else {
@@ -367,11 +349,6 @@ public class PredrAgent implements framework.IAgent {
             return Sequence.EMPTY;  //base case #2
         }
 
-        //DEBUG
-        for(Rule r : candNextSteps) {
-            System.err.println("DEBUG - rule: " + r);
-        }
-        
         //If we reach this point, no single step paths to goal were found but
         //any matching rules are in candNextSteps.  So, we make a recursive call
         //with each and keep the the shortest sequence that we get back
@@ -401,15 +378,10 @@ public class PredrAgent implements framework.IAgent {
 
             //make a recursive call if any rules were applied for this action
             if (lastRuleUsed != null) {
-                System.err.println("DEBUG - recurse in with " + debug + act.getName() );
-                
                 Sequence result = findRuleBasedSequence(steps - 1, sd, debug + act.getName());
-
-                System.err.println("DEBUG - recurse out to " + debug);
 
                 //is this the shortest one we've seen so far?
                 if (! result.equals(Sequence.EMPTY)) {
-                    System.err.println("DEBUG - found new cand seq: " + debug + result);
                     if ((shortestSeq == null)
                         || (shortestSeq.getLength() > result.getLength()) ) {
                         shortestSeq = result;
@@ -426,11 +398,9 @@ public class PredrAgent implements framework.IAgent {
         if (shortestSeq != null) {
             Sequence front = new Sequence(EpisodeUtils.selectMoves(shortestRule.getLHS()));
             Sequence result = front.concat(shortestSeq);
-            System.err.println("DEBUG - prepending " + front + " to " + shortestSeq);
             return result;
         }
 
-        System.err.println("DEBUG - no rules based sequence found");
         return Sequence.EMPTY;  //no paths found (also a base case)
     }//findRuleBasedSequence
 
@@ -447,20 +417,60 @@ public class PredrAgent implements framework.IAgent {
         //Now that we've taken another step, update rules based on what we've learned
         adjustRulesForNewSensorData(sensorData);
 
-        //First, see if our rules suggest a good move
-        Sequence rulesSeq = findRuleBasedSequence(nst.stepsRemaining(), sensorData, ">");
-        if (! rulesSeq.equals(Sequence.EMPTY)) {
-            this.nst = rulesSeq;
-            nstNum--; //we'll try the replaced sequence later
-            
-        } else {
-            //Get the next next move from the permutation
-            if (! nst.hasNext()) {
-                this.nst = nstGen.nextPermutation(nstNum);
-                nstNum++;
-            }
+        //DEBUG
+        System.err.println("----------------------------------------------------------------------");
+        for(Rule r : this.rules) {
+            System.err.println("RULE: " + r);
         }
+        
+        //DEBUG
+        System.err.println();
+        System.err.println("epmem: " + this.epmem);
+        System.err.println("sensorData: " + sensorData);
+
+        //If we are not currently following a rule-based sequence, see if our
+        //rules suggest a good one
+        if ( (! this.inRuleSeq) || (! nst.hasNext()) ) {
+
+            Sequence rulesSeq = findRuleBasedSequence(nst.stepsRemaining(), sensorData, ">");
+
+            if (! rulesSeq.equals(Sequence.EMPTY)) {
+                //DEBUG
+                System.err.println("Using rules-based sequence: " + rulesSeq);
+
+                this.nst = rulesSeq;
+
+                //If we weren't in a rule sequence before then we are
+                //interrupting a permutation-based sequence and need to set the
+                //system up to return to the permutation later
+                if (! this.inRuleSeq) {
+                    nstNum--;
+                    this.inRuleSeq = true;
+                }
+            }
+            //DEBUG
+            else {
+                System.err.println("No rules-based sequence found.");
+            }
+        }//if need to check for rules-based seq
+
+        //If there is no next move available then it's time for the next
+        //permutation-based seuqence
+        if (! nst.hasNext()) {
+            this.inRuleSeq = false;
+            this.nst = nstGen.nextPermutation(nstNum);
+            nstNum++;
+
+            //DEBUG
+            System.err.println("Using permutation-based sequence: " + nst);
+        }
+            
+            
+
         Action nextAction =  nst.next();
+
+        //DEBUG
+        System.err.println("Action selected:" + nextAction);
 
         //Create the new episode
         Episode nextEpisode = new Episode(sensorData, nextAction);

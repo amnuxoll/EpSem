@@ -104,20 +104,15 @@ public class Rule {
      * this rule
      */
     public boolean matches(EpisodicMemory<Episode> epmem) {
-        System.err.println("MATCHES - LHS Size: " + this.LHS.size());
-
         if (epmem.length() < this.LHS.size())
             return false;
 
         for (int i = 0; i < this.LHS.size(); ++i) {
-            System.err.println("MATCHES - Index: " + i);
             Episode ruleEp = this.LHS.get(i);
             // getFromOffset expects 0-based offsets so we need to drop size by 1
             Episode epmemEp = epmem.getFromOffset(this.LHS.size() - 1 - i);
             SensorData ruleEpSd = ruleEp.getSensorData();
-            System.err.println("MATCHES - RuleEpSD: " + ruleEpSd);
             SensorData epmemEpSd = epmemEp.getSensorData();
-            System.err.println("MATCHES - EpmemEpSD: " + epmemEpSd);
             
             if (! (epmemEpSd.contains(ruleEpSd)) &&
                    epmemEp.getAction().equals(ruleEp.getAction())) {

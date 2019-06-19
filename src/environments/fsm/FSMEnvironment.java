@@ -51,6 +51,10 @@ public class FSMEnvironment implements IEnvironment {
         this.sensorsToInclude = sensorsToInclude;
         this.actions = this.transitionTable.getTransitions()[0].keySet().toArray(new Action[0]);
         this.currentState = this.getRandomState();
+
+        //DEBUG: print the transition table
+        System.err.println("Transition table:");
+        System.err.println(this.transitionTable);
     }
     //endregion
 
@@ -86,6 +90,10 @@ public class FSMEnvironment implements IEnvironment {
         else
             sensorData = new SensorData(false);
         this.applySensors(this.currentState, sensorData);
+
+        //DEBUG: print the current state
+        System.err.println("new state: " + this.currentState);
+        
         return sensorData;
     }
 
@@ -115,7 +123,7 @@ public class FSMEnvironment implements IEnvironment {
      * @param sensorData The {@link SensorData} to apply sensors to.
      */
     private void applySensors(int currentState, SensorData sensorData) {
-        if (this.sensorsToInclude.contains(Sensor.EVEN_ODD))
+        if (this.sensorsToInclude.contains(Sensor.IS_EVEN))
             this.applyEvenOddSensor(currentState, sensorData);
         if (this.sensorsToInclude.contains(Sensor.MOD_3)){
             this.applyMod3Sensor(currentState, sensorData);
@@ -125,7 +133,7 @@ public class FSMEnvironment implements IEnvironment {
     }
 
     private void applyEvenOddSensor(int state, SensorData sensorData) {
-        sensorData.setSensor(Sensor.EVEN_ODD.toString(), state % 2 == 0);
+        sensorData.setSensor(Sensor.IS_EVEN.toString(), state % 2 == 0);
     }
 
     private void applyMod3Sensor(int state, SensorData sensorData){
@@ -160,7 +168,7 @@ public class FSMEnvironment implements IEnvironment {
         /**
          * Identifies the sensor that determines if the current state is even or odd.
          */
-        EVEN_ODD,
+        IS_EVEN,
         MOD_3,
 
         WITHIN_1,

@@ -14,7 +14,7 @@ public class PredrAgentTest {
 
     /** A quick test to see if PredrAgent will generate the correct
         sequence of actions given the alphabet: [a,b]; */
-//DEBUG    @EpSemTest
+    @EpSemTest
     public void testGetNextMove() {
         //create a PredrAgent with the right alphabet
         Action[] actions = new Action[2];
@@ -72,7 +72,7 @@ public class PredrAgentTest {
     
     
 
-//DEBUG    @EpSemTest
+    @EpSemTest
     public void testFindRuleBasedSequence() {
         //create a canned starting sequence of episodes
         ArrayList<Episode> initEpmem = new ArrayList<Episode>();
@@ -83,12 +83,6 @@ public class PredrAgentTest {
         initEpmem.add(quickEpMaker4(0,1,1,0,true,"b"));
         initEpmem.add(quickEpMaker4(1,1,0,1,false,"b"));
 
-        //DEBUG
-        for(Episode ep : initEpmem) {
-            System.err.println("INITEP: " + ep);
-        }
-        
-        
         //create a PredrAgent with the right epmem
         Action[] actions = new Action[3];
         actions[0] = new Action("a");
@@ -134,11 +128,6 @@ public class PredrAgentTest {
         initEpmem.add(quickEpMaker1(1,false,"b"));
         initEpmem.add(quickEpMaker1(0,false,"a"));
 
-        //DEBUG
-        for(Episode ep : initEpmem) {
-            System.err.println("INITEP: " + ep);
-        }
-        
         //create a PredrAgent with the right epmem
         Action[] actions = new Action[2];
         actions[0] = new Action("a");
@@ -180,6 +169,63 @@ public class PredrAgentTest {
         assertEquals(new SensorData(false), checkme.getRHS());
         
     }//testExtendMergeRules
+
+    @EpSemTest
+    public void testDoubleExtendMergeRules() throws Exception {
+        //create a canned starting sequence of episodes
+        ArrayList<Episode> initEpmem = new ArrayList<Episode>();
+        //[GOAL:true;IS_EVEN:true]a
+        initEpmem.add(quickEpMaker1(1,true,"a"));
+        //[GOAL:false;IS_EVEN:false]b
+        initEpmem.add(quickEpMaker1(0,false,"b"));
+        //[GOAL:false;IS_EVEN:false]a
+        initEpmem.add(quickEpMaker1(0,false,"a"));
+        //[GOAL:false;IS_EVEN:true]a
+        initEpmem.add(quickEpMaker1(1,false,"a"));
+        //[GOAL:false;IS_EVEN:false]a
+        initEpmem.add(quickEpMaker1(0,false,"a"));
+        //[GOAL:false;IS_EVEN:true]b
+        initEpmem.add(quickEpMaker1(1,false,"b"));
+        //[GOAL:false;IS_EVEN:false]b
+        initEpmem.add(quickEpMaker1(0,false,"b"));
+        //[GOAL:false;IS_EVEN:false]a
+        initEpmem.add(quickEpMaker1(0,false,"a"));
+        //[GOAL:false;IS_EVEN:true]b
+        initEpmem.add(quickEpMaker1(1,false,"b"));
+        //[GOAL:false;IS_EVEN:true]b
+        initEpmem.add(quickEpMaker1(1,false,"b"));
+        //[GOAL:false;IS_EVEN:true]a
+        initEpmem.add(quickEpMaker1(1,false,"a"));
+        //[GOAL:false;IS_EVEN:false]a
+        initEpmem.add(quickEpMaker1(0,false,"a"));
+        //[GOAL:false;IS_EVEN:true]a
+        initEpmem.add(quickEpMaker1(1,false,"a"));
+        //[GOAL:true;IS_EVEN:true]a,
+        initEpmem.add(quickEpMaker1(1,true,"a"));
+        //[GOAL:true;IS_EVEN:true]a
+        initEpmem.add(quickEpMaker1(1,true,"a"));
+        
+        //create a PredrAgent with the right epmem
+        Action[] actions = new Action[2];
+        actions[0] = new Action("a");
+        actions[1] = new Action("b");
+        PredrAgent testme = new PredrAgent();
+        testme.initialize(actions, null);
+        testme.initWithEpmem(initEpmem);
+        testme.setNSTNum(100); //any large num will do
+
+        //Extract the next action
+        SensorData sd = new SensorData(false);
+        sd.setSensor("alpha", 0);
+        Action nextAct = testme.getNextAction(sd);
+
+        //Check for no all-wildcards rules
+        for(Rule rule : testme.getRules()) {
+            assertFalse(rule.isAllWildcards());
+        }
+        
+    }//testDoubleExtendMergeRules
+
 
     
 }//class PredrAgentTest
