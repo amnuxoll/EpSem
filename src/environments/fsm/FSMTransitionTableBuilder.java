@@ -57,6 +57,10 @@ public class FSMTransitionTableBuilder {
         HashMap<Action, Integer>[] transitions = this.buildTransitionTable();
         return new FSMTransitionTable(transitions);
     }
+
+    public String getDetails() {
+        return "Alpha:" + this.alphabetSize + "_States:" + this.numStates;
+    }
     //endregion
 
     //region Private Methods

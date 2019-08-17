@@ -18,11 +18,12 @@ import java.util.*;
  * @author Giselle Marston
  * @author Andrew Nuxoll
  *
+ *
+ *
  */
 public class MaRzAgent implements IAgent {
 	//region Static Variables
 	private static final int NODE_LIST_SIZE = 10000;
-	public static final int MAX_EPISODES = 2000000;
 	//endregion
 
 	//region Class Variables
@@ -44,34 +45,17 @@ public class MaRzAgent implements IAgent {
 	 * the current sequence that was successful (used for reporting and not
 	 * required for the algorithm)
 	 */
-	private Sequence lastSuccessfulSequence = null;
 	private SequenceGenerator sequenceGenerator;
 	private Action[] alphabet;
 	private HashMap<SuffixNode, Long> permutationQueues = new HashMap<>();
 	private IIntrospector introspector;
-	private int goodDecisionCount = 0;
-	private int goodDecisionBailCount = 0;
-	private int badDecisionBailCount = 0;
-	private int decisionsMadeSinceGoal = 0;
-	private boolean currentSequenceIsGood = false;
-	private int decisionsMade = 0;
-	//endregion
-
-	//region Constructors
-	/**
-	 * MaRzAgent
-	 *
-	 */
-	public MaRzAgent() {
-
-
-	}// ctor
 	//endregion
 
 	//region IAgent Members
 	/**
 	 * Sets up the state of the agent based on the given actions.
 	 * @param actions An array of {@link Action} representing the actions available to the agent.
+	 * @param introspector Can be used to gather metadata about the agent's decicions. DO NOT USE to cheat.
 	 */
 	@Override
 	public void initialize(Action[] actions, IIntrospector introspector) {
@@ -107,14 +91,6 @@ public class MaRzAgent implements IAgent {
 				boolean shouldBail = shouldBail();
 				if (!this.currentSequence.hasNext() || shouldBail) {
 					this.markFailure();
-
-					if (shouldBail) {
-						if (this.currentSequenceIsGood)
-							this.goodDecisionBailCount++;
-						else
-							this.badDecisionBailCount++;
-					}
-
 					this.setCurrentSequence(this.selectNextSequence());
 				}
 			}
@@ -122,47 +98,6 @@ public class MaRzAgent implements IAgent {
 		Action nextAction = this.currentSequence.next();
 		episodicMemory.add(new Episode(sensorData, nextAction));
 		return nextAction;
-	}
-
-	@Override
-	public String[] getStatisticTypes() {
-		return new String[] {
-				"agentDidAGood",
-				"goodDecisionBail",
-				"badDecisionBail",
-				"properBails"
-		};
-	}
-
-	@Override
-	public ArrayList<Datum> getGoalData() {
-		ArrayList<Datum> data = new ArrayList<>();
-		if (this.decisionsMade > 0) {
-			data.add(new Datum("agentDidAGood", (double)this.goodDecisionCount/this.decisionsMade));
-			data.add(new Datum("goodDecisionBail", (double)this.goodDecisionBailCount/this.goodDecisionCount));
-			data.add(new Datum("badDecisionBail", (double)this.badDecisionBailCount/(this.decisionsMade-this.goodDecisionCount)));
-		} else {
-			data.add(new Datum("agentDidAGood", 0));
-			data.add(new Datum("goodDecisionBail", 0));
-			data.add(new Datum("badDecisionBail", 0));
-		}
-
-		if (this.badDecisionBailCount+this.goodDecisionBailCount > 0) {
-			data.add(new Datum("properBails", (double)this.badDecisionBailCount/(this.badDecisionBailCount+this.goodDecisionBailCount)));
-		} else {
-			data.add(new Datum("properBails", 0));
-		}
-		return data;
-	}
-
-	@Override
-	public void onGoalFound() {
-
-	}
-
-	@Override
-	public void onTestRunComplete() {
-		//System.out.println(episodicMemory);
 	}
 	//endregion
 
@@ -185,8 +120,6 @@ public class MaRzAgent implements IAgent {
 	}
 
 	protected void markSuccess() {
-		this.lastSuccessfulSequence = this.currentSequence;
-
 		if (this.currentSequence.hasNext()) {
 			// Was partial match so find the best node to update
 			Action[] actions = EpisodeUtils.selectMoves(this.episodicMemory.subset(this.lastGoalIndex + 1));
@@ -207,7 +140,6 @@ public class MaRzAgent implements IAgent {
 	}
 
 	protected Sequence selectNextSequence() {
-		SuffixNode oldActiveNode= activeNode;
 		SuffixNode newBestNode = this.suffixTree.findBestNodeToTry();
 
 		this.setActiveNode(newBestNode);
@@ -261,9 +193,6 @@ public class MaRzAgent implements IAgent {
 
 	private void setCurrentSequence(Sequence sequence) {
 		this.currentSequence = sequence;
-		this.currentSequenceIsGood = this.introspector.validateSequence(this.currentSequence);
-		this.decisionsMade++;
-		this.decisionsMadeSinceGoal++;
 	}
 	//endregion
 }// MaRzAgent

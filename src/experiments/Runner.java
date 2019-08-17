@@ -209,13 +209,15 @@ public class Runner {
                 }
             }
     );
+
+
     //endregion
 
     //region Main
     public static void main(String[] args) {
         try {
             File outputDirectory = DirectoryUtils.generateNewOutputDirectory();
-            Runner.TempExperiment.run(new FileResultWriterProvider(outputDirectory));
+            AAAIDefnitions.MaRz.run(new FileResultWriterProvider(outputDirectory));
         } catch (OutOfMemoryError mem) {
             mem.printStackTrace();
         } catch (Exception ex) {

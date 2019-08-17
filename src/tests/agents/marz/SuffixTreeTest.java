@@ -37,8 +37,7 @@ public class SuffixTreeTest {
         assertFalse(suffixTree.splitSuffix(toSplit));
     }
 
-//TODO:  this test has been removed as it needs updating for new SuffixTree
-//    @EpSemTest
+    //@EpSemTest
     public void splitSuffixAddsChildrenRemovesSelf() {
         Sequence toSplit = new Sequence(new Action[] { new Action("a"), new Action("b"), new Action("c") });
         SuffixNode node = new SuffixNode(toSplit, new Action[] { new Action("a"), new Action("b"), new Action("c") }, index -> null);
@@ -52,8 +51,7 @@ public class SuffixTreeTest {
     }
 
     // findBestNodeToTry Tests
-//TODO:  this test has been removed as it needs updating for new SuffixTree
-//    @EpSemTest
+    //@EpSemTest
     public void findBestNodeToTryTakesHighestWeightNode() {
         Sequence toSplit = new Sequence(new Action[] { new Action("a"), new Action("b"), new Action("c") });
         SuffixNode node = new SuffixNode(toSplit, new Action[] { new Action("a"), new Action("b"), new Action("c") }, index -> null);

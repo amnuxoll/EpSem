@@ -167,15 +167,19 @@ public class TestSuite implements IGoalListener {
         metadataBuilder.append("Number of Machines: " + configuration.getNumberOfIterations() + "\n");
         metadataBuilder.append("\n");
         metadataBuilder.append("== ENVIRONMENTS ==\n");
+        int i = 0;
         for (IEnvironmentProvider environmentDescriptionProvider : this.environmentProviders) {
-            metadataBuilder.append("Environment provider type: " + environmentDescriptionProvider.getClass().getName() + "\n");
-            metadataBuilder.append("With Alias: " + environmentDescriptionProvider.getAlias() + "\n");
+            metadataBuilder.append("Environment: " + i++ + "\n");
+            metadataBuilder.append("\tprovider type: " + environmentDescriptionProvider.getClass().getName() + "\n");
+            metadataBuilder.append("\tWith Alias: " + environmentDescriptionProvider.getAlias() + "\n");
         }
         metadataBuilder.append("\n");
         metadataBuilder.append("== AGENTS ==\n");
+        i = 0;
         for (IAgentProvider agentProvider : this.agentProviders) {
-            metadataBuilder.append("Agent provider type: " + agentProvider.getClass().getName() + "\n");
-            metadataBuilder.append("With Alias: " + agentProvider.getAlias() + "\n");
+            metadataBuilder.append("Agent: " + i++ + "\n");
+            metadataBuilder.append("\tAgent provider type: " + agentProvider.getClass().getName() + "\n");
+            metadataBuilder.append("\tWith Alias: " + agentProvider.getAlias() + "\n");
         }
         NamedOutput.getInstance().writeLine("metadata", metadataBuilder.toString());
     }

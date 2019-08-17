@@ -51,7 +51,7 @@ public class FSMEnvironmentProvider implements IEnvironmentProvider {
 
     @Override
     public String getAlias() {
-        return "FSMEnvironment";
+        return "FSMEnvironment[" + this.transitionTableBuilder.getDetails() + "]";
     }
     //endregion
 }
