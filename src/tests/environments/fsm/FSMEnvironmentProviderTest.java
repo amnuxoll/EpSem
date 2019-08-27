@@ -55,7 +55,7 @@ public class FSMEnvironmentProviderTest {
     @EpSemTest
     public void getAlias() {
         FSMEnvironmentProvider descriptionProvider = new FSMEnvironmentProvider(new FSMTransitionTableBuilder(13, 42, Random.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN));
-        assertEquals("FSMEnvironment[Alpha:13_States:42]", descriptionProvider.getAlias());
+        assertEquals("FSMEnvironment[Alpha_13_States_42]", descriptionProvider.getAlias());
     }
     //endregion
 }
