@@ -217,8 +217,12 @@ public class Runner {
     public static void main(String[] args) {
         try {
             File outputDirectory = DirectoryUtils.generateNewOutputDirectory();
-            RulesAgent.run(new FileResultWriterProvider(outputDirectory));
-            //AAAIDefnitions.MaRz.run(new FileResultWriterProvider(outputDirectory));
+            //RulesAgent.run(new FileResultWriterProvider(outputDirectory));
+            AAAIDefnitions.ARONoSensor.run(new FileResultWriterProvider(outputDirectory));
+
+            outputDirectory = DirectoryUtils.generateNewOutputDirectory();
+            //RulesAgent.run(new FileResultWriterProvider(outputDirectory));
+            AAAIDefnitions.AROWithSensor.run(new FileResultWriterProvider(outputDirectory));
         } catch (OutOfMemoryError mem) {
             mem.printStackTrace();
         } catch (Exception ex) {
