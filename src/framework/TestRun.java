@@ -67,7 +67,7 @@ public class TestRun implements IIntrospector {
             SensorData sensorData = this.environment.applyAction(null);
             do {
                 Action action = this.agent.getNextAction(sensorData);
-                if(action == null) break;
+                if(action == null) break; //TODO: Yell
                 sensorData = this.environment.applyAction(action);
                 moveCount++;
 

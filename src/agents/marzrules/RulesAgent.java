@@ -10,7 +10,7 @@ import java.util.ArrayList;
  */
 public class RulesAgent implements IAgent {
     private Ruleset ruleset;
-    private Action previousAction = null;
+    private Action previousAction;
     private IIntrospector introspector;
     private RuleSetEvaluator ruleSetEvaluator;
     private Heuristic heuristic;
@@ -29,6 +29,7 @@ public class RulesAgent implements IAgent {
             evaluationSuffixes.add(generator.nextPermutation(i));
         }
         this.ruleSetEvaluator = new RuleSetEvaluator(evaluationSuffixes.toArray(new Sequence[0]));
+
     }
 
     @Override

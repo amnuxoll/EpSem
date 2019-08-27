@@ -102,7 +102,7 @@ public class Ruleset {
 
         if (isGoal){
             for (RuleNode ruleNode : current){
-                ruleNode.incrementMoveFrequency(action);
+                ruleNode.incrementMoveFrequency(action); // TODO: Prevent null action
                 RuleNode node = ruleNode.getGoalChild(action);
                 if (node != null) node.occurs();
             }

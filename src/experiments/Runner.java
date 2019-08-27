@@ -62,7 +62,7 @@ public class Runner {
             },
             new IAgentProvider[] {
                     new RulesAgentProvider(new Heuristic(1, 0)),
-                    new MaRzAgentProvider()
+                    //new MaRzAgentProvider()
             }
     );
 
@@ -217,7 +217,8 @@ public class Runner {
     public static void main(String[] args) {
         try {
             File outputDirectory = DirectoryUtils.generateNewOutputDirectory();
-            AAAIDefnitions.MaRz.run(new FileResultWriterProvider(outputDirectory));
+            RulesAgent.run(new FileResultWriterProvider(outputDirectory));
+            //AAAIDefnitions.MaRz.run(new FileResultWriterProvider(outputDirectory));
         } catch (OutOfMemoryError mem) {
             mem.printStackTrace();
         } catch (Exception ex) {

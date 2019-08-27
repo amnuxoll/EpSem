@@ -58,8 +58,12 @@ public class RuleNodeRoot extends RuleNode {
     }
 
     public double getIncreasedGoalProbability(){
+
+        //NOTE: We no longer add 1, since the framework was modified to show a goal at the very first step
+        return  childArray.get(0).getFrequency()/(double)frequency;
+
         //Number of goals + 1 / freqency + 1
-        return (childArray.get(0).getFrequency()+1)/((double)frequency+1);
+        //return (childArray.get(0).getFrequency()+1)/((double)frequency+1);
     }
 
     //NOTE: Uncomment to enable caching
@@ -88,5 +92,10 @@ public class RuleNodeRoot extends RuleNode {
             this.bestMove = null;
         }*/ // Makes lack of side effects consistent
         return best;
+    }
+
+    @Override
+    public RuleNodeGoal getGoalChild(Action action) {
+        return (RuleNodeGoal)childArray.get(0);
     }
 }
