@@ -217,7 +217,7 @@ public class Runner {
     public static void main(String[] args) {
         try {
             File outputDirectory = DirectoryUtils.generateNewOutputDirectory();
-            RulesAgent.run(new FileResultWriterProvider(outputDirectory));
+            TempExperiment.run(new FileResultWriterProvider(outputDirectory));
             //AAAIDefnitions.MaRz.run(new FileResultWriterProvider(outputDirectory));
         } catch (OutOfMemoryError mem) {
             mem.printStackTrace();
