@@ -59,7 +59,7 @@ public class FSMTransitionTableBuilder {
     }
 
     public String getDetails() {
-        return "Alpha:" + this.alphabetSize + "_States:" + this.numStates;
+        return "Alpha_" + this.alphabetSize + "_States_" + this.numStates;
     }
     //endregion
 
