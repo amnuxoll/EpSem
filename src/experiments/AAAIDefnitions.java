@@ -122,7 +122,7 @@ public class AAAIDefnitions {
     public static TestSuite ARONoSensor = new TestSuite(
             AAAIDefnitions.configuration,
             AAAIDefnitions.environmentProviders,
-            new IAgentProvider[] { new RulesAgentProvider(new Heuristic(1, 0)) },
+            new IAgentProvider[] { new RulesAgentProvider(new Heuristic(1, 0), 500) },
             rootDirectory -> {
                 NamedOutput namedOutput = NamedOutput.getInstance();
                 try {
@@ -136,7 +136,7 @@ public class AAAIDefnitions {
     public static TestSuite AROWithSensor = new TestSuite(
             AAAIDefnitions.configuration,
             AAAIDefnitions.environmentProvidersSensors,
-            new IAgentProvider[] { new RulesAgentProvider(new Heuristic(1, 0)) },
+            new IAgentProvider[] { new RulesAgentProvider(new Heuristic(1, 0), 500) },
             rootDirectory -> {
                 NamedOutput namedOutput = NamedOutput.getInstance();
                 try {
