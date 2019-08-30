@@ -130,6 +130,7 @@ public class AAAIDefnitions {
                 } catch (FileNotFoundException e) {
                     e.printStackTrace();
                 }
+                namedOutput.write("metadata", "No Sensors");
             }
     );
 
@@ -144,6 +145,7 @@ public class AAAIDefnitions {
                 } catch (FileNotFoundException e) {
                     e.printStackTrace();
                 }
+                namedOutput.write("metadata", "With Sensors");
             }
     );
 }
