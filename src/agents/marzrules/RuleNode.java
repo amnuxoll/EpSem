@@ -197,7 +197,7 @@ public class RuleNode {
         }
 
         //BASE CASE: At depth limit
-        if (maxDepth == 0){
+        if (maxDepth == 1){
             bestAction = null;
             expectation = -1;
             return Optional.empty();
@@ -312,7 +312,7 @@ public class RuleNode {
                 return ruleNode;
             }
         }
-        if (maxDepth - 1 == 0){
+        if (maxDepth == 0){
             return null;
             //throw new IllegalStateException("At depth limit - cannot create children");
         }
