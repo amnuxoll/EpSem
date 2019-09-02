@@ -1,6 +1,8 @@
 package experiments;
 
 import agents.marz.MaRzAgentProvider;
+import agents.marzrules.Heuristic;
+import agents.marzrules.RulesAgentProvider;
 import environments.fsm.FSMEnvironment;
 import environments.fsm.FSMEnvironmentProvider;
 import environments.fsm.FSMTransitionTableBuilder;
@@ -10,6 +12,7 @@ import utils.Random;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.util.EnumSet;
 
 /**
  * This class contains the parameters used for data collection for AAAI.
@@ -69,6 +72,38 @@ public class AAAIDefnitions {
 
     };
 
+    private static IEnvironmentProvider[] environmentProvidersSensors = new IEnvironmentProvider[] {
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(SmallAlphabet, SmallFSM, Random.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(SmallAlphabet, MediumFSM, Random.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(SmallAlphabet, LargeFSM, Random.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(SmallAlphabet, XLargeFSM, Random.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(SmallAlphabet, XXLargeFSM, Random.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
+
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(MediumAlphabet, SmallFSM, Random.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(MediumAlphabet, MediumFSM, Random.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(MediumAlphabet, LargeFSM, Random.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(MediumAlphabet, XLargeFSM, Random.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(MediumAlphabet, XXLargeFSM, Random.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
+
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(LargeAlphabet, SmallFSM, Random.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(LargeAlphabet, MediumFSM, Random.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(LargeAlphabet, LargeFSM, Random.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(LargeAlphabet, XLargeFSM, Random.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(LargeAlphabet, XXLargeFSM, Random.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
+
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(XLargeAlphabet, SmallFSM, Random.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(XLargeAlphabet, MediumFSM, Random.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(XLargeAlphabet, LargeFSM, Random.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(XLargeAlphabet, XLargeFSM, Random.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(XLargeAlphabet, XXLargeFSM, Random.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
+
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(XXLargeAlphabet, SmallFSM, Random.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(XXLargeAlphabet, MediumFSM, Random.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(XXLargeAlphabet, LargeFSM, Random.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(XXLargeAlphabet, XLargeFSM, Random.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(XXLargeAlphabet, XXLargeFSM, Random.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
+
+    };
 
     public static TestSuite MaRz = new TestSuite(
             AAAIDefnitions.configuration,
@@ -81,6 +116,36 @@ public class AAAIDefnitions {
                 } catch (FileNotFoundException e) {
                     e.printStackTrace();
                 }
+            }
+    );
+
+    public static TestSuite ARONoSensor = new TestSuite(
+            AAAIDefnitions.configuration,
+            AAAIDefnitions.environmentProviders,
+            new IAgentProvider[] { new RulesAgentProvider(new Heuristic(1, 0), 500) },
+            rootDirectory -> {
+                NamedOutput namedOutput = NamedOutput.getInstance();
+                try {
+                    namedOutput.configure("metadata", new FileOutputStream(new File(rootDirectory, "metadata.txt")));
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                }
+                namedOutput.write("metadata", "No Sensors");
+            }
+    );
+
+    public static TestSuite AROWithSensor = new TestSuite(
+            AAAIDefnitions.configuration,
+            AAAIDefnitions.environmentProvidersSensors,
+            new IAgentProvider[] { new RulesAgentProvider(new Heuristic(1, 0), 500) },
+            rootDirectory -> {
+                NamedOutput namedOutput = NamedOutput.getInstance();
+                try {
+                    namedOutput.configure("metadata", new FileOutputStream(new File(rootDirectory, "metadata.txt")));
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                }
+                namedOutput.write("metadata", "With Sensors");
             }
     );
 }

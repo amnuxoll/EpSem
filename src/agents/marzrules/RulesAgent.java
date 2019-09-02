@@ -14,15 +14,17 @@ public class RulesAgent implements IAgent {
     private IIntrospector introspector;
     private RuleSetEvaluator ruleSetEvaluator;
     private Heuristic heuristic;
+    private int maxDepth;
 
-    public RulesAgent(Heuristic heuristic) {
+    public RulesAgent(Heuristic heuristic, int maxDepth) {
         this.heuristic = heuristic;
+        this.maxDepth = maxDepth;
     }
 
     @Override
     public void initialize(Action[] actions, IIntrospector introspector) {
         this.introspector = introspector;
-        this.ruleset = new Ruleset(actions, 10000, heuristic);
+        this.ruleset = new Ruleset(actions, maxDepth, heuristic);
         SequenceGenerator generator = new SequenceGenerator(actions);
         ArrayList<Sequence> evaluationSuffixes = new ArrayList<>();
         for (int i = 1; i <= 15; i++) {
@@ -41,7 +43,7 @@ public class RulesAgent implements IAgent {
         //this.ruleSetEvaluator.evaluate(this.ruleset);
 
         previousAction = ruleset.getBestMove();
-        System.out.print(previousAction);
+        //System.out.print(previousAction);
         return previousAction;
 
         /*
@@ -65,7 +67,7 @@ public class RulesAgent implements IAgent {
 
     @Override
     public ArrayList<Datum> getGoalData() {
-        System.out.println();
+        //System.out.println();
         ArrayList<Datum> data = new ArrayList<>();
         data.add(new Datum("goal probability", heuristic.getHeuristic(0)));
         data.add(new Datum("explore", ruleset.getExplores()));

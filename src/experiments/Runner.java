@@ -57,7 +57,7 @@ public class Runner {
     private static TestSuite RulesAgent = new TestSuite(
             TestSuiteConfiguration.MEDIUM,
             new IEnvironmentProvider[] {
-                    new FSMEnvironmentProvider(new FSMTransitionTableBuilder(2, 50, Random.getFalse()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN), false),
+                    //new FSMEnvironmentProvider(new FSMTransitionTableBuilder(6, 100, Random.getFalse()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN), false),
                     new FSMEnvironmentProvider(new FSMTransitionTableBuilder(2, 50, Random.getFalse()), FSMEnvironment.Sensor.NO_SENSORS)
             },
             new IAgentProvider[] {
@@ -217,8 +217,12 @@ public class Runner {
     public static void main(String[] args) {
         try {
             File outputDirectory = DirectoryUtils.generateNewOutputDirectory();
-            TempExperiment.run(new FileResultWriterProvider(outputDirectory));
-            //AAAIDefnitions.MaRz.run(new FileResultWriterProvider(outputDirectory));
+            //RulesAgent.run(new FileResultWriterProvider(outputDirectory));
+            AAAIDefnitions.ARONoSensor.run(new FileResultWriterProvider(outputDirectory));
+
+            outputDirectory = DirectoryUtils.generateNewOutputDirectory();
+            //RulesAgent.run(new FileResultWriterProvider(outputDirectory));
+            AAAIDefnitions.AROWithSensor.run(new FileResultWriterProvider(outputDirectory));
         } catch (OutOfMemoryError mem) {
             mem.printStackTrace();
         } catch (Exception ex) {

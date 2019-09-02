@@ -17,7 +17,7 @@ public class Ruleset {
     private RuleNodeRoot root;
     private RuleNode driver;
     private ArrayList<RuleNode> current;
-    private ArrayList<Double> goalProbabilities;
+    //private ArrayList<Double> goalProbabilities;
     private Action[] alphabet;
     private int explores;
     private Heuristic heuristic;
@@ -82,9 +82,9 @@ public class Ruleset {
 
     public int getExplores() { return explores; }
 
-    public ArrayList<Double> getGoalProbabilities() {
+    /*public ArrayList<Double> getGoalProbabilities() {
         return goalProbabilities;
-    }
+    }*/
 
     public void update(Action action, SensorData sensorData){
         boolean isGoal = sensorData.isGoal();
@@ -138,13 +138,13 @@ public class Ruleset {
         return root.getGoalProbability(movesList, 0);
     }
 
-    private void setGoalProbabilities() {
+    /*private void setGoalProbabilities() {
         goalProbabilities = new ArrayList<>();
         for (RuleNode node : current) {
             ArrayList<Action> actions = new ArrayList<>(Arrays.asList(node.potentialActions));
             goalProbabilities.add(node.getGoalProbability(actions, 0));
         }
-    }
+    }*/
 
 
     //region PopperBotStuff
