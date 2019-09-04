@@ -264,6 +264,43 @@ public class RuleNode {
                 .map(val -> val / moveFrequency + 1);
     }
 
+    protected double getAverageBits(){
+        double maxBits = 0;
+        for(Action a: potentialActions){
+            if(getMoveFrequency(a) == 0)
+                continue;
+            double bits = 0;
+            for(RuleNode child:children.get(a)){
+                double childBits = child.getAverageBits();
+                int f = child.getFrequency();
+                if(f == 0)
+                    continue;
+                double p = f/(double)getMoveFrequency(a);
+                bits += p*(childBits + Math.log(1.0/p));
+            }
+            maxBits = Math.max(maxBits, bits);
+        }
+        return maxBits;
+    }
+
+    protected double getMaxBits(){
+        double maxBits = 0;
+        for(Action a: potentialActions){
+            if(getMoveFrequency(a) == 0)
+                continue;
+            for(RuleNode child:children.get(a)){
+                double bits = child.getMaxBits();
+                int f = child.getFrequency();
+                if(f == 0)
+                    continue;
+                double p = f/(double)getMoveFrequency(a);
+                bits += (Math.log(1.0/p));
+                maxBits = Math.max(maxBits, bits);
+            }
+        }
+        return maxBits;
+    }
+
     protected void unvisit(){
         if (visited) {
             visited = false;

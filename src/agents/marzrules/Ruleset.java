@@ -82,6 +82,14 @@ public class Ruleset {
 
     public int getExplores() { return explores; }
 
+    public double getAvgBitStateEstimate(){
+       return Math.exp(root.getAverageBits());
+    }
+
+    public double getMaxBitStateEstimate(){
+        return Math.exp(root.getMaxBits());
+    }
+
     /*public ArrayList<Double> getGoalProbabilities() {
         return goalProbabilities;
     }*/

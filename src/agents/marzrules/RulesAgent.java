@@ -61,7 +61,9 @@ public class RulesAgent implements IAgent {
     public String[] getStatisticTypes(){
         return new String[] {
                 "goal probability",
-                "explore"
+                "explore",
+                "avg bit machine size",
+                "max bit machine size"
         };
     }
 
@@ -71,6 +73,8 @@ public class RulesAgent implements IAgent {
         ArrayList<Datum> data = new ArrayList<>();
         data.add(new Datum("goal probability", heuristic.getHeuristic(0)));
         data.add(new Datum("explore", ruleset.getExplores()));
+        data.add(new Datum("avg bit machine size", ruleset.getAvgBitStateEstimate()));
+        data.add(new Datum("max bit machine size", ruleset.getMaxBitStateEstimate()));
         return data;
     }
 }

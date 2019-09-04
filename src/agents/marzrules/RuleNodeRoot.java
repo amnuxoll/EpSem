@@ -95,6 +95,34 @@ public class RuleNodeRoot extends RuleNode {
     }
 
     @Override
+    protected double getAverageBits() {
+        if(frequency == 0)
+            return 0;
+        double bits = 0;
+        for(RuleNode child:childArray){
+            double childBits = child.getAverageBits();
+            double p = child.getFrequency()/(double)frequency;
+            bits += p*(childBits + Math.log(1/p));
+        }
+        return bits;
+    }
+
+    @Override
+    protected double getMaxBits() {
+        if(frequency == 0)
+            return 0;
+        double maxBits = 0;
+        for(RuleNode child:childArray){
+            double bits = 0;
+            double childBits = child.getAverageBits();
+            double p = child.getFrequency()/(double)frequency;
+            bits += Math.log(1/p);
+            maxBits = Math.max(maxBits, bits);
+        }
+        return maxBits;
+    }
+
+    @Override
     public RuleNodeGoal getGoalChild(Action action) {
         return (RuleNodeGoal)childArray.get(0);
     }

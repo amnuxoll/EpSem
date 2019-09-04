@@ -16,6 +16,8 @@ public class TestSuiteConfiguration {
     /** Defines a medium sniff-test configuration. */
     public static final TestSuiteConfiguration MEDIUM = new TestSuiteConfiguration(25, 500);
 
+    public static final TestSuiteConfiguration LONG= new TestSuiteConfiguration(25, 1000);
+
     /** Provides comprehensive data-gathering configuration. */
     public static final TestSuiteConfiguration FULL = new TestSuiteConfiguration(50, 1000);
 
