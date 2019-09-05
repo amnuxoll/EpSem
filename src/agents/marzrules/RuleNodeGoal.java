@@ -26,6 +26,16 @@ public class RuleNodeGoal extends RuleNode{
     }
 
     @Override
+    protected double getAverageBits() {
+        return 0;
+    }
+
+    @Override
+    protected double getMaxBits() {
+        return 0;
+    }
+
+    @Override
     public ArrayList<String> toStringArray(){
         ArrayList<String> result = new ArrayList<>();
         result.add("G: " + frequency);
