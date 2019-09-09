@@ -371,4 +371,39 @@ public class RuleNodeTest {
 
     //endregion
 
+    //region getMaxBits
+    @EpSemTest
+    public void testNoChildren(){
+        Action[] actions = new Action[] {new Action("a"), new Action("b")};
+        RuleNode node = new RuleNode(actions, 0, 2, 0);
+        node.occurs();
+        assertEquals(node.getMaxBits(), 0.0);
+    }
+
+    @EpSemTest
+    public void testOneAction(){
+        Action[] actions = new Action[] {new Action("a"), new Action("b")};
+        RuleNode node = new RuleNode(actions, 0, 2, 0);
+        node.incrementMoveFrequency(actions[0]);
+        RuleNode child0 = node.getNextChild(actions[0], 0);
+        for(int i = 0; i < 3; i++){
+            child0.occurs();
+            node.incrementMoveFrequency(actions[0]);
+        }
+        RuleNode child1 = node.getNextChild(actions[0], 1);
+        child1.occurs();
+        node.incrementMoveFrequency(actions[1]);
+        assertEquals(node.getMaxBits(), Math.log(4));
+        for(int i = 0; i < 10; i++){
+            child1.occurs();
+            node.incrementMoveFrequency(actions[0]);
+        }
+        assertEquals(Math.log(14/3.0), node.getMaxBits());
+    }
+
+    @EpSemTest
+    public void testTwoAction(){
+
+    }
+    //endregion
 }

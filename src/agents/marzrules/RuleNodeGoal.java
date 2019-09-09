@@ -31,7 +31,7 @@ public class RuleNodeGoal extends RuleNode{
     }
 
     @Override
-    protected double getMaxBits() {
+    public double getMaxBits() {
         return 0;
     }
 

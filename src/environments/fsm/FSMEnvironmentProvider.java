@@ -27,6 +27,8 @@ public class FSMEnvironmentProvider implements IEnvironmentProvider {
             throw new IllegalArgumentException("transitionTableBuilder cannot be null");
         if (sensorsToInclude == null)
             throw new IllegalArgumentException("sensorsToInclude cannot be null");
+        if (transitionTableBuilder.getNumStates() > 10 && sensorsToInclude.contains(FSMEnvironment.Sensor.CACTUS1))
+            System.out.println("WARNING: Cactus sensors may not function properly for machines with less than 10 states.");
         this.transitionTableBuilder = transitionTableBuilder;
         this.sensorsToInclude = sensorsToInclude;
     }

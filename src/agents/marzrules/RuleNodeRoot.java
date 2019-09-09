@@ -108,7 +108,7 @@ public class RuleNodeRoot extends RuleNode {
     }
 
     @Override
-    protected double getMaxBits() {
+    public double getMaxBits() {
         if(frequency == 0)
             return 0;
         double maxBits = 0;
