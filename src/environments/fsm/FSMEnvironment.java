@@ -151,6 +151,27 @@ public class FSMEnvironment implements IEnvironment {
             sensorData.setSensor(Sensor.NOISE4.toString(), Math.random() > 0.5);
     }
 
+    private void applyCactiSensors(int state, SensorData sensorData) {
+        if (this.sensorsToInclude.contains(Sensor.CACTUS1))
+            sensorData.setSensor(Sensor.CACTUS1.toString(), state == 0);
+        if (this.sensorsToInclude.contains(Sensor.CACTUS1))
+            sensorData.setSensor(Sensor.CACTUS2.toString(), state == 1);
+        if (this.sensorsToInclude.contains(Sensor.CACTUS1))
+            sensorData.setSensor(Sensor.CACTUS3.toString(), state == 2);
+        if (this.sensorsToInclude.contains(Sensor.CACTUS1))
+            sensorData.setSensor(Sensor.CACTUS4.toString(), state == 3);
+        if (this.sensorsToInclude.contains(Sensor.CACTUS1))
+            sensorData.setSensor(Sensor.CACTUS5.toString(), state == 4);
+        if (this.sensorsToInclude.contains(Sensor.CACTUS1))
+            sensorData.setSensor(Sensor.CACTUS6.toString(), state == 5);
+        if (this.sensorsToInclude.contains(Sensor.CACTUS1))
+            sensorData.setSensor(Sensor.CACTUS7.toString(), state == 6);
+        if (this.sensorsToInclude.contains(Sensor.CACTUS1))
+            sensorData.setSensor(Sensor.CACTUS8.toString(), state == 7);
+        if (this.sensorsToInclude.contains(Sensor.CACTUS1))
+            sensorData.setSensor(Sensor.CACTUS9.toString(), state == 8);
+    }
+
     private void applyWithinNSensors(int state, SensorData sensorData){
 //        for(int i = 0; i< 20; i++){
 //            if(sensorsToInclude.contains(Sensor.fromString("WITHIN_"+i))){
@@ -170,6 +191,17 @@ public class FSMEnvironment implements IEnvironment {
          */
         IS_EVEN,
         MOD_3,
+
+        /** Identifies the sensor that turns on for exactly one state in the FSM */
+        CACTUS1, //On if in state 0
+        CACTUS2, //On if in state 1
+        CACTUS3, // ...
+        CACTUS4,
+        CACTUS5,
+        CACTUS6,
+        CACTUS7,
+        CACTUS8, // ...
+        CACTUS9, //On in state 8
 
         WITHIN_1,
         WITHIN_2,

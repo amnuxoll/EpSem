@@ -55,7 +55,7 @@ public class Runner {
     );
 
     private static TestSuite RulesAgent = new TestSuite(
-            TestSuiteConfiguration.LONG,
+            TestSuiteConfiguration.QUICK,
             new IEnvironmentProvider[] {
                     //new FSMEnvironmentProvider(new FSMTransitionTableBuilder(6, 100, Random.getFalse()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN), false),
                     new FSMEnvironmentProvider(new FSMTransitionTableBuilder(2, 50, Random.getFalse()), FSMEnvironment.Sensor.NO_SENSORS),

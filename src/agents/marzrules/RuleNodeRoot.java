@@ -113,11 +113,10 @@ public class RuleNodeRoot extends RuleNode {
             return 0;
         double maxBits = 0;
         for(RuleNode child:childArray){
-            double bits = 0;
             double childBits = child.getAverageBits();
             double p = child.getFrequency()/(double)frequency;
-            bits += Math.log(1/p);
-            maxBits = Math.max(maxBits, bits);
+            childBits += Math.log(1/p);
+            maxBits = Math.max(maxBits, childBits);
         }
         return maxBits;
     }

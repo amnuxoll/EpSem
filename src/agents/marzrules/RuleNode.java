@@ -270,7 +270,7 @@ public class RuleNode {
             if(getMoveFrequency(a) == 0)
                 continue;
             double bits = 0;
-            for(RuleNode child:children.get(a)){
+            for(RuleNode child: children.get(a)){
                 double childBits = child.getAverageBits();
                 int f = child.getFrequency();
                 if(f == 0)
@@ -288,7 +288,7 @@ public class RuleNode {
         for(Action a: potentialActions){
             if(getMoveFrequency(a) == 0)
                 continue;
-            for(RuleNode child:children.get(a)){
+            for(RuleNode child: children.get(a)){
                 double bits = child.getMaxBits();
                 int f = child.getFrequency();
                 if(f == 0)
