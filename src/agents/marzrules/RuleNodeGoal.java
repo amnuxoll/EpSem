@@ -26,7 +26,7 @@ public class RuleNodeGoal extends RuleNode{
     }
 
     @Override
-    protected double getAverageBits() {
+    public double getAverageBits() {
         return 0;
     }
 
