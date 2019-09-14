@@ -499,6 +499,7 @@ public class RuleNodeTest {
         RuleNode childb0 = node.getNextChild(actions[1], 0);
         RuleNode childa1 = node.getNextChild(actions[0], 1);
         RuleNode childb1 = node.getNextChild(actions[1], 1);
+        RuleNodeGoal childbg = node.getGoalChild(actions[1]);
         for(int i = 0; i < 5; i++) {
             childa0.occurs();
             node.incrementMoveFrequency(actions[0]);
@@ -513,6 +514,11 @@ public class RuleNodeTest {
             node.incrementMoveFrequency(actions[1]);
         }
         assertEquals((5/11.0)*Math.log(11/5.0) + (6/11.0)*Math.log(11/6.0), node.getAverageBits());
+        for(int i = 0; i < 4; i++){
+            childbg.occurs();
+            node.incrementMoveFrequency(actions[1]);
+        }
+        assertEquals((10.0/18)*Math.log(18.0/10) + 2*4.0/18*Math.log(18.0/4), node.getAverageBits());
     }
 
     @EpSemTest

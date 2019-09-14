@@ -283,6 +283,8 @@ public class RuleNode {
         return maxBits;
     }
 
+    RuleNode maxChild = null; //Variable traced for debugging purposes. Functionally useless
+
     public double getMaxBits(){
         double maxBits = 0;
         for(Action a: potentialActions){
@@ -295,7 +297,11 @@ public class RuleNode {
                     continue;
                 double p = f/(double)getMoveFrequency(a);
                 bits += (Math.log(1.0/p));
-                maxBits = Math.max(maxBits, bits);
+                if (bits > maxBits){
+                    maxBits = bits;
+                    maxChild = child;
+                }
+                //maxBits = Math.max(maxBits, bits);
             }
         }
         return maxBits;
@@ -416,10 +422,11 @@ public class RuleNode {
 
     @Override
     public String toString(){
-        return this.toString(true);
+        //return this.toString(true); //Commented out so debugger doesn't have an Out Of Memory Error
+        return "(" + currentDepth + "deep) -> " + sense + ": " + frequency;
     }
 
-    public String toString(Boolean includeNewline) {
+    public String toString(boolean includeNewline) {
         ArrayList<String> stringArrayList = toStringArray();
         if (stringArrayList.isEmpty()) {
             return "";

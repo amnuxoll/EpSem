@@ -87,7 +87,11 @@ public class Ruleset {
     }
 
     public double getMaxBitStateEstimate(){
-        return Math.exp(root.getMaxBits());
+        double bits = root.getMaxBits();
+        /*if (bits > 5){
+            System.out.println("Yo"); //Used to set breakpoint
+        }*/
+        return Math.exp(bits);
     }
 
     /*public ArrayList<Double> getGoalProbabilities() {
@@ -109,6 +113,7 @@ public class Ruleset {
         }
 
         if (isGoal){
+            root.occurs();
             for (RuleNode ruleNode : current){
                 ruleNode.incrementMoveFrequency(action); // TODO: Prevent null action
                 RuleNode node = ruleNode.getGoalChild(action);

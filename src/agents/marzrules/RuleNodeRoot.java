@@ -110,6 +110,8 @@ public class RuleNodeRoot extends RuleNode {
         return bits;
     }
 
+    //RuleNode maxChild = null;
+
     @Override
     public double getMaxBits() {
         if(frequency == 0)
@@ -122,7 +124,11 @@ public class RuleNodeRoot extends RuleNode {
                 continue;
             double p = child.getFrequency()/(double)frequency;
             childBits += Math.log(1/p);
-            maxBits = Math.max(maxBits, childBits);
+            if (childBits > maxBits){
+                maxBits = childBits;
+                maxChild = child;
+            }
+            //maxBits = Math.max(maxBits, childBits);
         }
         return maxBits;
     }
