@@ -130,6 +130,7 @@ public class FSMEnvironment implements IEnvironment {
         }
         this.applyWithinNSensors(currentState, sensorData);
         this.applyNoiseSensors(sensorData);
+        this.applyCactiSensors(currentState, sensorData);
     }
 
     private void applyEvenOddSensor(int state, SensorData sensorData) {
@@ -154,21 +155,21 @@ public class FSMEnvironment implements IEnvironment {
     private void applyCactiSensors(int state, SensorData sensorData) {
         if (this.sensorsToInclude.contains(Sensor.CACTUS1))
             sensorData.setSensor(Sensor.CACTUS1.toString(), state == 0);
-        if (this.sensorsToInclude.contains(Sensor.CACTUS1))
+        if (this.sensorsToInclude.contains(Sensor.CACTUS2))
             sensorData.setSensor(Sensor.CACTUS2.toString(), state == 1);
-        if (this.sensorsToInclude.contains(Sensor.CACTUS1))
+        if (this.sensorsToInclude.contains(Sensor.CACTUS3))
             sensorData.setSensor(Sensor.CACTUS3.toString(), state == 2);
-        if (this.sensorsToInclude.contains(Sensor.CACTUS1))
+        if (this.sensorsToInclude.contains(Sensor.CACTUS4))
             sensorData.setSensor(Sensor.CACTUS4.toString(), state == 3);
-        if (this.sensorsToInclude.contains(Sensor.CACTUS1))
+        if (this.sensorsToInclude.contains(Sensor.CACTUS5))
             sensorData.setSensor(Sensor.CACTUS5.toString(), state == 4);
-        if (this.sensorsToInclude.contains(Sensor.CACTUS1))
+        if (this.sensorsToInclude.contains(Sensor.CACTUS6))
             sensorData.setSensor(Sensor.CACTUS6.toString(), state == 5);
-        if (this.sensorsToInclude.contains(Sensor.CACTUS1))
+        if (this.sensorsToInclude.contains(Sensor.CACTUS7))
             sensorData.setSensor(Sensor.CACTUS7.toString(), state == 6);
-        if (this.sensorsToInclude.contains(Sensor.CACTUS1))
+        if (this.sensorsToInclude.contains(Sensor.CACTUS8))
             sensorData.setSensor(Sensor.CACTUS8.toString(), state == 7);
-        if (this.sensorsToInclude.contains(Sensor.CACTUS1))
+        if (this.sensorsToInclude.contains(Sensor.CACTUS9))
             sensorData.setSensor(Sensor.CACTUS9.toString(), state == 8);
     }
 
@@ -231,6 +232,16 @@ public class FSMEnvironment implements IEnvironment {
                 WITHIN_8,
                 WITHIN_10,
                 WITHIN_20);
+
+        public static final EnumSet<Sensor> CACTI_SENSORS = EnumSet.of(CACTUS1,
+                CACTUS2,
+                CACTUS3,
+                CACTUS4,
+                CACTUS5,
+                CACTUS6,
+                CACTUS7,
+                CACTUS8,
+                CACTUS9);
 
         public static Sensor fromString(String in){
             for(Sensor s : Sensor.values()){
