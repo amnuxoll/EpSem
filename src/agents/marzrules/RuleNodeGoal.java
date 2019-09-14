@@ -26,12 +26,12 @@ public class RuleNodeGoal extends RuleNode{
     }
 
     @Override
-    protected double getAverageBits() {
+    public double getAverageBits() {
         return 0;
     }
 
     @Override
-    protected double getMaxBits() {
+    public double getMaxBits() {
         return 0;
     }
 

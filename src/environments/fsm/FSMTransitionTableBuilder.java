@@ -58,6 +58,10 @@ public class FSMTransitionTableBuilder {
         return new FSMTransitionTable(transitions);
     }
 
+    public int getNumStates() {
+        return numStates;
+    }
+
     public String getDetails() {
         return "Alpha_" + this.alphabetSize + "_States_" + this.numStates;
     }

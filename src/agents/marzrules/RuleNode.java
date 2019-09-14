@@ -264,7 +264,7 @@ public class RuleNode {
                 .map(val -> val / moveFrequency + 1);
     }
 
-    protected double getAverageBits(){
+    public double getAverageBits(){
         double maxBits = 0;
         for(Action a: potentialActions){
             if(getMoveFrequency(a) == 0)
@@ -283,7 +283,7 @@ public class RuleNode {
         return maxBits;
     }
 
-    protected double getMaxBits(){
+    public double getMaxBits(){
         double maxBits = 0;
         for(Action a: potentialActions){
             if(getMoveFrequency(a) == 0)
