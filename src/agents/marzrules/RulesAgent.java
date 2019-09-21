@@ -16,21 +16,24 @@ public class RulesAgent implements IAgent {
     private Heuristic heuristic;
     private int maxDepth;
     private int explores = 0;
+    private int actionsSinceGoal = 0;
     private boolean independentDrivers;
     private boolean resetWithAnyOffroad;
+    private boolean singleDriver;
 
-    public RulesAgent(Heuristic heuristic, int maxDepth, boolean independentDrivers, boolean resetWithAnyOffroad) {
+    public RulesAgent(Heuristic heuristic, int maxDepth, boolean independentDrivers, boolean resetWithAnyOffroad, boolean singleDriver) {
         this.heuristic = heuristic;
         this.maxDepth = maxDepth;
         this.independentDrivers = independentDrivers;
         this.resetWithAnyOffroad = resetWithAnyOffroad;
+        this.singleDriver = singleDriver;
     }
 
     @Override
     public void initialize(Action[] actions, IIntrospector introspector) {
         this.introspector = introspector;
-        this.actionEvaluator = new ActionEvaluator(actions, maxDepth, heuristic, independentDrivers, resetWithAnyOffroad);
-        actionEvaluator.addRuleTree(ActionEvaluator.ALL_SENSOR_HASH);
+        this.actionEvaluator = new ActionEvaluator(actions, maxDepth, heuristic, independentDrivers, resetWithAnyOffroad, singleDriver);
+        //actionEvaluator.addRuleTree(ActionEvaluator.ALL_SENSOR_HASH);
         SequenceGenerator generator = new SequenceGenerator(actions);
         ArrayList<Sequence> evaluationSuffixes = new ArrayList<>();
         for (int i = 1; i <= 15; i++) {
@@ -45,6 +48,7 @@ public class RulesAgent implements IAgent {
         if (sensorData != null) {
             actionEvaluator.update(previousAction, sensorData);
         }
+        actionsSinceGoal++;
 
         //this.ruleSetEvaluator.evaluate(this.ruleset);
         ActionProposal proposal = actionEvaluator.getBestMove();
@@ -53,6 +57,8 @@ public class RulesAgent implements IAgent {
         }
         if(proposal.infinite){
             System.out.println("Performing infinite cost action!");
+            if(!proposal.explore)
+                explores++;
         }
         previousAction = proposal.action;
         //System.out.print(previousAction);
@@ -73,7 +79,8 @@ public class RulesAgent implements IAgent {
     public String[] getStatisticTypes(){
         return new String[] {
                 "goal probability",
-                "explore"
+                "explore",
+                "no sensor rate",
                 //"avg bit machine size",
                 //"max bit machine size"
         };
@@ -85,6 +92,8 @@ public class RulesAgent implements IAgent {
         ArrayList<Datum> data = new ArrayList<>();
         data.add(new Datum("goal probability", heuristic.getHeuristic(0)));
         data.add(new Datum("explore", explores));
+        data.add(new Datum("no sensor rate", actionEvaluator.getNoSensorSteps()/(double)actionsSinceGoal));
+        actionsSinceGoal = 0;
         //data.add(new Datum("avg bit machine size", ruleset.getAvgBitStateEstimate()));
         //data.add(new Datum("max bit machine size", ruleset.getMaxBitStateEstimate()));
         return data;

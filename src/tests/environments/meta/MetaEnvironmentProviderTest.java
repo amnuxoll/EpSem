@@ -52,6 +52,11 @@ public class MetaEnvironmentProviderTest {
         public String getAlias() {
             return "alias";
         }
+
+        @Override
+        public void setup() {
+
+        }
     }
 
     private class TestEnvironment implements IEnvironment {

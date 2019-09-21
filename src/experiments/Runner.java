@@ -57,11 +57,12 @@ public class Runner {
     private static TestSuite RulesAgentQuick = new TestSuite(
             TestSuiteConfiguration.MEDIUM,
             new IEnvironmentProvider[] {
-                    new FSMEnvironmentProvider(new FSMTransitionTableBuilder(3, 30, Random.getFalse()), FSMEnvironment.Sensor.NO_SENSORS),
-                    new FSMEnvironmentProvider(new FSMTransitionTableBuilder(3, 30, Random.getFalse()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN))
+                    new FSMEnvironmentProvider(new FSMTransitionTableBuilder(3, 50, false), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN))
             },
             new IAgentProvider[] {
-                    new RulesAgentProvider(new Heuristic(1, 0), 1000, false, true),
+                    new RulesAgentProvider(new Heuristic(1, 0), 1000, false, false, true),
+                    new RulesAgentProvider(new Heuristic(1, 0), 1000, false, true, false),
+                    new RulesAgentProvider(new Heuristic(1, 0), 1000, true, true, false),
             }
     );
 

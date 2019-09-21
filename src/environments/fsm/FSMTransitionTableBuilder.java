@@ -24,6 +24,8 @@ public class FSMTransitionTableBuilder {
     private int numStates;
     private Action[] actions;
     private Random random;
+    private boolean trueRandom;
+    private boolean resetRandom = false;
     //endregion
 
     //region Constructors
@@ -37,14 +39,20 @@ public class FSMTransitionTableBuilder {
             throw new IllegalArgumentException("alphabetSize cannot be less than 1");
         if (numStates < 1)
             throw new IllegalArgumentException("numStates cannot be less than 1");
-        this.random = random;
         this.alphabetSize = alphabetSize;
         this.numStates = numStates;
         this.actions = new Action[alphabetSize];
+        this.random = random;
         for(int i = 0; i < actions.length; ++i) {
             char next = (char)('a' + i);
             actions[i] = new Action(next  + "");
         }
+    }
+
+    public FSMTransitionTableBuilder(int alphabetSize, int numStates, boolean trueRandom) {
+        this(alphabetSize, numStates, utils.Random.getFalse());
+        this.trueRandom = trueRandom;
+        this.resetRandom = true;
     }
     //endregion
 
@@ -105,6 +113,15 @@ public class FSMTransitionTableBuilder {
             transitionsDone++;
         }
         this.pickTransitions(transitions, initState, 1, transitionsDone);
+    }
+
+    public void setup(){
+        if(this.resetRandom) {
+            if (this.trueRandom)
+                random = utils.Random.getTrue();
+            else
+                random = utils.Random.getFalse();
+        }
     }
     //endregion
 }

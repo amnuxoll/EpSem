@@ -27,5 +27,10 @@ public class MetaEnvironmentProvider implements IEnvironmentProvider {
     public String getAlias() {
         return "MetaEnvironment{" + this.environmentProvider.getAlias() + "}";
     }
+
+    @Override
+    public void setup() {
+
+    }
     //endregion
 }

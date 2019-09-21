@@ -14,12 +14,15 @@ public class RulesAgentProvider implements IAgentProvider {
     //(if false all drivers must be at the same depth)
     private boolean resetWithAnyOffroad = true;//configure RulesAgent to have a full driver reset if any driver offroads.
     //(if false all drivers must offroad before a reset occurs)
+    private boolean singleDriver = true;//configure RulesAgent to only use one driver from one tree at a time.
+    //(if false it may switch between trees every move)
 
-    public RulesAgentProvider(Heuristic heuristic, int depthLimit, boolean independentDrivers, boolean resetWithAnyOffroad) {
+    public RulesAgentProvider(Heuristic heuristic, int depthLimit, boolean independentDrivers, boolean resetWithAnyOffroad, boolean singleDriver) {
         this.heuristic = heuristic;
         this.depthLimit = depthLimit;
         this.independentDrivers = independentDrivers;
         this.resetWithAnyOffroad = resetWithAnyOffroad;
+        this.singleDriver = singleDriver;
     }
 
     public RulesAgentProvider(Heuristic heuristic, int depthLimit) {
@@ -34,7 +37,7 @@ public class RulesAgentProvider implements IAgentProvider {
 
     @Override
     public IAgent getAgent(){
-        return new RulesAgent(heuristic, depthLimit, independentDrivers, resetWithAnyOffroad);
+        return new RulesAgent(heuristic, depthLimit, independentDrivers, resetWithAnyOffroad, singleDriver);
     }
 
     @Override

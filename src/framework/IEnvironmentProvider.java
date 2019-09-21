@@ -21,5 +21,11 @@ public interface IEnvironmentProvider {
      */
     String getAlias();
 
+    /**
+     * Resets EnvironmentProvider for new agent
+     * NOTE: intended to ensure seeded runs when running multiple agents
+     */
+    void setup();
+
     //endregion
 }

@@ -253,6 +253,11 @@ public class TestSuiteTest {
         public String getAlias() {
             return "EnvAlias";
         }
+
+        @Override
+        public void setup() {
+
+        }
     }
 
     private class TestEnvironmentDescription implements IEnvironment {

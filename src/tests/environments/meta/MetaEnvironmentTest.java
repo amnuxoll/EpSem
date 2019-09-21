@@ -77,6 +77,11 @@ public class MetaEnvironmentTest {
             return "alias";
         }
 
+        @Override
+        public void setup() {
+
+        }
+
     }
 
     private class TestEnvironment implements IEnvironment {

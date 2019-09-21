@@ -96,6 +96,7 @@ public class TestSuite implements IGoalListener {
             int numberOfIterations = this.configuration.getNumberOfIterations();
             for (int environmentIndex = 0; environmentIndex < this.environmentProviders.length; environmentIndex++) {
                 for (int agentIndex = 0; agentIndex < this.agentProviders.length; agentIndex++) {
+                    environmentProviders[environmentIndex].setup();
                     IAgentProvider agentProvider = this.agentProviders[agentIndex];
                     namedOutput.writeLine("framework", "Beginning agent: " + agentProvider.getAlias() + " " + agentIndex);
                     for (int numberOfMachines = 0; numberOfMachines < numberOfIterations; numberOfMachines++) {
