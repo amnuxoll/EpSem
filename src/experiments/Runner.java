@@ -54,12 +54,32 @@ public class Runner {
             }
     );
 
-    private static TestSuite RulesAgent = new TestSuite(
-            TestSuiteConfiguration.QUICK,
+    private static TestSuite RulesAgentQuick = new TestSuite(
+            TestSuiteConfiguration.MEDIUM,
             new IEnvironmentProvider[] {
-                    //new FSMEnvironmentProvider(new FSMTransitionTableBuilder(6, 100, Random.getFalse()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN), false),
+                    new FSMEnvironmentProvider(new FSMTransitionTableBuilder(3, 30, Random.getFalse()), FSMEnvironment.Sensor.NO_SENSORS),
+                    new FSMEnvironmentProvider(new FSMTransitionTableBuilder(3, 30, Random.getFalse()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN))
+            },
+            new IAgentProvider[] {
+                    new RulesAgentProvider(new Heuristic(1, 0), 1000, false, true),
+            }
+    );
+
+    private static TestSuite RulesAgent = new TestSuite(
+            TestSuiteConfiguration.MEDIUM,
+            new IEnvironmentProvider[] {
+                    new FSMEnvironmentProvider(new FSMTransitionTableBuilder(2, 10, Random.getFalse()), FSMEnvironment.Sensor.NO_SENSORS),
+                    new FSMEnvironmentProvider(new FSMTransitionTableBuilder(2, 10, Random.getFalse()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
+                    new FSMEnvironmentProvider(new FSMTransitionTableBuilder(4, 10, Random.getFalse()), FSMEnvironment.Sensor.NO_SENSORS),
+                    new FSMEnvironmentProvider(new FSMTransitionTableBuilder(4, 10, Random.getFalse()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
                     new FSMEnvironmentProvider(new FSMTransitionTableBuilder(2, 50, Random.getFalse()), FSMEnvironment.Sensor.NO_SENSORS),
-                    new FSMEnvironmentProvider(new FSMTransitionTableBuilder(2, 50, Random.getFalse()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN))
+                    new FSMEnvironmentProvider(new FSMTransitionTableBuilder(2, 50, Random.getFalse()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
+                    new FSMEnvironmentProvider(new FSMTransitionTableBuilder(4, 50, Random.getFalse()), FSMEnvironment.Sensor.NO_SENSORS),
+                    new FSMEnvironmentProvider(new FSMTransitionTableBuilder(4, 50, Random.getFalse()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
+                    new FSMEnvironmentProvider(new FSMTransitionTableBuilder(2, 100, Random.getFalse()), FSMEnvironment.Sensor.NO_SENSORS),
+                    new FSMEnvironmentProvider(new FSMTransitionTableBuilder(2, 100, Random.getFalse()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
+                    new FSMEnvironmentProvider(new FSMTransitionTableBuilder(4, 100, Random.getFalse()), FSMEnvironment.Sensor.NO_SENSORS),
+                    new FSMEnvironmentProvider(new FSMTransitionTableBuilder(4, 100, Random.getFalse()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN))
             },
             new IAgentProvider[] {
                     new RulesAgentProvider(new Heuristic(1, 0)),
@@ -218,7 +238,7 @@ public class Runner {
     public static void main(String[] args) {
         try {
             File outputDirectory = DirectoryUtils.generateNewOutputDirectory();
-            RulesAgent.run(new FileResultWriterProvider(outputDirectory));
+            RulesAgentQuick.run(new FileResultWriterProvider(outputDirectory));
         } catch (OutOfMemoryError mem) {
             mem.printStackTrace();
         } catch (Exception ex) {

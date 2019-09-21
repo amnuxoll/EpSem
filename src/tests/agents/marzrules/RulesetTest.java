@@ -1,13 +1,10 @@
 package tests.agents.marzrules;
 
-import agents.marzrules.Heuristic;
+import agents.marzrules.*;
 import framework.Action;
 import framework.SensorData;
 import tests.EpSemTest;
 import tests.EpSemTestClass;
-import agents.marzrules.RuleNode;
-import agents.marzrules.RuleNodeRoot;
-import agents.marzrules.Ruleset;
 
 import java.util.ArrayList;
 
@@ -42,7 +39,7 @@ public class RulesetTest {
         RuleNodeRoot root = (RuleNodeRoot)ruleset.getCurrent().get(0);
         assertNotNull(root);
 
-        ruleset.update(new Action("a"), new SensorData(false));
+        ruleset.update(new Action("a"), ActionEvaluator.ALL_SENSOR_HASH.apply(new SensorData(false)), false);
 
         ArrayList<RuleNode> current = ruleset.getCurrent();
         assertTrue(!current.isEmpty());

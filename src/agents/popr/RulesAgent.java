@@ -1,5 +1,6 @@
 package agents.popr;
 
+import agents.marzrules.ActionEvaluator;
 import framework.*;
 import agents.marzrules.Ruleset;
 import utils.SequenceGenerator;
@@ -32,7 +33,7 @@ public class RulesAgent implements IAgent {
     @Override
     public Action getNextAction(SensorData sensorData) {
         if (sensorData != null) {
-            ruleset.update(previousAction, sensorData);
+            ruleset.update(previousAction, ActionEvaluator.ALL_SENSOR_HASH.apply(sensorData), sensorData.isGoal());
         }
 
         previousAction = ruleset.falsify();
@@ -51,7 +52,7 @@ public class RulesAgent implements IAgent {
     public String[] getStatisticTypes(){
         return new String[] {
                 "goal probability",
-                "explore"
+                //"explore"
         };
     }
 
@@ -59,7 +60,7 @@ public class RulesAgent implements IAgent {
     public ArrayList<Datum> getGoalData() {
         ArrayList<Datum> data = new ArrayList<>();
         data.add(new Datum("goal probability", ruleset.getRoot().getIncreasedGoalProbability()));
-        data.add(new Datum("explore", ruleset.getExplores()));
+        //data.add(new Datum("explore", ruleset.getExplores()));//TODO:FIX
         return data;
     }
 }

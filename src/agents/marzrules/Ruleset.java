@@ -3,6 +3,7 @@ package agents.marzrules;
 import framework.Action;
 import framework.SensorData;
 
+import java.rmi.activation.ActivationID;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -19,7 +20,7 @@ public class Ruleset {
     private ArrayList<RuleNode> current;
     //private ArrayList<Double> goalProbabilities;
     private Action[] alphabet;
-    private int explores;
+    //private int explores;
     private Heuristic heuristic;
 
     public Ruleset(Action[] alphabet, int maxDepth, Heuristic heuristic){
@@ -45,14 +46,17 @@ public class Ruleset {
         this.alphabet = alphabet;
     }
 
-    public Action getBestMove(){
-
-        if(driver != null && driver.getBestAction() != null){
-            if (driver.getExplore()) explores++;
-            return driver.getBestAction();
+    public ActionProposal getDriverMove(){
+        if(driver == null)
+            throw new IllegalStateException("No driver to propose move");
+        if(driver.getBestAction() != null){
+            return new ActionProposal(driver.getBestAction(), driver.getCachedExpectation(), driver, driver.getExplore());
         }
+        return new ActionProposal(alphabet[0], Double.MAX_VALUE, driver, false, true);
+    }
 
-        double bestEV = -1;
+    public ActionProposal getBestMove(){
+        double bestEV = Double.MAX_VALUE;
         boolean explore = false;
         Action bestAction = alphabet[0];
         for (RuleNode node : current){
@@ -61,7 +65,7 @@ public class Ruleset {
             Optional<Double> expectation = node.getExpectation(current, true, heuristic);
             //if (expectation.isPresent()) System.out.print("" + expectation.get() +",");
             //else System.out.print(",");
-            if (expectation.isPresent() && (bestEV == -1 || expectation.get() <= bestEV)){
+            if (expectation.isPresent() && (expectation.get() <= bestEV)){
                 if (node.getBestAction() != null) {
                     bestEV = expectation.get();
                     bestAction = node.getBestAction();
@@ -71,21 +75,44 @@ public class Ruleset {
             }
         }
         //System.out.println("---");
-        if (explore) explores++;
+        //if (explore) explores++;
         //System.out.print(bestAction);
-        return bestAction;
+        return new ActionProposal(bestAction, bestEV, driver, explore, (bestEV == Double.MAX_VALUE));
+    }
+
+    public boolean setDriver(int depth){
+        for(RuleNode node:current){
+            if(node.getCurrentDepth() == depth){
+                driver = node;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public void clearDriver(){
+        driver = null;
     }
 
     public ArrayList<RuleNode> getCurrent(){
         return current;
     }
 
-    public int getExplores() { return explores; }
+    public RuleNode getDriver() {
+        return driver;
+    }
+
+    //public int getExplores() { return explores; }
 
     public double getAvgBitStateEstimate(){
        return Math.exp(root.getAverageBits());
     }
 
+    /**
+     * Gets the maximum number of bits that the state machine could take up and uses that to estimate the number of
+     * states in the state machine. Shown in practice to be unhelpful.
+     * @return A double that estimates that number of states in the maxhine
+     */
     public double getMaxBitStateEstimate(){
         return Math.exp(root.getMaxBits());
     }
@@ -94,20 +121,7 @@ public class Ruleset {
         return goalProbabilities;
     }*/
 
-    public void update(Action action, SensorData sensorData){
-        boolean isGoal = sensorData.isGoal();
-        int sense = 0;
-
-        for (String sensor : sensorData.getSensorNames()){
-            if (sensor.equals(SensorData.goalSensor)) {
-                continue;
-            }
-
-            int value = (boolean) sensorData.getSensor(sensor) ? 1 : 0;
-            sense *= 2;
-            sense += value;
-        }
-
+    public void update(Action action, int sense, boolean isGoal){
         if (isGoal){
             for (RuleNode ruleNode : current){
                 ruleNode.incrementMoveFrequency(action); // TODO: Prevent null action
