@@ -55,9 +55,21 @@ public class Runner {
     );
 
     private static TestSuite RulesAgentQuick = new TestSuite(
-            TestSuiteConfiguration.MEDIUM,
+            TestSuiteConfiguration.FULL,
             new IEnvironmentProvider[] {
                     new FSMEnvironmentProvider(new FSMTransitionTableBuilder(3, 50, false), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN))
+            },
+            new IAgentProvider[] {
+                    new RulesAgentProvider(new Heuristic(1, 0), 1000, false, false, true),
+                    new RulesAgentProvider(new Heuristic(1, 0), 1000, false, true, false),
+                    new RulesAgentProvider(new Heuristic(1, 0), 1000, true, true, false),
+            }
+    );
+
+    private static TestSuite RulesAgentRandom = new TestSuite(
+            TestSuiteConfiguration.QUICK,
+            new IEnvironmentProvider[] {
+                    new FSMEnvironmentProvider(new FSMTransitionTableBuilder(3, 50, false), EnumSet.of(FSMEnvironment.Sensor.CACTUS1))
             },
             new IAgentProvider[] {
                     new RulesAgentProvider(new Heuristic(1, 0), 1000, false, false, true),
@@ -239,7 +251,7 @@ public class Runner {
     public static void main(String[] args) {
         try {
             File outputDirectory = DirectoryUtils.generateNewOutputDirectory();
-            RulesAgentQuick.run(new FileResultWriterProvider(outputDirectory));
+            RulesAgentRandom.run(new FileResultWriterProvider(outputDirectory));
         } catch (OutOfMemoryError mem) {
             mem.printStackTrace();
         } catch (Exception ex) {

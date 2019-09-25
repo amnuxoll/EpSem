@@ -19,7 +19,7 @@ public class TestSuiteConfiguration {
     public static final TestSuiteConfiguration LONG= new TestSuiteConfiguration(25, 1000);
 
     /** Provides comprehensive data-gathering configuration. */
-    public static final TestSuiteConfiguration FULL = new TestSuiteConfiguration(50, 1000);
+    public static final TestSuiteConfiguration FULL = new TestSuiteConfiguration(100, 1000);
 
     //endregion
 

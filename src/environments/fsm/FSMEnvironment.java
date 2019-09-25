@@ -130,6 +130,7 @@ public class FSMEnvironment implements IEnvironment {
         }
         this.applyWithinNSensors(currentState, sensorData);
         this.applyNoiseSensors(sensorData);
+        this.applyCactiSensors(currentState, sensorData);
     }
 
     private void applyEvenOddSensor(int state, SensorData sensorData) {

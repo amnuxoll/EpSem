@@ -68,11 +68,19 @@ public class ActionEvaluator {
 
     public ActionProposal getBestMove(){
         boolean offroaded = offroadDrivers();
-        if(offroaded && resetWithAnyOffroad)
-            return findNewDrivers();
+        if(offroaded && resetWithAnyOffroad) {
+            ActionProposal proposal = findNewDrivers();
+            if(proposal.ruleNode == ruleTrees.get(0).getRuleset().getDriver())
+                noSensorSteps++;
+            return proposal;
+        }
         if(singleDriver) {
-            if(drivingTree == null)
-                return findNewDrivers();
+            if(drivingTree == null) {
+                ActionProposal proposal = findNewDrivers();
+                if (proposal.ruleNode == ruleTrees.get(0).getRuleset().getDriver())
+                    noSensorSteps++;
+                return proposal;
+            }
             ActionProposal proposal = drivingTree.getRuleset().getDriverMove();
             if(drivingTree == ruleTrees.get(0))
                 noSensorSteps++;

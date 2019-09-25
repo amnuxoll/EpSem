@@ -81,6 +81,7 @@ public class RulesAgent implements IAgent {
                 "goal probability",
                 "explore",
                 "no sensor rate",
+                "actionsSinceGoal",
                 //"avg bit machine size",
                 //"max bit machine size"
         };
