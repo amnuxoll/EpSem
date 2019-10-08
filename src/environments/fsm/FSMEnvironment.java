@@ -125,6 +125,8 @@ public class FSMEnvironment implements IEnvironment {
     private void applySensors(int currentState, SensorData sensorData) {
         if (this.sensorsToInclude.contains(Sensor.IS_EVEN))
             this.applyEvenOddSensor(currentState, sensorData);
+        if(this.sensorsToInclude.contains(Sensor.IS_EVEN_NOISY))
+            this.applyNoisyEvenOddSensor(currentState, sensorData);
         if (this.sensorsToInclude.contains(Sensor.MOD_3)){
             this.applyMod3Sensor(currentState, sensorData);
         }
@@ -135,6 +137,10 @@ public class FSMEnvironment implements IEnvironment {
 
     private void applyEvenOddSensor(int state, SensorData sensorData) {
         sensorData.setSensor(Sensor.IS_EVEN.toString(), state % 2 == 0);
+    }
+
+    private void applyNoisyEvenOddSensor(int state, SensorData sensorData) {
+        sensorData.setSensor(Sensor.IS_EVEN_NOISY.toString(), Math.random() <= 0.9 ? state % 2 == 0 : state % 2 == 1);
     }
 
     private void applyMod3Sensor(int state, SensorData sensorData){
@@ -191,6 +197,7 @@ public class FSMEnvironment implements IEnvironment {
          * Identifies the sensor that determines if the current state is even or odd.
          */
         IS_EVEN,
+        IS_EVEN_NOISY,
         MOD_3,
 
         /** Identifies the sensor that turns on for exactly one state in the FSM */
@@ -217,7 +224,7 @@ public class FSMEnvironment implements IEnvironment {
         NOISE2,
         NOISE3,
         NOISE4,
-        TRANSITION_AGE;
+        TRANSITION_AGE;//Zero sensor
 
         /**
          * Identifies the complete sensor set for the environment.

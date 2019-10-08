@@ -18,7 +18,7 @@ public class RuleNode {
     // maxDepth is decremented as you move down the tree; at the depth limit this value will be 0.
     // can be understood as "how much deeper does the tree go beyond this node".
     protected int currentDepth;
-    protected int maxDepth;
+    protected double maxDepth;
     //TODO: protected int depth; //common-sense notion of depth. Technically redundant with maxDepth as of right now, but makes some stuff easier
     //Potential:
     //private int[] indices;
@@ -41,10 +41,6 @@ public class RuleNode {
             throw new IllegalArgumentException("Cannot have empty move set");
         }
 
-        if (maxDepth < 0){
-            throw new IllegalArgumentException("Cannot have negative max depth");
-        }
-
         this.potentialActions = potentialActions;
         int alphabetSize = potentialActions.length;
         this.sense = sense;
@@ -54,19 +50,18 @@ public class RuleNode {
         frequency = 0;
         moveFrequencies = new int[alphabetSize];
         this.maxDepth = maxDepth;
+        initChildren();
+    }
 
-        if (maxDepth > 0) {//if maxDepth is positive, we are not yet at depth limit
-            children = new HashMap<>(alphabetSize);
-            for (Action action : potentialActions) {
-                //initialize the list for a given possible action and make the goal node--which is a special case--the first
-                // element. This means that the first element is *always* the goal child for every possible action, which is handy.
-                ArrayList<RuleNode> list = new ArrayList<>(Collections.singletonList(
-                        new RuleNodeGoal(potentialActions, currentDepth + 1))
-                );
-                children.put(action, list);
-            }
-        } else { //at the depth limit, don't build more nodes.
-            children = null;
+    protected void initChildren(){
+        children = new HashMap<>(potentialActions.length);
+        for (Action action : potentialActions) {
+            //initialize the list for a given possible action and make the goal node--which is a special case--the first
+            // element. This means that the first element is *always* the goal child for every possible action, which is handy.
+            ArrayList<RuleNode> list = new ArrayList<>(Collections.singletonList(
+                    new RuleNodeGoal(potentialActions, currentDepth + 1))
+            );
+            children.put(action, list);
         }
     }
 
@@ -109,7 +104,7 @@ public class RuleNode {
 
         // CASE 1:
         // if you have no children, i.e. if you have reached the bottom of the tree
-        if (maxDepth == 0) {
+        if (maxDepth <= 0) {
             return 0;
         }
         // CASE 2:
@@ -197,7 +192,7 @@ public class RuleNode {
         }
 
         //BASE CASE: At depth limit
-        if (maxDepth == 1){
+        if (maxDepth <= 0){
             bestAction = null;
             expectation = -1;
             return Optional.empty();
@@ -262,6 +257,30 @@ public class RuleNode {
                         .map(val -> val*node.frequency)) //Multiply by node frequency
                 .reduce(Optional.of(0.0), (sum, ev) -> sum.flatMap(x -> ev.map(y -> x+y))) //Add EVs up
                 .map(val -> val / moveFrequency + 1);
+    }
+
+    public double getProposalBits(){
+        if(expectation == -1)
+            return Double.MAX_VALUE;
+        return expectation + getPropBitsRecursive();
+    }
+
+    public double getPropBitsRecursive(){
+        if(bestAction == null)
+            return 0;
+        int mf = getMoveFrequency(bestAction);
+        if(mf == 0)
+            return 0;
+        double sum = 0;
+        for(RuleNode child:children.get(bestAction)){
+            int f = child.getFrequency();
+            if(f == 0)
+                continue;
+            double childBits = child.getPropBitsRecursive();
+            double p = f/(double)mf;
+            sum += p*(childBits + (Math.log(1.0/p)/Math.log(potentialActions.length)));
+        }
+        return sum;
     }
 
     public double getAverageBits(){
@@ -349,11 +368,11 @@ public class RuleNode {
                 return ruleNode;
             }
         }
-        if (maxDepth == 0){
+        if (maxDepth <= 0){
             return null;
             //throw new IllegalStateException("At depth limit - cannot create children");
         }
-        RuleNode child = new RuleNode(potentialActions, nextSense, maxDepth - 1, currentDepth + 1);
+        RuleNode child = new RuleNode(potentialActions, nextSense, (int)maxDepth - 1, currentDepth + 1);
         children.add(child);
         return child;
     }
@@ -368,7 +387,7 @@ public class RuleNode {
      *               Will increment action frequency of this node and frequency of child
      */
     public RuleNode getNextChild(Action action, int nextSense){
-        if (maxDepth == 0){
+        if (maxDepth <= 0){
             return null;
         }
 
@@ -394,7 +413,7 @@ public class RuleNode {
      * Side Effect: Increments goal child frequency
      */
     public RuleNodeGoal getGoalChild(Action action){
-        if (maxDepth == 0){
+        if (maxDepth <= 0){
             return null;
         }
 
@@ -433,7 +452,7 @@ public class RuleNode {
         ArrayList<String> result = new ArrayList<>();
 
         result.add(sense + ": " + frequency);
-        if (maxDepth != 0) {
+        if (maxDepth > 0) {
             for (int i = 0; i < potentialActions.length; i++) {
                 result.add(sense + potentialActions[i].toString() + ": " + moveFrequencies[i]);
             }
@@ -453,6 +472,19 @@ public class RuleNode {
             }
         }
         return result;
+    }
+
+    void updateMaxDepth(double maxDepth){
+        this.maxDepth = maxDepth;
+        for(Action action: potentialActions){
+            if(getMoveFrequency(action) == 0)
+                continue;
+            for(RuleNode child: children.get(action)){
+                double p = (double)child.frequency / getMoveFrequency(action);
+                child.updateMaxDepth(p * (maxDepth - 1));
+            }
+        }
+        //Possibly murder children
     }
 
     public int getCurrentDepth() {

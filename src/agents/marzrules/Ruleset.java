@@ -131,6 +131,8 @@ public class Ruleset {
             current.clear();
             current.add(root);
             //System.out.print("G");
+            heuristic.setGoalProbability(root.getIncreasedGoalProbability());
+            root.getExpectation(current, true, heuristic);//update caches before saving them
             root.reachedGoal();
             driver = root;
         }
@@ -151,7 +153,7 @@ public class Ruleset {
         current.removeAll(Collections.singleton(null));
         current.add(root);
         root.occurs();
-
+        //root.updateMaxDepth(500);
         //setGoalProbabilities();
     }
 

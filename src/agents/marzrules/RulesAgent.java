@@ -1,8 +1,10 @@
 package agents.marzrules;
 
 import framework.*;
+import utils.EpisodicMemory;
 import utils.SequenceGenerator;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 
 /**
@@ -20,6 +22,9 @@ public class RulesAgent implements IAgent {
     private boolean independentDrivers;
     private boolean resetWithAnyOffroad;
     private boolean singleDriver;
+    private EpisodicMemory<Episode> episodicMemory;
+    private static final int LOOKBACK_GOALS = 5;
+    //ArrayDeque<Integer> goalIndicies;
 
     public RulesAgent(Heuristic heuristic, int maxDepth, boolean independentDrivers, boolean resetWithAnyOffroad, boolean singleDriver) {
         this.heuristic = heuristic;
@@ -40,7 +45,8 @@ public class RulesAgent implements IAgent {
             evaluationSuffixes.add(generator.nextPermutation(i));
         }
         this.ruleSetEvaluator = new RuleSetEvaluator(evaluationSuffixes.toArray(new Sequence[0]));
-
+        episodicMemory = new EpisodicMemory<>();
+        //goalIndicies = new ArrayDeque<>();
     }
 
     @Override
@@ -62,6 +68,14 @@ public class RulesAgent implements IAgent {
         }
         previousAction = proposal.action;
         //System.out.print(previousAction);
+        episodicMemory.add(new Episode(sensorData, previousAction));
+        if(sensorData.isGoal()){
+            //goalIndicies.add(episodicMemory.currentIndex());
+            //if(goalIndicies.size() > 5){
+                //int lastGoal = goalIndicies.remove();
+                actionEvaluator.evaluateForest(episodicMemory.subset(0));
+            //}
+        }
         return previousAction;
 
         /*
@@ -81,8 +95,7 @@ public class RulesAgent implements IAgent {
                 "goal probability",
                 "explore",
                 "no sensor rate",
-                "actionsSinceGoal",
-                //"avg bit machine size",
+                "avg bit machine size",
                 //"max bit machine size"
         };
     }
@@ -95,7 +108,7 @@ public class RulesAgent implements IAgent {
         data.add(new Datum("explore", explores));
         data.add(new Datum("no sensor rate", actionEvaluator.getNoSensorSteps()/(double)actionsSinceGoal));
         actionsSinceGoal = 0;
-        //data.add(new Datum("avg bit machine size", ruleset.getAvgBitStateEstimate()));
+        data.add(new Datum("avg bit machine size", actionEvaluator.getAverageNoSensorBits()));
         //data.add(new Datum("max bit machine size", ruleset.getMaxBitStateEstimate()));
         return data;
     }

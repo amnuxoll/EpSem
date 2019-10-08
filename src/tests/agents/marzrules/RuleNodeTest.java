@@ -27,10 +27,11 @@ public class RuleNodeTest {
         assertThrows(IllegalArgumentException.class, () -> new RuleNode(new Action[] {}, 0, 1, 0));
     }
 
-    @EpSemTest
+    //Negative depth limits now allowed
+    /*@EpSemTest
     public void testNegativeDepth(){
         assertThrows(IllegalArgumentException.class, () -> new RuleNode(new Action[] {new Action("a")}, 0, -1, 0));
-    }
+    }*/
 
     @EpSemTest
     public void testNoThrow(){
@@ -45,6 +46,7 @@ public class RuleNodeTest {
     public void testMaxDepth(){
         Action action = new Action("a");
         assertNull(new RuleNode(new Action[] {action}, 0, 0, 0).getNextChild(action, 1));
+        assertNotNull(new RuleNode(new Action[] {action}, 0, 1, 0).getNextChild(action, 1));
     }
 
     @EpSemTest

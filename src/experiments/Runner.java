@@ -67,14 +67,14 @@ public class Runner {
     );
 
     private static TestSuite RulesAgentRandom = new TestSuite(
-            TestSuiteConfiguration.QUICK,
+            TestSuiteConfiguration.MEDIUM,
             new IEnvironmentProvider[] {
-                    new FSMEnvironmentProvider(new FSMTransitionTableBuilder(3, 50, false), EnumSet.of(FSMEnvironment.Sensor.CACTUS1))
+                    new FSMEnvironmentProvider(new FSMTransitionTableBuilder(3, 50, false), FSMEnvironment.Sensor.ALL_SENSORS)
             },
             new IAgentProvider[] {
-                    new RulesAgentProvider(new Heuristic(1, 0), 1000, false, false, true),
-                    new RulesAgentProvider(new Heuristic(1, 0), 1000, false, true, false),
-                    new RulesAgentProvider(new Heuristic(1, 0), 1000, true, true, false),
+                    new RulesAgentProvider(new Heuristic(1, 0), 500, false, false, true),
+                    //new RulesAgentProvider(new Heuristic(1, 0), 1000, false, true, false),
+                    //new RulesAgentProvider(new Heuristic(1, 0), 1000, true, true, false),
             }
     );
 

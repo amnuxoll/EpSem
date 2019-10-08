@@ -131,4 +131,15 @@ public class RuleNodeRoot extends RuleNode {
     public RuleNodeGoal getGoalChild(Action action) {
         return (RuleNodeGoal)childArray.get(0);
     }
+
+    @Override
+    void updateMaxDepth(double machineSize){
+        maxDepth = machineSize;
+        if(frequency == 0)
+            return;
+        for(RuleNode child: childArray){
+            double p = child.getFrequency() / (double)frequency;
+            child.updateMaxDepth(p * (maxDepth - 1));
+        }
+    }
 }

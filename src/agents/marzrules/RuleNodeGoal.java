@@ -14,6 +14,11 @@ public class RuleNodeGoal extends RuleNode{
         expectation = 0;
     }
 
+    @Override
+    protected void initChildren() {
+        children = null;
+    }
+
     // BASE CASE 4
     @Override
     public double getGoalProbability(ArrayList<Action> actions, int moveIdx) {
