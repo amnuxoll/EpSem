@@ -84,7 +84,7 @@ public class RuleNode {
         return moveFrequencies[index]++;
     }
 
-    public boolean inAlphabet(Action action){
+    private boolean inAlphabet(Action action){
         return Arrays.asList(potentialActions).contains(action);
     }
 
@@ -360,7 +360,6 @@ public class RuleNode {
      * @return The corresponding child
      *
      * Side effect: Can create the child if a child with the given sense is not found
-     *              Will increase child frequency
      */
     protected RuleNode getChildBySense(ArrayList<RuleNode> children, int nextSense) {
         for (RuleNode ruleNode : children){
@@ -384,7 +383,6 @@ public class RuleNode {
      * @return null if at max depth, otherwise the corresponding child
      *
      * Side effects: Will create the child if it does not exist
-     *               Will increment action frequency of this node and frequency of child
      */
     public RuleNode getNextChild(Action action, int nextSense){
         if (maxDepth <= 0){

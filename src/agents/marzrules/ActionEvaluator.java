@@ -89,40 +89,6 @@ public class ActionEvaluator {
         }
     }
 
-    public void evaluateForest(Episode[] recentEpisodes){
-        if(!potentialTrees.isEmpty()) {
-            double worstEV = (ruleTrees.get(0).getRootEV(heuristic) * Math.log(ruleTrees.get(0).getRuleset().getAvgBitStateEstimate()));
-            int worstTree = 0;
-            for (int i = 1; i < ruleTrees.size(); i++){
-                RuleTree ruleTree = ruleTrees.get(i);
-                double ev = (ruleTree.getRootEV(heuristic) * Math.log(ruleTree.getRuleset().getAvgBitStateEstimate()));
-                if(ev > worstEV){
-                    worstEV = ev;
-                    worstTree = i;
-                }
-            }
-            RuleTree newTree = growTree(recentEpisodes);
-            if((newTree.getRootEV(heuristic) * Math.log(newTree.getRuleset().getAvgBitStateEstimate())) < worstEV) {
-                System.out.println("Deleted: " + ruleTrees.get(worstTree).getName());
-                ruleTrees.set(worstTree, newTree);
-                System.out.println("Added: " + newTree.getName());
-            }
-            else{
-                System.out.println("Deleted: " + newTree.getName());
-            }
-        }
-    }
-
-    private RuleTree growTree(Episode[] recentEpisodes){
-        RuleTree tree = potentialTrees.remove();
-        Action prev = null;
-        for(Episode episode:recentEpisodes){
-            tree.update(prev, episode.getSensorData());
-            prev = episode.getAction();
-        }
-        return tree;
-    }
-
     public ActionProposal getBestMove(){
         boolean offroaded = offroadDrivers();
         if(offroaded && resetWithAnyOffroad) {
