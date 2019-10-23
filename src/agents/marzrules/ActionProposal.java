@@ -2,6 +2,7 @@ package agents.marzrules;
 
 import framework.Action;
 
+
 public class ActionProposal implements Comparable{
     public Action action;
     double expectation;
