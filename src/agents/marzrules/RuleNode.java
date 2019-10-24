@@ -66,7 +66,10 @@ public class RuleNode {
                 children.put(action, list);
             }
         } else { //at the depth limit, don't build more nodes.
-            children = null;
+            children = new HashMap<>(alphabetSize);
+            for (Action action: potentialActions){
+                children.put(action, new ArrayList<>());
+            }
         }
     }
 
@@ -83,10 +86,10 @@ public class RuleNode {
     public int incrementMoveFrequency(Action action){
         int index = Arrays.asList(potentialActions).indexOf(action);
         if (index == -1) {
-            return -1;
+            throw new IllegalArgumentException("Action not valid");
         }
 
-        return moveFrequencies[index]++;
+        return ++moveFrequencies[index];
     }
 
     public boolean inAlphabet(Action action){
@@ -197,7 +200,7 @@ public class RuleNode {
         }
 
         //BASE CASE: At depth limit
-        if (maxDepth == 1){
+        if (maxDepth == 0){
             bestAction = null;
             expectation = -1;
             return Optional.empty();

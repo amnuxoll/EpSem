@@ -121,8 +121,10 @@ public class Ruleset {
             }
             current.clear();
             current.add(root);
+            heuristic.setGoalProbability(root.getIncreasedGoalProbability());
+            root.getExpectation(current, true, heuristic); //Update caches before saving
             //System.out.print("G");
-            root.reachedGoal();
+            root.reachedGoal(); // Cache EVs
             driver = root;
         }
 

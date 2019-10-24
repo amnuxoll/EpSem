@@ -369,6 +369,39 @@ public class RuleNodeTest {
         assertEquals(false, goalNode.getExplore());
     }
 
+    @EpSemTest
+    public void testExpectedDepthLimitRecursive() {
+        Action[] actions = new Action[] {new Action("a"), new Action("b")};
+        Heuristic heuristic = new TestHeuristic(2.0);
+        RuleNode node = new RuleNode(actions, 0, 1, 0);
+        ArrayList<RuleNode> current = new ArrayList<>();
+        current.add(node);
+
+        node.occurs();
+        node.incrementMoveFrequency(actions[0]);
+        RuleNode aGoalChild = node.getGoalChild(actions[0]);
+        aGoalChild.occurs();
+
+        //a  is the best move
+        assertEquals(1.0, node.getExpectation(current, true, heuristic).get());
+
+        node.occurs();
+        node.incrementMoveFrequency(actions[0]);
+        RuleNode aChild = node.getNextChild(actions[0], 0);
+        aChild.occurs();
+
+        //a now has infinite cost - heuristic is the best move
+        assertEquals(2.0, node.getExpectation(current, true, heuristic).get());
+
+        node.occurs();
+        node.incrementMoveFrequency(actions[1]);
+        RuleNode bChild = node.getNextChild(actions[1], 0);
+        bChild.occurs();
+
+        //b now has infinite cost - return infinity
+        assertEquals(Optional.empty(), node.getExpectation(current, true, heuristic));
+    }
+
     //endregion
 
     //region getMaxBits
