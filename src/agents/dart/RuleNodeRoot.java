@@ -54,8 +54,22 @@ public class RuleNodeRoot extends RuleNode {
         }
     }
 
-    public RuleNode[] updateExtend(SensorData sensorData) {
-        return super.updateExtend(potentialActions[0], sensorData);
+    @Override
+    public RuleNode[] updateExtend(Action action, SensorData sensorData) {
+        RuleNode[] extensions = new RuleNode[sensorKeys.size()];
+        for(int i = 0; i < sensorKeys.size(); i++) {
+            String[] sensorKey = sensorKeys.get(i);
+            int sense = sensorHash(sensorKey, sensorData);
+            RuleNode child = getChild(potentialActions[0], sensorKey, sense);
+            if (child == null){
+                child = new RuleNode(sense, potentialActions, depth + 1, sensors);
+                children.get(new ChildKey(potentialActions[0], sensorKey)).add(child);
+            }
+            child.frequency++;
+            child.visited = true;
+            extensions[i] = child;
+        }
+        return extensions;
     }
 
     public RuleNodeGoal getGoalChild() {
@@ -63,8 +77,17 @@ public class RuleNodeRoot extends RuleNode {
     }
 
     @Override
+    public RuleNode getChild(Action action, String[] sensorKey, int sense) {
+        return super.getChild(potentialActions[0], sensorKey, sense);
+    }
+
+    @Override
     public ActionProposal getBestProposal(Heuristic heuristic) {
         cache = ActionProposal.makeInfiniteProposal(potentialActions[0]);
         return cache;
+    }
+
+    public double getGoalProbability(){
+        return getGoalChild().frequency/(double)frequency;
     }
 }

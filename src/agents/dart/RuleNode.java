@@ -19,7 +19,7 @@ public class RuleNode {
     protected final int depth;//how deep this node is in the tree
     boolean visited = false;//whether the node has been reached since the goal was last reached. If false, the cache is used in expected value
     ActionProposal cache;//the best move found last time expected value was calculated.
-    private final String[] sensors;//the array of all sensors
+    protected final String[] sensors;//the array of all sensors
     ArrayList<String[]> sensorKeys;//combinations of sensors used for child nodes
     /**
      * All nodes that can be reached from this node.
@@ -36,10 +36,12 @@ public class RuleNode {
         this.depth = depth;
         this.cache = ActionProposal.makeInfiniteProposal(potentialActions[0]);
         this.sensors = sensors;
-        this.sensorKeys = new ArrayList<>(sensors.length + 1);
+        this.sensorKeys = new ArrayList<>(sensors.length);
 
         sensorKeys.add(new String[] {});
         for(String sensor:sensors){
+            if(sensor.equals(SensorData.goalSensor))
+                continue;
             sensorKeys.add(new String[] {sensor});
         }
 
@@ -189,6 +191,13 @@ public class RuleNode {
         return extensions;
     }
 
+    public void updateExtendGoal(Action action){
+        incrementMoveFrequency(action);
+        if(depth != DEPTH_LIMIT){
+            getGoalChild(action).frequency++;
+        }
+    }
+
     /**
      * Converts sensorData into a sense
      * @param sensorKey which sensors to use
@@ -209,7 +218,7 @@ public class RuleNode {
      * Gets the child with the corresponding characteristics or null if that child does not exist
      * @return child or null
      */
-    private RuleNode getChild(Action action, String[] sensorKey, int sense){
+    public RuleNode getChild(Action action, String[] sensorKey, int sense){
         ArrayList<RuleNode> matchingChildren = children.get(new ChildKey(action, sensorKey));
         for(int i = 1; i < matchingChildren.size(); i++) {
             RuleNode child = matchingChildren.get(i);
@@ -222,9 +231,9 @@ public class RuleNode {
     /**
      * Same as updateExtend but with no side effects.
      */
-    public ITreeNode[] getNextChildren(Action action, SensorData sensorData){
+    /*public ITreeNode[] getNextChildren(Action action, SensorData sensorData){
         throw new NotImplementedException();
-    }
+    }*/
     //TODO goal node interface?
 
     /**
