@@ -1,7 +1,7 @@
 package agents.marzrules;
 
-import environments.fsm.FSMEnvironment;
 import framework.Action;
+import framework.Heuristic;
 import framework.SensorData;
 
 import java.util.ArrayList;

@@ -1,9 +1,9 @@
 package tests.agents.marzrules;
 
-import agents.marzrules.Heuristic;
+import framework.Heuristic;
 import agents.marzrules.RuleNode;
 import agents.marzrules.RuleNodeGoal;
-import agents.marzrules.TestHeuristic;
+import framework.TestHeuristic;
 import framework.Action;
 import tests.EpSemTest;
 import tests.EpSemTestClass;

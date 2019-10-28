@@ -1,6 +1,4 @@
-package agents.marzrules;
-
-import agents.marzrules.Heuristic;
+package framework;
 
 /**
  * Created by Ryan on 4/11/2019.

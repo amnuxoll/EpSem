@@ -1,9 +1,8 @@
 package agents.marzrules;
 
 import framework.Action;
-import framework.SensorData;
+import framework.Heuristic;
 
-import java.rmi.activation.ActivationID;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;

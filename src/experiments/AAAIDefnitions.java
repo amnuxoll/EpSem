@@ -1,7 +1,7 @@
 package experiments;
 
 import agents.marz.MaRzAgentProvider;
-import agents.marzrules.Heuristic;
+import framework.Heuristic;
 import agents.marzrules.RulesAgentProvider;
 import environments.fsm.FSMEnvironment;
 import environments.fsm.FSMEnvironmentProvider;

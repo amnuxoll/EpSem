@@ -2,6 +2,7 @@ package tests.agents.marzrules;
 
 import agents.marzrules.*;
 import framework.Action;
+import framework.Heuristic;
 import framework.SensorData;
 import tests.EpSemTest;
 import tests.EpSemTestClass;

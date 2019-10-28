@@ -1,6 +1,6 @@
 package agents.marzrules;
 
-import framework.Action;
+import framework.Heuristic;
 import framework.IAgent;
 import framework.IAgentProvider;
 

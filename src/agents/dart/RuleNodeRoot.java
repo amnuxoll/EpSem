@@ -1,13 +1,14 @@
-package agents.marzrules;
+package agents.dart;
 
+import framework.Heuristic;
 import framework.Action;
 import framework.SensorData;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 
-public class WildCardRuleNodeRoot extends WildCardRuleNode{
-    public WildCardRuleNodeRoot(int sense, Action[] potentialActions, int depth, String[] sensors) {
+public class RuleNodeRoot extends RuleNode {
+    public RuleNodeRoot(int sense, Action[] potentialActions, int depth, String[] sensors) {
         super(sense, potentialActions, depth, sensors);
     }
 
@@ -15,8 +16,8 @@ public class WildCardRuleNodeRoot extends WildCardRuleNode{
     protected void initChildren() {
         children = new HashMap<>();
         for(String[] sensorKey:sensorKeys){
-            ArrayList<WildCardRuleNode> value = new ArrayList<>();
-            value.add(new WildCardRuleNodeGoal(potentialActions, depth + 1));
+            ArrayList<RuleNode> value = new ArrayList<>();
+            value.add(new RuleNodeGoal(potentialActions, depth + 1));
             for(Action a:potentialActions){
                 children.put(new ChildKey(a, sensorKey), value);
             }
@@ -46,24 +47,24 @@ public class WildCardRuleNodeRoot extends WildCardRuleNode{
         if (visited){
             visited = false;
             for(String[] s:sensorKeys){
-                for(WildCardRuleNode child:children.get(new ChildKey(potentialActions[0], s))){
+                for(RuleNode child:children.get(new ChildKey(potentialActions[0], s))){
                     child.getBestProposal(heuristic, true);
                 }
             }
         }
     }
 
-    public WildCardRuleNode[] updateExtend(SensorData sensorData) {
+    public RuleNode[] updateExtend(SensorData sensorData) {
         return super.updateExtend(potentialActions[0], sensorData);
     }
 
-    public WildCardRuleNodeGoal getGoalChild() {
+    public RuleNodeGoal getGoalChild() {
         return super.getGoalChild(potentialActions[0]);
     }
 
     @Override
-    public WildCardActionProposal getBestProposal(Heuristic heuristic) {
-        cache = WildCardActionProposal.makeInfiniteProposal(potentialActions[0]);
+    public ActionProposal getBestProposal(Heuristic heuristic) {
+        cache = ActionProposal.makeInfiniteProposal(potentialActions[0]);
         return cache;
     }
 }

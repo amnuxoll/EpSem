@@ -1,6 +1,7 @@
 package agents.marzrules;
 
 import framework.Action;
+import framework.Heuristic;
 
 import java.util.ArrayList;
 import java.util.Optional;

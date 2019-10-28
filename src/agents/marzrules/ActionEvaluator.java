@@ -1,7 +1,7 @@
 package agents.marzrules;
 
 import framework.Action;
-import framework.Episode;
+import framework.Heuristic;
 import framework.SensorData;
 
 import java.util.*;

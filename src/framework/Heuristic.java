@@ -1,4 +1,4 @@
-package agents.marzrules;
+package framework;
 
 public class Heuristic {
     private final double alpha;
