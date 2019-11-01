@@ -3,6 +3,7 @@ package experiments;
 import agents.marz.MaRzAgentProvider;
 import agents.marzrules.Heuristic;
 import agents.marzrules.RulesAgentProvider;
+import agents.nsm.NSMAgentProvider;
 import environments.fsm.FSMEnvironment;
 import environments.fsm.FSMEnvironmentProvider;
 import environments.fsm.FSMTransitionTableBuilder;
@@ -109,6 +110,20 @@ public class AAAIDefnitions {
             AAAIDefnitions.configuration,
             AAAIDefnitions.environmentProviders,
             new IAgentProvider[] { new MaRzAgentProvider() },
+            rootDirectory -> {
+                NamedOutput namedOutput = NamedOutput.getInstance();
+                try {
+                    namedOutput.configure("metadata", new FileOutputStream(new File(rootDirectory, "metadata.txt")));
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                }
+            }
+    );
+
+    public static TestSuite NSM = new TestSuite(
+            AAAIDefnitions.configuration,
+            AAAIDefnitions.environmentProviders,
+            new IAgentProvider[] { new NSMAgentProvider() },
             rootDirectory -> {
                 NamedOutput namedOutput = NamedOutput.getInstance();
                 try {

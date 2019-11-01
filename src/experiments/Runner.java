@@ -217,8 +217,8 @@ public class Runner {
     //region Main
     public static void main(String[] args) {
         try {
-            File outputDirectory = DirectoryUtils.generateNewOutputDirectory();
-            RulesAgent.run(new FileResultWriterProvider(outputDirectory));
+            File outputDirectory = DirectoryUtils.generateCenekOutputDirectory();
+            AAAIDefnitions.NSM.run(new FileResultWriterProvider(outputDirectory));
         } catch (OutOfMemoryError mem) {
             mem.printStackTrace();
         } catch (Exception ex) {

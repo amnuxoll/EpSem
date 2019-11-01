@@ -17,6 +17,7 @@ public class DirectoryUtils {
     /** Provides a standard directory in the user's home directory for all statistical output. */
     private final static File outputRootDirectory = new File(System.getProperty("user.home"), "fsm_output");
 
+    private final static File cenekRootDirectory = new File("/mnt/spinning_disks/", "fsm_output");
     //endregion
 
     //region Public Static Methods
@@ -29,6 +30,13 @@ public class DirectoryUtils {
     public static File generateNewOutputDirectory()
     {
         File file = new File(DirectoryUtils.outputRootDirectory, DirectoryUtils.getTimestamp(System.currentTimeMillis()));
+        file.mkdirs();
+        return file;
+    }
+
+    public static File generateCenekOutputDirectory()
+    {
+        File file = new File(DirectoryUtils.cenekRootDirectory, DirectoryUtils.getTimestamp(System.currentTimeMillis()));
         file.mkdirs();
         return file;
     }
