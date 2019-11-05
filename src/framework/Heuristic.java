@@ -10,6 +10,11 @@ public class Heuristic {
         this.beta = beta;
     }
 
+    public Heuristic(){
+        this.alpha = 1;
+        this.beta = 0;
+    }
+
     public void setGoalProbability(double p){
         this.p = p;
     }

@@ -50,7 +50,7 @@ public class RulesAgent implements IAgent {
     @Override
     public Action getNextAction(SensorData sensorData) {
         if (sensorData != null) {
-            ruleset.update(previousAction, sensorData);
+            ruleset.update(previousAction, ActionEvaluator.ALL_SENSOR_HASH.apply(sensorData), sensorData.isGoal());
         }
         actionsSinceGoal++;
 

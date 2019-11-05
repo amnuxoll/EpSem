@@ -1,14 +1,14 @@
 package agents.dart;
 
+import framework.Episode;
 import framework.Heuristic;
-import agents.marzrules.ITreeNode;
 import framework.Action;
 import framework.SensorData;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.function.Function;
 
 public class RuleNode {
     final int sense;//number describing the values of a set of sensors. This set is determined by the parent
@@ -21,6 +21,8 @@ public class RuleNode {
     ActionProposal cache;//the best move found last time expected value was calculated.
     protected final String[] sensors;//the array of all sensors
     ArrayList<String[]> sensorKeys;//combinations of sensors used for child nodes
+    private int episodeIndex;
+    protected final Function<Integer, ActionSense> lookupEpisode;
     /**
      * All nodes that can be reached from this node.
      * In the arraylist of nodes, the zeroth index is guaranteed to be the goal node.
@@ -29,7 +31,7 @@ public class RuleNode {
      */
     protected HashMap<ChildKey, ArrayList<RuleNode>> children;
 
-    public RuleNode(int sense, Action[] potentialActions, int depth, String[] sensors) {
+    public RuleNode(int sense, Action[] potentialActions, int depth, String[] sensors, Function<Integer, ActionSense> lookupEpisode) {
         this.sense = sense;
         this.potentialActions = potentialActions;
         this.moveFrequencies = new int[potentialActions.length];
@@ -37,6 +39,7 @@ public class RuleNode {
         this.cache = ActionProposal.makeInfiniteProposal(potentialActions[0]);
         this.sensors = sensors;
         this.sensorKeys = new ArrayList<>(sensors.length);
+        this.lookupEpisode = lookupEpisode;
 
         sensorKeys.add(new String[] {});
         for(String sensor:sensors){
@@ -51,7 +54,7 @@ public class RuleNode {
     protected void initChildren(){
         children = new HashMap<>();
         for(Action a:potentialActions){
-            RuleNodeGoal goal = new RuleNodeGoal(potentialActions, depth+1);
+            RuleNodeGoal goal = new RuleNodeGoal(potentialActions, depth+1, lookupEpisode);
             for(String[] key:sensorKeys){
                 ArrayList<RuleNode> value = new ArrayList<>();
                 value.add(goal);
@@ -171,24 +174,37 @@ public class RuleNode {
      * @param sensorData the sense after the action is taken
      * @return all children that now apply as a result of taking the action and sensing the sensorData
      */
-    public RuleNode[] updateExtend(Action action, SensorData sensorData){
-        incrementMoveFrequency(action);
+    public RuleNode[] updateExtend(Action action, SensorData sensorData, int episodeIndex){
         if(depth == DEPTH_LIMIT)
             return new RuleNode[] {};
+        if(frequency <= 1)
+            return new RuleNode[] {};
+        incrementMoveFrequency(action);
         RuleNode[] extensions = new RuleNode[sensorKeys.size()];
         for(int i = 0; i < sensorKeys.size(); i++) {
             String[] sensorKey = sensorKeys.get(i);
             int sense = sensorHash(sensorKey, sensorData);
             RuleNode child = getChild(action, sensorKey, sense);
             if (child == null){
-                child = new RuleNode(sense, potentialActions, depth + 1, sensors);
+                child = new RuleNode(sense, potentialActions, depth + 1, sensorKey, lookupEpisode);
                 children.get(new ChildKey(action, sensorKey)).add(child);
             }
-            child.frequency++;
+            child.occurs(episodeIndex);
             child.visited = true;
             extensions[i] = child;
         }
         return extensions;
+    }
+
+    protected void occurs(int episodeIndex){
+        frequency++;
+        if(frequency == 1){
+            this.episodeIndex = episodeIndex;
+        }
+        else if(frequency == 2){
+            ActionSense actionSense = lookupEpisode.apply(this.episodeIndex);
+            updateExtend(actionSense.action, actionSense.sensorData, episodeIndex + 1);
+        }
     }
 
     public void updateExtendGoal(Action action){

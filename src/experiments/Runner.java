@@ -1,5 +1,6 @@
 package experiments;
 
+import agents.dart.DartAgentProvider;
 import agents.discr.MaRzLearnerProvider;
 import agents.juno.JunoAgentProvider;
 import agents.juno.JunoConfiguration;
@@ -244,6 +245,16 @@ public class Runner {
             }
     );
 
+    private static TestSuite DartAgent = new TestSuite(
+            TestSuiteConfiguration.MEDIUM,
+            new IEnvironmentProvider[] {
+                    new FSMEnvironmentProvider(new FSMTransitionTableBuilder(3, 50, false), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN))
+            },
+            new IAgentProvider[] {
+                    new DartAgentProvider(new Heuristic())
+            }
+    );
+
 
     //endregion
 
@@ -251,7 +262,7 @@ public class Runner {
     public static void main(String[] args) {
         try {
             File outputDirectory = DirectoryUtils.generateNewOutputDirectory();
-            RulesAgentRandom.run(new FileResultWriterProvider(outputDirectory));
+            DartAgent.run(new FileResultWriterProvider(outputDirectory));
         } catch (OutOfMemoryError mem) {
             mem.printStackTrace();
         } catch (Exception ex) {

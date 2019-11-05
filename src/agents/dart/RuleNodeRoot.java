@@ -1,15 +1,17 @@
 package agents.dart;
 
+import framework.Episode;
 import framework.Heuristic;
 import framework.Action;
 import framework.SensorData;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.function.Function;
 
 public class RuleNodeRoot extends RuleNode {
-    public RuleNodeRoot(int sense, Action[] potentialActions, int depth, String[] sensors) {
-        super(sense, potentialActions, depth, sensors);
+    public RuleNodeRoot(Action[] potentialActions, String[] sensors, Function<Integer, ActionSense> lookupEpisode) {
+        super(0, potentialActions, 0, sensors, lookupEpisode);
     }
 
     @Override
@@ -17,7 +19,7 @@ public class RuleNodeRoot extends RuleNode {
         children = new HashMap<>();
         for(String[] sensorKey:sensorKeys){
             ArrayList<RuleNode> value = new ArrayList<>();
-            value.add(new RuleNodeGoal(potentialActions, depth + 1));
+            value.add(new RuleNodeGoal(potentialActions, depth + 1, lookupEpisode));
             for(Action a:potentialActions){
                 children.put(new ChildKey(a, sensorKey), value);
             }
@@ -34,8 +36,10 @@ public class RuleNodeRoot extends RuleNode {
         return frequency;
     }
 
-    public void occurs(){
+    @Override
+    public void occurs(int index){
         frequency++;
+        visited = true;
     }
 
     /**
@@ -55,24 +59,25 @@ public class RuleNodeRoot extends RuleNode {
     }
 
     @Override
-    public RuleNode[] updateExtend(Action action, SensorData sensorData) {
+    public RuleNode[] updateExtend(Action action, SensorData sensorData, int episodeIndex) {
         RuleNode[] extensions = new RuleNode[sensorKeys.size()];
         for(int i = 0; i < sensorKeys.size(); i++) {
             String[] sensorKey = sensorKeys.get(i);
             int sense = sensorHash(sensorKey, sensorData);
             RuleNode child = getChild(potentialActions[0], sensorKey, sense);
             if (child == null){
-                child = new RuleNode(sense, potentialActions, depth + 1, sensors);
+                child = new RuleNode(sense, potentialActions, depth + 1, sensors, lookupEpisode);
                 children.get(new ChildKey(potentialActions[0], sensorKey)).add(child);
             }
-            child.frequency++;
+            child.occurs(episodeIndex);
             child.visited = true;
             extensions[i] = child;
         }
         return extensions;
     }
 
-    public RuleNodeGoal getGoalChild() {
+    @Override
+    public RuleNodeGoal getGoalChild(Action action) {
         return super.getGoalChild(potentialActions[0]);
     }
 
@@ -84,10 +89,16 @@ public class RuleNodeRoot extends RuleNode {
     @Override
     public ActionProposal getBestProposal(Heuristic heuristic) {
         cache = ActionProposal.makeInfiniteProposal(potentialActions[0]);
+        //Updates the caches of the children even though we do not need the result.
+        for(String[] s:sensorKeys){
+            for(RuleNode child:children.get(new ChildKey(potentialActions[0], s))){
+                child.getBestProposal(heuristic);
+            }
+        }
         return cache;
     }
 
     public double getGoalProbability(){
-        return getGoalChild().frequency/(double)frequency;
+        return getGoalChild(potentialActions[0]).frequency/(double)frequency;
     }
 }
