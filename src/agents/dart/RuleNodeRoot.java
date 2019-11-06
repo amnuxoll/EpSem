@@ -47,15 +47,21 @@ public class RuleNodeRoot extends RuleNode {
      * Will not recurse if not visited since last goal.
      * @param heuristic the heuristic required for getBestProposal
      */
-    public void reachedGoal(Heuristic heuristic) {
+    public void reachedGoalRoot(Heuristic heuristic, int goalIndex) {
         if (visited){
             visited = false;
             for(String[] s:sensorKeys){
                 for(RuleNode child:children.get(new ChildKey(potentialActions[0], s))){
-                    child.getBestProposal(heuristic, true);
+                    child.getBestProposal(heuristic);
+                    child.reachedGoal(goalIndex);
                 }
             }
         }
+    }
+
+    @Override
+    public void reachedGoal(int goalIndex) {
+        throw new IllegalStateException("Call reachedGoalRoot instead!");
     }
 
     @Override

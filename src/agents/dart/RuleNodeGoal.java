@@ -21,4 +21,9 @@ public class RuleNodeGoal extends RuleNode {
         cache = ActionProposal.makeGoalProposal(potentialActions[0]);
         return cache;
     }
+
+    @Override
+    public void reachedGoal(int goalIndex) {
+        visited = false;
+    }
 }

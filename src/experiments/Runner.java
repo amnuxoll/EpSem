@@ -248,7 +248,7 @@ public class Runner {
     private static TestSuite DartAgent = new TestSuite(
             TestSuiteConfiguration.MEDIUM,
             new IEnvironmentProvider[] {
-                    new FSMEnvironmentProvider(new FSMTransitionTableBuilder(3, 50, false), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN))
+                    new FSMEnvironmentProvider(new FSMTransitionTableBuilder(3, 50, false), EnumSet.range(FSMEnvironment.Sensor.CACTUS1, FSMEnvironment.Sensor.CACTUS9))
             },
             new IAgentProvider[] {
                     new DartAgentProvider(new Heuristic())

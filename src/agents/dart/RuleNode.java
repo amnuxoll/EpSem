@@ -21,7 +21,8 @@ public class RuleNode {
     ActionProposal cache;//the best move found last time expected value was calculated.
     protected final String[] sensors;//the array of all sensors
     ArrayList<String[]> sensorKeys;//combinations of sensors used for child nodes
-    private int episodeIndex;
+    private int episodeIndex;//the index where this node first occurs in episodic memory
+    private int goalIndex = -1;//the index of the first goal after episodeIndex in episodic memory. Not set if node occurs multiple times before reaching goal
     protected final Function<Integer, ActionSense> lookupEpisode;
     /**
      * All nodes that can be reached from this node.
@@ -94,18 +95,37 @@ public class RuleNode {
     /**
      * Find the best move to make. May update cache
      * @param heuristic the heuristic for exploring
-     * @param isGoal true if the agent has just reached the goal.
-     *               After true is passed, expected value will be served from the cache until the node is visited.
      * @return the best move
      */
-    protected ActionProposal getBestProposal(Heuristic heuristic, boolean isGoal){
+    public ActionProposal getBestProposal(Heuristic heuristic){
         if(!visited)
             return cache;
         //TODO make sure allowing current does not result in looping
         if(depth == DEPTH_LIMIT) {
-            visited = !isGoal;
             cache = ActionProposal.makeInfiniteProposal(potentialActions[0]);
             return cache;
+        }
+        if(frequency == 1){
+            if(goalIndex == -1){
+                return ActionProposal.makeInfiniteProposal(potentialActions[0]);
+            }
+            int stepsToGoal = goalIndex - episodeIndex;
+            Action taken = null;
+            for(Action a:potentialActions){
+                if(getMoveFrequency(a) > 0){
+                    taken = a;
+                    break;
+                }
+            }
+            if(taken == null)
+                throw  new IllegalStateException("Illegal move frequencies.");
+            double explore = heuristic.getHeuristic(depth);
+            if(explore <= stepsToGoal){
+                Action exploreAction = taken != potentialActions[0] ? potentialActions[0] : potentialActions[1];//First action not taken
+                return new ActionProposal(exploreAction, new String[] {}, explore, this, true, false);
+            }else{
+                return new ActionProposal(taken, new String[] {}, stepsToGoal, this, false, false);
+            }
         }
 
         ActionProposal best = ActionProposal.makeInfiniteProposal(potentialActions[0]);
@@ -125,7 +145,7 @@ public class RuleNode {
                     for (RuleNode child : children.get(new ChildKey(a, sensorKey))){
                         if(child.frequency == 0)
                             continue;
-                        entropy += child.frequency * (child.getBestProposal(heuristic, isGoal).cost+ 1 +
+                        entropy += child.frequency * (child.getBestProposal(heuristic).cost+ 1 +
                                                     (Math.log(f/(double)child.frequency)/Math.log(potentialActions.length)));
                     }
                     entropy /= f;
@@ -137,16 +157,26 @@ public class RuleNode {
         }
         if (noChildren) {
             cache = ActionProposal.makeInfiniteProposal(potentialActions[0]);
-            visited = !isGoal;
             return cache;
         }
         cache = best;
-        visited = !isGoal;
         return best;
     }
 
-    public ActionProposal getBestProposal(Heuristic heuristic){
-        return getBestProposal(heuristic, false);
+    public void reachedGoal(int goalIndex) {
+        if(visited){
+            visited = false;
+            if(frequency == 1){
+                this.goalIndex = goalIndex;
+            }
+            for(Action a:potentialActions){
+                for(String[] sensorKey:sensorKeys){
+                    for(RuleNode node:children.get(new ChildKey(a, sensorKey))){
+                        node.reachedGoal(goalIndex);
+                    }
+                }
+            }
+        }
     }
 
     /**
@@ -164,6 +194,8 @@ public class RuleNode {
         return frequency;
     }
 
+
+
     /**
      * Updates the move frequency of action and the frequency of all children
      * Can be thought of as extending this rule by the new episode
@@ -177,9 +209,13 @@ public class RuleNode {
     public RuleNode[] updateExtend(Action action, SensorData sensorData, int episodeIndex){
         if(depth == DEPTH_LIMIT)
             return new RuleNode[] {};
+        incrementMoveFrequency(action);
         if(frequency <= 1)
             return new RuleNode[] {};
-        incrementMoveFrequency(action);
+        return extend(action, sensorData, episodeIndex);
+    }
+
+    private RuleNode[] extend(Action action, SensorData sensorData, int episodeIndex){
         RuleNode[] extensions = new RuleNode[sensorKeys.size()];
         for(int i = 0; i < sensorKeys.size(); i++) {
             String[] sensorKey = sensorKeys.get(i);
@@ -203,7 +239,7 @@ public class RuleNode {
         }
         else if(frequency == 2){
             ActionSense actionSense = lookupEpisode.apply(this.episodeIndex);
-            updateExtend(actionSense.action, actionSense.sensorData, episodeIndex + 1);
+            extend(actionSense.action, actionSense.sensorData, this.episodeIndex + 1);
         }
     }
 

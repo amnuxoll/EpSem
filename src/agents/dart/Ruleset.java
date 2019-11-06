@@ -28,7 +28,7 @@ public class Ruleset {
             root.occurs(episodeIndex);
             current.clear();
             current.add(root);
-            root.reachedGoal(heuristic);
+            root.reachedGoalRoot(heuristic, episodeIndex);
             driver = root;
             action = null;
         }
