@@ -1,6 +1,5 @@
 package agents.dart;
 
-import framework.Episode;
 import framework.Heuristic;
 import framework.Action;
 import framework.SensorData;
@@ -23,7 +22,11 @@ public class RuleNode {
     ArrayList<String[]> sensorKeys;//combinations of sensors used for child nodes
     private int episodeIndex;//the index where this node first occurs in episodic memory
     private int goalIndex = -1;//the index of the first goal after episodeIndex in episodic memory. Not set if node occurs multiple times before reaching goal
+
+    //The function to access the action of an episode at a given index and the next observation.
+    //Used to "replay" episode when creating children
     protected final Function<Integer, ActionSense> lookupEpisode;
+
     /**
      * All nodes that can be reached from this node.
      * In the arraylist of nodes, the zeroth index is guaranteed to be the goal node.
@@ -32,6 +35,16 @@ public class RuleNode {
      */
     protected HashMap<ChildKey, ArrayList<RuleNode>> children;
 
+    /**
+     * Creates the RuleNode.
+     * Initializes a goal child.
+     * Initializes sensor keys to no sensors and all singelton sensors.
+     * @param sense The sense of the node - a hash generated with a sensor key picked by the parent.
+     * @param potentialActions The alphabet of the machine.
+     * @param depth How deep the node is, with root being depth 0. Will not create children if this reaches the depth limit.
+     * @param sensors The different sensor data keys. Used to create sensor keys.
+     * @param lookupEpisode The function to get the action and following observation for an episode at a given index.
+     */
     public RuleNode(int sense, Action[] potentialActions, int depth, String[] sensors, Function<Integer, ActionSense> lookupEpisode) {
         this.sense = sense;
         this.potentialActions = potentialActions;
@@ -42,7 +55,10 @@ public class RuleNode {
         this.sensorKeys = new ArrayList<>(sensors.length);
         this.lookupEpisode = lookupEpisode;
 
+        //Creates sensor keys
+        //One key for no sensors
         sensorKeys.add(new String[] {});
+        //One key for using each sensor individually
         for(String sensor:sensors){
             if(sensor.equals(SensorData.goalSensor))
                 continue;
@@ -52,6 +68,9 @@ public class RuleNode {
         initChildren();
     }
 
+    /**
+     * Creates children and puts a goal node in the first item of the array.
+     */
     protected void initChildren(){
         children = new HashMap<>();
         for(Action a:potentialActions){
@@ -65,17 +84,21 @@ public class RuleNode {
     }
 
     /**
-     * FOR TESTING PURPOSES AND INTERNAL USE
-     * Use updateExtend instead
+     * Increases the frequency for a move and returns the new frequency.
      * @param action the action to update the frequency of
      * @return the new move frequency
      */
-    public int incrementMoveFrequency(Action action){
+    protected int incrementMoveFrequency(Action action){
         int index = getActionIndex(action);
         return ++moveFrequencies[index];
     }
 
-    protected int getMoveFrequency(Action action){
+    /**
+     * Gets the current move frequency
+     * @param action The action to get the frequency of
+     * @return The number of times that action has been performed
+     */
+    public int getMoveFrequency(Action action){
         int index = getActionIndex(action);
         return moveFrequencies[index];
     }
@@ -98,18 +121,26 @@ public class RuleNode {
      * @return the best move
      */
     public ActionProposal getBestProposal(Heuristic heuristic){
+
+        //Base case: cached.
+        //All other cases must update cache to new value.
         if(!visited)
             return cache;
-        //TODO make sure allowing current does not result in looping
+
+        //Base case: is goal
+        //Covered with virtual dispatch
+
+        //Base case: At depth limit
+        //Return infinity
         if(depth == DEPTH_LIMIT) {
             cache = ActionProposal.makeInfiniteProposal(potentialActions[0]);
             return cache;
         }
+
+        //Base case: Visited exactly once.
+        //In this case, we find expected value non-recursively.
         if(frequency == 1){
-            if(goalIndex == -1){
-                return ActionProposal.makeInfiniteProposal(potentialActions[0]);
-            }
-            int stepsToGoal = goalIndex - episodeIndex;
+            //Get the action taken after this node was created.
             Action taken = null;
             for(Action a:potentialActions){
                 if(getMoveFrequency(a) > 0){
@@ -117,37 +148,49 @@ public class RuleNode {
                     break;
                 }
             }
+
+            //If this is a new node, it is not allowed to make a proposal.
             if(taken == null)
-                throw  new IllegalStateException("Illegal move frequencies.");
+                return ActionProposal.makeInfiniteProposal(potentialActions[0]);
+
+            Action exploreAction = taken != potentialActions[0] ? potentialActions[0] : potentialActions[1];//First action not taken
             double explore = heuristic.getHeuristic(depth);
-            if(explore <= stepsToGoal){
-                Action exploreAction = taken != potentialActions[0] ? potentialActions[0] : potentialActions[1];//First action not taken
+
+            //Cost of an exploit, assuming 0 sensory information
+            //Meaningless if goal not reached
+            int stepsToGoal = goalIndex - episodeIndex;
+
+            //Never reached goal after being visited or an explore is better than repeating previous actions
+            if(goalIndex == -1 || explore <= stepsToGoal){
                 return new ActionProposal(exploreAction, new String[] {}, explore, this, true, false);
-            }else{
-                return new ActionProposal(taken, new String[] {}, stepsToGoal, this, false, false);
             }
+
+            //Otherwise, we exploit
+            return new ActionProposal(taken, new String[] {}, stepsToGoal, this, false, false);
         }
 
-        ActionProposal best = ActionProposal.makeInfiniteProposal(potentialActions[0]);
-        boolean noChildren = true;
+        //Recursive case: check expected information entropy from every move and take best one
+        ActionProposal best = ActionProposal.makeInfiniteProposal(potentialActions[0]); //Best proposal found so far
         for(int i = 0; i < potentialActions.length; i++){
             Action a = potentialActions[i];
             int f = getMoveFrequency(a);
+
+            //For an action never taken, make heuristic guess
             if(f == 0){
                 ActionProposal proposal = new ActionProposal(a, new String[] {}, heuristic.getHeuristic(depth), this, true, false);
                 if(proposal.compareTo(best) < 0)
                     best = proposal;
             }
             else{
-                noChildren = false;
                 for(String[] sensorKey:sensorKeys) {
                     double entropy = 0;
                     for (RuleNode child : children.get(new ChildKey(a, sensorKey))){
-                        if(child.frequency == 0)
+                        if(child.frequency == 0) //Skip goal nodes with frequency 0.
                             continue;
                         entropy += child.frequency * (child.getBestProposal(heuristic).cost+ 1 +
                                                     (Math.log(f/(double)child.frequency)/Math.log(potentialActions.length)));
                     }
+                    //Rather than multiply by child probabilities to get expected value, we multiply by child frequencies than divide by total frequency
                     entropy /= f;
                     if (entropy < best.cost) {
                         best = new ActionProposal(a, sensorKey, entropy, this, false, false);
@@ -155,14 +198,16 @@ public class RuleNode {
                 }
             }
         }
-        if (noChildren) {
-            cache = ActionProposal.makeInfiniteProposal(potentialActions[0]);
-            return cache;
-        }
         cache = best;
         return best;
     }
 
+    /**
+     * Called when a goal has been reached.
+     * Will recursively call for all visited children.
+     * Unvisits and saves the goal index.
+     * @param goalIndex The episode index for the goal
+     */
     public void reachedGoal(int goalIndex) {
         if(visited){
             visited = false;
@@ -180,8 +225,9 @@ public class RuleNode {
     }
 
     /**
-     * Finds the best move to make. May not update cache.
-     * @return the best move
+     * Finds the best move to make.
+     * Simply returns the cache - cache cannot update, and no side effects.
+     * @return the best proposal.
      */
     public ActionProposal getCachedProposal(){
         return cache;
@@ -197,13 +243,20 @@ public class RuleNode {
 
 
     /**
-     * Updates the move frequency of action and the frequency of all children
-     * Can be thought of as extending this rule by the new episode
-     * Will create a new RuleNode if it does not exist
-     * Visits child
-     * However, no children are returned if we are at the depth limit
+     * DO NOT call for goal. Use updateExtendGoal instead.
+     *
+     * Assuming this rule currently applies, get array of new rules that will apply after action is taken and sensorData is sensed.
+     * Updates the move frequency of action and has all the children occur.
+     * Can be thought of as extending this rule by the new episode.
+     * Will create a new RuleNode if it does not exist, this node has occured at least twice, and not at the depth limit.
+     * Visits child, invalidating their cache.
+     *
+     * This method simply updates move frequencies, then calls extend only if we are allowed to create children.
+     * Extend can be called at a later time with the same information to "retroactively" create children.
+     *
      * @param action the action taken
      * @param sensorData the sense after the action is taken
+     * @param episodeIndex The index of the episode where this node occured. Used to let this node create children at a later time by replaying episode.
      * @return all children that now apply as a result of taking the action and sensing the sensorData
      */
     public RuleNode[] updateExtend(Action action, SensorData sensorData, int episodeIndex){
@@ -215,6 +268,15 @@ public class RuleNode {
         return extend(action, sensorData, episodeIndex);
     }
 
+    /**
+     * Finds or creates children using the given action and sensorData, has them occur, and returns them.
+     * Note that this function does not check depth limit or other restrictions before creating children.
+     *
+     * @param action The action taken
+     * @param sensorData The next sensorData
+     * @param episodeIndex The index of the episode where this node applied.
+     * @return The new rules that apply.
+     */
     private RuleNode[] extend(Action action, SensorData sensorData, int episodeIndex){
         RuleNode[] extensions = new RuleNode[sensorKeys.size()];
         for(int i = 0; i < sensorKeys.size(); i++) {
@@ -226,23 +288,35 @@ public class RuleNode {
                 children.get(new ChildKey(action, sensorKey)).add(child);
             }
             child.occurs(episodeIndex);
-            child.visited = true;
             extensions[i] = child;
         }
         return extensions;
     }
 
+    /**
+     * Called when this node first applies.
+     * Visits this node.
+     * Increments node frequency.
+     * When visited for the second time, replays past episode to "retroactively" create child.
+     * @param episodeIndex The index of the episode where this node applies.
+     */
     protected void occurs(int episodeIndex){
+        visited = true;
         frequency++;
         if(frequency == 1){
             this.episodeIndex = episodeIndex;
         }
-        else if(frequency == 2){
+        else if(frequency == 2){ //The second time this is visited
             ActionSense actionSense = lookupEpisode.apply(this.episodeIndex);
             extend(actionSense.action, actionSense.sensorData, this.episodeIndex + 1);
         }
     }
 
+    /**
+     * Assuming this node applies, updates move frequency and goal frequency when a goal occurs.
+     * Since goal extensions are worthless, return is void.
+     * @param action Action taken from this node to reach the goal.
+     */
     public void updateExtendGoal(Action action){
         incrementMoveFrequency(action);
         if(depth != DEPTH_LIMIT){
@@ -251,9 +325,12 @@ public class RuleNode {
     }
 
     /**
-     * Converts sensorData into a sense
+     * Converts sensorData into a sense.
+     * This is a pure function.
+     * Two calls to this function with different sensor datas will return
+     *      the same value exactly when their sensor datas differ only by sensors not in the sensor key.
      * @param sensorKey which sensors to use
-     * @param sensorData
+     * @param sensorData the data used to compute the sense
      * @return sense
      */
     public static int sensorHash(String[] sensorKey, SensorData sensorData){
@@ -281,42 +358,37 @@ public class RuleNode {
     }
 
     /**
-     * Same as updateExtend but with no side effects.
-     */
-    /*public ITreeNode[] getNextChildren(Action action, SensorData sensorData){
-        throw new NotImplementedException();
-    }*/
-    //TODO goal node interface?
-
-    /**
-     * Gets the goal node from performing an action
+     * Gets the goal node from performing an action.
      * @param action the action performed
      * @return the goal node
-     * Note: We may consider changing the return type to a goal node type in the future.
      */
     public RuleNodeGoal getGoalChild(Action action){
         return (RuleNodeGoal)children.get(new ChildKey(action, new String[]{})).get(0);
     }
 
+    /**
+     * Used as a key for children.
+     * Effectively a value type consisting of an action and a sensorKey
+     */
     public static class ChildKey{
         public Action action;
-        public String[] sensors;
+        public String[] sensorKey;
 
-        ChildKey(Action action, String[] sensors) {
+        ChildKey(Action action, String[] sensorKey) {
             this.action = action;
-            this.sensors = sensors;
+            this.sensorKey = sensorKey;
         }
 
         @Override
         public int hashCode() {
-            return Arrays.hashCode(sensors) * 13 + action.hashCode();
+            return Arrays.hashCode(sensorKey) * 13 + action.hashCode();
         }
 
         @Override
         public boolean equals(Object obj) {
             if(obj instanceof ChildKey) {
                 ChildKey key = (ChildKey) obj;
-                return this.action.equals(key.action) && Arrays.equals(this.sensors, key.sensors);
+                return this.action.equals(key.action) && Arrays.equals(this.sensorKey, key.sensorKey);
             }
             return false;
         }

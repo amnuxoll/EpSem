@@ -32,7 +32,7 @@ public class RuleNodeRoot extends RuleNode {
     }
 
     @Override
-    protected int getMoveFrequency(Action action) {
+    public int getMoveFrequency(Action action) {
         return frequency;
     }
 
