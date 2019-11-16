@@ -134,6 +134,20 @@ public class AAAIDefnitions {
             }
     );
 
+    public static TestSuite NSMWithSensor = new TestSuite(
+            AAAIDefnitions.configuration,
+            new IEnvironmentProvider[] {new FSMEnvironmentProvider(new FSMTransitionTableBuilder(MediumAlphabet, LargeFSM, Random.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN))},
+            new IAgentProvider[] { new NSMAgentProvider() },
+            rootDirectory -> {
+                NamedOutput namedOutput = NamedOutput.getInstance();
+                try {
+                    namedOutput.configure("metadata", new FileOutputStream(new File(rootDirectory, "metadata.txt")));
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                }
+            }
+    );
+
     public static TestSuite ARONoSensor = new TestSuite(
             AAAIDefnitions.configuration,
             AAAIDefnitions.environmentProviders,
