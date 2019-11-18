@@ -67,7 +67,9 @@ public class TestRun implements IIntrospector {
             SensorData sensorData = this.environment.applyAction(null);
             do {
                 Action action = this.agent.getNextAction(sensorData);
-                if(action == null) break; //TODO: Yell
+                if(action == null) {
+                    throw new IllegalStateException("Null action provided by agent");
+                }
                 sensorData = this.environment.applyAction(action);
                 moveCount++;
 

@@ -18,9 +18,8 @@ public class RuleNode {
     private int[] moveFrequencies;
     // maxDepth is decremented as you move down the tree; at the depth limit this value will be 0.
     // can be understood as "how much deeper does the tree go beyond this node".
-    protected int currentDepth;
+    protected int currentDepth; //common-sense notion of depth. Technically redundant with maxDepth as of right now, but makes some stuff easier
     protected double maxDepth;
-    //TODO: protected int depth; //common-sense notion of depth. Technically redundant with maxDepth as of right now, but makes some stuff easier
     //Potential:
     //private int[] indices;
     protected double expectation = -1;

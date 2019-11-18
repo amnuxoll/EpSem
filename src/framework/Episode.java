@@ -32,7 +32,6 @@ public class Episode {
      * @param action The {@link Action} associated with the episode.
      */
     public Episode(SensorData sensorData, Action action) {
-        // TODO -- validate sensor data is not null
         if (sensorData == null)
             throw new IllegalArgumentException("sensorData cannot be null");
         if (action == null)
