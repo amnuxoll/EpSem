@@ -246,9 +246,12 @@ public class Runner {
     );
 
     private static TestSuite DartAgent = new TestSuite(
-            TestSuiteConfiguration.MEDIUM,
+            TestSuiteConfiguration.FULL,
             new IEnvironmentProvider[] {
-                    new FSMEnvironmentProvider(new FSMTransitionTableBuilder(3, 50, false), EnumSet.range(FSMEnvironment.Sensor.CACTUS1, FSMEnvironment.Sensor.CACTUS9))
+                    new FSMEnvironmentProvider(new FSMTransitionTableBuilder(3, 50, false), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
+                    new FSMEnvironmentProvider(new FSMTransitionTableBuilder(3, 50, false), EnumSet.of(FSMEnvironment.Sensor.NOISE1)),
+                    new FSMEnvironmentProvider(new FSMTransitionTableBuilder(3, 50, false), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN, FSMEnvironment.Sensor.NOISE1)),
+                    new FSMEnvironmentProvider(new FSMTransitionTableBuilder(3, 50, false), FSMEnvironment.Sensor.NO_SENSORS),
             },
             new IAgentProvider[] {
                     new DartAgentProvider(new Heuristic())

@@ -13,7 +13,7 @@ public class RuleNode {
     final int sense;//number describing the values of a set of sensors. This set is determined by the parent
     final int[] moveFrequencies;//how often each move is made leaving this node. The index corresponds to potentialActions
     final Action[] potentialActions;//the alphabet
-    private static final int DEPTH_LIMIT = 500;
+    public static final int DEPTH_LIMIT = 500;
     int frequency = 0;//how often this node has been visited
     protected final int depth;//how deep this node is in the tree
     boolean visited = false;//whether the node has been reached since the goal was last reached. If false, the cache is used in expected value
@@ -46,6 +46,16 @@ public class RuleNode {
      * @param lookupEpisode The function to get the action and following observation for an episode at a given index.
      */
     public RuleNode(int sense, Action[] potentialActions, int depth, String[] sensors, Function<Integer, ActionSense> lookupEpisode) {
+        if(potentialActions == null || potentialActions.length < 2)
+            throw new IllegalArgumentException("Cannot have null alphabet or alphabet with fewer than two actions");
+        if(sensors == null)
+            throw new IllegalArgumentException("Cannot have null sensors");
+        if(lookupEpisode == null)
+            throw new IllegalArgumentException("Cannot have null lookupEpisode");
+        if(depth < 0)
+            throw new IllegalArgumentException("Cannot have negative node depth");
+        if(depth > DEPTH_LIMIT)
+            throw new IllegalArgumentException("Cannot have depth greater than depth limit");
         this.sense = sense;
         this.potentialActions = potentialActions;
         this.moveFrequencies = new int[potentialActions.length];
@@ -64,8 +74,8 @@ public class RuleNode {
                 continue;
             sensorKeys.add(new String[] {sensor});
         }
-
-        initChildren();
+        if(depth < DEPTH_LIMIT)
+            initChildren();
     }
 
     /**
@@ -270,7 +280,7 @@ public class RuleNode {
 
     /**
      * Finds or creates children using the given action and sensorData, has them occur, and returns them.
-     * Note that this function does not check depth limit or other restrictions before creating children.
+     * Note that this function does not check depth limit or other restrictions before creating children, but will fail if we are at the depth limit
      *
      * @param action The action taken
      * @param sensorData The next sensorData
@@ -295,18 +305,19 @@ public class RuleNode {
 
     /**
      * Called when this node first applies.
+     * FOR TESTING AND INTERNAL USE ONLY
      * Visits this node.
      * Increments node frequency.
      * When visited for the second time, replays past episode to "retroactively" create child.
      * @param episodeIndex The index of the episode where this node applies.
      */
-    protected void occurs(int episodeIndex){
+    public void occurs(int episodeIndex){
         visited = true;
         frequency++;
         if(frequency == 1){
             this.episodeIndex = episodeIndex;
         }
-        else if(frequency == 2){ //The second time this is visited
+        else if(frequency == 2 && depth != DEPTH_LIMIT){ //The second time this is visited
             ActionSense actionSense = lookupEpisode.apply(this.episodeIndex);
             extend(actionSense.action, actionSense.sensorData, this.episodeIndex + 1);
         }
@@ -348,6 +359,8 @@ public class RuleNode {
      * @return child or null
      */
     public RuleNode getChild(Action action, String[] sensorKey, int sense){
+        if(depth == DEPTH_LIMIT)
+            return null;
         ArrayList<RuleNode> matchingChildren = children.get(new ChildKey(action, sensorKey));
         for(int i = 1; i < matchingChildren.size(); i++) {
             RuleNode child = matchingChildren.get(i);
@@ -357,12 +370,22 @@ public class RuleNode {
         return null;
     }
 
+    public ArrayList<RuleNode> getChildren(Action action, String[] sensorKey){
+        return children.get(new ChildKey(action, sensorKey));
+    }
+
+    public String[] getSensors(){
+        return sensors;
+    }
+
     /**
      * Gets the goal node from performing an action.
      * @param action the action performed
      * @return the goal node
      */
     public RuleNodeGoal getGoalChild(Action action){
+        if(depth == DEPTH_LIMIT)
+            return null;
         return (RuleNodeGoal)children.get(new ChildKey(action, new String[]{})).get(0);
     }
 
