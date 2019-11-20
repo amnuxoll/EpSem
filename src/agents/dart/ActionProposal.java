@@ -3,12 +3,12 @@ package agents.dart;
 import framework.Action;
 
 public class ActionProposal implements Comparable{
-    public Action action;
-    public String[] sensorKey;
-    double cost;
-    RuleNode ruleNode;
-    boolean explore;
-    boolean infinite = false;
+    public final Action action;
+    public final String[] sensorKey;
+    public final double cost;
+    public final RuleNode ruleNode;
+    public final boolean explore;
+    public final boolean infinite;
 
     public ActionProposal(Action action, String[] sensorKey, double cost, RuleNode ruleNode, boolean explore, boolean infinite) {
         this.action = action;

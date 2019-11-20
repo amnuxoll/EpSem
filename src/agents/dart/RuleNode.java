@@ -149,19 +149,21 @@ public class RuleNode {
 
         //Base case: Visited exactly once.
         //In this case, we find expected value non-recursively.
-        if(frequency == 1){
+        if(frequency == 1) {
             //Get the action taken after this node was created.
             Action taken = null;
-            for(Action a:potentialActions){
-                if(getMoveFrequency(a) > 0){
+            for (Action a : potentialActions) {
+                if (getMoveFrequency(a) > 0) {
                     taken = a;
                     break;
                 }
             }
 
             //If this is a new node, it is not allowed to make a proposal.
-            if(taken == null)
-                return ActionProposal.makeInfiniteProposal(potentialActions[0]);
+            if (taken == null){
+                cache = ActionProposal.makeInfiniteProposal(potentialActions[0]);
+                return cache;
+            }
 
             Action exploreAction = taken != potentialActions[0] ? potentialActions[0] : potentialActions[1];//First action not taken
             double explore = heuristic.getHeuristic(depth);
@@ -172,11 +174,13 @@ public class RuleNode {
 
             //Never reached goal after being visited or an explore is better than repeating previous actions
             if(goalIndex == -1 || explore <= stepsToGoal){
-                return new ActionProposal(exploreAction, new String[] {}, explore, this, true, false);
+                cache = new ActionProposal(exploreAction, new String[] {}, explore, this, true, false);
+                return cache;
             }
 
             //Otherwise, we exploit
-            return new ActionProposal(taken, new String[] {}, stepsToGoal, this, false, false);
+            cache = new ActionProposal(taken, new String[] {}, stepsToGoal, this, false, false);
+            return cache;
         }
 
         //Recursive case: check expected information entropy from every move and take best one

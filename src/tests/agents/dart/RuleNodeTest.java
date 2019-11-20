@@ -1,5 +1,6 @@
 package tests.agents.dart;
 
+import agents.dart.ActionProposal;
 import agents.dart.ActionSense;
 import agents.dart.RuleNode;
 import agents.dart.RuleNodeGoal;
@@ -52,6 +53,44 @@ public class RuleNodeTest {
     }
 
     //endregion
+
+    @EpSemTest
+    public void testProposalDepthLimit(){
+        Heuristic h = new TestHeuristic(1);
+        Action[] actions = new Action[] {new Action("a"), new Action("b")};
+        RuleNode node = new RuleNode(0, actions, RuleNode.DEPTH_LIMIT, new String[] {}, (x) -> null);
+        node.occurs(0); // Makes sure node is visited
+        ActionProposal old = node.getCachedProposal();
+        ActionProposal prop = node.getBestProposal(h);
+        assertTrue(prop.infinite);
+        assertEquals(node.getCachedProposal(), prop);
+        assertNotEquals(prop, old);
+    }
+
+    @EpSemTest
+    public void testProposalNotVisited(){
+        Heuristic h = new TestHeuristic(1);
+        Action[] actions = new Action[] {new Action("a"), new Action("b")};
+        RuleNode node = new RuleNode(0, actions, 1, new String[] {}, (x) -> null);
+        ActionProposal old = node.getCachedProposal();
+        ActionProposal notVisted = node.getBestProposal(h);
+
+        //Recalculating prop when not visited had no effect
+        assertEquals(old, notVisted);
+        assertEquals(old, node.getCachedProposal());
+
+        //When node is visited, has an effect
+        node.occurs(0);
+        ActionProposal visited = node.getBestProposal(h);
+        assertNotEquals(old, visited);
+        assertEquals(visited, node.getCachedProposal());
+
+        //After node is unvisited, again has no effect
+        node.reachedGoal(7); //Unvisit node
+        ActionProposal unvisited = node.getBestProposal(h);
+        assertEquals(visited, unvisited);
+        assertEquals(visited, node.getCachedProposal());
+    }
 //
 //    //region getBestProposal
 //
