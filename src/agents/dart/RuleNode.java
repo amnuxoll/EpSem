@@ -126,7 +126,22 @@ public class RuleNode {
     }
 
     /**
-     * Find the best move to make. May update cache
+     * Find the best move to make. May update cache.
+     * If a best move cannot be found, will return an infinite move proposal.
+     *
+     * Best move is defined as follows:
+     *      If no move has been made, no solution.
+     *      If at the depth limit, no solution.
+     *      Compute the information entropy of each move taken, with a base of the size of the alphabet. Find  the best one.
+     *          Ask someone for more details on this computation. This is confusing.
+     *          This computation is "cheated" with a frequency of one by using the last goal index.
+     *      If there is a move that has not been taken, compare the heuristic to the best entropy, then return the corresponding move.
+     *
+     * If the node has not been visited since the goal, will return the cache.
+     * Otherwise, the cache will be updated to the return value of this function.
+     *
+     *
+     *
      * @param heuristic the heuristic for exploring
      * @return the best move
      */
