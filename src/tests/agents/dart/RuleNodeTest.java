@@ -71,7 +71,9 @@ public class RuleNodeTest {
     public void testProposalNotVisited(){
         Heuristic h = new TestHeuristic(1);
         Action[] actions = new Action[] {new Action("a"), new Action("b")};
-        RuleNode node = new RuleNode(0, actions, 1, new String[] {}, (x) -> null);
+        RuleNode node = new RuleNode(0, actions, 1, new String[] {}, (x) -> {
+            return new ActionSense(actions[1], new SensorData(false));
+        });
         ActionProposal old = node.getCachedProposal();
         ActionProposal notVisted = node.getBestProposal(h);
 
@@ -84,15 +86,169 @@ public class RuleNodeTest {
         ActionProposal visited = node.getBestProposal(h);
         assertNotEquals(old, visited);
         assertEquals(visited, node.getCachedProposal());
+        node.occurs(4);
+        ActionProposal visitedAgain = node.getBestProposal(h);
+        assertNotEquals(visitedAgain, visited);
+        assertEquals(visitedAgain, node.getCachedProposal());
 
         //After node is unvisited, again has no effect
-        node.reachedGoal(7); //Unvisit node
+        node.reachedGoal(7, h); //Unvisit node
         ActionProposal unvisited = node.getBestProposal(h);
-        assertEquals(visited, unvisited);
-        assertEquals(visited, node.getCachedProposal());
+        assertEquals(visitedAgain, unvisited);
+        assertEquals(visitedAgain, node.getCachedProposal());
     }
+
+    @EpSemTest
+    public void testProposalFrequencyOne(){
+        Heuristic h = new TestHeuristic(3);
+        Action[] actions = new Action[] {new Action("a"), new Action("b")};
+        RuleNode node = new RuleNode(0, actions, 1, new String[] {}, (x) -> null);
+        ActionProposal old = node.getCachedProposal();
+        node.occurs(5);
+
+        //Node just occured - no action taken
+        ActionProposal recent = node.getBestProposal(h);
+        assertNotEquals(old, recent);
+        assertEquals(recent, node.getCachedProposal());
+        assertTrue(recent.infinite);
+
+        //No goal index - explore with a different move
+        node.incrementMoveFrequency(actions[0]);
+        ActionProposal noGoal = node.getBestProposal(h);
+        assertNotEquals(recent, noGoal);
+        assertEquals(noGoal, node.getCachedProposal());
+        assertTrue(noGoal.explore);
+        assertEquals(noGoal.cost, h.getHeuristic(1));
+        assertEquals(noGoal.action, actions[1]);
+        assertFalse(noGoal.infinite);
+
+        //Goal index worse - still return explore
+        node.reachedGoal(10, h);
+        ActionProposal badGoal = node.getBestProposal(h);
+        assertNotEquals(noGoal, badGoal);
+        assertEquals(badGoal, node.getCachedProposal());
+        assertTrue(noGoal.explore);
+        assertEquals(noGoal.cost, h.getHeuristic(1));
+        assertEquals(noGoal.action, actions[1]);
+        assertFalse(noGoal.infinite);
+
+        //Goal index better - return exploit
+        node = new RuleNode(0, actions, 1, new String[] {}, (x) -> null);
+        old = node.getCachedProposal();
+        node.occurs(5);
+        node.incrementMoveFrequency(actions[0]);
+        node.reachedGoal(6, h);
+        ActionProposal goodGoal = node.getBestProposal(h);
+        assertNotEquals(old, goodGoal);
+        assertEquals(goodGoal, node.getCachedProposal());
+        assertEquals(goodGoal.action, actions[0]);
+        assertEquals(goodGoal.cost, 1.0);
+        assertFalse(goodGoal.infinite);
+        assertFalse(goodGoal.explore);
+    }
+
+    @EpSemTest
+    public void testProposalInfiniteRecursion(){
+        Heuristic h = new TestHeuristic(3);
+        Action[] actions = new Action[] {new Action("a"), new Action("b")};
+        RuleNode node = new RuleNode(0, actions, RuleNode.DEPTH_LIMIT - 1, new String[] {}, (x) -> {
+            return new ActionSense(actions[0], new SensorData(false));
+        });
+        ActionProposal old = node.getCachedProposal();
+
+        //New node has infinite cost since at the depth limit, so the agent will prefer exploring
+        node.occurs(5);
+        node.occurs(7);
+        node.incrementMoveFrequency(actions[0]);
+        node.incrementMoveFrequency(actions[0]);
+        ActionProposal explore = node.getBestProposal(h);
+        assertNotEquals(old, explore);
+        assertEquals(explore, node.getCachedProposal());
+        assertTrue(explore.explore);
+        assertEquals(explore.action, actions[1]);
+        assertFalse(explore.infinite);
+        assertEquals(explore.cost, h.getHeuristic(RuleNode.DEPTH_LIMIT - 1));
+
+        //With both nodes, now an infinite cost for any move
+        node.updateExtend(actions[1], new SensorData(false), 11);
+        ActionProposal infinite = node.getBestProposal(h);
+        assertNotEquals(infinite, explore);
+        assertEquals(infinite, node.getCachedProposal());
+        assertTrue(infinite.infinite);
+    }
+
+    @EpSemTest
+    public void testProposalRecursionNoSensors(){
+        Heuristic h = new TestHeuristic(5);
+        Action[] actions = new Action[] {new Action("a"), new Action("b")};
+        SensorData data = new SensorData(false);
+
+        boolean fisrtCall = false;
+        RuleNode node = new RuleNode(0, actions, 1, new String[] {}, (x) -> {
+            if (fisrtCall) assertEquals(x, 3);
+            return new ActionSense(actions[0], data);
+        });
+        ActionProposal old = node.getCachedProposal();
+
+        //Create memories
+        node.occurs(3);
+        node.updateExtend(actions[0], data, 3);
+        node.occurs(7);
+        node.updateExtend(actions[0], data, 7);
+        node.occurs(8);
+        node.updateExtendGoal(actions[0]);
+        node.occurs(9);
+        node.updateExtendGoal(actions[0]);
+
+        //Exploit should look better
+        ActionProposal exploit = node.getBestProposal(h);
+        assertNotEquals(old, exploit);
+        assertEquals(exploit, node.getCachedProposal());
+        assertEquals(exploit.cost, 4.5);
+        assertFalse(exploit.infinite);
+        assertFalse(exploit.explore);
+        assertEquals(exploit.action, actions[0]);
+
+        //Exploit is worse, so explore
+        node.occurs(13);
+        node.updateExtend(actions[0], data, 13);
+        node.occurs(15);
+        node.updateExtend(actions[0], data, 15);
+        ActionProposal explore = node.getBestProposal(h);
+        assertNotEquals(explore, exploit);
+        assertEquals(explore, node.getCachedProposal());
+        assertEquals(explore.cost, 5.0);
+        assertFalse(explore.infinite);
+        assertTrue(explore.explore);
+        assertEquals(explore.action, actions[1]);
+
+        //Cannot explore, so exploits instead
+        node.occurs(17);
+        node.updateExtend(actions[1], data, 17);
+        node.occurs(19);
+        node.updateExtendGoal(actions[1]);
+        node.occurs(21);
+        node.updateExtend(actions[1], data, 21);
+        node.occurs(23);
+        node.updateExtendGoal(actions[1]);
+        ActionProposal exploitAgain = node.getBestProposal(h);
+        assertNotEquals(explore, exploitAgain);
+        assertEquals(exploitAgain, node.getCachedProposal());
+        assertEquals(exploitAgain.cost, 4.5);
+        assertFalse(exploitAgain.infinite);
+        assertFalse(exploitAgain.explore);
+        assertEquals(exploitAgain.action, actions[1]);
+    }
+
+    @EpSemTest
+    public void testProposalRecursionWithSensors(){
+
+    }
+
+    //Test entropy calculation
+
 //
-//    //region getBestProposal
+    //region getBestProposal
 //
 //    @EpSemTest
 //    public void testExpectedBaseCases(){
@@ -233,8 +389,7 @@ public class RuleNodeTest {
 //        assertEquals(false, goalNode.getExplore());
 //    }
 //
-//    //endregion
-//
+//endregion
 
     //region updateExtend
     //check children returned, move frequencies, and children frequencies

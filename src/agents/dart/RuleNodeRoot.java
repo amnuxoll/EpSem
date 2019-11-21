@@ -53,14 +53,14 @@ public class RuleNodeRoot extends RuleNode {
             for(String[] s:sensorKeys){
                 for(RuleNode child:children.get(new ChildKey(potentialActions[0], s))){
                     child.getBestProposal(heuristic);
-                    child.reachedGoal(goalIndex);
+                    child.reachedGoal(goalIndex, heuristic);
                 }
             }
         }
     }
 
     @Override
-    public void reachedGoal(int goalIndex) {
+    public void reachedGoal(int goalIndex, Heuristic h) {
         throw new IllegalStateException("Call reachedGoalRoot instead!");
     }
 

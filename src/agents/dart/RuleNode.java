@@ -94,11 +94,12 @@ public class RuleNode {
     }
 
     /**
+     * FOR INTERNAL USE AND TESTING PURPOSES - do not call.
      * Increases the frequency for a move and returns the new frequency.
      * @param action the action to update the frequency of
      * @return the new move frequency
      */
-    protected int incrementMoveFrequency(Action action){
+    public int incrementMoveFrequency(Action action){
         int index = getActionIndex(action);
         return ++moveFrequencies[index];
     }
@@ -183,7 +184,7 @@ public class RuleNode {
             Action exploreAction = taken != potentialActions[0] ? potentialActions[0] : potentialActions[1];//First action not taken
             double explore = heuristic.getHeuristic(depth);
 
-            //Cost of an exploit, assuming 0 sensory information
+            //Cost of an exploit
             //Meaningless if goal not reached
             int stepsToGoal = goalIndex - episodeIndex;
 
@@ -211,12 +212,17 @@ public class RuleNode {
                     best = proposal;
             }
             else{
+                keyLoop:
                 for(String[] sensorKey:sensorKeys) {
                     double entropy = 0;
                     for (RuleNode child : children.get(new ChildKey(a, sensorKey))){
                         if(child.frequency == 0) //Skip goal nodes with frequency 0.
                             continue;
-                        entropy += child.frequency * (child.getBestProposal(heuristic).cost+ 1 +
+                        ActionProposal childProp = child.getBestProposal(heuristic);
+                        if (childProp.infinite){
+                            continue keyLoop; //If any child infinite, cost of move/key pair is infinite, so we just continue
+                        }
+                        entropy += child.frequency * (childProp.cost+ 1 +
                                                     (Math.log(f/(double)child.frequency)/Math.log(potentialActions.length)));
                     }
                     //Rather than multiply by child probabilities to get expected value, we multiply by child frequencies than divide by total frequency
@@ -236,17 +242,19 @@ public class RuleNode {
      * Will recursively call for all visited children.
      * Unvisits and saves the goal index.
      * @param goalIndex The episode index for the goal
+     * @param h The heuristic. Needed to force a cache update on the tree fringes when a goal is first reached.
      */
-    public void reachedGoal(int goalIndex) {
+    public void reachedGoal(int goalIndex, Heuristic h) {
         if(visited){
-            visited = false;
             if(frequency == 1){
                 this.goalIndex = goalIndex;
+                getBestProposal(h);
             }
+            visited = false;
             for(Action a:potentialActions){
                 for(String[] sensorKey:sensorKeys){
                     for(RuleNode node:children.get(new ChildKey(a, sensorKey))){
-                        node.reachedGoal(goalIndex);
+                        node.reachedGoal(goalIndex, h);
                     }
                 }
             }

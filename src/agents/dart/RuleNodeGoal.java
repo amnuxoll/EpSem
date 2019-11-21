@@ -23,7 +23,7 @@ public class RuleNodeGoal extends RuleNode {
     }
 
     @Override
-    public void reachedGoal(int goalIndex) {
+    public void reachedGoal(int goalIndex, Heuristic h) {
         visited = false;
     }
 }
