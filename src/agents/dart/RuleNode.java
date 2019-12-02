@@ -167,19 +167,15 @@ public class RuleNode {
         //In this case, we find expected value non-recursively.
         if(frequency == 1) {
             //Get the action taken after this node was created.
-            Action taken = null;
-            for (Action a : potentialActions) {
-                if (getMoveFrequency(a) > 0) {
-                    taken = a;
-                    break;
-                }
-            }
+            ActionSense next = lookupEpisode.apply(episodeIndex);
 
             //If this is a new node, it is not allowed to make a proposal.
-            if (taken == null){
+            if (next == null){
                 cache = ActionProposal.makeInfiniteProposal(potentialActions[0]);
                 return cache;
             }
+
+            Action taken = next.action;
 
             Action exploreAction = taken != potentialActions[0] ? potentialActions[0] : potentialActions[1];//First action not taken
             double explore = heuristic.getHeuristic(depth);
@@ -299,7 +295,6 @@ public class RuleNode {
     public RuleNode[] updateExtend(Action action, SensorData sensorData, int episodeIndex){
         if(depth == DEPTH_LIMIT)
             return new RuleNode[] {};
-        incrementMoveFrequency(action);
         if(frequency <= 1)
             return new RuleNode[] {};
         return extend(action, sensorData, episodeIndex);
@@ -315,6 +310,7 @@ public class RuleNode {
      * @return The new rules that apply.
      */
     private RuleNode[] extend(Action action, SensorData sensorData, int episodeIndex){
+        incrementMoveFrequency(action);
         RuleNode[] extensions = new RuleNode[sensorKeys.size()];
         for(int i = 0; i < sensorKeys.size(); i++) {
             String[] sensorKey = sensorKeys.get(i);
@@ -346,6 +342,9 @@ public class RuleNode {
         }
         else if(frequency == 2 && depth != DEPTH_LIMIT){ //The second time this is visited
             ActionSense actionSense = lookupEpisode.apply(this.episodeIndex);
+            if (actionSense == null){
+                throw new IllegalStateException("Node occurs twice in same episode");
+            }
             extend(actionSense.action, actionSense.sensorData, this.episodeIndex + 1);
         }
     }

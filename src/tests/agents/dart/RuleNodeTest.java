@@ -4,6 +4,7 @@ import agents.dart.ActionProposal;
 import agents.dart.ActionSense;
 import agents.dart.RuleNode;
 import agents.dart.RuleNodeGoal;
+import environments.fsm.FSMEnvironment;
 import framework.Action;
 import framework.Heuristic;
 import framework.SensorData;
@@ -83,6 +84,7 @@ public class RuleNodeTest {
 
         //When node is visited, has an effect
         node.occurs(0);
+        node.incrementMoveFrequency(actions[1]);
         ActionProposal visited = node.getBestProposal(h);
         assertNotEquals(old, visited);
         assertEquals(visited, node.getCachedProposal());
@@ -99,23 +101,31 @@ public class RuleNodeTest {
     }
 
     @EpSemTest
-    public void testProposalFrequencyOne(){
+    public void testProposalFrequencyOneJustOccured() {
         Heuristic h = new TestHeuristic(3);
-        Action[] actions = new Action[] {new Action("a"), new Action("b")};
-        RuleNode node = new RuleNode(0, actions, 1, new String[] {}, (x) -> null);
+        Action[] actions = new Action[]{new Action("a"), new Action("b")};
+        RuleNode node = new RuleNode(0, actions, 1, new String[]{}, (x) -> null);
         ActionProposal old = node.getCachedProposal();
-        node.occurs(5);
+        node.occurs(0);
 
         //Node just occured - no action taken
         ActionProposal recent = node.getBestProposal(h);
         assertNotEquals(old, recent);
         assertEquals(recent, node.getCachedProposal());
         assertTrue(recent.infinite);
+    }
+
+    @EpSemTest
+    public void testProposalFrequencyOneOtherBaseCases(){
+        Heuristic h = new TestHeuristic(3);
+        Action[] actions = new Action[]{new Action("a"), new Action("b")};
+        RuleNode node = new RuleNode(0, actions, 1, new String[]{}, (x) -> new ActionSense(actions[0], null));
+        ActionProposal old = node.getCachedProposal();
+        node.occurs(0);
 
         //No goal index - explore with a different move
-        node.incrementMoveFrequency(actions[0]);
         ActionProposal noGoal = node.getBestProposal(h);
-        assertNotEquals(recent, noGoal);
+        assertNotEquals(old, noGoal);
         assertEquals(noGoal, node.getCachedProposal());
         assertTrue(noGoal.explore);
         assertEquals(noGoal.cost, h.getHeuristic(1));
@@ -133,18 +143,17 @@ public class RuleNodeTest {
         assertFalse(noGoal.infinite);
 
         //Goal index better - return exploit
-        node = new RuleNode(0, actions, 1, new String[] {}, (x) -> null);
+        node = new RuleNode(0, actions, 1, new String[] {}, (x) -> new ActionSense(actions[0], null));
         old = node.getCachedProposal();
         node.occurs(5);
-        node.incrementMoveFrequency(actions[0]);
         node.reachedGoal(6, h);
         ActionProposal goodGoal = node.getBestProposal(h);
         assertNotEquals(old, goodGoal);
         assertEquals(goodGoal, node.getCachedProposal());
         assertEquals(goodGoal.action, actions[0]);
-        assertEquals(goodGoal.cost, 1.0);
         assertFalse(goodGoal.infinite);
         assertFalse(goodGoal.explore);
+        assertEquals(goodGoal.cost, 1.0);
     }
 
     @EpSemTest
@@ -158,8 +167,8 @@ public class RuleNodeTest {
 
         //New node has infinite cost since at the depth limit, so the agent will prefer exploring
         node.occurs(5);
-        node.occurs(7);
         node.incrementMoveFrequency(actions[0]);
+        node.occurs(7);
         node.incrementMoveFrequency(actions[0]);
         ActionProposal explore = node.getBestProposal(h);
         assertNotEquals(old, explore);
@@ -183,16 +192,11 @@ public class RuleNodeTest {
         Action[] actions = new Action[] {new Action("a"), new Action("b")};
         SensorData data = new SensorData(false);
 
-        boolean fisrtCall = false;
-        RuleNode node = new RuleNode(0, actions, 1, new String[] {}, (x) -> {
-            if (fisrtCall) assertEquals(x, 3);
-            return new ActionSense(actions[0], data);
-        });
+        RuleNode node = new RuleNode(0, actions, 1, new String[] {}, (x) -> new ActionSense(actions[0], data));
         ActionProposal old = node.getCachedProposal();
 
         //Create memories
         node.occurs(3);
-        node.updateExtend(actions[0], data, 3);
         node.occurs(7);
         node.updateExtend(actions[0], data, 7);
         node.occurs(8);
@@ -241,8 +245,151 @@ public class RuleNodeTest {
     }
 
     @EpSemTest
-    public void testProposalRecursionWithSensors(){
+    public void testProposalRecursionWithSensors2(){
+        Heuristic h = new TestHeuristic(5);
+        String[] sensors = new String[]{"IS_EVEN"};
+        String[] empty = new String[]{};
+        Action[] actions = new Action[] {new Action("a"), new Action("b")};
 
+        SensorData goal = new SensorData(true);
+        goal.setSensor("IS_EVEN", true);
+        SensorData odd = new SensorData(false);
+        odd.setSensor("IS_EVEN", false);
+        SensorData even = new SensorData(false);
+        even.setSensor("IS_EVEN", true);
+
+        RuleNode node = new RuleNode(0, actions, 1, sensors, (x) -> {
+            if (x < 5) return new ActionSense(actions[0], odd);
+            return new ActionSense(actions[1], odd);
+        });
+        ActionProposal old = node.getBestProposal(h);
+
+        //Create memories for node
+        //First, make sure children are created properly
+        node.occurs(0);
+        node.occurs(0);
+
+        //Save the children for later use
+        RuleNode[] oddChildren = node.updateExtend(actions[0], odd, 0);
+        RuleNode[] evenChildren =  node.updateExtend(actions[0], even, 5);
+
+        //Now create the bulk of memories
+        for (int i = 0; i < 18; i++){ //Total 20: two occurances above
+            node.occurs(0);
+        }
+        for (int i = 0; i < 16; i++){ //Total 18: one occurance from lookupEpisode on second occurs, one above
+            node.updateExtend(actions[0], odd, 0);
+        }
+        node.updateExtend(actions[0], even, 5); //Total 2: one above
+
+
+        //Test that sensors are not used for this EV
+        ActionProposal noSensor = node.getBestProposal(h);
+        assertNotEquals(old, noSensor);
+        assertEquals(noSensor, node.getCachedProposal());
+        assertEquals(noSensor.action, actions[1]);
+        assertEquals(noSensor.explore, true);
+        assertEquals(noSensor.infinite, false);
+        assertEquals(noSensor.cost, 5.0);
+        assertArrayEquals(noSensor.sensorKey, empty);
+
+        //Now create grandchildren
+        for (RuleNode child: oddChildren){
+            for (int i = 0; i < 8; i++){
+                child.updateExtend(actions[0], odd, 0);
+                child.updateExtendGoal(actions[1]);
+            }
+            child.updateExtendGoal(actions[1]); //Has extra a -> odd from lookupEpisode
+        }
+
+        for (RuleNode child: evenChildren){ //Also has b -> odd from lookupEpisode (except for no sensor child
+            child.updateExtendGoal(actions[0]);
+        }
+        RuleNode child = node.getChild(actions[0], empty, 0);
+        child.updateExtend(actions[1], odd, 0);
+
+        //Test that sensors are used for this EV
+        ActionProposal sensor = node.getBestProposal(h);
+        assertNotEquals(noSensor, sensor);
+        assertEquals(sensor, node.getCachedProposal());
+        assertEquals(sensor.action, actions[0]);
+        assertEquals(sensor.explore, false);
+        assertEquals(sensor.infinite, false);
+        assertArrayEquals(sensor.sensorKey, sensors);
+        assertEquals(sensor.cost, 2.469, 0.0001);
+    }
+
+    @EpSemTest
+    public void testProposalRecursionWithSensors(){
+        Heuristic h = new TestHeuristic(5);
+        String[] sensors = new String[]{"IS_EVEN"};
+        Action[] actions = new Action[] {new Action("a"), new Action("b")};
+        SensorData goal = new SensorData(true);
+        goal.setSensor("IS_EVEN", true);
+        SensorData odd = new SensorData(false);
+        odd.setSensor("IS_EVEN", false);
+        SensorData even = new SensorData(false);
+        even.setSensor("IS_EVEN", true);
+
+        RuleNode node = new RuleNode(0, actions, 1, sensors, (x) -> new ActionSense(actions[0], odd));
+        ActionProposal old = node.getBestProposal(h);
+
+        //Create memories
+        node.occurs(3);
+        node.updateExtend(actions[0], odd, 3);
+        node.occurs(5);
+        RuleNode child1 = node.getChild(actions[0], sensors, 0);
+        child1.incrementMoveFrequency(actions[0]);
+        RuleNode child2 = node.getChild(actions[0], new String[]{}, 0);
+        child2.incrementMoveFrequency(actions[0]);
+
+        //This call causes the children to create two episodes: one from the lookup function and one from the updateExtend
+        RuleNode[] children = node.updateExtend(actions[0], odd, 5);
+        assertNotEquals(children.length, 0);
+        for(RuleNode child: children){
+            RuleNode[] grandchildren = child.updateExtend(actions[1], odd, 6);
+            assertNotEquals(grandchildren.length, 0);
+            for (RuleNode grandchild: grandchildren){
+                grandchild.incrementMoveFrequency(actions[0]); //Causes grandchild to return explore rather than infinite
+            }
+            if (child.getSensors().length > 0) {
+                RuleNode grandchild1 = child.getChild(actions[0], sensors, 0);
+                for (int i = 0; i < 15; i++)
+                    grandchild1.updateExtend(actions[0], odd, 24);
+            }
+            RuleNode grandchild2 = child.getChild(actions[0], new String[]{}, 0);
+            for (int i = 0; i < 15; i++)
+                grandchild2.updateExtend(actions[0], odd, 24);
+        }
+
+        //Continue creating memories
+        node.occurs(7);
+        children = node.updateExtend(actions[0], even, 7);
+        for (RuleNode child: children)
+            child.updateExtendGoal(actions[0]);
+        node.occurs(9);
+        node.updateExtend(actions[0], even, 9);
+        node.occurs(10);
+        node.updateExtendGoal(actions[0]);
+        node.occurs(11);
+        node.updateExtendGoal(actions[0]);
+        node.occurs(12);
+        node.updateExtendGoal(actions[0]);
+        node.occurs(13);
+        node.updateExtendGoal(actions[0]);
+
+        node.occurs(14);
+        node.updateExtend(actions[1], odd, 14);
+
+        //IS_EVEN should be better
+        ActionProposal exploit = node.getBestProposal(h);
+        assertNotEquals(old, exploit);
+        assertEquals(exploit, node.getCachedProposal());
+        assertEquals(exploit.cost, 5.75);
+        assertFalse(exploit.infinite);
+        assertFalse(exploit.explore);
+        assertEquals(exploit.action, actions[0]);
+        assertArrayEquals(exploit.sensorKey, sensors);
     }
 
     //Test entropy calculation
@@ -418,7 +565,7 @@ public class RuleNodeTest {
         node.occurs(0);
         RuleNode[] children = node.updateExtend(actions[0], data, 0);
         assertEquals(children.length, 0);
-        assertEquals(node.getMoveFrequency(actions[0]), 1);
+        assertEquals(node.getMoveFrequency(actions[0]), 0);
     }
 
     @EpSemTest
@@ -428,10 +575,13 @@ public class RuleNodeTest {
         RuleNode node = new RuleNode(0, actions, 1, new String[] {}, (index) -> new ActionSense(actions[0], data));
         assertEquals(node.getMoveFrequency(actions[0]), 0);
         node.occurs(0);
-        RuleNode[] children = node.updateExtend(actions[0], data, 0);
+        RuleNode children[] = node.updateExtend(actions[0], data, 0);
         assertEquals(children.length, 0);
-        assertEquals(node.getMoveFrequency(actions[0]), 1);
+        assertEquals(node.getMoveFrequency(actions[0]), 0);
         node.occurs(1);
+        assertEquals(node.getMoveFrequency(actions[0]), 1);
+        RuleNode child = node.getChild(actions[0], new String[]{}, 0);
+        child.incrementMoveFrequency(actions[0]);
         children = node.updateExtend(actions[0], data, 1);
         assertEquals(children.length, 1);
         assertEquals(children[0].getFrequency(), 2);
@@ -451,9 +601,14 @@ public class RuleNodeTest {
         node.occurs(0);
         RuleNode[] children = node.updateExtend(actions[0], data1, 0);
         assertEquals(children.length, 0);
-        assertEquals(node.getMoveFrequency(actions[0]), 1);
+        assertEquals(node.getMoveFrequency(actions[0]), 0);
         data2.setSensor("test", true);
         node.occurs(1);
+        assertEquals(node.getMoveFrequency(actions[0]), 1);
+        RuleNode child = node.getChild(actions[0], new String[] {"test"}, 0);
+        child.incrementMoveFrequency(actions[0]);
+        RuleNode child2 = node.getChild(actions[0], new String[]{}, 0);
+        child2.incrementMoveFrequency(actions[0]);
         children = node.updateExtend(actions[0], data2, 1);
         assertEquals(children.length, 2);
         assertEquals(children[0].getFrequency(), 2);
@@ -475,8 +630,9 @@ public class RuleNodeTest {
         node.occurs(0);
         RuleNode[] children = node.updateExtend(actions[0], data, 0);
         assertEquals(children.length, 0);
-        assertEquals(node.getMoveFrequency(actions[0]), 1);
+        assertEquals(node.getMoveFrequency(actions[0]), 0);
         node.occurs(1);
+        assertEquals(node.getMoveFrequency(actions[0]), 1);
         children = node.updateExtend(actions[1], data, 1);
         assertEquals(children.length, 1);
         assertEquals(children[0].getFrequency(), 1);
@@ -510,16 +666,18 @@ public class RuleNodeTest {
         assertEquals(node.getFrequency(), 1);
         assertEquals(node.getChildren(actions[0], new String[] {}).size(), 1);
         assertEquals(node.getMoveFrequency(actions[0]), 0);
+        node.incrementMoveFrequency(actions[0]);
+        assertEquals(node.getMoveFrequency(actions[0]), 1);
         node.occurs(5);
+        assertEquals(node.getMoveFrequency(actions[0]), 2);
         assertEquals(node.getFrequency(), 2);
         assertEquals(node.getChildren(actions[0], new String[] {}).size(), 2);
         assertEquals(node.getChildren(actions[0], new String[] {}).get(1).getFrequency(), 1);
-        assertEquals(node.getMoveFrequency(actions[0]), 0);
         node.occurs(10);
         assertEquals(node.getFrequency(), 3);
         assertEquals(node.getChildren(actions[0], new String[] {}).size(), 2);
         assertEquals(node.getChildren(actions[0], new String[] {}).get(1).getFrequency(), 1);
-        assertEquals(node.getMoveFrequency(actions[0]), 0);
+        assertEquals(node.getMoveFrequency(actions[0]), 2);
     }
     //endregion
 

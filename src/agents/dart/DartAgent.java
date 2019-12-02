@@ -26,6 +26,9 @@ public class DartAgent implements IAgent {
     }
 
     private ActionSense lookupEpisode(int index){
+        if (index >= episodicMemory.length()){
+            return null;
+        }
         Action action = episodicMemory.get(index).getAction();
         if(index == episodicMemory.length() - 1){
             return new ActionSense(action, lastSense);
