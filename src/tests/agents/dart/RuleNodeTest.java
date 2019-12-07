@@ -265,7 +265,7 @@ public class RuleNodeTest {
         ActionProposal old = node.getBestProposal(h);
 
         //Create memories for node
-        //First, make sure children are created properly
+        //First, make sure children are created properly by having frequency of two
         node.occurs(0);
         node.occurs(0);
 
@@ -302,7 +302,7 @@ public class RuleNodeTest {
             child.updateExtendGoal(actions[1]); //Has extra a -> odd from lookupEpisode
         }
 
-        for (RuleNode child: evenChildren){ //Also has b -> odd from lookupEpisode (except for no sensor child
+        for (RuleNode child: evenChildren){ //Also has b -> odd from lookupEpisode (except for no sensor child)
             child.updateExtendGoal(actions[0]);
         }
         RuleNode child = node.getChild(actions[0], empty, 0);
@@ -338,10 +338,6 @@ public class RuleNodeTest {
         node.occurs(3);
         node.updateExtend(actions[0], odd, 3);
         node.occurs(5);
-        RuleNode child1 = node.getChild(actions[0], sensors, 0);
-        child1.incrementMoveFrequency(actions[0]);
-        RuleNode child2 = node.getChild(actions[0], new String[]{}, 0);
-        child2.incrementMoveFrequency(actions[0]);
 
         //This call causes the children to create two episodes: one from the lookup function and one from the updateExtend
         RuleNode[] children = node.updateExtend(actions[0], odd, 5);
@@ -350,7 +346,7 @@ public class RuleNodeTest {
             RuleNode[] grandchildren = child.updateExtend(actions[1], odd, 6);
             assertNotEquals(grandchildren.length, 0);
             for (RuleNode grandchild: grandchildren){
-                grandchild.incrementMoveFrequency(actions[0]); //Causes grandchild to return explore rather than infinite
+                grandchild.updateExtend(actions[0], odd, 20); //Causes grandchild to return explore rather than infinite
             }
             if (child.getSensors().length > 0) {
                 RuleNode grandchild1 = child.getChild(actions[0], sensors, 0);
@@ -575,7 +571,7 @@ public class RuleNodeTest {
         RuleNode node = new RuleNode(0, actions, 1, new String[] {}, (index) -> new ActionSense(actions[0], data));
         assertEquals(node.getMoveFrequency(actions[0]), 0);
         node.occurs(0);
-        RuleNode children[] = node.updateExtend(actions[0], data, 0);
+        RuleNode[] children = node.updateExtend(actions[0], data, 0);
         assertEquals(children.length, 0);
         assertEquals(node.getMoveFrequency(actions[0]), 0);
         node.occurs(1);
@@ -661,22 +657,22 @@ public class RuleNodeTest {
             return new ActionSense(actions[0], new SensorData(false));
         });
         assertEquals(node.getFrequency(), 0);
-        assertEquals(node.getChildren(actions[0], new String[] {}).size(), 1);
+        assertEquals(node.getChildren(actions[0], new String[] {}).size(), 0);
         node.occurs(2);
         assertEquals(node.getFrequency(), 1);
-        assertEquals(node.getChildren(actions[0], new String[] {}).size(), 1);
+        assertEquals(node.getChildren(actions[0], new String[] {}).size(), 0);
         assertEquals(node.getMoveFrequency(actions[0]), 0);
         node.incrementMoveFrequency(actions[0]);
         assertEquals(node.getMoveFrequency(actions[0]), 1);
         node.occurs(5);
         assertEquals(node.getMoveFrequency(actions[0]), 2);
         assertEquals(node.getFrequency(), 2);
-        assertEquals(node.getChildren(actions[0], new String[] {}).size(), 2);
-        assertEquals(node.getChildren(actions[0], new String[] {}).get(1).getFrequency(), 1);
+        assertEquals(node.getChildren(actions[0], new String[] {}).size(), 1);
+        //assertEquals(node.getChildren(actions[0], new String[] {}).get(0).getFrequency(), 0);
         node.occurs(10);
         assertEquals(node.getFrequency(), 3);
-        assertEquals(node.getChildren(actions[0], new String[] {}).size(), 2);
-        assertEquals(node.getChildren(actions[0], new String[] {}).get(1).getFrequency(), 1);
+        assertEquals(node.getChildren(actions[0], new String[] {}).size(), 1);
+        //assertEquals(node.getChildren(actions[0], new String[] {}).get(0).getFrequency(), 0);
         assertEquals(node.getMoveFrequency(actions[0]), 2);
     }
     //endregion

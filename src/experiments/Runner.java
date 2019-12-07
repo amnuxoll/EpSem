@@ -246,12 +246,31 @@ public class Runner {
     );
 
     private static TestSuite DartAgent = new TestSuite(
-            TestSuiteConfiguration.FULL,
+            TestSuiteConfiguration.MEDIUM,
             new IEnvironmentProvider[] {
                     new FSMEnvironmentProvider(new FSMTransitionTableBuilder(3, 50, false), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
                     new FSMEnvironmentProvider(new FSMTransitionTableBuilder(3, 50, false), EnumSet.of(FSMEnvironment.Sensor.NOISE1)),
-                    new FSMEnvironmentProvider(new FSMTransitionTableBuilder(3, 50, false), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN, FSMEnvironment.Sensor.NOISE1)),
-                    new FSMEnvironmentProvider(new FSMTransitionTableBuilder(3, 50, false), FSMEnvironment.Sensor.NO_SENSORS),
+                    //new FSMEnvironmentProvider(new FSMTransitionTableBuilder(3, 50, false), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN, FSMEnvironment.Sensor.NOISE1)),
+                    //new FSMEnvironmentProvider(new FSMTransitionTableBuilder(3, 50, false), FSMEnvironment.Sensor.NO_SENSORS),
+                    //new FSMEnvironmentProvider(new FSMTransitionTableBuilder(3, 50, false), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN_NOISY))
+            },
+            new IAgentProvider[] {
+                    new DartAgentProvider(new Heuristic())
+            }
+    );
+
+    private static TestSuite DartAgentGeneralize = new TestSuite(
+            TestSuiteConfiguration.MEDIUM,
+            new IEnvironmentProvider[] {
+                    new FSMEnvironmentProvider(new FSMTransitionTableBuilder(2, 20, true), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN_NOISY)),
+                    new FSMEnvironmentProvider(new FSMTransitionTableBuilder(2, 50, true), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN_NOISY)),
+                    new FSMEnvironmentProvider(new FSMTransitionTableBuilder(2, 80, true), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN_NOISY)),
+                    new FSMEnvironmentProvider(new FSMTransitionTableBuilder(4, 20, true), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN_NOISY)),
+                    new FSMEnvironmentProvider(new FSMTransitionTableBuilder(4, 50, true), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN_NOISY)),
+                    new FSMEnvironmentProvider(new FSMTransitionTableBuilder(4, 80, true), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN_NOISY)),
+                    new FSMEnvironmentProvider(new FSMTransitionTableBuilder(6, 20, true), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN_NOISY)),
+                    new FSMEnvironmentProvider(new FSMTransitionTableBuilder(6, 50, true), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN_NOISY)),
+                    new FSMEnvironmentProvider(new FSMTransitionTableBuilder(6, 80, true), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN_NOISY))
             },
             new IAgentProvider[] {
                     new DartAgentProvider(new Heuristic())

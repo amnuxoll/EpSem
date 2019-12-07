@@ -10,6 +10,9 @@ import java.util.HashMap;
 import java.util.function.Function;
 
 public class RuleNodeRoot extends RuleNode {
+
+    private int goalFrequency = 0;
+
     public RuleNodeRoot(Action[] potentialActions, String[] sensors, Function<Integer, ActionSense> lookupEpisode) {
         super(0, potentialActions, 0, sensors, lookupEpisode);
     }
@@ -19,7 +22,7 @@ public class RuleNodeRoot extends RuleNode {
         children = new HashMap<>();
         for(String[] sensorKey:sensorKeys){
             ArrayList<RuleNode> value = new ArrayList<>();
-            value.add(new RuleNodeGoal(potentialActions, depth + 1, lookupEpisode));
+            //value.add(new RuleNodeGoal(potentialActions, depth + 1, lookupEpisode));
             for(Action a:potentialActions){
                 children.put(new ChildKey(a, sensorKey), value);
             }
@@ -27,8 +30,8 @@ public class RuleNodeRoot extends RuleNode {
     }
 
     @Override
-    public int incrementMoveFrequency(Action action) {
-        return frequency;
+    public void incrementMoveFrequency(Action action) {
+        //Do nothing - frequency used instead of move frequency
     }
 
     @Override
@@ -83,9 +86,14 @@ public class RuleNodeRoot extends RuleNode {
     }
 
     @Override
+    public void updateExtendGoal(Action action) {
+        goalFrequency++;
+    }
+
+    /*@Override
     public RuleNodeGoal getGoalChild(Action action) {
         return super.getGoalChild(potentialActions[0]);
-    }
+    }*/
 
     @Override
     public RuleNode getChild(Action action, String[] sensorKey, int sense) {
@@ -104,7 +112,11 @@ public class RuleNodeRoot extends RuleNode {
         return cache;
     }
 
+    public ActionProposal getRootInformation(Heuristic heuristic){
+        return super.getBestProposal(heuristic);
+    }
+
     public double getGoalProbability(){
-        return getGoalChild(potentialActions[0]).frequency/(double)frequency;
+        return goalFrequency/(double)frequency;
     }
 }

@@ -16,8 +16,9 @@ public class DartAgent implements IAgent {
     private RuleNodeRoot root;
     private Heuristic heuristic;
     private int explores = 0;
-    private Action[] actions;
+    private int noSensorUse = 0;
     private int actionsSinceGoal = 0;
+    private Action[] actions;
     private EpisodicMemory<Episode> episodicMemory;
     private SensorData lastSense;
 
@@ -58,6 +59,9 @@ public class DartAgent implements IAgent {
         if(proposal.explore){
             explores++;
         }
+        if(proposal.sensorKey.length == 0){
+            noSensorUse++;
+        }
         if(proposal.infinite){
             System.out.println("Performing infinite cost action!");
             if(!proposal.explore)
@@ -71,6 +75,7 @@ public class DartAgent implements IAgent {
 
     @Override
     public void onTestRunComplete() {
+        root = null;
         //System.out.println(ruleset);
     }
 
@@ -79,7 +84,8 @@ public class DartAgent implements IAgent {
         return new String[] {
                 "goal probability",
                 "explore",
-                "root information"
+                "root information",
+                "no sensor use"
         };
     }
 
@@ -89,7 +95,10 @@ public class DartAgent implements IAgent {
         ArrayList<Datum> data = new ArrayList<>();
         data.add(new Datum("goal probability", heuristic.getHeuristic(0)));
         data.add(new Datum("explore", explores));
-        data.add(new Datum("root information", root.getCachedProposal().cost));
+        data.add(new Datum("root information", root.getRootInformation(heuristic).cost));
+        data.add(new Datum("no sensor use", noSensorUse/(double)actionsSinceGoal));
+        actionsSinceGoal = 0;
+        noSensorUse = 0;
         return data;
     }
 }

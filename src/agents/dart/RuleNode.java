@@ -10,9 +10,11 @@ import java.util.HashMap;
 import java.util.function.Function;
 
 public class RuleNode {
-    final int sense;//number describing the values of a set of sensors. This set is determined by the parent
-    final int[] moveFrequencies;//how often each move is made leaving this node. The index corresponds to potentialActions
-    final Action[] potentialActions;//the alphabet
+    private final int sense;//number describing the values of a set of sensors. This set is determined by the parent
+    private final int[] moveFrequencies;//how often each move is made leaving this node. The index corresponds to potentialActions
+    protected final Action[] potentialActions;//the alphabet
+    private final int[] goalFrequencies;
+    private static final String[] empty = new String[] {};
     public static final int DEPTH_LIMIT = 500;
     int frequency = 0;//how often this node has been visited
     protected final int depth;//how deep this node is in the tree
@@ -59,6 +61,7 @@ public class RuleNode {
         this.sense = sense;
         this.potentialActions = potentialActions;
         this.moveFrequencies = new int[potentialActions.length];
+        this.goalFrequencies = new int[potentialActions.length];
         this.depth = depth;
         this.cache = ActionProposal.makeInfiniteProposal(potentialActions[0]);
         this.sensors = sensors;
@@ -67,7 +70,7 @@ public class RuleNode {
 
         //Creates sensor keys
         //One key for no sensors
-        sensorKeys.add(new String[] {});
+        sensorKeys.add(empty);
         //One key for using each sensor individually
         for(String sensor:sensors){
             if(sensor.equals(SensorData.goalSensor))
@@ -84,10 +87,10 @@ public class RuleNode {
     protected void initChildren(){
         children = new HashMap<>();
         for(Action a:potentialActions){
-            RuleNodeGoal goal = new RuleNodeGoal(potentialActions, depth+1, lookupEpisode);
+            //RuleNodeGoal goal = new RuleNodeGoal(potentialActions, depth+1, lookupEpisode);
             for(String[] key:sensorKeys){
                 ArrayList<RuleNode> value = new ArrayList<>();
-                value.add(goal);
+                //value.add(goal);
                 children.put(new ChildKey(a, key), value);
             }
         }
@@ -99,9 +102,9 @@ public class RuleNode {
      * @param action the action to update the frequency of
      * @return the new move frequency
      */
-    public int incrementMoveFrequency(Action action){
+    public void incrementMoveFrequency(Action action){
         int index = getActionIndex(action);
-        return ++moveFrequencies[index];
+        moveFrequencies[index]++;
     }
 
     /**
@@ -186,12 +189,12 @@ public class RuleNode {
 
             //Never reached goal after being visited or an explore is better than repeating previous actions
             if(goalIndex == -1 || explore <= stepsToGoal){
-                cache = new ActionProposal(exploreAction, new String[] {}, explore, this, true, false);
+                cache = new ActionProposal(exploreAction, empty, explore, this, true, false);
                 return cache;
             }
 
             //Otherwise, we exploit
-            cache = new ActionProposal(taken, new String[] {}, stepsToGoal, this, false, false);
+            cache = new ActionProposal(taken, empty, stepsToGoal, this, false, false);
             return cache;
         }
 
@@ -203,17 +206,24 @@ public class RuleNode {
 
             //For an action never taken, make heuristic guess
             if(f == 0){
-                ActionProposal proposal = new ActionProposal(a, new String[] {}, heuristic.getHeuristic(depth), this, true, false);
+                ActionProposal proposal = new ActionProposal(a, empty, heuristic.getHeuristic(depth), this, true, false);
                 if(proposal.compareTo(best) < 0)
                     best = proposal;
             }
             else{
+                int goalF = goalFrequencies[i];
+                double goalEntropy = 0;
+                if (goalF != 0){
+                    goalEntropy = goalF * (1 + Math.log(f/(double)goalF)/Math.log(potentialActions.length));
+                }
                 keyLoop:
                 for(String[] sensorKey:sensorKeys) {
-                    double entropy = 0;
+                    double entropy = goalEntropy;
+
+                    //Non-goal entropy
                     for (RuleNode child : children.get(new ChildKey(a, sensorKey))){
-                        if(child.frequency == 0) //Skip goal nodes with frequency 0.
-                            continue;
+                        //if(child.frequency == 0) //Skip goal nodes with frequency 0.
+                            //continue;
                         ActionProposal childProp = child.getBestProposal(heuristic);
                         if (childProp.infinite){
                             continue keyLoop; //If any child infinite, cost of move/key pair is infinite, so we just continue
@@ -345,7 +355,9 @@ public class RuleNode {
             if (actionSense == null){
                 throw new IllegalStateException("Node occurs twice in same episode");
             }
-            extend(actionSense.action, actionSense.sensorData, this.episodeIndex + 1);
+            if (actionSense.sensorData.isGoal()){
+                updateExtendGoal(actionSense.action);
+            } else extend(actionSense.action, actionSense.sensorData, this.episodeIndex + 1);
         }
     }
 
@@ -356,9 +368,11 @@ public class RuleNode {
      */
     public void updateExtendGoal(Action action){
         incrementMoveFrequency(action);
-        if(depth != DEPTH_LIMIT){
+        int index = getActionIndex(action);
+        goalFrequencies[index]++;
+        /*if(depth != DEPTH_LIMIT){
             getGoalChild(action).frequency++;
-        }
+        }*/
     }
 
     /**
@@ -388,7 +402,7 @@ public class RuleNode {
         if(depth == DEPTH_LIMIT)
             return null;
         ArrayList<RuleNode> matchingChildren = children.get(new ChildKey(action, sensorKey));
-        for(int i = 1; i < matchingChildren.size(); i++) {
+        for(int i = 0; i < matchingChildren.size(); i++) {
             RuleNode child = matchingChildren.get(i);
             if (sense == child.sense)
                 return child;
@@ -409,11 +423,11 @@ public class RuleNode {
      * @param action the action performed
      * @return the goal node
      */
-    public RuleNodeGoal getGoalChild(Action action){
+    /*public RuleNodeGoal getGoalChild(Action action){
         if(depth == DEPTH_LIMIT)
             return null;
         return (RuleNodeGoal)children.get(new ChildKey(action, new String[]{})).get(0);
-    }
+    }*/
 
     /**
      * Used as a key for children.
