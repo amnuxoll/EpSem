@@ -38,9 +38,12 @@ public interface IAgent {
      * CSV files for these data. Only statistical data should be tracked here. Nonstatistical data can be tracked
      * using the {@link NamedOutput}.
      *
+     * TODO -- ZPF -- Putting 'steps' in here is a kludge. It's working for all agents but I don't like it, it implies
+     * you know too much. Revisit this.
+     *
      * @return an array of string names for statistical data.
      */
-    default String[] getStatisticTypes() { return new String[0]; }
+    default String[] getStatisticTypes() { return new String[] { "steps" }; }
 
     /**
      * Gets the actual statistical data for the most recent iteration of hitting a goal.

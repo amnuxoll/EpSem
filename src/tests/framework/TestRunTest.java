@@ -39,7 +39,7 @@ public class TestRunTest {
         TestAgent agent = new TestAgent();
         TestEnvironment environmentDescription = new TestEnvironment();
         TestRun testRun = new TestRun(agent, environmentDescription, 1);
-        testRun.execute();
+        testRun.run();
         assertArrayEquals(environmentDescription.getActions(), agent.actions);
     }
 
@@ -50,7 +50,7 @@ public class TestRunTest {
         TestGoalListener goalListener = new TestGoalListener();
         TestRun testRun = new TestRun(agent, environment, 1);
         testRun.addGoalListener(goalListener);
-        testRun.execute();
+        testRun.run();
         assertTrue(agent.testRunComplete);
         assertEquals(1, agent.goalCount);
 
@@ -79,13 +79,12 @@ public class TestRunTest {
 
     @EpSemTest
     public void executeMarshalsCallsBetweenAgentAndEnvironmentMultipleGoalsWithResultWriter() {
-        // TODO -- this test is failing because we need to get our episodic memory validation caught up with the new inverted mechanism for sensor -> move
         TestAgent agent = new TestAgent();
         TestEnvironment environment = new TestEnvironment();
         TestGoalListener goalListener = new TestGoalListener();
         TestRun testRun = new TestRun(agent, environment, 3);
         testRun.addGoalListener(goalListener);
-        testRun.execute();
+        testRun.run();
         assertTrue(agent.testRunComplete);
         assertEquals(3, agent.goalCount);
 
@@ -162,7 +161,7 @@ public class TestRunTest {
         @Override
         public String[] getStatisticTypes()
         {
-            return new String[] { "additionalStat "};
+            return new String[] { "steps", "additionalStat "};
         }
 
         private int datumCount = 0;
@@ -203,7 +202,7 @@ public class TestRunTest {
         public void goalReceived(GoalEvent event) {
             if (!this.logStatements.containsKey("steps"))
                 logStatements.put("steps", new ArrayList<>());
-            logStatements.get("steps").add(event.getStepCountToGoal() + ",");
+            //logStatements.get("steps").add(event.getStepCountToGoal() + ",");
             for (Datum agentData : event.getAgentData())
             {
                 String statistic = agentData.getStatistic();

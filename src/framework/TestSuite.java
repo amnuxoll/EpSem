@@ -1,10 +1,12 @@
 package framework;
 
 import java.io.File;
-import java.io.IOException;
-import java.util.HashMap;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
 /**
  * A {@link TestSuite} allows for the definition of multiple agents and multiple environments and will run
@@ -14,7 +16,7 @@ import java.util.function.Function;
  * @author Zachary Paul Faltersack
  * @version 0.95
  */
-public class TestSuite implements IGoalListener {
+public class TestSuite {
 
     //region Class Variables
 
@@ -26,9 +28,6 @@ public class TestSuite implements IGoalListener {
 
     /** The collection of {@link IAgentProvider} to use for creating {@link TestRun}. */
     private IAgentProvider[] agentProviders;
-
-    /** The map of {@link IResultWriter} to use for logging statistical data during test runs. */
-    private HashMap<String, IResultWriter> resultWriters;
 
     /** A delegate to invoke prior to executing any test runs. */
     private Consumer<File> beforeRun;
@@ -83,88 +82,91 @@ public class TestSuite implements IGoalListener {
     /**
      * Executes the test suite and writes all result data to the provided {@code resultWriterProvider}.
      *
-     * @param resultWriterProvider The {@link IResultWriterProvider} used to generate {@link IResultWriter}s.
+     * @param resultCompiler The {@link IResultCompiler} used to manage test results.
      * @throws Exception
      */
-    public void run(IResultWriterProvider resultWriterProvider) {
+    public void run(IResultCompiler resultCompiler) {
         try {
-            this.beforeRun.accept(resultWriterProvider.getOutputDirectory());
+            this.beforeRun.accept(resultCompiler.getOutputDirectory());
             NamedOutput namedOutput = NamedOutput.getInstance();
             namedOutput.writeLine("framework", "Beginning test suite...");
             this.writeMetaData();
 
-            int numberOfIterations = this.configuration.getNumberOfIterations();
-            for (int environmentIndex = 0; environmentIndex < this.environmentProviders.length; environmentIndex++) {
-                for (int agentIndex = 0; agentIndex < this.agentProviders.length; agentIndex++) {
-                    IAgentProvider agentProvider = this.agentProviders[agentIndex];
-                    namedOutput.writeLine("framework", "Beginning agent: " + agentProvider.getAlias() + " " + agentIndex);
-                    for (int numberOfMachines = 0; numberOfMachines < numberOfIterations; numberOfMachines++) {
-                        namedOutput.writeLine("framework");
-                        namedOutput.writeLine("framework", "Beginning iteration: " + numberOfMachines);
-                        IAgent agent = agentProvider.getAgent();
-                        IEnvironment environment = this.environmentProviders[environmentIndex].getEnvironment();
-                        if (numberOfMachines == 0)
-                            this.generateResultWriters(resultWriterProvider, this.environmentProviders[environmentIndex].getAlias(), environmentIndex, agentProvider.getAlias(), agentIndex, agent.getStatisticTypes());
-                        TestRun testRun = new TestRun(agent, environment, this.configuration.getNumberOfGoals());
-                        testRun.addGoalListener(this);
-                        this.beginAgentTestRun();
-                        testRun.execute();
-                    }
-                    this.completeAgentTestRuns();
-                }
+            for (int agentId = 0; agentId < this.agentProviders.length; agentId++) {
+                IAgentProvider provider = this.agentProviders[agentId];
+                resultCompiler.registerAgent(agentId, provider.getAlias(), provider.getAgent().getStatisticTypes());
             }
+            for (int environmentId = 0; environmentId < this.environmentProviders.length; environmentId++) {
+                resultCompiler.registerEnvironment(environmentId, this.environmentProviders[environmentId].getAlias());
+            }
+            resultCompiler.build();
+
+            Instant start = Instant.now();
+            int timeout = this.configuration.getTimeout();
+            if (timeout > 0)
+                this.runMultiThreaded(resultCompiler, timeout);
+            else
+                this.runSingleThreaded(resultCompiler);
+            Instant finish = Instant.now();
+            this.logDurationInMetadata(Duration.between(start, finish));
+
+            resultCompiler.complete();
         } catch(Exception ex) {
             NamedOutput.getInstance().write("framework", ex);
         }
     }
 
-    //endregion
+    private void runSingleThreaded(IResultCompiler resultCompiler) {
+        int numberOfIterations = this.configuration.getNumberOfIterations();
+        for (int iteration = 0; iteration < numberOfIterations; iteration++) {
+            for (int environmentId = 0; environmentId < this.environmentProviders.length; environmentId++) {
+                for (int agentId = 0; agentId < this.agentProviders.length; agentId++) {
+                    IAgent agent = this.agentProviders[agentId].getAgent();
+                    TestRun testRun = new TestRun(agent, this.environmentProviders[environmentId].getEnvironment(), this.configuration.getNumberOfGoals());
 
-    //region IGoalListener Members
-
-    /**
-     * Callback for receiving a goal {@link GoalEvent}.
-     * @param event The event to receive.
-     */
-    @Override
-    public void goalReceived(GoalEvent event) throws IOException {
-        this.resultWriters.get("steps").logResult(event.getStepCountToGoal());
-        for (Datum datum : event.getAgentData()) {
-            this.resultWriters.get(datum.getStatistic()).logResult(datum.getDatum());
+                    // Java is annoying
+                    int finalEnvironmentId = environmentId;
+                    int finalIteration = iteration;
+                    int finalAgentId = agentId;
+                    testRun.addGoalListener(goalEvent -> resultCompiler.logResult(finalIteration, finalAgentId, finalEnvironmentId, goalEvent.getGoalNumber(), goalEvent.getAgentData()));
+                    testRun.run();
+                }
+            }
         }
+    }
+
+    private void runMultiThreaded(IResultCompiler resultCompiler, int timeout) throws InterruptedException {
+        ExecutorService service = Executors.newCachedThreadPool();
+        int numberOfIterations = this.configuration.getNumberOfIterations();
+        for (int iteration = 0; iteration < numberOfIterations; iteration++) {
+            for (int environmentId = 0; environmentId < this.environmentProviders.length; environmentId++) {
+                for (int agentId = 0; agentId < this.agentProviders.length; agentId++) {
+                    IAgent agent = this.agentProviders[agentId].getAgent();
+                    TestRun testRun = new TestRun(agent, this.environmentProviders[environmentId].getEnvironment(), this.configuration.getNumberOfGoals());
+
+                    // Java is annoying
+                    int finalEnvironmentId = environmentId;
+                    int finalIteration = iteration;
+                    int finalAgentId = agentId;
+                    testRun.addGoalListener(goalEvent -> resultCompiler.logResult(finalIteration, finalAgentId, finalEnvironmentId, goalEvent.getGoalNumber(), goalEvent.getAgentData()));
+                    service.execute(testRun);
+                }
+            }
+        }
+        service.shutdown();
+        service.awaitTermination(timeout, TimeUnit.HOURS);
     }
 
     //endregion
 
     //region Private Methods
 
-    private void beginAgentTestRun() throws IOException {
-        for (IResultWriter writer : this.resultWriters.values()) {
-            writer.beginNewRun();
-        }
-    }
-
-    private void completeAgentTestRuns() throws IOException {
-        for (IResultWriter writer : this.resultWriters.values()) {
-            writer.complete();
-        }
-        this.resultWriters.clear();
-    }
-
-    private void generateResultWriters(IResultWriterProvider resultWriterProvider, String environmentAlias, int environmentIndex, String agentAlias, int agentIndex, String[] resultTypes) throws Exception {
-        Function<String, String> generateFileName = name -> "env_" + environmentAlias + "_" + environmentIndex +  "_agent_" + agentAlias + "_" + agentIndex + "_" + name;
-        this.resultWriters = new HashMap<>();
-        this.resultWriters.put("steps", resultWriterProvider.getResultWriter(agentAlias, generateFileName.apply("steps")));
-        for (String resultType : resultTypes) {
-            this.resultWriters.put(resultType, resultWriterProvider.getResultWriter(agentAlias, generateFileName.apply(resultType)));
-        }
-    }
-
     private void writeMetaData(){
         StringBuilder metadataBuilder = new StringBuilder();
         metadataBuilder.append("== CONFIGURATION ==\n");
         metadataBuilder.append("Goal Count: " + configuration.getNumberOfGoals() + "\n");
         metadataBuilder.append("Number of Machines: " + configuration.getNumberOfIterations() + "\n");
+        metadataBuilder.append("Timeout: " + configuration.getTimeout() + "\n");
         metadataBuilder.append("\n");
         metadataBuilder.append("== ENVIRONMENTS ==\n");
         int i = 0;
@@ -181,6 +183,13 @@ public class TestSuite implements IGoalListener {
             metadataBuilder.append("\tAgent provider type: " + agentProvider.getClass().getName() + "\n");
             metadataBuilder.append("\tWith Alias: " + agentProvider.getAlias() + "\n");
         }
+        NamedOutput.getInstance().writeLine("metadata", metadataBuilder.toString());
+    }
+
+    private void logDurationInMetadata(Duration duration) {
+        StringBuilder metadataBuilder = new StringBuilder();
+        metadataBuilder.append("== DURATION ==\n");
+        metadataBuilder.append("Start: " + duration.toMillis() + "\n");
         NamedOutput.getInstance().writeLine("metadata", metadataBuilder.toString());
     }
 

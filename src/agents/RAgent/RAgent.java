@@ -5,6 +5,8 @@ import utils.EpisodicMemory;
 
 import javax.naming.Name;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 
 /**
  * RAgent Class
@@ -84,9 +86,10 @@ public class RAgent implements IAgent {
 
     @Override
     public String[] getStatisticTypes() {
-        return new String[] {
-                "patternFrequency"
-        };
+        HashSet<String> statistics = new HashSet<>();
+        statistics.addAll(Arrays.asList(IAgent.super.getStatisticTypes()));
+        statistics.add("patternFrequency");
+        return statistics.toArray(new String[0]);
     }
 
     @Override

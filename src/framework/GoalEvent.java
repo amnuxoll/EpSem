@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.EventObject;
 
 /**
- * A GoalEvent is used to indicate that a goal was located while traversing an {@link Environment}.
+ * A GoalEvent is used to indicate that a goal was located while traversing an {@link IEnvironment}.
  *
  * @author Zachary Paul Faltersack
  * @version 0.95
@@ -13,11 +13,11 @@ public class GoalEvent extends EventObject {
 
     //region Class Variables
 
-    /** The string representation of the number of steps taken to reach the goal. */
-    private String stepCountToGoal;
-
     /** The collection of {@link Datum} representing additional {@link IAgent} statistical data. */
     private ArrayList<Datum> agentData;
+
+    /** Indicates which goal number triggered this event. */
+    private int goalCount;
 
     //endregion
 
@@ -27,31 +27,26 @@ public class GoalEvent extends EventObject {
      * Constructs a prototypical Event.
      *
      * @param source The object on which the Event initially occurred.
+     * @param goalCount Which goal this event was triggered by.
+     * @param  stepCountToGoal The number of steps taken to reach this goal
+     * @param agentData Additional statistical data captured by the agent to preserve.
      * @throws IllegalArgumentException if source is null.
      */
-    public GoalEvent(Object source, int stepCountToGoal, ArrayList<Datum> agentData) {
+    public GoalEvent(Object source, int goalCount, int stepCountToGoal, ArrayList<Datum> agentData) {
         super(source);
         if (stepCountToGoal < 1)
             throw new IllegalArgumentException("step count must be one or greater.");
-        this.stepCountToGoal = Integer.toString(stepCountToGoal);
         if (agentData == null)
             this.agentData = new ArrayList<>();
         else
             this.agentData = agentData;
+        this.agentData.add(new Datum("steps", stepCountToGoal));
+        this.goalCount = goalCount;
     }
 
     //endregion
 
     //region Public Methods
-
-    /**
-     * Get the number of steps taken before the goal was reached.
-     *
-     * @return the number of steps.
-     */
-    public String getStepCountToGoal() {
-        return this.stepCountToGoal;
-    }
 
     /**
      * Get the additional statistical data provided by the {@link IAgent}.
@@ -61,5 +56,13 @@ public class GoalEvent extends EventObject {
     public ArrayList<Datum> getAgentData() {
         return this.agentData;
     }
+
+    /**
+     * Gets the goal number for this event.
+     *
+     * @return The number indicating which goal triggered this event.
+     */
+    public int getGoalNumber() { return this.goalCount; }
+
     //endregion
 }

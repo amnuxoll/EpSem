@@ -12,11 +12,13 @@ import environments.fsm.FSMEnvironmentProvider;
 import environments.meta.MetaConfiguration;
 import environments.meta.MetaEnvironmentProvider;
 import framework.*;
+import resultcompilers.file.FileResultCompiler;
 import utils.DirectoryUtils;
 import environments.fsm.FSMTransitionTableBuilder;
 import agents.marzrules.Heuristic;
 import utils.Random;
 
+import java.io.Console;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -211,6 +213,44 @@ public class Runner {
             }
     );
 
+    private static TestSuite ZPF_Suite = new TestSuite(
+            TestSuiteConfiguration.LONG,
+            new IEnvironmentProvider[] {
+                    new FSMEnvironmentProvider(new FSMTransitionTableBuilder(2, 5, Random.getFalse()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
+                    new FSMEnvironmentProvider(new FSMTransitionTableBuilder(3, 15, Random.getFalse()), FSMEnvironment.Sensor.NO_SENSORS)
+            },
+            new IAgentProvider[] {
+                    new MaRzAgentProvider(),
+                    new NSMAgentProvider()
+            },
+            rootDirectory -> {
+                NamedOutput namedOutput = NamedOutput.getInstance();
+                try {
+                    namedOutput.configure("metadata", new FileOutputStream(new File(rootDirectory, "metadata.txt")));
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                }
+            }
+    );
+    private static TestSuite ZPF_Suite_MULTI = new TestSuite(
+            TestSuiteConfiguration.LONG_MULTI,
+            new IEnvironmentProvider[] {
+                    new FSMEnvironmentProvider(new FSMTransitionTableBuilder(2, 5, Random.getFalse()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
+                    new FSMEnvironmentProvider(new FSMTransitionTableBuilder(3, 15, Random.getFalse()), FSMEnvironment.Sensor.NO_SENSORS)
+            },
+            new IAgentProvider[] {
+                    new MaRzAgentProvider(),
+                    new NSMAgentProvider()
+            },
+            rootDirectory -> {
+//                NamedOutput namedOutput = NamedOutput.getInstance();
+//                try {
+//                    namedOutput.configure("metadata", new FileOutputStream(new File(rootDirectory, "metadata.txt")));
+//                } catch (FileNotFoundException e) {
+//                    e.printStackTrace();
+//                }
+            }
+    );
 
     //endregion
 
@@ -218,7 +258,12 @@ public class Runner {
     public static void main(String[] args) {
         try {
             File outputDirectory = DirectoryUtils.generateCenekOutputDirectory();
-            AAAIDefnitions.NSM.run(new FileResultWriterProvider(outputDirectory));
+            IResultCompiler resultCompiler = new FileResultCompiler(outputDirectory);
+            System.out.println("Starting single-threaded run...");
+            Runner.ZPF_Suite.run(resultCompiler);
+            resultCompiler = new FileResultCompiler(outputDirectory);
+            System.out.println("Starting multi-threaded run...");
+            Runner.ZPF_Suite_MULTI.run(resultCompiler);
         } catch (OutOfMemoryError mem) {
             mem.printStackTrace();
         } catch (Exception ex) {

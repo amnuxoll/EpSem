@@ -4,6 +4,8 @@ import framework.*;
 import utils.SequenceGenerator;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 
 /**
  * Created by Ryan on 2/11/2019.
@@ -59,12 +61,13 @@ public class RulesAgent implements IAgent {
 
     @Override
     public String[] getStatisticTypes(){
-        return new String[] {
-                "goal probability",
-                "explore",
-                "avg bit machine size",
-                "max bit machine size"
-        };
+        HashSet<String> statistics = new HashSet<>();
+        statistics.addAll(Arrays.asList(IAgent.super.getStatisticTypes()));
+        statistics.add("goal probability");
+        statistics.add("explore");
+        statistics.add("avg bit machine size");
+        statistics.add("max bit machine size");
+        return statistics.toArray(new String[0]);
     }
 
     @Override
