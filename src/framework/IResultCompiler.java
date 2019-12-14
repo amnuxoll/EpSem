@@ -62,12 +62,5 @@ public interface IResultCompiler {
      */
     void complete() throws IOException;
 
-    /**
-     * Gets the directory where all output is directed.
-     *
-     * @return A {@link File} reference to the directory.
-     */
-    File getOutputDirectory();
-
     //Endregion
 }

@@ -49,11 +49,6 @@ public class TestSuiteTest {
         assertThrows(IllegalArgumentException.class,() -> new TestSuite(this.testConfiguration, new IEnvironmentProvider[] { new TestEnvironmentProvider() }, new IAgentProvider[0]));
     }
 
-    @EpSemTest
-    public void constructorNullBeforeRunThrowsException()
-    {
-        assertThrows(IllegalArgumentException.class,() -> new TestSuite(this.testConfiguration, new IEnvironmentProvider[] { new TestEnvironmentProvider() }, new IAgentProvider[] { new TestAgentProvider(false) }, null));
-    }
     //endregion
 
     //region run Tests
@@ -167,21 +162,6 @@ public class TestSuiteTest {
 //        this.validateResultWriter(resultWriterProvider.generatedResultWriters.get("env_EnvAlias_0_agent_AgAlias_0_additionalStat"));
     }
 
-    @EpSemTest
-    public void runTriggersBeforeRun() {
-        IAgentProvider[] agentProviders = new IAgentProvider[] {
-                new TestAgentProvider(false)
-        };
-        IEnvironmentProvider[] environmentDescriptionProviders = new IEnvironmentProvider[] {
-                new TestEnvironmentProvider()
-        };
-        AtomicBoolean beforeRunTriggered = new AtomicBoolean(false);
-        Consumer<File> beforeRun = file -> { beforeRunTriggered.set(true); };
-        TestSuite testSuite = new TestSuite(this.testConfiguration, environmentDescriptionProviders, agentProviders, beforeRun);
-        TestResultCompiler resultCompiler = new TestResultCompiler();
-        testSuite.run(resultCompiler);
-        assertTrue(beforeRunTriggered.get());
-    }
     //endregion
 
 //    //region Helper Methods
@@ -299,11 +279,6 @@ public class TestSuiteTest {
         @Override
         public void logResult(int iteration, int agentId, int environmentId, int goalNumber, ArrayList<Datum> data) {
 
-        }
-
-        @Override
-        public File getOutputDirectory() {
-            return null;
         }
 
         @Override

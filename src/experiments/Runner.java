@@ -202,14 +202,6 @@ public class Runner {
             },
             new IAgentProvider[] {
                     new PredrAgentProvider(),
-            },
-            rootDirectory -> {
-                NamedOutput namedOutput = NamedOutput.getInstance();
-                try {
-                    namedOutput.configure("metadata", new FileOutputStream(new File(rootDirectory, "metadata.txt")));
-                } catch (FileNotFoundException e) {
-                    e.printStackTrace();
-                }
             }
     );
 
@@ -222,16 +214,9 @@ public class Runner {
             new IAgentProvider[] {
                     new MaRzAgentProvider(),
                     new NSMAgentProvider()
-            },
-            rootDirectory -> {
-                NamedOutput namedOutput = NamedOutput.getInstance();
-                try {
-                    namedOutput.configure("metadata", new FileOutputStream(new File(rootDirectory, "metadata.txt")));
-                } catch (FileNotFoundException e) {
-                    e.printStackTrace();
-                }
             }
     );
+
     private static TestSuite ZPF_Suite_MULTI = new TestSuite(
             TestSuiteConfiguration.LONG_MULTI,
             new IEnvironmentProvider[] {
@@ -241,14 +226,6 @@ public class Runner {
             new IAgentProvider[] {
                     new MaRzAgentProvider(),
                     new NSMAgentProvider()
-            },
-            rootDirectory -> {
-//                NamedOutput namedOutput = NamedOutput.getInstance();
-//                try {
-//                    namedOutput.configure("metadata", new FileOutputStream(new File(rootDirectory, "metadata.txt")));
-//                } catch (FileNotFoundException e) {
-//                    e.printStackTrace();
-//                }
             }
     );
 
@@ -258,12 +235,8 @@ public class Runner {
     public static void main(String[] args) {
         try {
             File outputDirectory = DirectoryUtils.generateCenekOutputDirectory();
-            IResultCompiler resultCompiler = new FileResultCompiler(outputDirectory);
-            System.out.println("Starting single-threaded run...");
-            Runner.ZPF_Suite.run(resultCompiler);
-            resultCompiler = new FileResultCompiler(outputDirectory);
-            System.out.println("Starting multi-threaded run...");
-            Runner.ZPF_Suite_MULTI.run(resultCompiler);
+            Runner.redirectOutput(outputDirectory);
+            Runner.ZPF_Suite_MULTI.run(new FileResultCompiler(outputDirectory));
         } catch (OutOfMemoryError mem) {
             mem.printStackTrace();
         } catch (Exception ex) {
@@ -271,6 +244,15 @@ public class Runner {
             ex.printStackTrace();
         } finally {
             NamedOutput.getInstance().closeAll();
+        }
+    }
+
+    private static void redirectOutput(File rootDirectory) {
+        NamedOutput namedOutput = NamedOutput.getInstance();
+        try {
+            namedOutput.configure("metadata", new FileOutputStream(new File(rootDirectory, "metadata.txt")));
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
         }
     }
     //endregion

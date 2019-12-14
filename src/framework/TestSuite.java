@@ -29,9 +29,6 @@ public class TestSuite {
     /** The collection of {@link IAgentProvider} to use for creating {@link TestRun}. */
     private IAgentProvider[] agentProviders;
 
-    /** A delegate to invoke prior to executing any test runs. */
-    private Consumer<File> beforeRun;
-
     //endregion
 
     //region Constructors
@@ -44,19 +41,6 @@ public class TestSuite {
      * @param agentProviders the {@link IAgentProvider} set to use for test runs.
      */
     public TestSuite(TestSuiteConfiguration configuration, IEnvironmentProvider[] environmentProviders, IAgentProvider[] agentProviders) {
-        this(configuration, environmentProviders, agentProviders, rootDirectory -> { });
-    }
-
-    /**
-     * Creates an instance of a {@link TestSuite}.
-     *
-     * @param configuration the {@link TestSuiteConfiguration} to define the tests being run.
-     * @param environmentProviders the {@link IEnvironmentProvider} set to use for test runs.
-     * @param agentProviders the {@link IAgentProvider} set to use for test runs.
-     * @param beforeRun a delegate to invoke prior to executing any test runs. It should receive a directory where
-     *                  output will be written.
-     */
-    public TestSuite(TestSuiteConfiguration configuration, IEnvironmentProvider[] environmentProviders, IAgentProvider[] agentProviders, Consumer<File> beforeRun) {
         if (configuration == null)
             throw new IllegalArgumentException("configuration cannot be null.");
         if (environmentProviders == null)
@@ -67,12 +51,9 @@ public class TestSuite {
             throw new IllegalArgumentException("agentProviders cannot be null.");
         if (agentProviders.length == 0)
             throw new IllegalArgumentException("agentProviders cannot be empty.");
-        if (beforeRun == null)
-            throw new IllegalArgumentException("beforeRun cannot be null");
         this.configuration = configuration;
         this.environmentProviders = environmentProviders;
         this.agentProviders = agentProviders;
-        this.beforeRun = beforeRun;
     }
 
     //endregion
@@ -87,7 +68,6 @@ public class TestSuite {
      */
     public void run(IResultCompiler resultCompiler) {
         try {
-            this.beforeRun.accept(resultCompiler.getOutputDirectory());
             NamedOutput namedOutput = NamedOutput.getInstance();
             namedOutput.writeLine("framework", "Beginning test suite...");
             this.writeMetaData();

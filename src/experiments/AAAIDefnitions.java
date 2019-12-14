@@ -109,58 +109,24 @@ public class AAAIDefnitions {
     public static TestSuite MaRz = new TestSuite(
             AAAIDefnitions.configuration,
             AAAIDefnitions.environmentProviders,
-            new IAgentProvider[] { new MaRzAgentProvider() },
-            rootDirectory -> {
-                NamedOutput namedOutput = NamedOutput.getInstance();
-                try {
-                    namedOutput.configure("metadata", new FileOutputStream(new File(rootDirectory, "metadata.txt")));
-                } catch (FileNotFoundException e) {
-                    e.printStackTrace();
-                }
-            }
+            new IAgentProvider[] { new MaRzAgentProvider() }
     );
 
     public static TestSuite NSM = new TestSuite(
             AAAIDefnitions.configuration,
             AAAIDefnitions.environmentProviders,
-            new IAgentProvider[] { new NSMAgentProvider() },
-            rootDirectory -> {
-                NamedOutput namedOutput = NamedOutput.getInstance();
-                try {
-                    namedOutput.configure("metadata", new FileOutputStream(new File(rootDirectory, "metadata.txt")));
-                } catch (FileNotFoundException e) {
-                    e.printStackTrace();
-                }
-            }
+            new IAgentProvider[] { new NSMAgentProvider() }
     );
 
     public static TestSuite ARONoSensor = new TestSuite(
             AAAIDefnitions.configuration,
             AAAIDefnitions.environmentProviders,
-            new IAgentProvider[] { new RulesAgentProvider(new Heuristic(1, 0), 500) },
-            rootDirectory -> {
-                NamedOutput namedOutput = NamedOutput.getInstance();
-                try {
-                    namedOutput.configure("metadata", new FileOutputStream(new File(rootDirectory, "metadata.txt")));
-                } catch (FileNotFoundException e) {
-                    e.printStackTrace();
-                }
-                namedOutput.write("metadata", "No Sensors");
-            }
+            new IAgentProvider[] { new RulesAgentProvider(new Heuristic(1, 0), 500) }
     );
 
     public static TestSuite AROWithSensor = new TestSuite(
             AAAIDefnitions.configuration,
             AAAIDefnitions.environmentProvidersSensors,
-            new IAgentProvider[] { new RulesAgentProvider(new Heuristic(1, 0), 500) },
-            rootDirectory -> {
-                NamedOutput namedOutput = NamedOutput.getInstance();
-                try {
-                    namedOutput.configure("metadata", new FileOutputStream(new File(rootDirectory, "metadata.txt")));
-                } catch (FileNotFoundException e) {
-                    e.printStackTrace();
-                }
-                namedOutput.write("metadata", "With Sensors");
-            }
+            new IAgentProvider[] { new RulesAgentProvider(new Heuristic(1, 0), 500) }
     );
 }

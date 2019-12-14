@@ -141,16 +141,6 @@ public class FileResultCompiler implements IResultCompiler {
         }
     }
 
-    /**
-     * Gets the directory where all output is directed.
-     *
-     * @return A {@link File} reference to the directory.
-     */
-    @Override
-    public File getOutputDirectory() {
-        return this.outputDirectory;
-    }
-
     //endregion
 
     //region Private Methods
