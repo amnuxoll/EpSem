@@ -36,7 +36,9 @@ There are several integration points that allow for data gathering in an agent. 
 methods on IAgent.
 
 ::: For gathering statistical data that will be written to a CSV file do the following:
- 1. Override both IAgent.getStatisticTypes() and IAgent.getData().
+ 1. Override both IAgent.getStatisticTypes() and IAgent.getData(). The current version of the framework requires
+    that you return the union of your statistic types and IAgent.super.getStatisticTypes(), as the interface default
+    implementation contains expected framework-level elements.
  2. getStatisticTypes(): This will return an array of strings with the names of the statistics your agent aims to gather.
     This is a contract with the test framework that promises to return a value for each named statistic when getData()
     is invoked.
@@ -111,20 +113,12 @@ A constructor can be used as follows for hooking into the pre-run delegate:
     private static TestSuite TempExperiment = new TestSuite(
             TestSuiteConfiguration.QUICK,
             new IEnvironmentDescriptionProvider[] { ... },
-            new IAgentProvider[] { ... },
-            rootDirectory -> {
-                NamedOutput namedOutput = NamedOutput.getInstance();
-                try {
-                    namedOutput.configure("metadata", new FileOutputStream(new File(rootDirectory, "metadata.txt")));
-                } catch (FileNotFoundException e) {
-                    e.printStackTrace();
-                }
-            }
+            new IAgentProvider[] { ... }
     );
 
-After the pre-run delegate is invoked, an instance of an agent is created with the agent providers and an instance of
-an environment description is created with the environment description providers. These are then put through a TestRun
-based on the given TestSuiteConfiguration.
+An instance of an agent is created with the agent providers and an instance of an environment description is created
+with the environment description providers. These are then put through a TestRun based on the given
+TestSuiteConfiguration.
 
 : UNIT TESTING
 This framework has homegrown unit test functionality that is currently evolving. The intention is to minimize as much
