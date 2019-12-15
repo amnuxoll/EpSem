@@ -16,6 +16,14 @@ public interface IResultCompiler {
     //region Methods
 
     /**
+     * Inform the result compiler of the number of expected goals and iterations.
+     *
+     * @param numberOfGoals The number of goals in any single test run.
+     * @param numberOfIterations The number of iterations to run an Agent/Environment combination.
+     */
+    void configureOutputs(int numberOfGoals, int numberOfIterations);
+
+    /**
      * Notifies the {@link IResultCompiler} that an agent with the provided configurations will be used during a run.
      *
      * @param agentId The ID of the agent being registered.

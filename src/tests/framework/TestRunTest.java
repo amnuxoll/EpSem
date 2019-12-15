@@ -193,6 +193,11 @@ public class TestRunTest {
             sensorData.setSensor(action.getName(), action.getName());
             return sensorData;
         }
+
+        @Override
+        public IEnvironment copy() {
+            return this;
+        }
     }
 
     private class TestGoalListener implements IGoalListener {

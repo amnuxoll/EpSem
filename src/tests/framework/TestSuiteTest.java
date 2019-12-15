@@ -87,7 +87,7 @@ public class TestSuiteTest {
         // TODO -- We add 1 because the test suite creates a throwaway agent in order to get access to StatisticTypes. This is kludgy.
         assertEquals(this.testConfiguration.getNumberOfIterations() + 1, ((TestAgentProvider)agentProviders[0]).generatedAgents);
         assertEquals(this.testConfiguration.getNumberOfIterations() + 1, ((TestAgentProvider)agentProviders[1]).generatedAgents);
-        assertEquals(2 * this.testConfiguration.getNumberOfIterations(), ((TestEnvironmentProvider)environmentDescriptionProviders[0]).generatedEnvironmentDescriptions);
+        assertEquals(this.testConfiguration.getNumberOfIterations(), ((TestEnvironmentProvider)environmentDescriptionProviders[0]).generatedEnvironmentDescriptions);
 
 //        assertEquals(2, resultWriterProvider.generatedResultWriters.size());
 //        this.validateResultWriter(resultWriterProvider.generatedResultWriters.get("env_EnvAlias_0_agent_AgAlias_0_steps"));
@@ -133,8 +133,8 @@ public class TestSuiteTest {
         // TODO -- We add 1 because the test suite creates a throwaway agent in order to get access to StatisticTypes. This is kludgy.
         assertEquals(2 * this.testConfiguration.getNumberOfIterations() + 1, ((TestAgentProvider)agentProviders[1]).generatedAgents);
         assertEquals(2 * this.testConfiguration.getNumberOfIterations() + 1, ((TestAgentProvider)agentProviders[0]).generatedAgents);
-        assertEquals(2 * this.testConfiguration.getNumberOfIterations(), ((TestEnvironmentProvider)environmentDescriptionProviders[0]).generatedEnvironmentDescriptions);
-        assertEquals(2 * this.testConfiguration.getNumberOfIterations(), ((TestEnvironmentProvider)environmentDescriptionProviders[1]).generatedEnvironmentDescriptions);
+        assertEquals(this.testConfiguration.getNumberOfIterations(), ((TestEnvironmentProvider)environmentDescriptionProviders[0]).generatedEnvironmentDescriptions);
+        assertEquals(this.testConfiguration.getNumberOfIterations(), ((TestEnvironmentProvider)environmentDescriptionProviders[1]).generatedEnvironmentDescriptions);
 //        assertEquals(4, resultWriterProvider.generatedResultWriters.size());
 //        this.validateResultWriter(resultWriterProvider.generatedResultWriters.get("env_EnvAlias_0_agent_AgAlias_0_steps"));
 //        this.validateResultWriter(resultWriterProvider.generatedResultWriters.get("env_EnvAlias_1_agent_AgAlias_0_steps"));
@@ -254,12 +254,22 @@ public class TestSuiteTest {
         }
 
         @Override
+        public IEnvironment copy() {
+            return new TestEnvironmentDescription();
+        }
+
+        @Override
         public boolean validateSequence(Sequence sequence) {
             return false;
         }
     }
 
     private class TestResultCompiler implements IResultCompiler {
+
+        @Override
+        public void configureOutputs(int numberOfGoals, int numberOfIterations) {
+
+        }
 
         @Override
         public void registerAgent(int agentId, String agentAlias, String[] dataToTrack) {

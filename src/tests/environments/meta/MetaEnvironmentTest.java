@@ -91,6 +91,11 @@ public class MetaEnvironmentTest {
         }
 
         @Override
+        public IEnvironment copy() {
+            return this;
+        }
+
+        @Override
         public SensorData applyAction(Action action) {
             return new SensorData(true);
         }

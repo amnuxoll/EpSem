@@ -32,6 +32,10 @@ public class FileResultCompiler implements IResultCompiler {
 
     private ArrayList<File> files = new ArrayList<>();
 
+    private int numberOfGoals;
+
+    private int numberOfIterations;
+
     //endregion
 
     //region Constructors
@@ -52,6 +56,18 @@ public class FileResultCompiler implements IResultCompiler {
     //endregion
 
     //region IResultCompiler Members
+
+    /**
+     * Inform the result compiler of the number of expected goals and iterations.
+     *
+     * @param numberOfGoals The number of goals in any single test run.
+     * @param numberOfIterations The number of iterations to run an Agent/Environment combination.
+     */
+    @Override
+    public void configureOutputs(int numberOfGoals, int numberOfIterations) {
+        this.numberOfGoals = numberOfGoals;
+        this.numberOfIterations = numberOfIterations;
+    }
 
     /**
      * Notifies the {@link IResultCompiler} that an agent with the provided configurations will be used during a run.
@@ -132,8 +148,8 @@ public class FileResultCompiler implements IResultCompiler {
                     List<File> relevantFiles = this.getFilesForKey(environment.getKey(), agent.getKey(), datum);
                     File targetFile = this.generateFile(agent.getKey(), agent.getValue().alias, environment.getKey(), environment.getValue(), datum);
                     try (PrintWriter writer = new PrintWriter(targetFile)) {
-                        long maxNumberOfResults = this.mergeFiles(writer, relevantFiles);
-                        this.addAverages(writer, agent.getValue().alias, maxNumberOfResults);
+                        this.mergeFiles(writer, relevantFiles);
+                        this.addAverages(writer, agent.getValue().alias);
                         relevantFiles.forEach(f -> f.delete());
                     }
                 }
@@ -169,31 +185,24 @@ public class FileResultCompiler implements IResultCompiler {
         return this.files.stream().filter(file -> file.getName().startsWith(keySet)).sorted(iteration).collect(Collectors.toList());
     }
 
-    private long mergeFiles(PrintWriter targetFileWriter, List<File> sourceFiles) throws IOException {
-        long maxNumberOfResults = 0;
+    private void mergeFiles(PrintWriter targetFileWriter, List<File> sourceFiles) throws IOException {
         for (File file : sourceFiles) {
             try (BufferedReader br = new BufferedReader(new FileReader(file))) {
                 String line = br.readLine();
                 while (line != null) {
                     targetFileWriter.println("," +line);
-
-                    long countResults = line.chars().filter(ch -> ch == ',').count();
-                    if (countResults > maxNumberOfResults)
-                        maxNumberOfResults = countResults;
-
                     line = br.readLine();
                 }
             }
         }
-        return maxNumberOfResults;
     }
 
-    private void addAverages(PrintWriter writer, String agentAlias, long maxNumberOfResults) {
+    private void addAverages(PrintWriter writer, String agentAlias) {
         writer.write(agentAlias + " Average,");
         // Write out the basic goal sums
-        for (int i = 2; i <= maxNumberOfResults + 1; i++) {
+        for (int i = 2; i <= this.numberOfGoals + 1; i++) {
             int startRow = 1;
-            int endRow = startRow + files.size() - 1;
+            int endRow = startRow + this.numberOfIterations - 1;
             String columnLabel = this.convertToColumn(i);
             writer.write("=average(" + columnLabel + startRow + ":" + columnLabel + endRow + "),");
         }
@@ -201,10 +210,10 @@ public class FileResultCompiler implements IResultCompiler {
         writer.write(agentAlias + " Smoothed,,,,");
 
         // Write out the smoothing row
-        for (int i = 5; i <= maxNumberOfResults - 2; i++) {
+        for (int i = 5; i <= this.numberOfGoals - 2; i++) {
             String leftColumn = this.convertToColumn(i - 3);
             String rightColumn = this.convertToColumn(i + 3);
-            int row = 1 + files.size();
+            int row = 1 + this.numberOfIterations;
 
             writer.write("=average(" + leftColumn + row + ":" + rightColumn + row + "),");
         }

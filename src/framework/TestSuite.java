@@ -72,6 +72,8 @@ public class TestSuite {
             namedOutput.writeLine("framework", "Beginning test suite...");
             this.writeMetaData();
 
+            resultCompiler.configureOutputs(this.configuration.getNumberOfGoals(), this.configuration.getNumberOfIterations());
+
             for (int agentId = 0; agentId < this.agentProviders.length; agentId++) {
                 IAgentProvider provider = this.agentProviders[agentId];
                 resultCompiler.registerAgent(agentId, provider.getAlias(), provider.getAgent().getStatisticTypes());
@@ -100,9 +102,10 @@ public class TestSuite {
         int numberOfIterations = this.configuration.getNumberOfIterations();
         for (int iteration = 0; iteration < numberOfIterations; iteration++) {
             for (int environmentId = 0; environmentId < this.environmentProviders.length; environmentId++) {
+                IEnvironment environment = this.environmentProviders[environmentId].getEnvironment();
                 for (int agentId = 0; agentId < this.agentProviders.length; agentId++) {
                     IAgent agent = this.agentProviders[agentId].getAgent();
-                    TestRun testRun = new TestRun(agent, this.environmentProviders[environmentId].getEnvironment(), this.configuration.getNumberOfGoals());
+                    TestRun testRun = new TestRun(agent, environment.copy(), this.configuration.getNumberOfGoals());
 
                     // Java is annoying
                     int finalEnvironmentId = environmentId;
@@ -120,9 +123,10 @@ public class TestSuite {
         int numberOfIterations = this.configuration.getNumberOfIterations();
         for (int iteration = 0; iteration < numberOfIterations; iteration++) {
             for (int environmentId = 0; environmentId < this.environmentProviders.length; environmentId++) {
+                IEnvironment environment = this.environmentProviders[environmentId].getEnvironment();
                 for (int agentId = 0; agentId < this.agentProviders.length; agentId++) {
                     IAgent agent = this.agentProviders[agentId].getAgent();
-                    TestRun testRun = new TestRun(agent, this.environmentProviders[environmentId].getEnvironment(), this.configuration.getNumberOfGoals());
+                    TestRun testRun = new TestRun(agent, environment.copy(), this.configuration.getNumberOfGoals());
 
                     // Java is annoying
                     int finalEnvironmentId = environmentId;
