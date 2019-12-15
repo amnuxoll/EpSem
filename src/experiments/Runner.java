@@ -218,7 +218,7 @@ public class Runner {
     );
 
     private static TestSuite ZPF_Suite_MULTI = new TestSuite(
-            TestSuiteConfiguration.QUICK_MULTI,
+            TestSuiteConfiguration.LONG_MULTI,
             new IEnvironmentProvider[] {
                     new FSMEnvironmentProvider(Random.getTrue(), new FSMTransitionTableBuilder(2, 5, Random.getFalse()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
                     new FSMEnvironmentProvider(Random.getTrue(), new FSMTransitionTableBuilder(3, 15, Random.getFalse()), FSMEnvironment.Sensor.NO_SENSORS)

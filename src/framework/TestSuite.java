@@ -1,6 +1,5 @@
 package framework;
 
-import java.io.File;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.ExecutorService;
@@ -85,10 +84,14 @@ public class TestSuite {
 
             Instant start = Instant.now();
             int timeout = this.configuration.getTimeout();
-            if (timeout > 0)
-                this.runMultiThreaded(resultCompiler, timeout);
+            if (timeout > 0) {
+                ExecutorService service = Executors.newCachedThreadPool();
+                this.runTestSuite(resultCompiler, testRun -> service.execute(testRun));
+                service.shutdown();
+                service.awaitTermination(timeout, TimeUnit.HOURS);
+            }
             else
-                this.runSingleThreaded(resultCompiler);
+                this.runTestSuite(resultCompiler, testRun -> testRun.run());
             Instant finish = Instant.now();
             this.logDurationInMetadata(Duration.between(start, finish));
 
@@ -98,52 +101,29 @@ public class TestSuite {
         }
     }
 
-    private void runSingleThreaded(IResultCompiler resultCompiler) {
-        int numberOfIterations = this.configuration.getNumberOfIterations();
-        for (int iteration = 0; iteration < numberOfIterations; iteration++) {
-            for (int environmentId = 0; environmentId < this.environmentProviders.length; environmentId++) {
-                IEnvironment environment = this.environmentProviders[environmentId].getEnvironment();
-                for (int agentId = 0; agentId < this.agentProviders.length; agentId++) {
-                    IAgent agent = this.agentProviders[agentId].getAgent();
-                    TestRun testRun = new TestRun(agent, environment.copy(), this.configuration.getNumberOfGoals());
-
-                    // Java is annoying
-                    int finalEnvironmentId = environmentId;
-                    int finalIteration = iteration;
-                    int finalAgentId = agentId;
-                    testRun.addGoalListener(goalEvent -> resultCompiler.logResult(finalIteration, finalAgentId, finalEnvironmentId, goalEvent.getGoalNumber(), goalEvent.getAgentData()));
-                    testRun.run();
-                }
-            }
-        }
-    }
-
-    private void runMultiThreaded(IResultCompiler resultCompiler, int timeout) throws InterruptedException {
-        ExecutorService service = Executors.newCachedThreadPool();
-        int numberOfIterations = this.configuration.getNumberOfIterations();
-        for (int iteration = 0; iteration < numberOfIterations; iteration++) {
-            for (int environmentId = 0; environmentId < this.environmentProviders.length; environmentId++) {
-                IEnvironment environment = this.environmentProviders[environmentId].getEnvironment();
-                for (int agentId = 0; agentId < this.agentProviders.length; agentId++) {
-                    IAgent agent = this.agentProviders[agentId].getAgent();
-                    TestRun testRun = new TestRun(agent, environment.copy(), this.configuration.getNumberOfGoals());
-
-                    // Java is annoying
-                    int finalEnvironmentId = environmentId;
-                    int finalIteration = iteration;
-                    int finalAgentId = agentId;
-                    testRun.addGoalListener(goalEvent -> resultCompiler.logResult(finalIteration, finalAgentId, finalEnvironmentId, goalEvent.getGoalNumber(), goalEvent.getAgentData()));
-                    service.execute(testRun);
-                }
-            }
-        }
-        service.shutdown();
-        service.awaitTermination(timeout, TimeUnit.HOURS);
-    }
-
     //endregion
 
     //region Private Methods
+
+    private void runTestSuite(IResultCompiler resultCompiler, Consumer<TestRun> testRunAction) {
+        int numberOfIterations = this.configuration.getNumberOfIterations();
+        for (int iteration = 0; iteration < numberOfIterations; iteration++) {
+            for (int environmentId = 0; environmentId < this.environmentProviders.length; environmentId++) {
+                IEnvironment environment = this.environmentProviders[environmentId].getEnvironment();
+                for (int agentId = 0; agentId < this.agentProviders.length; agentId++) {
+                    IAgent agent = this.agentProviders[agentId].getAgent();
+                    TestRun testRun = new TestRun(agent, environment.copy(), this.configuration.getNumberOfGoals());
+
+                    // Java is annoying
+                    int finalEnvironmentId = environmentId;
+                    int finalIteration = iteration;
+                    int finalAgentId = agentId;
+                    testRun.addGoalListener(goalEvent -> resultCompiler.logResult(finalIteration, finalAgentId, finalEnvironmentId, goalEvent.getGoalNumber(), goalEvent.getAgentData()));
+                    testRunAction.accept(testRun);
+                }
+            }
+        }
+    }
 
     private void writeMetaData(){
         StringBuilder metadataBuilder = new StringBuilder();
