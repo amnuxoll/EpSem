@@ -43,6 +43,9 @@ public class Datum {
     private Datum(String statistic, String datum) {
         if (statistic == null || statistic.isEmpty())
             throw new IllegalArgumentException("Statistic requires a name.");
+        if (datum == null || datum.isEmpty()){
+            throw new IllegalArgumentException("Datum may not be empty");
+        }
         this.statistic = statistic;
         this.datum = datum;
     }

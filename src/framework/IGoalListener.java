@@ -18,6 +18,7 @@ public interface IGoalListener {
      * @param event The event to receive.
      */
     void goalReceived(GoalEvent event) throws IOException;
+    void complete() throws IOException;
 
     //endregion
 }

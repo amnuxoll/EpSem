@@ -1,5 +1,6 @@
 package framework;
 
+import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.ExecutorService;
@@ -85,7 +86,7 @@ public class TestSuite {
             Instant start = Instant.now();
             int timeout = this.configuration.getTimeout();
             if (timeout > 0) {
-                ExecutorService service = Executors.newCachedThreadPool();
+                ExecutorService service = Executors.newFixedThreadPool(8);
                 this.runTestSuite(resultCompiler, testRun -> service.execute(testRun));
                 service.shutdown();
                 service.awaitTermination(timeout, TimeUnit.HOURS);
@@ -118,7 +119,17 @@ public class TestSuite {
                     int finalEnvironmentId = environmentId;
                     int finalIteration = iteration;
                     int finalAgentId = agentId;
-                    testRun.addGoalListener(goalEvent -> resultCompiler.logResult(finalIteration, finalAgentId, finalEnvironmentId, goalEvent.getGoalNumber(), goalEvent.getAgentData()));
+                    testRun.addGoalListener(new IGoalListener(){
+                        @Override
+                        public void goalReceived(GoalEvent goalEvent) throws IOException {
+                            resultCompiler.logResult(finalIteration, finalAgentId, finalEnvironmentId, goalEvent.getGoalNumber(), goalEvent.getAgentData());
+                        }
+
+                        @Override
+                        public void complete() throws IOException{
+                            resultCompiler.close(finalIteration, finalAgentId, finalEnvironmentId, agent.getStatisticTypes());
+                        }
+                    });
                     testRunAction.accept(testRun);
                 }
             }

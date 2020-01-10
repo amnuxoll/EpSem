@@ -131,6 +131,20 @@ public class FileResultCompiler implements IResultCompiler {
         }
     }
 
+    @Override
+    public void close(int iteration, int agentId, int environmentId, String[] data) throws IOException {
+        WriterKey key = new WriterKey(iteration, agentId, environmentId, null);
+        for (String datum : data) {
+            key.setData(datum);
+            if (!this.writers.containsKey(key)) {
+                File file = new File(this.outputDirectory, "[" + environmentId + "][" + agentId + "][" + datum + "][" + iteration + "]");
+                this.files.add(file);
+                this.writers.put(key, new FileWriter(file));
+            }
+            this.writers.get(key).close();
+        }
+    }
+
     /**
      * When the suite is complete, this method is executed in order to all the implementation a chance to
      * finalize the data sets it has collected.

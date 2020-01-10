@@ -216,6 +216,11 @@ public class TestRunTest {
                 logStatements.get(statistic).add(agentData.getDatum() + ",");
             }
         }
+
+        @Override
+        public void complete(){
+            //Pass
+        }
     }
     //endregion
 }

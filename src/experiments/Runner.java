@@ -218,7 +218,7 @@ public class Runner {
     );
 
     private static TestSuite ZPF_Suite_MULTI = new TestSuite(
-            TestSuiteConfiguration.LONG_MULTI,
+            TestSuiteConfiguration.QUICK_MULTI,
             new IEnvironmentProvider[] {
                     new FSMEnvironmentProvider(Random.getTrue(), new FSMTransitionTableBuilder(2, 5, Random.getFalse()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
                     new FSMEnvironmentProvider(Random.getTrue(), new FSMTransitionTableBuilder(3, 15, Random.getFalse()), FSMEnvironment.Sensor.NO_SENSORS)
@@ -236,7 +236,12 @@ public class Runner {
         try {
             File outputDirectory = DirectoryUtils.generateNewOutputDirectory();
             Runner.redirectOutput(outputDirectory);
-            Runner.ZPF_Suite_MULTI.run(new FileResultCompiler(outputDirectory));
+            //Runner.ZPF_Suite_MULTI.run(new FileResultCompiler(outputDirectory));
+            AAAIDefnitions.NSM.run(new FileResultCompiler(outputDirectory));
+
+            outputDirectory = DirectoryUtils.generateNewOutputDirectory();
+            Runner.redirectOutput(outputDirectory);
+            AAAIDefnitions.NSMSensor.run(new FileResultCompiler(outputDirectory));
         } catch (OutOfMemoryError mem) {
             mem.printStackTrace();
         } catch (Exception ex) {

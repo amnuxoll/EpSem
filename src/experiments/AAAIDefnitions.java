@@ -38,7 +38,7 @@ public class AAAIDefnitions {
     static final int XLargeAlphabet = 7;
     static final int XXLargeAlphabet = 9;
 
-    private static TestSuiteConfiguration configuration = new TestSuiteConfiguration(NumberOfIterations, NumberOfGoals);
+    private static TestSuiteConfiguration configuration = new TestSuiteConfiguration(NumberOfIterations, NumberOfGoals, 48);
 
     private static IEnvironmentProvider[] environmentProviders = new IEnvironmentProvider[] {
             new FSMEnvironmentProvider(Random.getTrue(), new FSMTransitionTableBuilder(SmallAlphabet, SmallFSM, Random.getTrue()), FSMEnvironment.Sensor.NO_SENSORS),
@@ -118,18 +118,16 @@ public class AAAIDefnitions {
             new IAgentProvider[] { new NSMAgentProvider() }
     );
 
+    public static TestSuite NSMSensor = new TestSuite(
+            AAAIDefnitions.configuration,
+            AAAIDefnitions.environmentProvidersSensors,
+            new IAgentProvider[] { new NSMAgentProvider() }
+    );
+
     public static TestSuite NSMWithSensor = new TestSuite(
             AAAIDefnitions.configuration,
-            new IEnvironmentProvider[] {new FSMEnvironmentProvider(new FSMTransitionTableBuilder(MediumAlphabet, LargeFSM, Random.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN))},
-            new IAgentProvider[] { new NSMAgentProvider() },
-            rootDirectory -> {
-                NamedOutput namedOutput = NamedOutput.getInstance();
-                try {
-                    namedOutput.configure("metadata", new FileOutputStream(new File(rootDirectory, "metadata.txt")));
-                } catch (FileNotFoundException e) {
-                    e.printStackTrace();
-                }
-            }
+            new IEnvironmentProvider[] {new FSMEnvironmentProvider(Random.getTrue(), new FSMTransitionTableBuilder(MediumAlphabet, LargeFSM, Random.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN))},
+            new IAgentProvider[] { new NSMAgentProvider() }
     );
 
     public static TestSuite ARONoSensor = new TestSuite(

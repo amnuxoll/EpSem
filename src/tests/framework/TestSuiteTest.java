@@ -292,6 +292,11 @@ public class TestSuiteTest {
         }
 
         @Override
+        public void close(int iteration, int agentId, int environmentId, String[] data) throws IOException {
+
+        }
+
+        @Override
         public void complete() throws IOException {
 
         }

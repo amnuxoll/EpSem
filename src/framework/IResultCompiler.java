@@ -62,6 +62,8 @@ public interface IResultCompiler {
      */
     void logResult(int iteration, int agentId, int environmentId, int goalNumber, ArrayList<Datum> data) throws IOException;
 
+    void close(int iteration, int agentId, int environmentId, String[] data) throws IOException;
+
     /**
      * When the suite is complete, this method is executed in order to all the implementation a chance to
      * finalize the data sets it has collected.

@@ -76,6 +76,12 @@ public class TestRun implements IIntrospector, Runnable {
         }
     }
 
+    private synchronized  void fireCompleteEvent() throws IOException {
+        for (IGoalListener listener: this.goalListeners){
+            listener.complete();
+        }
+    }
+
     //endregion
 
     //region IIntrospector Members
@@ -118,6 +124,7 @@ public class TestRun implements IIntrospector, Runnable {
                 }
             } while (goalCount < this.numberOfGoalsToFind);
             this.agent.onTestRunComplete();
+            this.fireCompleteEvent();
         } catch (Exception ex) {
             NamedOutput.getInstance().write("framework", ex);
         }
