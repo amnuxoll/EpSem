@@ -257,10 +257,12 @@ public class RuleNode {
                 getBestProposal(h);
             }
             visited = false;
-            for(Action a:potentialActions){
-                for(String[] sensorKey:sensorKeys){
-                    for(RuleNode node:children.get(new ChildKey(a, sensorKey))){
-                        node.reachedGoal(goalIndex, h);
+            if (depth < DEPTH_LIMIT) {
+                for (Action a : potentialActions) {
+                    for (String[] sensorKey : sensorKeys) {
+                        for (RuleNode node : children.get(new ChildKey(a, sensorKey))) {
+                            node.reachedGoal(goalIndex, h);
+                        }
                     }
                 }
             }
@@ -357,7 +359,19 @@ public class RuleNode {
             }
             if (actionSense.sensorData.isGoal()){
                 updateExtendGoal(actionSense.action);
-            } else extend(actionSense.action, actionSense.sensorData, this.episodeIndex + 1);
+            } else {
+                extend(actionSense.action, actionSense.sensorData, this.episodeIndex + 1);
+
+                Action last = lookupEpisode.apply(this.episodeIndex).action;
+                if (frequency == 2 && last == actionSense.action){
+                    for (String[] key: sensorKeys){
+                        RuleNode child = getChild(last, key, sensorHash(key, actionSense.sensorData));
+                        if (child != null){
+                            child.goalIndex = this.goalIndex;
+                        }
+                    }
+                }
+            }
         }
     }
 
