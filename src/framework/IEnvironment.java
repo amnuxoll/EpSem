@@ -28,6 +28,14 @@ public interface IEnvironment {
      */
     SensorData applyAction(Action action);
 
+    /**
+     * Creates a copy of this {@link IEnvironment}.
+     *
+     * @return A copy of the environment. Be mindful of shallow vs deep copy when implementing to prevent contaminating
+     * test runs.
+     */
+    IEnvironment copy();
+
     //endregion
 
     //region Defaulted Methods for Introspection

@@ -20,9 +20,7 @@ public class FSMEnvironment implements IEnvironment {
     private Action[] actions;
     private EnumSet<Sensor> sensorsToInclude;
     private Random random;
-
-    // Variables for generating the rules
-    private HashMap<Episode, HashMap<String, Double>> rules;
+    private int randomSeed;
 
     private int currentState;
     //endregion
@@ -30,23 +28,26 @@ public class FSMEnvironment implements IEnvironment {
     //region Constructors
     /**
      * Create an instance of a {@link FSMEnvironment}.
+     * @param randomSeed Allows the external configuration of a seed for the randomizer.
      * @param transitionTable The transition table that indicates the structure of a FSM.
      */
-    public FSMEnvironment(FSMTransitionTable transitionTable) {
-        this(transitionTable, EnumSet.noneOf(Sensor.class));
+    public FSMEnvironment(int randomSeed, FSMTransitionTable transitionTable) {
+        this(randomSeed, transitionTable, EnumSet.noneOf(Sensor.class));
     }
 
     /**
      * Create an instance of a {@link FSMEnvironment} that includes possible sensor data.
+     * @param randomSeed Allows the external configuration of a seed for the randomizer.
      * @param transitionTable The transition table that indicates the structure of a FSM.
      * @param sensorsToInclude The sensors to include when navigating the FSM.
      */
-    public FSMEnvironment(FSMTransitionTable transitionTable, EnumSet<Sensor> sensorsToInclude) {
+    public FSMEnvironment(int randomSeed, FSMTransitionTable transitionTable, EnumSet<Sensor> sensorsToInclude) {
         if (transitionTable == null)
             throw new IllegalArgumentException("transitionTable cannot be null");
         if (sensorsToInclude == null)
             throw new IllegalArgumentException("sensorsToInclude cannot be null");
-        this.random = new Random(42);
+        this.randomSeed = randomSeed;
+        this.random = new Random(randomSeed);
         this.transitionTable = transitionTable;
         this.sensorsToInclude = sensorsToInclude;
         this.actions = this.transitionTable.getTransitions()[0].keySet().toArray(new Action[0]);
@@ -56,6 +57,16 @@ public class FSMEnvironment implements IEnvironment {
         //System.err.println("Transition table:");
         //System.err.println(this.transitionTable);
     }
+
+    private FSMEnvironment(FSMEnvironment toCopy) {
+        this.randomSeed = toCopy.randomSeed;
+        this.random = new Random(this.randomSeed);
+        this.transitionTable = toCopy.transitionTable;
+        this.sensorsToInclude = toCopy.sensorsToInclude;
+        this.actions = toCopy.actions;
+        this.currentState = toCopy.currentState;
+    }
+
     //endregion
 
     //region IEnvironment Members
@@ -95,6 +106,17 @@ public class FSMEnvironment implements IEnvironment {
         //System.err.println("new state: " + this.currentState);
         
         return sensorData;
+    }
+
+    /**
+     * Creates a copy of this {@link IEnvironment}.
+     *
+     * @return A copy of the environment. Be mindful of shallow vs deep copy when implementing to prevent contaminating
+     * test runs.
+     */
+    @Override
+    public IEnvironment copy() {
+        return new FSMEnvironment(this);
     }
 
     @Override

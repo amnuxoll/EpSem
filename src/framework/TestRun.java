@@ -11,7 +11,7 @@ import java.util.List;
  * @author Zachary Paul Faltersack
  * @version 0.95
  */
-public class TestRun implements IIntrospector {
+public class TestRun implements IIntrospector, Runnable {
 
     //region Class Variables
 
@@ -57,34 +57,6 @@ public class TestRun implements IIntrospector {
     //region Public Methods
 
     /**
-     * Begins execution of the {@link TestRun}.
-     */
-    public void execute() {
-        try {
-            int goalCount = 0;
-            int moveCount = 0;
-            this.agent.initialize(this.environment.getActions(), this);
-            SensorData sensorData = this.environment.applyAction(null);
-            do {
-                Action action = this.agent.getNextAction(sensorData);
-                if(action == null) break; //TODO: Yell
-                sensorData = this.environment.applyAction(action);
-                moveCount++;
-
-                if (sensorData.isGoal()) {
-                    this.agent.onGoalFound();
-                    this.fireGoalEvent(moveCount);
-                    goalCount++;
-                    moveCount = 0;
-                }
-            } while (goalCount < this.numberOfGoalsToFind);
-            this.agent.onTestRunComplete();
-        } catch (Exception ex) {
-            NamedOutput.getInstance().write("framework", ex);
-        }
-    }
-
-    /**
      * Allows new subscribers to the goal event to be registered.
      *
      * @param listener the goal event subscriber to register.
@@ -97,8 +69,8 @@ public class TestRun implements IIntrospector {
 
     //region Private Methods
 
-    private synchronized void fireGoalEvent(int stepsToGoal) throws IOException {
-        GoalEvent goal = new GoalEvent(this, stepsToGoal, this.agent.getGoalData());
+    private synchronized void fireGoalEvent(int goalCount, int stepsToGoal) throws IOException {
+        GoalEvent goal = new GoalEvent(this, goalCount, stepsToGoal, this.agent.getGoalData());
         for (IGoalListener listener : this.goalListeners) {
             listener.goalReceived(goal);
         }
@@ -117,6 +89,38 @@ public class TestRun implements IIntrospector {
     @Override
     public boolean validateSequence(Sequence sequence) {
         return this.environment.validateSequence(sequence);
+    }
+
+    //endregion
+
+    //region Runnable Members
+
+    /**
+     * Entry for test execution when spun off in a new thread.
+     */
+    @Override
+    public void run() {
+        try {
+            int goalCount = 0;
+            int moveCount = 0;
+            this.agent.initialize(this.environment.getActions(), this);
+            SensorData sensorData = this.environment.applyAction(null);
+            do {
+                Action action = this.agent.getNextAction(sensorData);
+                if(action == null) break; //TODO: Yell
+                sensorData = this.environment.applyAction(action);
+                moveCount++;
+
+                if (sensorData.isGoal()) {
+                    this.agent.onGoalFound();
+                    this.fireGoalEvent(goalCount++, moveCount);
+                    moveCount = 0;
+                }
+            } while (goalCount < this.numberOfGoalsToFind);
+            this.agent.onTestRunComplete();
+        } catch (Exception ex) {
+            NamedOutput.getInstance().write("framework", ex);
+        }
     }
 
     //endregion

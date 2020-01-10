@@ -71,6 +71,11 @@ public class MetaEnvironmentProviderTest {
         }
 
         @Override
+        public IEnvironment copy() {
+            return null;
+        }
+
+        @Override
         public boolean validateSequence(Sequence sequence) {
             return false;
         }

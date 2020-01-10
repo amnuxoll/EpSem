@@ -20,16 +20,7 @@ public class GoalEventTest {
     @EpSemTest
     public void constructorStepCountLessThan1ThrowsException()
     {
-        assertThrows(IllegalArgumentException.class, () -> new GoalEvent(this, 0, null));
-    }
-    //endregion
-
-    //region getStepCountToGoal Tests
-    @EpSemTest
-    public void getStepCountToGoal()
-    {
-        GoalEvent event = new GoalEvent(this, 13, null);
-        assertEquals("13", event.getStepCountToGoal());
+        assertThrows(IllegalArgumentException.class, () -> new GoalEvent(this, 0, 0, null));
     }
     //endregion
 
@@ -37,8 +28,8 @@ public class GoalEventTest {
     @EpSemTest
     public void getAgentDataNoneProvidedYieldsEmptyList()
     {
-        GoalEvent event = new GoalEvent(this, 13, null);
-        assertEquals(0, event.getAgentData().size());
+        GoalEvent event = new GoalEvent(this, 0, 13, null);
+        assertEquals(1, event.getAgentData().size());
     }
 
     @EpSemTest
@@ -46,7 +37,7 @@ public class GoalEventTest {
     {
         ArrayList<Datum> agentData = new ArrayList<>();
         agentData.add(new Datum("statistic", 13));
-        GoalEvent event = new GoalEvent(this, 13, agentData);
+        GoalEvent event = new GoalEvent(this, 0, 13, agentData);
         assertSame(agentData, event.getAgentData());
     }
     //endregion
