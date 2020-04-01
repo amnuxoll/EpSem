@@ -7,6 +7,7 @@ import agents.marz.MaRzAgentProvider;
 import agents.marzrules.RulesAgentProvider;
 import agents.nsm.NSMAgentProvider;
 import agents.predr.PredrAgentProvider;
+import agents.RAgent.RAgentProvider;
 import environments.fsm.FSMEnvironment;
 import environments.fsm.FSMEnvironmentProvider;
 import environments.meta.MetaConfiguration;
@@ -57,11 +58,13 @@ public class Runner {
     );
 
     private static TestSuite RulesAgent = new TestSuite(
-            TestSuiteConfiguration.MEDIUM,
+            TestSuiteConfiguration.QUICK,
             new IEnvironmentProvider[] {
                     //new FSMEnvironmentProvider(new FSMTransitionTableBuilder(6, 100, Random.getFalse()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN), false),
-                    new FSMEnvironmentProvider(Random.getTrue(), new FSMTransitionTableBuilder(3, 50, Random.getFalse()), EnumSet.of(FSMEnvironment.Sensor.NOISE1)),
-                    //new FSMEnvironmentProvider(new FSMTransitionTableBuilder(2, 50, Random.getFalse()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN))
+                    //new FSMEnvironmentProvider(Random.getTrue(), new FSMTransitionTableBuilder(3, 50, Random.getFalse()), EnumSet.of(FSMEnvironment.Sensor.NOISE1)),
+                    //new FSMEnvironmentProvider(Random.getTrue(), new FSMTransitionTableBuilder(3, 50, Random.getFalse()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
+                    new FSMEnvironmentProvider(Random.getTrue(), new FSMTransitionTableBuilder(3, 50, Random.getFalse()), FSMEnvironment.Sensor.BIN_SENSORS)
+
             },
             new IAgentProvider[] {
                     new RulesAgentProvider(new Heuristic(1, 0), 50),
@@ -229,6 +232,19 @@ public class Runner {
             }
     );
 
+	//Discretization Testing Dylan^2
+     private static TestSuite BIN_Suite = new TestSuite(
+	    TestSuiteConfiguration.LONG_MULTI,
+	    new IEnvironmentProvider[] {
+                    //new FSMEnvironmentProvider(Random.getTrue(), new FSMTransitionTableBuilder(2, 5, Random.getFalse()), FSMEnvironment.Sensor.BIN_SENSORS)
+                    new FSMEnvironmentProvider(Random.getTrue(), new FSMTransitionTableBuilder(2, 5, Random.getFalse()), FSMEnvironment.Sensor.NO_SENSORS)//,
+                    //new FSMEnvironmentProvider(Random.getTrue(), new FSMTransitionTableBuilder(2, 5, Random.getFalse()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN))
+	    },
+	    new IAgentProvider[] {
+		    new RulesAgentProvider(new Heuristic(1, 0))
+	   }
+    );
+
     //endregion
 
     //region Main
@@ -236,7 +252,7 @@ public class Runner {
         try {
             File outputDirectory = DirectoryUtils.generateCenekOutputDirectory();
             Runner.redirectOutput(outputDirectory);
-            Runner.ZPF_Suite_MULTI.run(new FileResultCompiler(outputDirectory));
+            Runner.RulesAgent.run(new FileResultCompiler(outputDirectory));
         } catch (OutOfMemoryError mem) {
             mem.printStackTrace();
         } catch (Exception ex) {
