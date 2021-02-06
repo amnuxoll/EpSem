@@ -1,7 +1,6 @@
 package environments.meta;
 
 import framework.*;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 /**
  * A MetaEnvironment is a special case of {@link IEnvironment} that wraps a different description
@@ -78,7 +77,7 @@ public class MetaEnvironment implements IEnvironment {
     @Override
     public IEnvironment copy() {
         // To be able to do this right we also need IEnvironmentProvider to be cloneable and that's not a priority right now.
-        throw new NotImplementedException();
+        throw new RuntimeException();
     }
 
     /**

@@ -1,5 +1,6 @@
 package experiments;
 
+import agents.demo.DemoAgentProvider;
 import agents.discr.MaRzLearnerProvider;
 import agents.juno.JunoAgentProvider;
 import agents.juno.JunoConfiguration;
@@ -37,7 +38,7 @@ public class Runner {
     );
 
     private static TestSuite MarzFSM = new TestSuite(
-            TestSuiteConfiguration.FULL,
+            TestSuiteConfiguration.QUICK,
             new IEnvironmentProvider[] {
                     new FSMEnvironmentProvider(Random.getTrue(), new FSMTransitionTableBuilder(4, 40, Random.getFalse()), FSMEnvironment.Sensor.NO_SENSORS),
             },
@@ -229,6 +230,16 @@ public class Runner {
             }
     );
 
+    private static TestSuite ZPF_DEMO = new TestSuite(
+            TestSuiteConfiguration.QUICK,
+            new IEnvironmentProvider[] {
+                    new FSMEnvironmentProvider(Random.getTrue(), new FSMTransitionTableBuilder(2, 5, Random.getFalse()), FSMEnvironment.Sensor.NO_SENSORS)
+            },
+            new IAgentProvider[] {
+                    new DemoAgentProvider()
+            }
+    );
+
     //endregion
 
     //region Main
@@ -236,7 +247,7 @@ public class Runner {
         try {
             File outputDirectory = DirectoryUtils.generateCenekOutputDirectory();
             Runner.redirectOutput(outputDirectory);
-            Runner.ZPF_Suite_MULTI.run(new FileResultCompiler(outputDirectory));
+            Runner.ZPF_Suite.run(new FileResultCompiler(outputDirectory));
         } catch (OutOfMemoryError mem) {
             mem.printStackTrace();
         } catch (Exception ex) {
