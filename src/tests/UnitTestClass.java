@@ -19,11 +19,11 @@ public class UnitTestClass {
 
     //region Constructors
     @SuppressWarnings("unchecked")
-    public UnitTestClass(Class testClass) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException {
+    public UnitTestClass(Class testClass, List<String> methods) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException {
         this.testClass = testClass;
         this.testClassInstance = this.testClass.getConstructor().newInstance();
         this.unitTests = Arrays.stream(this.testClass.getMethods())
-                                .filter(method -> method.getAnnotation(EpSemTest.class) != null)
+                                .filter(method -> method.getAnnotation(EpSemTest.class) != null && (methods.contains(method.getName())))
                                 .collect(Collectors.toList());
     }
     //endregion
