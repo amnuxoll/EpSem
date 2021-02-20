@@ -21,7 +21,7 @@ public class Rule {
     // - 0 or more values for external sensors
     // (note:  you must have at least 1 of one of the above)
     private int[][] lhsInternal; //example: {{467, 801, 21}, {0, 1, 1} }
-    private int[]  lhsExternal;  //example: {1,-1,0,-1}  note: -1 is "wildcard"
+    private SensorData  lhsExternal;  //example: {1,-1,0,-1}  note: -1 is "wildcard"
     private char action;
 
     //define the RHS of the rule.  The RHS always contains:
@@ -39,7 +39,7 @@ public class Rule {
     private double decayRate;
 
     //Constructor
-    public Rule(char act, int[] currExt, int[][] currInt){
+    public Rule(char act, SensorData currExt, int[][] currInt){
         this.action = act;
         this.lhsExternal = currExt;
         this.lhsInternal = currInt;
@@ -62,19 +62,19 @@ public class Rule {
     {
         if (this.action != action) { return false; }
         int index = 0;
+
         for (String s : currExternal.getSensorNames()) {
-            int val = (int) currExternal.getSensor(s);
-            if(val != this.lhsExternal[index]){
+            if (this.lhsExternal.getSensor(s) != currExternal.getSensor(s)) {
                 return false;
             }
-            index++;
         }
 
         for (int i = 0; i < currInternal.length; i++) {
-            if(this.lhsInternal[1][i] != currInternal[i]){
+            if(this.lhsInternal[0][i] != currInternal[i]){
                 return false;
             }
         }
+
         return true;
     }
 

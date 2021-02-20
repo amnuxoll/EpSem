@@ -3,6 +3,8 @@ package agents.phujus;
 import environments.fsm.FSMEnvironment.Sensor;
 import framework.SensorData;
 
+import java.util.ArrayList;
+
 /**
  * class TreeNode
  *
@@ -23,12 +25,21 @@ public class TreeNode {
     //private SensorData[] currExternal = new SensorData[PhuJusAgent.NUMEXTERNAL];
     private SensorData currExternal;
 
+    //Agent
+    private PhuJusAgent agent;
+
     //child nodes
-    private TreeNode[] children = new TreeNode[PhuJusAgent.ALPHASIZE];
+    private TreeNode[] children;
 
     /** root node constructor */
-    public TreeNode(Rule[] initRL, int initEI, byte[] InitCI, Sensor[] initCE) {
+    public TreeNode(PhuJusAgent initAG, ArrayList<Rule> initRL, int initEI, int[] InitCI, SensorData initCE) {
         //TODO: code here to init the instance variables
+
+        //initializing agent and its children
+        this.agent = initAG;
+        children = new TreeNode[agent.getNumActions()]; // actionSize
+
+
     }
 
     public TreeNode(Rule[] rulesList, int initEI, byte[] nextInternal, double[][] predictedExternal) {
@@ -40,7 +51,7 @@ public class TreeNode {
         //base case
         if (depth == 0) return;
 
-        for(int i = 0; i < PhuJusAgent.ALPHASIZE; ++i) {
+        for(int i = 0; i < agent.getNumActions(); ++i) {
             char action = (char) ('a' + i);
 
             //predicted sensor values for t+1
@@ -81,6 +92,7 @@ public class TreeNode {
 
             //Calculate final predicted values for the external sensors
             // (winner take all)
+            /*
             Sensor[] nextExternal = new Sensor[PhuJusAgent.NUMEXTERNAL];
             for(int j = 0; j < PhuJusAgent.NUMEXTERNAL; ++j) {
                 byte val = 0;
@@ -89,8 +101,10 @@ public class TreeNode {
                 }
 
                 //TODO fix this error
-                //nextExternal[j] = new Sensor(val);
+                nextExternal[j] = new Sensor(val);
             }
+
+             */
 
 
             this.children[i] = new TreeNode(this.rulesList,
