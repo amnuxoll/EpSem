@@ -7,6 +7,7 @@ import framework.SensorData;
 import environments.fsm.FSMEnvironment.Sensor;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 
 public class PhuJusAgent implements IAgent {
 
@@ -35,9 +36,7 @@ public class PhuJusAgent implements IAgent {
     int[] nextInternal = new int[NUMINTERNAL];
 
     //2 represents the number of arrays of external sensors. NUMEXTERNAL represents the number of external sensors we're using
-    double[][] predictedExternal = { {0.0, 0.0, 0.0, 0.0}, {0.0, 0.0, 0.0, 0.0} }; // possibly switch to hashmap
-    private ArrayList<Double> predictedExternalOn = new ArrayList<Double>();
-    private ArrayList<Double> predictedExternalOff = new ArrayList<Double>();
+    private HashMap<String, double[]> predictedExternal = new HashMap<>();
 
     //root of the prediction tree
     TreeNode root; // init this somewhere ...

@@ -27,7 +27,7 @@ public class Rule {
     //define the RHS of the rule.  The RHS always contains:
     // - a value for exactly one external sensor
     // - optionally, an internal sensor that turns on ('1') when this rule matched in prev epsiode
-    private int rhsIndex;   //index into the external sensor array
+    private String rhsSensorName;   //index into the external sensor array
     private byte rhsValue;  // 0 or 1
     private int rhsInternal;  //index into internal sensors *or* -1 if none
 
@@ -87,7 +87,10 @@ public class Rule {
         return this.rhsValue;
     }
 
-    public int getRHSIndex() {
-        return this.rhsIndex;
+    public String getRHSSensorName() {
+        return this.rhsSensorName;
     }
+
+    public SensorData getLHSExternal() {return this.lhsExternal;}
+
 }//class Rule

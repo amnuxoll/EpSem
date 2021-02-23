@@ -4,6 +4,7 @@ import environments.fsm.FSMEnvironment.Sensor;
 import framework.SensorData;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 
 /**
  * class TreeNode
@@ -13,16 +14,13 @@ import java.util.ArrayList;
  * best (shortest, most confident) sequences of actions to reach the goal
  */
 public class TreeNode {
-    Rule[] rulesList = new Rule[PhuJusAgent.MAXNUMRULES];  // all rules in the system
+    ArrayList<Rule> rulesList = new ArrayList<>();  // all rules in the system
 
     private int episodeIndex; //associated timestep for this node
 
     //sensor values for this node
     private int[] currInternal = new int[PhuJusAgent.NUMINTERNAL];
 
-
-    //TODO check to see if we actually need to change currExternal's type from SensorData[] to SensorData
-    //private SensorData[] currExternal = new SensorData[PhuJusAgent.NUMEXTERNAL];
     private SensorData currExternal;
 
     //Agent
@@ -31,19 +29,28 @@ public class TreeNode {
     //child nodes
     private TreeNode[] children;
 
-    /** root node constructor */
-    public TreeNode(PhuJusAgent initAG, ArrayList<Rule> initRL, int initEI, int[] InitCI, SensorData initCE) {
-        //TODO: code here to init the instance variables
+    //weights for predicting the external sensors
+    private HashMap<String, double[]> predictedExternal = new HashMap<>();
 
+
+    /** root node constructor */
+    public TreeNode(PhuJusAgent initAG, ArrayList<Rule> initRL, int initEI, int[] initCI, SensorData initCE) {
         //initializing agent and its children
         this.agent = initAG;
+        this.rulesList = initRL;
         children = new TreeNode[agent.getNumActions()]; // actionSize
-
+        this.episodeIndex = initEI;
+        this.currInternal = initCI;
+        this.currExternal = initCE;
 
     }
 
-    public TreeNode(Rule[] rulesList, int initEI, byte[] nextInternal, double[][] predictedExternal) {
-
+    public TreeNode(ArrayList<Rule> rulesList, int initEI, int[] nextInt,
+                    HashMap<String, double[]> predExt) {
+        this.rulesList = rulesList;
+        this.episodeIndex = initEI;
+        this.currInternal = nextInt;
+        this.predictedExternal = predExt;
     }
 
     /** recursively generate successor nodes */
@@ -55,8 +62,8 @@ public class TreeNode {
             char action = (char) ('a' + i);
 
             //predicted sensor values for t+1
-            byte[] nextInternal = new byte[PhuJusAgent.NUMINTERNAL];
-            double[][] predictedExternal = { {0.0, 0.0, 0.0, 0.0}, {0.0, 0.0, 0.0, 0.0} };
+            int[] nextInternal = new int[PhuJusAgent.NUMINTERNAL];
+
             /*
             Example:
             x: ....1..a->..1.  (act=0.8172)
@@ -79,9 +86,15 @@ public class TreeNode {
                     if (sIndex != -1) {
                         nextInternal[sIndex] = 1;  //on
                     }
-
+                    double[] activation = {0.0, 0.0};
+                    if(r.getRHSValue() == 1) {
+                        activation[0] = r.getActivation(episodeIndex);
+                    }
+                    else if(r.getRHSValue() == 0){
+                        activation[1] = r.getActivation(episodeIndex);
+                    }
                     //update predicted external value (currently a placeholder value for r.getActivation arg)
-                    predictedExternal[r.getRHSValue()][r.getRHSIndex()] += r.getActivation(2);
+                    predictedExternal.put(r.getRHSSensorName(), activation);
 
                 } else {
                     if (sIndex != -1) {
@@ -92,19 +105,35 @@ public class TreeNode {
 
             //Calculate final predicted values for the external sensors
             // (winner take all)
-            /*
-            Sensor[] nextExternal = new Sensor[PhuJusAgent.NUMEXTERNAL];
-            for(int j = 0; j < PhuJusAgent.NUMEXTERNAL; ++j) {
-                byte val = 0;
-                if (predictedExternal[1][j] > predictedExternal[0][j]) {
-                    val = 1;
+
+//            for(int j = 0; j < PhuJusAgent.NUMEXTERNAL; ++j) {
+//                byte val = 0;
+//                if (predictedExternal[1] > predictedExternal[0]) {
+//                    val = 1;
+//                }
+//
+//                //TODO fix this error
+//                nextExternal[j] = new Sensor(val);
+//            }
+
+            HashMap<String, double[]> nextExternal = new HashMap<>();
+            for(HashMap.Entry<String, double[]> entry : predictedExternal.entrySet()) {
+                double value = 0.0;
+                String key = entry.getKey();
+                double[] arr = entry.getValue();
+                if(arr[1] > arr[0]) {
+                    value = 1.0;
+                    double [] nxtArr = {value, 0};
+                    nextExternal.put(key, nxtArr);
+                }
+                else {
+                    double [] nxtArr = {0, value};
+                    nextExternal.put(key, nxtArr);
                 }
 
-                //TODO fix this error
-                nextExternal[j] = new Sensor(val);
-            }
 
-             */
+
+            }
 
 
             this.children[i] = new TreeNode(this.rulesList,
