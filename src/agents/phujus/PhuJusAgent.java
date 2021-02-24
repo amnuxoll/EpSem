@@ -27,9 +27,10 @@ public class PhuJusAgent implements IAgent {
     private int now = 0; //current timestep 't'
 
     private Action[] actionList;
+    private IIntrospector introspector;
 
     //current sensor values
-    int[] currInternal = new int[NUMINTERNAL];
+    private int[] currInternal = new int[NUMINTERNAL];
     SensorData currExternal;
 
     //predicted sensor values for t+1
@@ -42,8 +43,8 @@ public class PhuJusAgent implements IAgent {
     TreeNode root; // init this somewhere ...
     @Override
     public void initialize(Action[] actions, IIntrospector introspector) {
-        actionList = actions;
-
+        this.actionList = actions;
+        this.introspector = introspector;
     }
 
     @Override
@@ -70,6 +71,16 @@ public class PhuJusAgent implements IAgent {
     public void removeRule(Rule oldRule) {
         rules.remove(oldRule);
     }
+
+    public ArrayList<Rule> getRules() {return this.rules;}
+
+    public void setCurrInternal(int[] curIntern) {this.currInternal = curIntern;}
+
+    public int[] getCurrInternal() {return this.currInternal;}
+
+    public void setCurrExternal(SensorData curExtern) {this.currExternal = curExtern;}
+
+    public SensorData getCurrExternal() {return this.currExternal;}
 
     public void setNow(int now) {
         this.now = now;

@@ -1,5 +1,8 @@
 package tests.agents.phujus;
+import agents.phujus.PhuJusAgent;
 import agents.phujus.Rule;
+import agents.phujus.TreeNode;
+import framework.Action;
 import framework.SensorData;
 import tests.Assertions;
 import tests.EpSemTest;
@@ -102,6 +105,30 @@ public class PhuJusAgentTest {
 
     @EpSemTest
     public void testGenSuccessors(){
+        //Initialize agent with a list of actions
+        Action[] actions = new Action[2];
+        actions[0] = new Action("a");
+        actions[1] = new Action("b");
+        PhuJusAgent agent = new PhuJusAgent();
+        agent.initialize(actions, null);
+
+        //Add rules to the agent
+        SensorData currExternal = new SensorData(false);
+        currExternal.setSensor("testSensor1", true);
+        currExternal.setSensor("testSensor2", true);
+        currExternal.setSensor("testSensor3", false);
+        int[][] currInternal = new int[1][1];
+        currInternal[0][0] = 2;
+        Rule rule = new Rule(actions[0].getName().charAt(0), currExternal, currInternal);
+        agent.addRule(rule);
+        agent.setCurrExternal(currExternal);
+        agent.setCurrInternal(currInternal[0]);
+
+        //Initialize tree and generate children
+        TreeNode root = new TreeNode(agent, agent.getRules(), agent.getNow(),
+                agent.getCurrInternal(), agent.getCurrExternal());
+        root.genSuccessors(1);
+        root.printTree();
         Assertions.assertTrue(true);
 
     }

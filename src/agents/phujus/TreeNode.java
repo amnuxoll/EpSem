@@ -45,12 +45,21 @@ public class TreeNode {
 
     }
 
-    public TreeNode(ArrayList<Rule> rulesList, int initEI, int[] nextInt,
-                    HashMap<String, double[]> predExt) {
+    /** constructor for creating children */
+    public TreeNode(PhuJusAgent agt, ArrayList<Rule> rulesList, int initEI, int[] nextInt,
+                    HashMap<String, Integer> nextExt) {
+        //Passes in the agent that is being used by the other tree nodes
+        this.agent = agt;
         this.rulesList = rulesList;
         this.episodeIndex = initEI;
         this.currInternal = nextInt;
-        this.predictedExternal = predExt;
+        this.currExternal = new SensorData(false); //TODO how to set SensorData goal sensor
+        for(HashMap.Entry<String, Integer> entry : nextExt.entrySet()) {
+            String key = entry.getKey();
+            int value = entry.getValue();
+            //TODO what value is being sent in
+            this.currExternal.setSensor(key, value);
+        }
     }
 
     /** recursively generate successor nodes */
@@ -116,19 +125,17 @@ public class TreeNode {
 //                nextExternal[j] = new Sensor(val);
 //            }
 
-            HashMap<String, double[]> nextExternal = new HashMap<>();
+            HashMap<String, Integer> nextExternal = new HashMap<>();
             for(HashMap.Entry<String, double[]> entry : predictedExternal.entrySet()) {
-                double value = 0.0;
+                int value = 0;
                 String key = entry.getKey();
                 double[] arr = entry.getValue();
                 if(arr[1] > arr[0]) {
-                    value = 1.0;
-                    double [] nxtArr = {value, 0};
-                    nextExternal.put(key, nxtArr);
+                    value = 1;
+                    nextExternal.put(key, value);
                 }
                 else {
-                    double [] nxtArr = {0, value};
-                    nextExternal.put(key, nxtArr);
+                    nextExternal.put(key, value);
                 }
 
 
@@ -136,10 +143,10 @@ public class TreeNode {
             }
 
 
-            this.children[i] = new TreeNode(this.rulesList,
+            this.children[i] = new TreeNode(this.agent, this.rulesList,
                     this.episodeIndex + 1,
                     nextInternal,
-                    predictedExternal);
+                    nextExternal);
 
             //future:  decide here if it's worth looking at this child's successors?
 
@@ -151,6 +158,27 @@ public class TreeNode {
 
 
     }//genSuccessor
+
+    public void printTree(){
+        System.out.print("(");
+        for (int i = 0; i < this.currInternal.length; i++) {
+            System.out.print(this.currInternal[i]);
+        }
+        System.out.print("|");
+        for (String s : this.currExternal.getSensorNames()) {
+            System.out.print(this.currExternal.getSensor(s) + " ");
+        }
+        System.out.print(") -> ");
+        if(this.children.length == 0){
+            return;
+        }
+        for (int i = 0; i < this.children.length; i++) {
+            System.out.print("( ");
+            this.children[i].printTree();
+            System.out.println(" ) ");
+        }
+
+    }
 
     /**
      * fbgpHelper
