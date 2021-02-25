@@ -112,14 +112,18 @@ public class PhuJusAgentTest {
         PhuJusAgent agent = new PhuJusAgent();
         agent.initialize(actions, null);
 
-        //Add rules to the agent
+        //Add rule to the agent
         SensorData currExternal = new SensorData(false);
         currExternal.setSensor("testSensor1", true);
         currExternal.setSensor("testSensor2", true);
         currExternal.setSensor("testSensor3", false);
-        int[][] currInternal = new int[1][1];
-        currInternal[0][0] = 2;
-        Rule rule = new Rule(actions[0].getName().charAt(0), currExternal, currInternal);
+
+        // create simple internal sensors for the rule class
+        int[][] currInternal = new int[1][4];
+        currInternal[0][0] = 1;
+
+        // add rule to the agent rule's list
+        Rule rule = new Rule(actions[0].getName().charAt(0), currExternal, currInternal, "testSensor1");
         agent.addRule(rule);
         agent.setCurrExternal(currExternal);
         agent.setCurrInternal(currInternal[0]);
@@ -128,6 +132,7 @@ public class PhuJusAgentTest {
         TreeNode root = new TreeNode(agent, agent.getRules(), agent.getNow(),
                 agent.getCurrInternal(), agent.getCurrExternal());
         root.genSuccessors(1);
+
         root.printTree();
         Assertions.assertTrue(true);
 

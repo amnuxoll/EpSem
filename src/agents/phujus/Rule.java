@@ -31,7 +31,7 @@ public class Rule {
     private byte rhsValue;  // 0 or 1
     private int rhsInternal;  //index into internal sensors *or* -1 if none
 
-    //other data  (igonre these for feb 11-18)
+    //other data  (igore these for feb 11-18)
     private int[] lastActTimes = new int[ACTHISTLEN];  // last N times the rule was activated
     private double[] lastActAmount = new double[ACTHISTLEN]; // amount of activation last N times
     private double activationLevel;
@@ -43,6 +43,14 @@ public class Rule {
         this.action = act;
         this.lhsExternal = currExt;
         this.lhsInternal = currInt;
+    }
+
+    //Constructor with RHS prediction
+    public Rule(char act, SensorData currExt, int[][] currInt, String rhsSensName){
+        this.action = act;
+        this.lhsExternal = currExt;
+        this.lhsInternal = currInt;
+        this.rhsSensorName = rhsSensName;
     }
 
     //calculates the activation of the rule atm

@@ -7,12 +7,15 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 /**
+ *
  * class TreeNode
  *
  * Each instance is a node in an N-ary tree where N is the number of actions (i.e., the FSM's
  * alphabet) that tries to predict outcomes of sequences of actions.  Thus, we can "find" a
  * best (shortest, most confident) sequences of actions to reach the goal
+ *
  */
+
 public class TreeNode {
     ArrayList<Rule> rulesList = new ArrayList<>();  // all rules in the system
 
@@ -89,6 +92,7 @@ public class TreeNode {
                 nextInternal[j] = 0;
             }
 
+            // create separate predictedExternal entries for on vs off
             for(Rule r : rulesList) {
                 int sIndex = r.getAssocSensor();
                 if (r.matches(action, this.currExternal, this.currInternal)) {
@@ -112,19 +116,8 @@ public class TreeNode {
                 }
             }//for
 
-            //Calculate final predicted values for the external sensors
-            // (winner take all)
 
-//            for(int j = 0; j < PhuJusAgent.NUMEXTERNAL; ++j) {
-//                byte val = 0;
-//                if (predictedExternal[1] > predictedExternal[0]) {
-//                    val = 1;
-//                }
-//
-//                //TODO fix this error
-//                nextExternal[j] = new Sensor(val);
-//            }
-
+            // calculate nextExternal based on winner takes all from predictedExternal
             HashMap<String, Integer> nextExternal = new HashMap<>();
             for(HashMap.Entry<String, double[]> entry : predictedExternal.entrySet()) {
                 int value = 0;
@@ -160,7 +153,6 @@ public class TreeNode {
     }//genSuccessor
 
     public void printTree(){
-        System.out.print("(");
         for (int i = 0; i < this.currInternal.length; i++) {
             System.out.print(this.currInternal[i]);
         }
@@ -168,16 +160,17 @@ public class TreeNode {
         for (String s : this.currExternal.getSensorNames()) {
             System.out.print(this.currExternal.getSensor(s) + " ");
         }
-        System.out.print(") -> ");
-        if(this.children.length == 0){
+        if(this.children == null){
             return;
+        } else {
+            System.out.print(" -> ");
         }
         for (int i = 0; i < this.children.length; i++) {
             System.out.print("( ");
             this.children[i].printTree();
-            System.out.println(" ) ");
+            System.out.print(") ");
         }
-
+        System.out.println();
     }
 
     /**
@@ -185,7 +178,6 @@ public class TreeNode {
      *
      * recurisve helper method for findBestGoalPath
      *
-     * @return a tuple containing: action to take, and confidence in that action.
      */
     public void fbgpHelper() {
         //%%%% We'll pick up where we left off here %%%
