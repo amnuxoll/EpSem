@@ -32,6 +32,9 @@ public class TreeNode {
     //child nodes
     private TreeNode[] children;
 
+    //bool for if tree has child or not
+    private boolean childBool = true;
+
     //weights for predicting the external sensors
     private HashMap<String, double[]> predictedExternal = new HashMap<>();
 
@@ -57,18 +60,25 @@ public class TreeNode {
         this.episodeIndex = initEI;
         this.currInternal = nextInt;
         this.currExternal = new SensorData(false); //TODO how to set SensorData goal sensor
+        children = new TreeNode[agent.getNumActions()];
         for(HashMap.Entry<String, Integer> entry : nextExt.entrySet()) {
             String key = entry.getKey();
             int value = entry.getValue();
-            //TODO what value is being sent in
-            this.currExternal.setSensor(key, value);
+            if (value == 0) {
+                this.currExternal.setSensor(key, false);
+            } else {
+                this.currExternal.setSensor(key, true);
+            }
         }
     }
 
     /** recursively generate successor nodes */
     public void genSuccessors(int depth) {
         //base case
-        if (depth == 0) return;
+        if (depth == 0) {
+            this.setChildBool(false);
+            return;
+        }
 
         for(int i = 0; i < agent.getNumActions(); ++i) {
             char action = (char) ('a' + i);
@@ -160,17 +170,27 @@ public class TreeNode {
         for (String s : this.currExternal.getSensorNames()) {
             System.out.print(this.currExternal.getSensor(s) + " ");
         }
-        if(this.children == null){
+        if(!this.childBool){
             return;
         } else {
             System.out.print(" -> ");
         }
-        for (int i = 0; i < this.children.length; i++) {
+        for (int i = 0; i < this.agent.getNumActions(); i++) {
             System.out.print("( ");
             this.children[i].printTree();
             System.out.print(") ");
         }
-        System.out.println();
+    }
+
+
+    /**
+     * setChildBool
+     *
+     * set childBool to false when there are no children
+     *
+     */
+    public void setChildBool(boolean childFalse) {
+        this.childBool = childFalse;
     }
 
     /**
