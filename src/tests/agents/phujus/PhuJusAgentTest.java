@@ -166,6 +166,44 @@ public class PhuJusAgentTest {
         //Initialize tree and generate children
         TreeNode root = new TreeNode(agent, agent.getRules(), agent.getNow(),
                 agent.getCurrInternal(), agent.getCurrExternal());
+        root.genSuccessors(2);
+
+        root.printTree();
+        Assertions.assertTrue(true);
+    }
+
+    @EpSemTest
+    public void testGenSuccessors3(){
+        //Initialize agent with a list of actions
+        Action[] actions = new Action[2];
+        actions[0] = new Action("a");
+        actions[1] = new Action("b");
+        PhuJusAgent agent = new PhuJusAgent();
+        agent.initialize(actions, null);
+
+        //Add rule to the agent
+        SensorData currExternal = new SensorData(false);
+        currExternal.setSensor("testSensor1", false);
+        currExternal.setSensor("testSensor2", false);
+        currExternal.setSensor("testSensor3", true);
+
+        // create simple internal sensors for the rule class
+        int[][] currInternal = new int[1][4];
+        currInternal[0][0] = 1;
+
+        // add rules to the agent rule's list
+        Rule rule = new Rule(actions[0].getName().charAt(0), currExternal, currInternal, "testSensor1");
+        Rule rule2 = new Rule(actions[0].getName().charAt(0), currExternal, currInternal, "testSensor2");
+        Rule rule3 = new Rule(actions[0].getName().charAt(0), currExternal, currInternal, "testSensor3");
+        agent.addRule(rule);
+        agent.addRule(rule2);
+        agent.addRule(rule3);
+        agent.setCurrExternal(currExternal);
+        agent.setCurrInternal(currInternal[0]);
+
+        //Initialize tree and generate children
+        TreeNode root = new TreeNode(agent, agent.getRules(), agent.getNow(),
+                agent.getCurrInternal(), agent.getCurrExternal());
         root.genSuccessors(3);
 
         root.printTree();

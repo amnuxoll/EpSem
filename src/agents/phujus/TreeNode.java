@@ -117,9 +117,33 @@ public class TreeNode {
                         activation[1] = r.getActivation(episodeIndex);
                     }
                     //update predicted external value (currently a placeholder value for r.getActivation arg)
+                    for (String s : r.getLHSExternal().getSensorNames()) {
+                        HashMap<String, Object> data = new HashMap<>();
+                        data.put(s, false);
+                        if (r.getLHSExternal().getSensor(s) == data) {
+                            double[] values = {0, 1};
+                            predictedExternal.put(s, values);
+                        } else {
+                            double[] values = {1, 0};
+                            predictedExternal.put(s, values);
+                        }
+                        predictedExternal.put(s, activation);
+                    }
                     predictedExternal.put(r.getRHSSensorName(), activation);
-
                 } else {
+                    double[] activation = {0.0, 0.0};
+                    for (String s : r.getLHSExternal().getSensorNames()) {
+                        HashMap<String, Object> data = new HashMap<>();
+                        data.put(s, false);
+                        if (r.getLHSExternal().getSensor(s) == data) {
+                            double[] values = {0, 1};
+                            predictedExternal.put(s, values);
+                        } else {
+                            double[] values = {1, 0};
+                            predictedExternal.put(s, values);
+                        }
+                        predictedExternal.put(s, activation);
+                    }
                     if (sIndex != -1) {
                         nextInternal[sIndex] = 0;  //off
                     }

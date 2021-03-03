@@ -28,7 +28,7 @@ public class Rule {
     // - a value for exactly one external sensor
     // - optionally, an internal sensor that turns on ('1') when this rule matched in prev epsiode
     private String rhsSensorName;   //index into the external sensor array
-    private byte rhsValue;  // 0 or 1
+    private int rhsValue;  // 0 or 1
     private int rhsInternal;  //index into internal sensors *or* -1 if none
 
     //other data  (igore these for feb 11-18)
@@ -99,6 +99,9 @@ public class Rule {
         return this.rhsSensorName;
     }
 
-    public SensorData getLHSExternal() {return this.lhsExternal;}
+    public SensorData getLHSExternal() { return this.lhsExternal; }
 
+    public void setRhsValue(int rhsValue) {
+        this.rhsValue = rhsValue;
+    }
 }//class Rule
