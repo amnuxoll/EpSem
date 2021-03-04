@@ -34,7 +34,7 @@ public class Rule {
     //other data  (igore these for feb 11-18)
     private int[] lastActTimes = new int[ACTHISTLEN];  // last N times the rule was activated
     private double[] lastActAmount = new double[ACTHISTLEN]; // amount of activation last N times
-    private double activationLevel;
+    private double[] activationLevel;
     private int lastActUpdate; //when was last time I updated activation
     private double decayRate;
 
@@ -43,6 +43,7 @@ public class Rule {
         this.action = act;
         this.lhsExternal = currExt;
         this.lhsInternal = currInt;
+        this.lastActAmount = new double[]{0.0, 0.0};
     }
 
     //Constructor with RHS prediction
@@ -51,17 +52,28 @@ public class Rule {
         this.lhsExternal = currExt;
         this.lhsInternal = currInt;
         this.rhsSensorName = rhsSensName;
+        this.lastActAmount = new double[]{0.0, 0.0};
     }
 
     //calculates the activation of the rule atm
-    public double getActivation(int now) {
+    public double[] getActivation(int now) {
         if (now != lastActUpdate) {
             for(int i = 0; i < ACTHISTLEN; ++i) {
                 //TODO: do some math here to calculate curr act level
             }
         }
 
+        this.activationLevel = new double[]{0, 0};
+
         return this.activationLevel;
+    }
+
+    public void setLastActivation(double[] lastActivation) {
+        this.lastActAmount = lastActivation;
+    }
+
+    public double[] getLastActivation() {
+        return this.lastActAmount;
     }
 
 
@@ -76,7 +88,6 @@ public class Rule {
                 return false;
             }
         }
-
         for (int i = 0; i < currInternal.length; i++) {
             if(this.lhsInternal[0][i] != currInternal[i]){
                 return false;
