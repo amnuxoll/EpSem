@@ -41,36 +41,15 @@ public class TreeNode {
 
 
     /** root node constructor */
-    public TreeNode(PhuJusAgent initAG, ArrayList<Rule> initRL, int initEI, int[] initCI, SensorData initCE) {
+    public TreeNode(PhuJusAgent initAgent, ArrayList<Rule> initRulesList, int initEpisodeIndex, int[] initCurrInternal, SensorData initCurrExternal) {
         //initializing agent and its children
-        this.agent = initAG;
-        this.rulesList = initRL;
+        this.agent = initAgent;
+        this.rulesList = initRulesList;
         children = new TreeNode[agent.getNumActions()]; // actionSize
-        this.episodeIndex = initEI;
-        this.currInternal = initCI;
-        this.currExternal = initCE;
+        this.episodeIndex = initEpisodeIndex;
+        this.currInternal = initCurrInternal;
+        this.currExternal = initCurrExternal;
 
-    }
-
-    /** constructor for creating children */
-    public TreeNode(PhuJusAgent agt, ArrayList<Rule> rulesList, int initEI, int[] nextInt,
-                    HashMap<String, Integer> nextExt) {
-        //Passes in the agent that is being used by the other tree nodes
-        this.agent = agt;
-        this.rulesList = rulesList;
-        this.episodeIndex = initEI;
-        this.currInternal = nextInt;
-        this.currExternal = new SensorData(false); //TODO how to set SensorData goal sensor
-        children = new TreeNode[agent.getNumActions()];
-        for(HashMap.Entry<String, Integer> entry : nextExt.entrySet()) {
-            String key = entry.getKey();
-            int value = entry.getValue();
-            if (value == 0) {
-                this.currExternal.setSensor(key, false);
-            } else {
-                this.currExternal.setSensor(key, true);
-            }
-        }
     }
 
     /** recursively generate successor nodes */
@@ -110,14 +89,19 @@ public class TreeNode {
                     if (sIndex != -1) {
                         nextInternal[sIndex] = 1;  //on
                     }
-                    double[] activation = {0.0, 0.0};
-                    activation[0] = r.getActivation(this.episodeIndex)[0] + r.getLastActivation()[0];
-                    activation[1] = r.getActivation(this.episodeIndex)[1] + r.getLastActivation()[1];
 
-                    r.setLastActivation(activation);
-
+                    //get the current votes so far
+                    double[] votes = predictedExternal.get(r.getRHSSensorName());
+                    if (votes == null) {
+                        votes = new double[]{0.0, 0.0};
+                        //Create a sensor data to initialize this child node
+                        SensorData childSD = new SensorData(this.currExternal);
+                        for(String sensorName : childSD.getSensorNames()) {
+                            predictedExternal.put(sensorName, votes);// off
+                        }
+                    }
                     //update predicted external value (currently a placeholder value for r.getActivation arg)
-                    predictedExternal.put(r.getRHSSensorName(), activation);
+                    votes[r.getRHSValue()] += r.getActivation(this.episodeIndex);
                 } else {
                     if (sIndex != -1) {
                         nextInternal[sIndex] = 0;  //off
@@ -125,29 +109,16 @@ public class TreeNode {
                 }
             }//for
 
-
-            // calculate nextExternal based on winner takes all from predictedExternal
-            HashMap<String, Integer> nextExternal = new HashMap<>();
-            for(HashMap.Entry<String, double[]> entry : predictedExternal.entrySet()) {
-                int value = 0;
-                String key = entry.getKey();
-                double[] arr = entry.getValue();
-                if(arr[1] > arr[0]) {
-                    value = 1;
-                    nextExternal.put(key, value);
-                }
-                else {
-                    nextExternal.put(key, value);
-                }
+            //Create a sensor data to initialize this child node
+            SensorData childSD = new SensorData(this.currExternal);
+            for(String sensorName : childSD.getSensorNames()) {
+                double[] votes = predictedExternal.get(sensorName);
+                boolean newSensorVal = votes[1] > votes[0];
+                childSD.setSensor(sensorName, new Boolean(newSensorVal)); // off
             }
 
-
-
-
             this.children[i] = new TreeNode(this.agent, this.rulesList,
-                    this.episodeIndex + 1,
-                    nextInternal,
-                    nextExternal);
+                    this.episodeIndex + 1, nextInternal, childSD);
 
             //future:  decide here if it's worth looking at this child's successors?
 
