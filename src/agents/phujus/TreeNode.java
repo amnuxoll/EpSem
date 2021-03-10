@@ -96,9 +96,6 @@ public class TreeNode {
                         votes = new double[]{0.0, 0.0};
                         //Create a sensor data to initialize this child node
                         SensorData childSD = new SensorData(this.currExternal);
-                        for(String sensorName : childSD.getSensorNames()) {
-                            predictedExternal.put(sensorName, votes);// off
-                        }
                     }
                     //update predicted external value (currently a placeholder value for r.getActivation arg)
                     votes[r.getRHSValue()] += r.getActivation(this.episodeIndex);
@@ -111,7 +108,7 @@ public class TreeNode {
 
             //Create a sensor data to initialize this child node
             SensorData childSD = new SensorData(this.currExternal);
-            for(String sensorName : childSD.getSensorNames()) {
+            for(String sensorName : predictedExternal.keySet()) {
                 double[] votes = predictedExternal.get(sensorName);
                 boolean newSensorVal = votes[1] > votes[0];
                 childSD.setSensor(sensorName, new Boolean(newSensorVal)); // off
@@ -180,7 +177,9 @@ public class TreeNode {
      */
     public char findBestGoalPath() {
         //base case
-        //if (this.currExternal[GOALSENSOR] == 1) return ??;
+        if (this.currExternal.isGoal()) {
+            return ' ';
+        }
 
         //recursive case where you
         return ' ';

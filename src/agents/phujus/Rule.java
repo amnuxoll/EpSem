@@ -57,12 +57,19 @@ public class Rule {
 
     //calculates the activation of the rule atm
     public double getActivation(int now) {
-        if (now != lastActUpdate) {
-            for(int i = 0; i < ACTHISTLEN; ++i) {
-                //TODO: do some math here to calculate curr act level
+        lastActTimes[now] = 1;
+        double result = 0.0;
+        for(int j=0; j < lastActTimes.length; ++j) {
+            if(lastActTimes[j] != 0) {
+                result += Math.pow(lastActTimes[j], -0.8);
             }
         }
-
+        result = Math.log(result);
+        this.activationLevel = result;
+        for (int i = 0; i < lastActTimes.length; i++) {
+            System.out.print(lastActTimes[i]);
+        }
+        System.out.println();
         return this.activationLevel;
     }
 
