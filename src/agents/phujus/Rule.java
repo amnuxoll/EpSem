@@ -102,6 +102,25 @@ public class Rule {
         return true;
     }
 
+    //returns true if this rule matches the given action and sensor values
+    public boolean matches(SensorData currExternal, int[] currInternal)
+    {
+        int index = 0;
+
+        for (String s : currExternal.getSensorNames()) {
+            if (this.lhsExternal.getSensor(s) != currExternal.getSensor(s)) {
+                return false;
+            }
+        }
+        for (int i = 0; i < currInternal.length; i++) {
+            if(this.lhsInternal[0][i] != currInternal[i]){
+                return false;
+            }
+        }
+
+        return true;
+    }
+
 
     public int getAssocSensor() {
         return this.ruleId;
@@ -113,6 +132,10 @@ public class Rule {
 
     public String getRHSSensorName() {
         return this.rhsSensorName;
+    }
+
+    public char getChar() {
+        return this.action;
     }
 
     public SensorData getLHSExternal() { return this.lhsExternal; }

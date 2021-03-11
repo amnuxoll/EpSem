@@ -162,11 +162,20 @@ public class TreeNode {
     /**
      * fbgpHelper
      *
-     * recurisve helper method for findBestGoalPath
+     * recurisve helper method for findBestGoalPath. Kills the path
      *
      */
-    public void fbgpHelper() {
-        //%%%% We'll pick up where we left off here %%%
+    public boolean fbgpHelper(TreeNode tree) {
+        if (this.currExternal.isGoal()) {
+            return true;
+        }
+        if (this.children == null || this.children.length == 0) {
+            return false;
+        }
+        for (int i = 0; i < agent.getNumActions(); i++) {
+            return fbgpHelper(tree.children[i]);
+        }
+        return false;
     }
 
     /**
@@ -175,14 +184,27 @@ public class TreeNode {
      * searches this tree for the best path to the goal and returns the first action
      * in the sequence of actions on that path
      */
-    public char findBestGoalPath() {
+    public String findBestGoalPath(TreeNode tree) {
         //base case
-        if (this.currExternal.isGoal()) {
-            return ' ';
+        if (this.children == null || this.children.length == 0) {
+            return "";
         }
 
-        //recursive case where you
-        return ' ';
+        int goalPath = 0;
+        for (int i = 0; i < agent.getNumActions(); i++) {
+            if (fbgpHelper(tree.children[i])) {
+                goalPath = i;
+                break;
+            }
+        }
+
+        for(Rule r: rulesList) {
+            if (r.matches(this.currExternal, this.currInternal)) {
+                return r.getChar() + findBestGoalPath(tree.children[goalPath]);
+            }
+        }
+
+        return "";
     }
 
 
