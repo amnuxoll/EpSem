@@ -173,7 +173,7 @@ public class PhuJusAgentTest {
     }
 
     @EpSemTest
-    public void testGenSuccessors3(){
+    public void findBestGoalPathTest(){
         //Initialize agent with a list of actions
         Action[] actions = new Action[2];
         actions[0] = new Action("a");
@@ -183,30 +183,29 @@ public class PhuJusAgentTest {
 
         //Add rule to the agent
         SensorData currExternal = new SensorData(false);
-        currExternal.setSensor("testSensor1", false);
-        currExternal.setSensor("testSensor2", false);
-        currExternal.setSensor("testSensor3", true);
+        currExternal.setSensor("testSensor1", true);
+        currExternal.setSensor("testSensor2", true);
+        currExternal.setSensor("testSensor3", false);
 
         // create simple internal sensors for the rule class
         int[][] currInternal = new int[1][4];
         currInternal[0][0] = 1;
 
-        // add rules to the agent rule's list
-        Rule rule = new Rule(actions[0].getName().charAt(0), currExternal, currInternal, "testSensor1");
-        Rule rule2 = new Rule(actions[0].getName().charAt(0), currExternal, currInternal, "testSensor2");
-        Rule rule3 = new Rule(actions[0].getName().charAt(0), currExternal, currInternal, "testSensor3");
+        // add rule to the agent rule's list | predict GOAL Sensor is TRUE if action "a" is taken
+        Rule rule = new Rule(actions[0].getName().charAt(0), currExternal, currInternal, "GOAL");
+        rule.setRhsValue(1);
+
         agent.addRule(rule);
-        agent.addRule(rule2);
-        agent.addRule(rule3);
         agent.setCurrExternal(currExternal);
         agent.setCurrInternal(currInternal[0]);
 
         //Initialize tree and generate children
         TreeNode root = new TreeNode(agent, agent.getRules(), agent.getNow(),
                 agent.getCurrInternal(), agent.getCurrExternal());
-        root.genSuccessors(3);
+        root.genSuccessors(1);
 
         root.printTree();
-        Assertions.assertTrue(true);
+        System.out.println();
+        Assertions.assertTrue(root.findBestGoalPath(root).equals("a"));
     }
 }

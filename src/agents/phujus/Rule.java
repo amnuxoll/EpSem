@@ -2,6 +2,8 @@ package agents.phujus;
 import environments.fsm.FSMEnvironment.Sensor;
 import framework.SensorData;
 
+import static java.lang.Math.abs;
+
 /**
  * class Rule
  *
@@ -57,18 +59,16 @@ public class Rule {
 
     //calculates the activation of the rule atm
     public double getActivation(int now) {
-        lastActTimes[now] = 1;
+        lastActTimes[now] = 2;
         double result = 0.0;
         for(int j=0; j < lastActTimes.length; ++j) {
             if(lastActTimes[j] != 0) {
                 result += Math.pow(lastActTimes[j], -0.8);
             }
         }
-        result = Math.log(result);
+        result = abs(Math.log(result));
         this.activationLevel = result;
-        for (int i = 0; i < lastActTimes.length; i++) {
-            System.out.print(lastActTimes[i]);
-        }
+
         System.out.println();
         return this.activationLevel;
     }

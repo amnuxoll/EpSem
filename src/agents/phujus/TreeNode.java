@@ -95,7 +95,7 @@ public class TreeNode {
                     if (votes == null) {
                         votes = new double[]{0.0, 0.0};
                         //Create a sensor data to initialize this child node
-                        SensorData childSD = new SensorData(this.currExternal);
+                        predictedExternal.put(r.getRHSSensorName(), votes);
                     }
                     //update predicted external value (currently a placeholder value for r.getActivation arg)
                     votes[r.getRHSValue()] += r.getActivation(this.episodeIndex);
@@ -166,14 +166,14 @@ public class TreeNode {
      *
      */
     public boolean fbgpHelper(TreeNode tree) {
-        if (this.currExternal.isGoal()) {
+        if (tree.currExternal.isGoal()) {
             return true;
         }
-        if (this.children == null || this.children.length == 0) {
-            return false;
-        }
+
         for (int i = 0; i < agent.getNumActions(); i++) {
-            return fbgpHelper(tree.children[i]);
+            if (tree.children[i] != null) {
+                return fbgpHelper(tree.children[i]);
+            }
         }
         return false;
     }
@@ -186,7 +186,7 @@ public class TreeNode {
      */
     public String findBestGoalPath(TreeNode tree) {
         //base case
-        if (this.children == null || this.children.length == 0) {
+        if (!tree.childBool) {
             return "";
         }
 
