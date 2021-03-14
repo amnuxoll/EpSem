@@ -1,6 +1,8 @@
 package agents.phujus;
 import environments.fsm.FSMEnvironment.Sensor;
+import framework.Action;
 import framework.SensorData;
+import java.util.Random;
 
 import static java.lang.Math.abs;
 
@@ -54,6 +56,17 @@ public class Rule {
         this.lhsExternal = currExt;
         this.lhsInternal = currInt;
         this.rhsSensorName = rhsSensName;
+        this.lastActAmount = new double[]{0.0, 0.0};
+    }
+
+    public Rule(PhuJusAgent agent){
+        Action[] actions = agent.getActionList();
+        Random rand = new Random();
+        this.action = actions[rand.nextInt(agent.getNumActions())].getName().charAt(0);
+        this.lhsExternal = agent.getCurrExternal();
+        int[][] currInternal = new int[1][1];
+        currInternal[0][0] = 1;
+        this.lhsInternal = currInternal;
         this.lastActAmount = new double[]{0.0, 0.0};
     }
 

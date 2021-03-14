@@ -56,6 +56,14 @@ public class PhuJusAgent implements IAgent {
         return null;
     }
 
+    //TODO checkforUniqueID
+    public void generateRules(PhuJusAgent agent){
+        while(!ruleLimitReached()){
+            Rule newRule = new Rule(this);
+            addRule(newRule);
+        }
+    }
+
     public boolean ruleLimitReached() {
         if (rules.size() >= MAXNUMRULES) { return true; }
         return false;
@@ -93,6 +101,8 @@ public class PhuJusAgent implements IAgent {
     public int getNumActions() {
         return actionList.length;
     }
+
+    public Action[] getActionList() {return actionList;}
 
 
 //    public char someMethod() {
