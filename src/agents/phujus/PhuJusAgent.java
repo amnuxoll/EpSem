@@ -50,7 +50,7 @@ public class PhuJusAgent implements IAgent {
     @Override
     public Action getNextAction(SensorData sensorData) throws Exception {
         this.currExternal = sensorData;
-        this.root = new TreeNode(this, this.rules, now, this.currInternal, this.currExternal);
+        this.root = new TreeNode(this, this.rules, now, this.currInternal, this.currExternal, 'z');
         this.root.genSuccessors(1);
 
         return null;

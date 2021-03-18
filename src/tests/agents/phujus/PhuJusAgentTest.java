@@ -130,7 +130,7 @@ public class PhuJusAgentTest {
 
         //Initialize tree and generate children
         TreeNode root = new TreeNode(agent, agent.getRules(), agent.getNow(),
-                agent.getCurrInternal(), agent.getCurrExternal());
+                agent.getCurrInternal(), agent.getCurrExternal(), 'z');
         root.genSuccessors(1);
 
         root.printTree();
@@ -165,7 +165,7 @@ public class PhuJusAgentTest {
 
         //Initialize tree and generate children
         TreeNode root = new TreeNode(agent, agent.getRules(), agent.getNow(),
-                agent.getCurrInternal(), agent.getCurrExternal());
+                agent.getCurrInternal(), agent.getCurrExternal(), 'z');
         root.genSuccessors(2);
 
         root.printTree();
@@ -201,7 +201,7 @@ public class PhuJusAgentTest {
 
         //Initialize tree and generate children
         TreeNode root = new TreeNode(agent, agent.getRules(), agent.getNow(),
-                agent.getCurrInternal(), agent.getCurrExternal());
+                agent.getCurrInternal(), agent.getCurrExternal(), 'z');
         root.genSuccessors(1);
 
         root.printTree();

@@ -36,12 +36,16 @@ public class TreeNode {
     //bool for if tree has child or not
     private boolean childBool = true;
 
+    //Character that the tree
+    private char characterAction = 'z';
+
     //weights for predicting the external sensors
     private HashMap<String, double[]> predictedExternal = new HashMap<>();
 
 
     /** root node constructor */
-    public TreeNode(PhuJusAgent initAgent, ArrayList<Rule> initRulesList, int initEpisodeIndex, int[] initCurrInternal, SensorData initCurrExternal) {
+    public TreeNode(PhuJusAgent initAgent, ArrayList<Rule> initRulesList, int initEpisodeIndex,
+                    int[] initCurrInternal, SensorData initCurrExternal, char action) {
         //initializing agent and its children
         this.agent = initAgent;
         this.rulesList = initRulesList;
@@ -49,7 +53,7 @@ public class TreeNode {
         this.episodeIndex = initEpisodeIndex;
         this.currInternal = initCurrInternal;
         this.currExternal = initCurrExternal;
-
+        this.characterAction = action;
     }
 
     /** recursively generate successor nodes */
@@ -115,7 +119,7 @@ public class TreeNode {
             }
 
             this.children[i] = new TreeNode(this.agent, this.rulesList,
-                    this.episodeIndex + 1, nextInternal, childSD);
+                    this.episodeIndex + 1, nextInternal, childSD, action);
 
             //future:  decide here if it's worth looking at this child's successors?
 
@@ -129,6 +133,7 @@ public class TreeNode {
     }//genSuccessor
 
     public void printTree(){
+        System.out.print(this.characterAction);
         for (int i = 0; i < this.currInternal.length; i++) {
             System.out.print(this.currInternal[i]);
         }
