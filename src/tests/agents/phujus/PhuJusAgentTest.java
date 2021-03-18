@@ -208,4 +208,20 @@ public class PhuJusAgentTest {
         System.out.println();
         Assertions.assertTrue(root.findBestGoalPath(root).equals("a"));
     }
+
+    @EpSemTest
+    public void generateRulesTest(){
+        //Initialize agent with a list of actions
+        Action[] actions = new Action[2];
+        actions[0] = new Action("a");
+        actions[1] = new Action("b");
+        PhuJusAgent agent = new PhuJusAgent();
+        agent.initialize(actions, null);
+
+        //Generate rules until an agent's rule inventory is full
+        agent.generateRules();
+
+        //Check to see if rule inventory has been filled up properly
+        Assertions.assertTrue(agent.ruleLimitReached());
+    }
 }

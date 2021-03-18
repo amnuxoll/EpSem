@@ -59,6 +59,7 @@ public class Rule {
         this.lastActAmount = new double[]{0.0, 0.0};
     }
 
+    //Constructor to create random rule
     public Rule(PhuJusAgent agent){
         Action[] actions = agent.getActionList();
         Random rand = new Random();

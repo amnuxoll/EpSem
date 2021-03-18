@@ -57,7 +57,7 @@ public class PhuJusAgent implements IAgent {
     }
 
     //TODO checkforUniqueID
-    public void generateRules(PhuJusAgent agent){
+    public void generateRules(){
         while(!ruleLimitReached()){
             Rule newRule = new Rule(this);
             addRule(newRule);

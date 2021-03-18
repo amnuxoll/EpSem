@@ -37,7 +37,7 @@ public class TreeNode {
     private boolean childBool = true;
 
     //Character that the tree
-    private char characterAction = 'z';
+    private char characterAction = '\0';
 
     //weights for predicting the external sensors
     private HashMap<String, double[]> predictedExternal = new HashMap<>();
