@@ -103,7 +103,7 @@ public class Rule {
         int index = 0;
 
         for (String s : currExternal.getSensorNames()) {
-            if (this.lhsExternal.getSensor(s) != currExternal.getSensor(s)) {
+            if (!this.lhsExternal.getSensor(s).equals(currExternal.getSensor(s))) {
                 return false;
             }
         }

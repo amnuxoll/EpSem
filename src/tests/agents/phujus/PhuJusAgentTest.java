@@ -158,7 +158,7 @@ public class PhuJusAgentTest {
         currInternal[0][0] = 1;
 
         // add rule to the agent rule's list
-        Rule rule = new Rule(actions[0].getName().charAt(0), currExternal, currInternal, "testSensor1");
+        Rule rule = new Rule(actions[1].getName().charAt(0), currExternal, currInternal, "testSensor1");
         agent.addRule(rule);
         agent.setCurrExternal(currExternal);
         agent.setCurrInternal(currInternal[0]);
@@ -192,7 +192,7 @@ public class PhuJusAgentTest {
         currInternal[0][0] = 1;
 
         // add rule to the agent rule's list | predict GOAL Sensor is TRUE if action "a" is taken
-        Rule rule = new Rule(actions[0].getName().charAt(0), currExternal, currInternal, "GOAL");
+        Rule rule = new Rule(actions[1].getName().charAt(0), currExternal, currInternal, "GOAL");
         rule.setRhsValue(1);
 
         agent.addRule(rule);
@@ -201,12 +201,62 @@ public class PhuJusAgentTest {
 
         //Initialize tree and generate children
         TreeNode root = new TreeNode(agent, agent.getRules(), agent.getNow(),
-                agent.getCurrInternal(), agent.getCurrExternal(), 'z');
+                agent.getCurrInternal(), agent.getCurrExternal(), '\0');
         root.genSuccessors(1);
 
         root.printTree();
         System.out.println();
-        Assertions.assertTrue(root.findBestGoalPath(root).equals("a"));
+        System.out.println("The Goal Path Is: " + root.findBestGoalPath(root).length());
+        Assertions.assertTrue(root.findBestGoalPath(root).equals("\0b"));
+    }
+
+    @EpSemTest
+    public void findBestGoalPathTestDepth2(){
+        //Initialize agent with a list of actions
+        Action[] actions = new Action[2];
+        actions[0] = new Action("a");
+        actions[1] = new Action("b");
+        PhuJusAgent agent = new PhuJusAgent();
+        agent.initialize(actions, null);
+
+        //First Rule
+        SensorData currExternal = new SensorData(false);
+        currExternal.setSensor("testSensor1", false);
+        currExternal.setSensor("testSensor2", false);
+        currExternal.setSensor("testSensor3", false);
+
+        //Second Rule
+        SensorData secCurrExternal = new SensorData(false);
+        secCurrExternal.setSensor("testSensor1", true);
+        secCurrExternal.setSensor("testSensor2", false);
+        secCurrExternal.setSensor("testSensor3", false);
+
+        // create simple internal sensors for the rule class
+        int[][] currInternal = new int[1][4];
+        currInternal[0][0] = 0;
+
+        // add rule to the agent rule's list | predict testSensor1 is TRUE if action "a" is taken
+        Rule ruleOne = new Rule(actions[1].getName().charAt(0), currExternal, currInternal, "testSensor1");
+        ruleOne.setRhsValue(1);
+
+        // add rule to the agent rule's list | predict GOAL Sensor is TRUE if action "b" is taken
+        Rule ruleTwo = new Rule(actions[0].getName().charAt(0), secCurrExternal, currInternal, SensorData.goalSensor);
+        ruleTwo.setRhsValue(1);
+
+        agent.addRule(ruleOne);
+        agent.addRule(ruleTwo);
+        agent.setCurrExternal(currExternal);
+        agent.setCurrInternal(currInternal[0]);
+
+        //Initialize tree and generate children
+        TreeNode root = new TreeNode(agent, agent.getRules(), agent.getNow(),
+                agent.getCurrInternal(), agent.getCurrExternal(), '\0');
+        root.genSuccessors(2);
+
+        root.printTree();
+        System.out.println();
+        System.out.println("The Goal Path: " + root.findBestGoalPath(root));
+        Assertions.assertTrue(root.findBestGoalPath(root).equals("\0ba"));
     }
 
     @EpSemTest
