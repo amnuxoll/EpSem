@@ -157,7 +157,7 @@ public class Rule {
     //returns true if this rule matches the given action and sensor values
     public boolean matches(SensorData currExternal, int[] currInternal)
     {
-        for (String s : currExternal.getSensorNames()) {
+        for (String s : this.lhsExternal.getSensorNames()) {
             if (this.lhsExternal.getSensor(s) != currExternal.getSensor(s)) {
                 return false;
             }
