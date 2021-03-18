@@ -321,11 +321,24 @@ public class PhuJusAgentTest {
 
     @EpSemTest
     public void generateRulesTest(){
+
+        //Initialize current External Sensors
+        SensorData currExternal = new SensorData(false);
+        currExternal.setSensor("testSensor1", false);
+        currExternal.setSensor("testSensor2", false);
+        currExternal.setSensor("testSensor3", false);
+
+        //simple current internal sensors
+        int[][] currInternal = new int[1][4];
+        currInternal[0][0] = 0;
+
         //Initialize agent with a list of actions
         Action[] actions = new Action[2];
         actions[0] = new Action("a");
         actions[1] = new Action("b");
         PhuJusAgent agent = new PhuJusAgent();
+        agent.setCurrExternal(currExternal);
+        agent.setCurrInternal(currInternal[0]);
         agent.initialize(actions, null);
 
         //Generate rules until an agent's rule inventory is full

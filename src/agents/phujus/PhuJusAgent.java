@@ -61,6 +61,7 @@ public class PhuJusAgent implements IAgent {
         while(!ruleLimitReached()){
             Rule newRule = new Rule(this);
             addRule(newRule);
+            newRule.printRule();
         }
     }
 

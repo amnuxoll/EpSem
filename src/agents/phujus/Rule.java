@@ -35,7 +35,7 @@ public class Rule {
     private int rhsValue;  // 0 or 1
     private int rhsInternal;  //index into internal sensors *or* -1 if none
 
-    //other data  (igore these for feb 11-18)
+    //other data  (ignore these for feb 11-18)
     private int[] lastActTimes = new int[ACTHISTLEN];  // last N times the rule was activated
     private double[] lastActAmount = new double[ACTHISTLEN]; // amount of activation last N times
     private double activationLevel;
@@ -63,12 +63,51 @@ public class Rule {
     public Rule(PhuJusAgent agent){
         Action[] actions = agent.getActionList();
         Random rand = new Random();
+
+        //choose random action for the character
         this.action = actions[rand.nextInt(agent.getNumActions())].getName().charAt(0);
-        this.lhsExternal = agent.getCurrExternal();
-        int[][] currInternal = new int[1][1];
-        currInternal[0][0] = 1;
+
+        //50% chance that rule has a specific sensor
+        //Possible problems -> Rules that have no current external sensors
+        SensorData externalSensors = agent.getCurrExternal();
+        SensorData ruleSensors = new SensorData(false);
+        for (String s : externalSensors.getSensorNames()) {
+            if (rand.nextInt(3) <= 1) {
+                if (rand.nextInt(3) <= 1) {
+                    ruleSensors.setSensor(s, true);
+                    //predict the opposite value of the sensor chosen
+                    this.rhsSensorName = s;
+                    this.rhsValue = 0;
+                } else {
+                    ruleSensors.setSensor(s, false);
+                    this.rhsSensorName = s;
+                    this.rhsValue = 1;
+                }
+            }
+        }
+
+        this.lhsExternal = ruleSensors;
+
+        int[][] currInternal = new int[4][4];
+        for (int i = 0; i < currInternal.length; i++) {
+            currInternal[0][i] = 0;
+        }
         this.lhsInternal = currInternal;
         this.lastActAmount = new double[]{0.0, 0.0};
+    }
+
+    public void printRule(){
+        System.out.print(this.action);
+        for (int i = 0; i < this.lhsInternal.length; i++) {
+            System.out.print(this.lhsInternal[0][i]);
+        }
+        System.out.print("|");
+        for (String s : this.lhsExternal.getSensorNames()) {
+            System.out.print('(' + s + ',' + this.lhsExternal.getSensor(s) + ')');
+        }
+        System.out.print(" -> ");
+        System.out.print('(' + this.rhsSensorName + ',' + this.getRHSValue() + ')');
+        System.out.println();
     }
 
     //calculates the activation of the rule atm
