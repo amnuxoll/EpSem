@@ -39,9 +39,6 @@ public class TreeNode {
     //Character that the tree
     private char characterAction = '\0';
 
-    //weights for predicting the external sensors
-
-
 
     /** root node constructor */
     public TreeNode(PhuJusAgent initAgent, ArrayList<Rule> initRulesList, int initEpisodeIndex,
@@ -65,7 +62,6 @@ public class TreeNode {
         }
 
         for(int i = 0; i < agent.getNumActions(); ++i) {
-            HashMap<String, double[]> predictedExternal = new HashMap<>();
             char action = (char) ('a' + i);
 
             //predicted sensor values for t+1
@@ -81,13 +77,14 @@ public class TreeNode {
 
             */
 
-
             //initialize nextInternal (all zeroes)
             for (int j = 0; j < nextInternal.length; j++) {
                 nextInternal[j] = 0;
             }
 
             // create separate predictedExternal entries for on vs off
+            HashMap<String, double[]> predictedExternal = new HashMap<>();
+
             for(Rule r : rulesList) {
                 int sIndex = r.getAssocSensor();
                 if (r.matches(action, this.currExternal, this.currInternal)) {
@@ -157,29 +154,10 @@ public class TreeNode {
 
 
     /**
-     * setChildBool
-     *
-     * set childBool to false when there are no children
-     *
-     */
-    public void setChildBool(boolean childFalse) {
-        this.childBool = childFalse;
-    }
-
-    /**
-     * setChildBool
-     *
-     * set childBool to false when there are no children
-     *
-     */
-    public char getCharacterAction() {
-        return this.characterAction;
-    }
-
-    /**
      * fbgpHelper
      *
-     * recurisve helper method for findBestGoalPath. Kills the path
+     * recurisve helper method for findBestGoalPath. Returns true if a path to the
+     * goal is found
      *
      */
     public boolean fbgpHelper(TreeNode tree) {
@@ -187,6 +165,7 @@ public class TreeNode {
             return true;
         }
 
+        //recursively check if any of the children contain a goal path
         for (int i = 0; i < agent.getNumActions(); i++) {
             if (tree.children[i] != null) {
                 if(fbgpHelper(tree.children[i])) {
@@ -194,6 +173,7 @@ public class TreeNode {
                 }
             }
         }
+
         return false;
     }
 
@@ -218,11 +198,32 @@ public class TreeNode {
             }
         }
 
+        //if no goal path is found, return nothing
         if(goalPath == -1) {
             return "";
         }
 
         return tree.getCharacterAction() + findBestGoalPath(tree.children[goalPath]);
+    }
+
+    /**
+     * setChildBool
+     *
+     * set childBool to false when there are no children
+     *
+     */
+    public void setChildBool(boolean childFalse) {
+        this.childBool = childFalse;
+    }
+
+    /**
+     * getCharacterAction
+     *
+     * get the character action instance variable
+     *
+     */
+    public char getCharacterAction() {
+        return this.characterAction;
     }
 
 

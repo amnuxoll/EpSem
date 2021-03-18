@@ -100,7 +100,6 @@ public class Rule {
     public boolean matches(char action, SensorData currExternal, int[] currInternal)
     {
         if (this.action != action) { return false; }
-        int index = 0;
 
         for (String s : currExternal.getSensorNames()) {
             if (!this.lhsExternal.getSensor(s).equals(currExternal.getSensor(s))) {
@@ -119,8 +118,6 @@ public class Rule {
     //returns true if this rule matches the given action and sensor values
     public boolean matches(SensorData currExternal, int[] currInternal)
     {
-        int index = 0;
-
         for (String s : currExternal.getSensorNames()) {
             if (this.lhsExternal.getSensor(s) != currExternal.getSensor(s)) {
                 return false;
