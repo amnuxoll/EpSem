@@ -2,6 +2,8 @@ package agents.phujus;
 import environments.fsm.FSMEnvironment.Sensor;
 import framework.Action;
 import framework.SensorData;
+
+import java.util.HashMap;
 import java.util.Random;
 
 import static java.lang.Math.abs;
@@ -17,6 +19,8 @@ public class Rule {
     //Constants
     public static final int ACTHISTLEN = 10;
 
+    private Random rand = new Random();
+
     //each rule has a unique integer id
     private int ruleId;
 
@@ -24,15 +28,15 @@ public class Rule {
     // - 0 or more internal sensors that have a particular value (0 or 1)
     // - 0 or more values for external sensors
     // (note:  you must have at least 1 of one of the above)
-    private int[][] lhsInternal; //example: {{467, 801, 21}, {0, 1, 1} }
-    private SensorData  lhsExternal;  //example: {1,-1,0,-1}  note: -1 is "wildcard"
+    // private int[][] lhsInternal; //example: {{467, 801, 21}, {0, 1, 1} }
+    private HashMap<Integer, Boolean> lhsInternal = new HashMap<>();
+    private SensorData  lhsExternal = null;  //example: {1,-1,0,-1}  note: -1 is "wildcard"
     private char action;
 
     //define the RHS of the rule.  The RHS always contains:
     // - a value for exactly one external sensor
     // - optionally, an internal sensor that turns on ('1') when this rule matched in prev epsiode
-    private String rhsSensorName;   //index into the external sensor array
-    private int rhsValue;  // 0 or 1
+    private SensorData rhsExternal = null;
     private int rhsInternal;  //index into internal sensors *or* -1 if none
 
     //other data  (ignore these for feb 11-18)
@@ -59,10 +63,53 @@ public class Rule {
         this.lastActAmount = new double[]{0.0, 0.0};
     }
 
-    //Constructor to create random rule
+    //Picks random lhs external or internal sensor and adds it to the lhs of this rule. The value
+    // that it assigns to that sensor in this rule will be set to match a given episode.
+    // This method takes care not to add a sensor that's already present i.e. no duplicates
+    public void pickRandomLHS(PhuJusAgent agent) {
+        //select a random sensor
+        int numExternal = agent.getCurrExternal().getSensorNames().size();
+        int numInternal = PhuJusAgent.NUMINTERNAL;
+        int randIdx = rand.nextInt(numExternal+numInternal);
+
+        //this if statements checks to see if we select an external sensor or internal sensor
+        if (randIdx < numExternal) {
+            String[] sNames = (String[]) agent.getCurrExternal().getSensorNames().toArray();
+
+            //check if this is the first external sensor
+            if(this.lhsExternal == null) {
+                //handle differently if it is the goal sensor
+                if (sNames[randIdx].equals(SensorData.goalSensor)) {
+                    this.lhsExternal = new SensorData(rand.nextInt(2) == 1);
+                } else {
+                    this.lhsExternal = new SensorData(false);
+                    this.lhsExternal.setSensor(sNames[randIdx], rand.nextInt(2) == 1);
+                    this.lhsExternal.removeSensor(SensorData.goalSensor);
+                }
+            } else {
+                if (this.lhsExternal.contains(sNames[randIdx])) {
+                    //try again
+                    pickRandomLHS(agent);
+                } else {
+                    this.lhsExternal.setSensor(sNames[randIdx], rand.nextInt(2) == 1);
+                }
+            }
+        } else {
+            // subtract the num of External sensors for valid index
+            randIdx = randIdx - numExternal;
+
+            if (lhsInternal.containsKey(Integer.valueOf(randIdx))) {
+                //try again if accidentally selected duplicate sensor
+                pickRandomLHS(agent);
+            } else {
+                lhsInternal.put(Integer.valueOf(randIdx), Boolean.valueOf(rand.nextInt(2) == 1));
+            }
+        }
+    }
+
+    //Constructor to create random rule + add time idx for all previous sensors in previous episode
     public Rule(PhuJusAgent agent){
         Action[] actions = agent.getActionList();
-        Random rand = new Random();
 
         //choose random action for the character
         this.action = actions[rand.nextInt(agent.getNumActions())].getName().charAt(0);
@@ -71,20 +118,28 @@ public class Rule {
         //Possible problems -> Rules that have no current external sensors
         SensorData externalSensors = agent.getCurrExternal();
         SensorData ruleSensors = new SensorData(false);
-        for (String s : externalSensors.getSensorNames()) {
-            if (rand.nextInt(3) <= 1) {
-                if (rand.nextInt(3) <= 1) {
-                    ruleSensors.setSensor(s, true);
-                    //predict the opposite value of the sensor chosen
-                    this.rhsSensorName = s;
-                    this.rhsValue = 0;
-                } else {
-                    ruleSensors.setSensor(s, false);
-                    this.rhsSensorName = s;
-                    this.rhsValue = 1;
-                }
-            }
+
+
+        String[] sNames = (String[]) externalSensors.getSensorNames().toArray();
+
+        //select one random rhs external sensor
+        int sensorIndex = rand.nextInt(sNames.length);
+        String rhsSensorName = sNames[sensorIndex];
+        boolean rhsValue = rand.nextInt(2) == 1;
+
+        //if external sensor is goal, set value
+        if (rhsSensorName.equals(SensorData.goalSensor)) {
+            this.rhsExternal = new SensorData(rhsValue);
+        } else {
+            this.rhsExternal = new SensorData(false);
+            this.rhsExternal.setSensor(rhsSensorName, rhsValue);
+            this.rhsExternal.removeSensor(SensorData.goalSensor);
         }
+
+        do {
+            pickRandomLHS(agent);
+        } while (rand.nextInt(2) == 0);
+
 
         this.lhsExternal = ruleSensors;
 
@@ -140,7 +195,7 @@ public class Rule {
     {
         if (this.action != action) { return false; }
 
-        for (String s : currExternal.getSensorNames()) {
+        for (String s : this.lhsExternal.getSensorNames()) {
             if (!this.lhsExternal.getSensor(s).equals(currExternal.getSensor(s))) {
                 return false;
             }
