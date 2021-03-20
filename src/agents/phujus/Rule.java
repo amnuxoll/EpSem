@@ -51,7 +51,14 @@ public class Rule {
         this.action = act;
         this.lhsExternal = currExt;
         this.lhsInternal = currInt;
-        this.rhsExternal.setSensor(rhsSensorName, rhsValue);
+        //if external sensor is goal, set value
+        if (rhsSensorName.equals(SensorData.goalSensor)) {
+            this.rhsExternal = new SensorData(rhsValue);
+        } else {
+            this.rhsExternal = new SensorData(false);
+            this.rhsExternal.setSensor(rhsSensorName, rhsValue);
+            this.rhsExternal.removeSensor(SensorData.goalSensor);
+        }
         this.lastActAmount = new double[]{0.0, 0.0};
     }
 
@@ -110,10 +117,10 @@ public class Rule {
         //50% chance that rule has a specific sensor
         //Possible problems -> Rules that have no current external sensors
         SensorData externalSensors = agent.getCurrExternal();
-        SensorData ruleSensors = new SensorData(false);
 
 
-        String[] sNames = (String[]) externalSensors.getSensorNames().toArray();
+        String[] sNames =
+                externalSensors.getSensorNames().toArray(new String[0]);
 
         //select one random rhs external sensor
         int sensorIndex = rand.nextInt(sNames.length);
@@ -134,10 +141,6 @@ public class Rule {
         } while (rand.nextInt(2) == 0);
 
 
-        this.lhsExternal = ruleSensors;
-
-
-        //this.lhsInternal = currInternal;
         this.lastActAmount = new double[]{0.0, 0.0};
     }
 
@@ -210,4 +213,21 @@ public class Rule {
     }
 
     public SensorData getLHSExternal() { return this.lhsExternal; }
+    public String getRHSSensorName(){
+        for(String s : this.rhsExternal.getSensorNames()){
+            return s;
+        }
+        return "";
+    }
+    public int getRHSValue(){
+        for(String s : this.rhsExternal.getSensorNames()){
+            if((boolean)this.rhsExternal.getSensor(s)){
+                return 1;
+            }
+            else{
+                return 0;
+            }
+        }
+        return 0;
+    }
 }//class Rule

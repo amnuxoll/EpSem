@@ -23,7 +23,7 @@ public class TreeNode {
     private int episodeIndex; //associated timestep for this node
 
     //sensor values for this node
-    private int[] currInternal = new int[PhuJusAgent.NUMINTERNAL];
+    private HashMap<Integer, Boolean> currInternal = new HashMap<>();
 
     private SensorData currExternal;
 
@@ -42,7 +42,7 @@ public class TreeNode {
 
     /** root node constructor */
     public TreeNode(PhuJusAgent initAgent, ArrayList<Rule> initRulesList, int initEpisodeIndex,
-                    int[] initCurrInternal, SensorData initCurrExternal, char action) {
+                    HashMap<Integer, Boolean> initCurrInternal, SensorData initCurrExternal, char action) {
         //initializing agent and its children
         this.agent = initAgent;
         this.rulesList = initRulesList;
@@ -65,7 +65,7 @@ public class TreeNode {
             char action = (char) ('a' + i);
 
             //predicted sensor values for t+1
-            int[] nextInternal = new int[PhuJusAgent.NUMINTERNAL];
+            HashMap<Integer, Boolean> nextInternal = new HashMap<>();
 
             /*
             Example:
@@ -77,11 +77,6 @@ public class TreeNode {
 
             */
 
-            //initialize nextInternal (all zeroes)
-            for (int j = 0; j < nextInternal.length; j++) {
-                nextInternal[j] = 0;
-            }
-
             // create separate predictedExternal entries for on vs off
             HashMap<String, double[]> predictedExternal = new HashMap<>();
 
@@ -89,7 +84,7 @@ public class TreeNode {
                 int sIndex = r.getAssocSensor();
                 if (r.matches(action, this.currExternal, this.currInternal)) {
                     if (sIndex != -1) {
-                        nextInternal[sIndex] = 0;  //on
+                        nextInternal.put(sIndex, true); //on
                     }
 
                     //get the current votes so far
@@ -104,7 +99,7 @@ public class TreeNode {
                     votes[r.getRHSValue()] += r.getActivation(this.episodeIndex);
                 } else {
                     if (sIndex != -1) {
-                        nextInternal[sIndex] = 0;  //off
+                        nextInternal.put(sIndex, false); //off
                     }
                 }
             }//for
@@ -133,8 +128,8 @@ public class TreeNode {
 
     public void printTree(){
         System.out.print(this.characterAction);
-        for (int i = 0; i < this.currInternal.length; i++) {
-            System.out.print(this.currInternal[i]);
+        for(Integer i : this.currInternal.keySet()){
+            System.out.print('(' + String.valueOf(i.intValue()) + ',' + this.currInternal.get(i) + ')');
         }
         System.out.print("|");
         for (String s : this.currExternal.getSensorNames()) {
