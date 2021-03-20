@@ -74,8 +74,8 @@ public class Rule {
 
         //this if statements checks to see if we select an external sensor or internal sensor
         if (randIdx < numExternal) {
-            String[] sNames = (String[]) agent.getCurrExternal().getSensorNames().toArray();
-
+            String[] sNames = agent.getCurrExternal().getSensorNames().toArray(new String[0]);
+            System.out.println(sNames);
             //check if this is the first external sensor
             if(this.lhsExternal == null) {
                 //handle differently if it is the goal sensor
@@ -150,8 +150,11 @@ public class Rule {
             System.out.print('(' + String.valueOf(i.intValue()) + ',' + this.lhsInternal.get(i) + ')');
         }
         System.out.print("|");
-        for (String s : this.lhsExternal.getSensorNames()) {
-            System.out.print('(' + s + ',' + this.lhsExternal.getSensor(s) + ')');
+        if(this.lhsExternal != null) {
+            for (String s : this.lhsExternal.getSensorNames()) {
+                System.out.print('(' + s + ',' + this.lhsExternal.getSensor(s) +
+                        ')');
+            }
         }
         System.out.print(" -> ");
         for(String s : this.rhsExternal.getSensorNames()) {
