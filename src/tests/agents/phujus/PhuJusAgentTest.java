@@ -8,6 +8,8 @@ import tests.Assertions;
 import tests.EpSemTest;
 import tests.EpSemTestClass;
 
+import java.util.HashMap;
+
 import static environments.fsm.FSMEnvironment.Sensor.IS_EVEN;
 
 @EpSemTestClass
@@ -119,14 +121,16 @@ public class PhuJusAgentTest {
         currExternal.setSensor("testSensor3", false);
 
         // create simple internal sensors for the rule class
-        int[][] currInternal = new int[1][4];
-        currInternal[0][0] = 1;
+//        int[][] currInternal = new int[1][4];
+//        currInternal[0][0] = 1;
+        HashMap<Integer, Boolean> currInternal = new HashMap<>();
+        currInternal.put(0, true);
 
         // add rule to the agent rule's list
-        Rule rule = new Rule(actions[0].getName().charAt(0), currExternal, currInternal, "testSensor1");
+        Rule rule = new Rule(actions[0].getName().charAt(0), currExternal, currInternal, "testSensor1", true);
         agent.addRule(rule);
         agent.setCurrExternal(currExternal);
-        agent.setCurrInternal(currInternal[0]);
+        agent.setCurrInternal(currInternal);
 
         //Initialize tree and generate children
         TreeNode root = new TreeNode(agent, agent.getRules(), agent.getNow(),

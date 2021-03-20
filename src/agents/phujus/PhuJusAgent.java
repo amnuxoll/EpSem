@@ -30,7 +30,7 @@ public class PhuJusAgent implements IAgent {
     private IIntrospector introspector;
 
     //current sensor values
-    private int[] currInternal = new int[NUMINTERNAL];
+    private HashMap<Integer, Boolean> currInternal = new HashMap<>();
     SensorData currExternal;
 
     //predicted sensor values for t+1
@@ -83,9 +83,9 @@ public class PhuJusAgent implements IAgent {
 
     public ArrayList<Rule> getRules() {return this.rules;}
 
-    public void setCurrInternal(int[] curIntern) {this.currInternal = curIntern;}
+    public void setCurrInternal(HashMap<Integer, Boolean> curIntern) {this.currInternal = curIntern;}
 
-    public int[] getCurrInternal() {return this.currInternal;}
+    public HashMap<Integer, Boolean> getCurrInternal() {return this.currInternal;}
 
     public void setCurrExternal(SensorData curExtern) {this.currExternal = curExtern;}
 

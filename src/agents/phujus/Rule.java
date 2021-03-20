@@ -46,22 +46,15 @@ public class Rule {
     private int lastActUpdate; //when was last time I updated activation
     private double decayRate;
 
-    //Constructor
-    public Rule(char act, SensorData currExt, int[][] currInt){
+    //Constructor with RHS prediction
+    public Rule(char act, SensorData currExt, HashMap<Integer, Boolean> currInt, String rhsSensorName, boolean rhsValue){
         this.action = act;
         this.lhsExternal = currExt;
         this.lhsInternal = currInt;
+        this.rhsExternal.setSensor(rhsSensorName, rhsValue);
         this.lastActAmount = new double[]{0.0, 0.0};
     }
 
-    //Constructor with RHS prediction
-    public Rule(char act, SensorData currExt, int[][] currInt, String rhsSensName){
-        this.action = act;
-        this.lhsExternal = currExt;
-        this.lhsInternal = currInt;
-        this.rhsSensorName = rhsSensName;
-        this.lastActAmount = new double[]{0.0, 0.0};
-    }
 
     //Picks random lhs external or internal sensor and adds it to the lhs of this rule. The value
     // that it assigns to that sensor in this rule will be set to match a given episode.
@@ -87,7 +80,7 @@ public class Rule {
                     this.lhsExternal.removeSensor(SensorData.goalSensor);
                 }
             } else {
-                if (this.lhsExternal.contains(sNames[randIdx])) {
+                if (this.lhsExternal.getSensor(sNames[randIdx]) != null) {
                     //try again
                     pickRandomLHS(agent);
                 } else {
@@ -143,25 +136,24 @@ public class Rule {
 
         this.lhsExternal = ruleSensors;
 
-        int[][] currInternal = new int[4][4];
-        for (int i = 0; i < currInternal.length; i++) {
-            currInternal[0][i] = 0;
-        }
-        this.lhsInternal = currInternal;
+
+        //this.lhsInternal = currInternal;
         this.lastActAmount = new double[]{0.0, 0.0};
     }
 
     public void printRule(){
         System.out.print(this.action);
-        for (int i = 0; i < this.lhsInternal.length; i++) {
-            System.out.print(this.lhsInternal[0][i]);
+        for(Integer i : this.lhsInternal.keySet()){
+            System.out.print('(' + String.valueOf(i.intValue()) + ',' + this.lhsInternal.get(i) + ')');
         }
         System.out.print("|");
         for (String s : this.lhsExternal.getSensorNames()) {
             System.out.print('(' + s + ',' + this.lhsExternal.getSensor(s) + ')');
         }
         System.out.print(" -> ");
-        System.out.print('(' + this.rhsSensorName + ',' + this.getRHSValue() + ')');
+        for(String s : this.rhsExternal.getSensorNames()) {
+            System.out.print('(' + s + ',' + this.rhsExternal.getSensor(s) + ')');
+        }
         System.out.println();
     }
 
@@ -191,7 +183,7 @@ public class Rule {
 
 
     //returns true if this rule matches the given action and sensor values
-    public boolean matches(char action, SensorData currExternal, int[] currInternal)
+    public boolean matches(char action, SensorData currExternal, HashMap<Integer, Boolean> currInternal)
     {
         if (this.action != action) { return false; }
 
@@ -200,43 +192,17 @@ public class Rule {
                 return false;
             }
         }
-        for (int i = 0; i < currInternal.length; i++) {
-            if(this.lhsInternal[0][i] != currInternal[i]){
+        for(Integer i : this.lhsInternal.keySet()){
+            if(this.lhsInternal.get(i) != currInternal.get(i)){
                 return false;
             }
         }
 
         return true;
     }
-
-    //returns true if this rule matches the given action and sensor values
-    public boolean matches(SensorData currExternal, int[] currInternal)
-    {
-        for (String s : this.lhsExternal.getSensorNames()) {
-            if (this.lhsExternal.getSensor(s) != currExternal.getSensor(s)) {
-                return false;
-            }
-        }
-        for (int i = 0; i < currInternal.length; i++) {
-            if(this.lhsInternal[0][i] != currInternal[i]){
-                return false;
-            }
-        }
-
-        return true;
-    }
-
 
     public int getAssocSensor() {
         return this.ruleId;
-    }
-
-    public int getRHSValue() {
-        return this.rhsValue;
-    }
-
-    public String getRHSSensorName() {
-        return this.rhsSensorName;
     }
 
     public char getChar() {
@@ -244,8 +210,4 @@ public class Rule {
     }
 
     public SensorData getLHSExternal() { return this.lhsExternal; }
-
-    public void setRhsValue(int rhsValue) {
-        this.rhsValue = rhsValue;
-    }
 }//class Rule
