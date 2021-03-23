@@ -270,4 +270,43 @@ public class PhuJusAgentTest {
         //Check to see if rule inventory has been filled up properly
         Assertions.assertTrue(agent.ruleLimitReached());
     }
+
+    @EpSemTest
+    public void generateRulesTest2(){
+        //Generate rules based on a finite state machine
+
+        //Initialize current External Sensors
+        SensorData currExternal = new SensorData(true);
+        currExternal.setSensor("testSensor1", true);
+        currExternal.setSensor("testSensor2", true);
+        currExternal.setSensor("testSensor3", true);
+
+        SensorData prevExternal = new SensorData(false);
+        prevExternal.setSensor("testSensor1", false);
+        prevExternal.setSensor("testSensor2", false);
+        prevExternal.setSensor("testSensor3", false);
+
+        //simple current internal sensors
+        HashMap<Integer, Boolean> currInternal = new HashMap<>();
+        currInternal.put(0, false);
+        currInternal.put(1, false);
+        currInternal.put(2, false);
+        currInternal.put(3, false);
+
+        //Initialize agent with a list of actions
+        Action[] actions = new Action[2];
+        actions[0] = new Action("a");
+        actions[1] = new Action("b");
+        PhuJusAgent agent = new PhuJusAgent();
+        agent.setCurrExternal(currExternal);
+        agent.setPrevInternal(currInternal);
+        agent.setPrevExternal(prevExternal);
+        agent.initialize(actions, null);
+
+        //Generate rules until an agent's rule inventory is full
+        agent.generateRules();
+
+        //Check to see if rule inventory has been filled up properly
+        Assertions.assertTrue(agent.ruleLimitReached());
+    }
 }

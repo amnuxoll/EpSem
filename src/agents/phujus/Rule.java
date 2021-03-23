@@ -76,7 +76,6 @@ public class Rule {
         if (randIdx < numExternal) {
             //lhs sensors are determined by lhs sensors from previous episode
             String[] sNames = agent.getPrevExternal().getSensorNames().toArray(new String[0]);
-            System.out.println(sNames);
             //check if this is the first external sensor
             if(this.lhsExternal == null) {
                 //handle differently if it is the goal sensor
@@ -85,7 +84,7 @@ public class Rule {
                 } else {
                     this.lhsExternal = new SensorData(false);
                     //lhs external sensor is determined by external sensor from previous episode
-                    this.lhsExternal.setSensor(sNames[randIdx], this.lhsExternal.getSensor(sNames[randIdx]));
+                    this.lhsExternal.setSensor(sNames[randIdx], agent.getPrevExternal().getSensor(sNames[randIdx]));
                     this.lhsExternal.removeSensor(SensorData.goalSensor);
                 }
             } else {
@@ -94,7 +93,7 @@ public class Rule {
                     pickRandomLHS(agent);
                 } else {
                     //lhs external sensor is determined by external sensor from previous episode
-                    this.lhsExternal.setSensor(sNames[randIdx], this.lhsExternal.getSensor(sNames[randIdx]));
+                    this.lhsExternal.setSensor(sNames[randIdx], agent.getPrevExternal().getSensor(sNames[randIdx]));
                 }
             }
         } else {
@@ -105,7 +104,7 @@ public class Rule {
                 //try again if accidentally selected duplicate sensor
                 pickRandomLHS(agent);
             } else {
-                lhsInternal.put(Integer.valueOf(randIdx), Boolean.valueOf(rand.nextInt(2) == 1));
+                lhsInternal.put(Integer.valueOf(randIdx), agent.getPrevInternalValue(randIdx));
             }
         }
     }

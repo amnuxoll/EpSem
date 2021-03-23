@@ -105,6 +105,12 @@ public class PhuJusAgent implements IAgent {
 
     public SensorData getPrevExternal() {return this.prevExternal;}
 
+    public void setPrevExternal(SensorData prevExtern) {this.prevExternal = prevExtern;}
+
+    public boolean getPrevInternalValue(int id){
+        return this.prevInternal.get(id);
+    }
+
     public void setNow(int now) {
         this.now = now;
     }
@@ -118,6 +124,10 @@ public class PhuJusAgent implements IAgent {
     }
 
     public Action[] getActionList() {return actionList;}
+
+    public void setPrevInternal(HashMap<Integer, Boolean> prevInternal) {
+        this.prevInternal = prevInternal;
+    }
 
 
 //    public char someMethod() {
