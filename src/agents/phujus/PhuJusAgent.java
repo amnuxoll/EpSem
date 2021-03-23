@@ -33,6 +33,10 @@ public class PhuJusAgent implements IAgent {
     private HashMap<Integer, Boolean> currInternal = new HashMap<>();
     SensorData currExternal;
 
+    //values from previous instance to build rules
+    SensorData prevExternal;
+    private HashMap<Integer, Boolean> prevInternal = new HashMap<>();
+
     //predicted sensor values for t+1
     int[] nextInternal = new int[NUMINTERNAL];
 
@@ -49,9 +53,17 @@ public class PhuJusAgent implements IAgent {
 
     @Override
     public Action getNextAction(SensorData sensorData) throws Exception {
+        this.prevExternal = this.currExternal;
         this.currExternal = sensorData;
+        this.prevInternal = this.currInternal;
+
+
+        /*
         this.root = new TreeNode(this, this.rules, now, this.currInternal, this.currExternal, 'z');
         this.root.genSuccessors(1);
+         */
+
+
 
         return null;
     }
@@ -90,6 +102,8 @@ public class PhuJusAgent implements IAgent {
     public void setCurrExternal(SensorData curExtern) {this.currExternal = curExtern;}
 
     public SensorData getCurrExternal() {return this.currExternal;}
+
+    public SensorData getPrevExternal() {return this.prevExternal;}
 
     public void setNow(int now) {
         this.now = now;

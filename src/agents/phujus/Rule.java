@@ -74,7 +74,8 @@ public class Rule {
 
         //this if statements checks to see if we select an external sensor or internal sensor
         if (randIdx < numExternal) {
-            String[] sNames = agent.getCurrExternal().getSensorNames().toArray(new String[0]);
+            //lhs sensors are determined by lhs sensors from previous episode
+            String[] sNames = agent.getPrevExternal().getSensorNames().toArray(new String[0]);
             System.out.println(sNames);
             //check if this is the first external sensor
             if(this.lhsExternal == null) {
@@ -83,7 +84,8 @@ public class Rule {
                     this.lhsExternal = new SensorData(rand.nextInt(2) == 1);
                 } else {
                     this.lhsExternal = new SensorData(false);
-                    this.lhsExternal.setSensor(sNames[randIdx], rand.nextInt(2) == 1);
+                    //lhs external sensor is determined by external sensor from previous episode
+                    this.lhsExternal.setSensor(sNames[randIdx], this.lhsExternal.getSensor(sNames[randIdx]));
                     this.lhsExternal.removeSensor(SensorData.goalSensor);
                 }
             } else {
@@ -91,7 +93,8 @@ public class Rule {
                     //try again
                     pickRandomLHS(agent);
                 } else {
-                    this.lhsExternal.setSensor(sNames[randIdx], rand.nextInt(2) == 1);
+                    //lhs external sensor is determined by external sensor from previous episode
+                    this.lhsExternal.setSensor(sNames[randIdx], this.lhsExternal.getSensor(sNames[randIdx]));
                 }
             }
         } else {
@@ -125,7 +128,9 @@ public class Rule {
         //select one random rhs external sensor
         int sensorIndex = rand.nextInt(sNames.length);
         String rhsSensorName = sNames[sensorIndex];
-        boolean rhsValue = rand.nextInt(2) == 1;
+
+        //rhs value is determined by current external sensor value
+        boolean rhsValue = (boolean) agent.getCurrExternal().getSensor(rhsSensorName);
 
         //if external sensor is goal, set value
         if (rhsSensorName.equals(SensorData.goalSensor)) {

@@ -161,7 +161,7 @@ public class PhuJusAgentTest {
 
         // create simple internal sensors for the rule class
         HashMap<Integer, Boolean> currInternal = new HashMap<>();
-        currInternal.put(0, true);
+        currInternal.put(0, false);
 
         // add rule to the agent rule's list | predict testSensor1 is TRUE if action "a" is taken
         Rule ruleOne = new Rule(actions[1].getName().charAt(0), currExternal, currInternal, "testSensor1", true);
@@ -214,7 +214,7 @@ public class PhuJusAgentTest {
 
         // create simple internal sensors for the rule class
         HashMap<Integer, Boolean> currInternal = new HashMap<>();
-        currInternal.put(0, true);
+        currInternal.put(0, false);
 
         // add rule to the agent rule's list | predict testSensor1 is TRUE if action "a" is taken
         Rule ruleOne = new Rule(actions[0].getName().charAt(0), currExternal, currInternal, "testSensor1", true);

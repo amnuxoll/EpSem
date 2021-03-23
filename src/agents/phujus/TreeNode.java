@@ -84,7 +84,7 @@ public class TreeNode {
                 int sIndex = r.getAssocSensor();
                 if (r.matches(action, this.currExternal, this.currInternal)) {
                     if (sIndex != -1) {
-                        nextInternal.put(sIndex, true); //on
+                        nextInternal.put(sIndex, false); //on
                     }
 
                     //get the current votes so far
