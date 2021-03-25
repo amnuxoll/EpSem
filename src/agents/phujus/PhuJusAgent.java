@@ -8,6 +8,7 @@ import environments.fsm.FSMEnvironment.Sensor;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Random;
 
 public class PhuJusAgent implements IAgent {
 
@@ -53,19 +54,35 @@ public class PhuJusAgent implements IAgent {
 
     @Override
     public Action getNextAction(SensorData sensorData) throws Exception {
-        this.prevExternal = this.currExternal;
-        this.currExternal = sensorData;
+        if(this.currExternal == null) {
+            this.currExternal = sensorData;
+            this.prevExternal = this.currExternal;
+        }
+        else {
+            this.prevExternal = this.currExternal;
+            this.currExternal = sensorData;
+        }
+        this.currInternal.put(0, false);
+        this.currInternal.put(1, false);
+        this.currInternal.put(2, false);
+        this.currInternal.put(3, false);
         this.prevInternal = this.currInternal;
+        this.generateRules();
 
-
-        /*
-        this.root = new TreeNode(this, this.rules, now, this.currInternal, this.currExternal, 'z');
+        this.root = new TreeNode(this, this.rules, now, this.currInternal, this.currExternal, '\0');
         this.root.genSuccessors(1);
-         */
+        String s = this.root.findBestGoalPath(this.root);
+        //System.out.println("s: " + s.charAt(1));
+        Action action = new Action(s.charAt(1) + "");
+        //System.out.println(action.getName());
 
-
-
-        return null;
+        if(!s.equals(null)) {
+            return action;
+        }
+        else{
+            Random rand = new Random();
+            return this.actionList[rand.nextInt(this.getNumActions())];
+        }
     }
 
     //TODO checkforUniqueID
@@ -108,7 +125,7 @@ public class PhuJusAgent implements IAgent {
     public void setPrevExternal(SensorData prevExtern) {this.prevExternal = prevExtern;}
 
     public boolean getPrevInternalValue(int id){
-        return this.prevInternal.get(id);
+        return this.prevInternal.get(Integer.valueOf(id));
     }
 
     public void setNow(int now) {

@@ -7,6 +7,7 @@ import agents.juno.JunoConfiguration;
 import agents.marz.MaRzAgentProvider;
 import agents.marzrules.RulesAgentProvider;
 import agents.nsm.NSMAgentProvider;
+import agents.phujus.PhuJusAgentProvider;
 import agents.predr.PredrAgentProvider;
 import environments.fsm.FSMEnvironment;
 import environments.fsm.FSMEnvironmentProvider;
@@ -240,6 +241,16 @@ public class Runner {
             }
     );
 
+    private static TestSuite PJ_SUITE = new TestSuite(
+            TestSuiteConfiguration.QUICK,
+            new IEnvironmentProvider[] {
+                    new FSMEnvironmentProvider(Random.getTrue(), new FSMTransitionTableBuilder(2, 4, Random.getFalse()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN, FSMEnvironment.Sensor.WITHIN_1))
+            },
+            new IAgentProvider[] {
+                    new PhuJusAgentProvider()
+            }
+    );
+
     //endregion
 
     //region Main
@@ -247,7 +258,7 @@ public class Runner {
         try {
             File outputDirectory = DirectoryUtils.generateCenekOutputDirectory();
             Runner.redirectOutput(outputDirectory);
-            Runner.ZPF_Suite.run(new FileResultCompiler(outputDirectory));
+            Runner.PJ_SUITE.run(new FileResultCompiler(outputDirectory));
         } catch (OutOfMemoryError mem) {
             mem.printStackTrace();
         } catch (Exception ex) {

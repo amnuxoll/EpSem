@@ -196,15 +196,19 @@ public class Rule {
     public boolean matches(char action, SensorData currExternal, HashMap<Integer, Boolean> currInternal)
     {
         if (this.action != action) { return false; }
-
-        for (String s : this.lhsExternal.getSensorNames()) {
-            if (!this.lhsExternal.getSensor(s).equals(currExternal.getSensor(s))) {
-                return false;
+        if(this.lhsExternal != null) {
+            for (String s : this.lhsExternal.getSensorNames()) {
+                if (!this.lhsExternal.getSensor(s)
+                        .equals(currExternal.getSensor(s))) {
+                    return false;
+                }
             }
         }
-        for(Integer i : this.lhsInternal.keySet()){
-            if(this.lhsInternal.get(i) != currInternal.get(i)){
-                return false;
+        if(this.lhsInternal != null) {
+            for (Integer i : this.lhsInternal.keySet()) {
+                if (this.lhsInternal.get(i) != currInternal.get(i)) {
+                    return false;
+                }
             }
         }
 
