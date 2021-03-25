@@ -53,6 +53,42 @@ public class TreeNode {
         this.characterAction = action;
     }
 
+    /**
+     * genNextSensors
+     *
+     * generates the nextInternal and predictedExternal sensor values for a
+     * given action for this rule
+     *
+     * CAVEAT:  predictedExternal and nextInternal should not be null!
+
+     */
+    public void genNextSensors(char action, HashMap<Integer, Boolean> nextInternal, HashMap<String, double[]> predictedExternal) {
+
+            for(Rule r : rulesList) {
+                int sIndex = r.getAssocSensor();
+                if (r.matches(action, this.currExternal, this.currInternal)) {
+                    if (sIndex != -1) {
+                        nextInternal.put(sIndex, true); //on
+                    }
+
+                    //get the current votes so far
+                    double[] votes = predictedExternal.get(r.getRHSSensorName());
+                    if (votes == null) {
+                        votes = new double[]{0.0, 0.0};
+                        //Create a sensor data to initialize this child node
+                        predictedExternal.put(r.getRHSSensorName(), votes);
+                    }
+                    //update predicted external value (currently a placeholder value for r.getActivation arg)
+
+                    votes[r.getRHSValue()] += r.getActivation(this.episodeIndex);
+                } else {
+                    if (sIndex != -1) {
+                        nextInternal.put(sIndex, false); //off
+                    }
+                }
+            }//for
+    }//genNextSensors
+
     /** recursively generate successor nodes */
     public void genSuccessors(int depth) {
         //base case
@@ -80,29 +116,7 @@ public class TreeNode {
             // create separate predictedExternal entries for on vs off
             HashMap<String, double[]> predictedExternal = new HashMap<>();
 
-            for(Rule r : rulesList) {
-                int sIndex = r.getAssocSensor();
-                if (r.matches(action, this.currExternal, this.currInternal)) {
-                    if (sIndex != -1) {
-                        nextInternal.put(sIndex, false); //on
-                    }
-
-                    //get the current votes so far
-                    double[] votes = predictedExternal.get(r.getRHSSensorName());
-                    if (votes == null) {
-                        votes = new double[]{0.0, 0.0};
-                        //Create a sensor data to initialize this child node
-                        predictedExternal.put(r.getRHSSensorName(), votes);
-                    }
-                    //update predicted external value (currently a placeholder value for r.getActivation arg)
-
-                    votes[r.getRHSValue()] += r.getActivation(this.episodeIndex);
-                } else {
-                    if (sIndex != -1) {
-                        nextInternal.put(sIndex, false); //off
-                    }
-                }
-            }//for
+            genNextSensors(action, nextInternal, predictedExternal);
 
             //Create a sensor data to initialize this child node
             SensorData childSD = new SensorData(this.currExternal);
@@ -220,6 +234,7 @@ public class TreeNode {
     public char getCharacterAction() {
         return this.characterAction;
     }
+
 
 
 }//class TreeNode

@@ -19,6 +19,12 @@ public class Rule {
     //Constants
     public static final int ACTHISTLEN = 10;
 
+    //to assign a unique id to each rule this shared variable is incremented by the ctor
+    private static int nextRuleId = 1;
+
+    //to track which internal sensor values are available for use
+    private static boolean[] intSensorInUse = new boolean[PhuJusAgent.NUMINTERNAL];
+
     private Random rand = new Random();
 
     //each rule has a unique integer id
@@ -37,7 +43,7 @@ public class Rule {
     // - a value for exactly one external sensor
     // - optionally, an internal sensor that turns on ('1') when this rule matched in prev epsiode
     private SensorData rhsExternal = null;
-    private int rhsInternal;  //index into internal sensors *or* -1 if none
+    private int rhsInternal = -1;  //index into internal sensors *or* -1 if none
 
     //other data  (ignore these for feb 11-18)
     private int[] lastActTimes = new int[ACTHISTLEN];  // last N times the rule was activated
@@ -48,6 +54,7 @@ public class Rule {
 
     //Constructor with RHS prediction
     public Rule(char act, SensorData currExt, HashMap<Integer, Boolean> currInt, String rhsSensorName, boolean rhsValue){
+        this.ruleId = this.nextRuleId++;
         this.action = act;
         this.lhsExternal = currExt;
         this.lhsInternal = currInt;
@@ -111,6 +118,19 @@ public class Rule {
 
     //Constructor to create random rule + add time idx for all previous sensors in previous episode
     public Rule(PhuJusAgent agent){
+        this.ruleId = this.nextRuleId++;
+
+        //assign a sensor if one is available
+        int isBase = rand.nextInt(PhuJusAgent.NUMINTERNAL);
+        for(int i = 0; i < PhuJusAgent.NUMINTERNAL; ++i) {
+            int isIndex = (isBase + i) % PhuJusAgent.NUMINTERNAL;
+            if (! this.intSensorInUse[isIndex]) {
+                this.rhsInternal = isIndex;
+                this.intSensorInUse[isIndex] = true;
+                break;
+            }
+        }
+
         Action[] actions = agent.getActionList();
 
         //choose random action for the character
@@ -149,7 +169,16 @@ public class Rule {
     }
 
     public void printRule(){
+        System.out.print("#" + this.ruleId + ":");
         System.out.print(this.action);
+
+        //print associated internal sensor 
+        System.out.print("<");
+        if (this.rhsInternal != -1) {
+            System.out.print(this.rhsInternal);
+        }
+        System.out.print(">");
+
         for(Integer i : this.lhsInternal.keySet()){
             System.out.print('(' + String.valueOf(i.intValue()) + ',' + this.lhsInternal.get(i) + ')');
         }
@@ -216,7 +245,7 @@ public class Rule {
     }
 
     public int getAssocSensor() {
-        return this.ruleId;
+        return this.rhsInternal;
     }
 
     public char getChar() {

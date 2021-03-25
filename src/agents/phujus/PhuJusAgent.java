@@ -52,6 +52,13 @@ public class PhuJusAgent implements IAgent {
         this.introspector = introspector;
     }
 
+    //DEBUG:  print out internal sensors
+    private void printInternalSensors(HashMap<Integer, Boolean> printMe) {
+        for(Integer i : printMe.keySet()) {
+            System.out.println("\t" + i.toString() + ":" + printMe.get(i));
+        }
+    }        
+
     @Override
     public Action getNextAction(SensorData sensorData) throws Exception {
         if(this.currExternal == null) {
@@ -67,15 +74,48 @@ public class PhuJusAgent implements IAgent {
         this.currInternal.put(2, false);
         this.currInternal.put(3, false);
         this.prevInternal = this.currInternal;
+
+        //print the external sensor data out
+        System.out.println("External Sensors: ");
+        for(String s : sensorData.getSensorNames()) {
+            System.out.println("\t" + s + ":" + sensorData.getSensor(s));
+        }
+
+        System.out.println("Internal Sensors: ");
+        printInternalSensors(this.currInternal);
+
+
+
+
+
         this.generateRules();
 
+
+        
         this.root = new TreeNode(this, this.rules, now, this.currInternal, this.currExternal, '\0');
         this.root.genSuccessors(1);
         String s = this.root.findBestGoalPath(this.root);
-        //System.out.println("s: " + s.charAt(1));
+        System.out.println("s: " + s.charAt(1));
         Action action = new Action(s.charAt(1) + "");
-        //System.out.println(action.getName());
+        System.out.println(action.getName());
+        this.root.printTree();
 
+        //Now that we know what action to take, update the internal sensors so they ar ready for the 
+        //next call to this method (next time step)
+        this.prevInternal = this.currInternal;
+        this.currInternal = new HashMap<Integer, Boolean>();
+        //This variable is needed to make the call but we will throw away the data that it is filled with (for now!)
+        HashMap<String, double[]> deleteMe =  new HashMap<String, double[]>(); 
+        this.root.genNextSensors(s.charAt(1), currInternal, deleteMe);
+
+
+        System.out.println("Next internal sensors: ");
+        printInternalSensors(this.currInternal);
+
+
+        //DEBUG: For now, bail out after first call
+        System.exit(0);
+        
         if(!s.equals(null)) {
             return action;
         }
