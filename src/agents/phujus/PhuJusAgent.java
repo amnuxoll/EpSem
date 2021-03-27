@@ -7,6 +7,7 @@ import framework.SensorData;
 import environments.fsm.FSMEnvironment.Sensor;
 
 import java.util.ArrayList;
+import java.util.*;
 import java.util.HashMap;
 import java.util.Random;
 
@@ -51,6 +52,7 @@ public class PhuJusAgent implements IAgent {
     TreeNode root; // init this somewhere ...
     @Override
     public void initialize(Action[] actions, IIntrospector introspector) {
+        //Store the actions the agents can take and introspector for data analysis later on
         this.actionList = actions;
         this.introspector = introspector;
     }
@@ -62,53 +64,77 @@ public class PhuJusAgent implements IAgent {
         }
     }        
 
+    //Based on the sensor data from the current time step, the agent determines the next action to take
     @Override
     public Action getNextAction(SensorData sensorData) throws Exception {
         Action action = new Action("a" + "");
         this.path = "";
+        //Use case: time step t = 0 when the agent has not taken any action yet
         if(this.currExternal == null) {
             this.currExternal = sensorData;
             this.prevExternal = this.currExternal;
         }
-        else {
+        else {// update external sensor values for t-1 and t
             this.prevExternal = this.currExternal;
             this.currExternal = sensorData;
         }
+
+        //Initialize current and previous internal sensors with random values
         this.currInternal.put(0, false);
         this.currInternal.put(1, false);
         this.currInternal.put(2, false);
         this.currInternal.put(3, false);
         this.prevInternal = this.currInternal;
 
-        //print the external sensor data out
-        System.out.println("External Sensors: ");
-        for(String s : sensorData.getSensorNames()) {
-            System.out.println("\t" + s + ":" + sensorData.getSensor(s));
+//        //print the external sensor data out
+//        System.out.println("External Sensors: ");
+//        for(String s : sensorData.getSensorNames()) {
+//            System.out.println("\t" + s + ":" + sensorData.getSensor(s));
+//        }
+//
+//        System.out.println("Internal Sensors: ");
+//        printInternalSensors(this.currInternal);
+
+        //Create rules based on the agent's current internal and external sensors
+        if (sensorData.isGoal()) {
+            if(this.rules == null) {
+                this.generateRules();
+            } else{
+
+                //Collections.sort(this.rules);
+                for(int i = 0; i < this.rules.size()/2; i++) {
+                    double lowestActivation = 100.0;
+                    int curRuleId = 0;
+                    for (Rule r : this.rules) {
+                        if(r.getActivation(now) < lowestActivation){
+                            lowestActivation = r.getActivation(now);
+                            curRuleId = r.getRuleId();
+                        }
+                    }
+                    this.removeRule(curRuleId);
+                }
+                this.generateRules();
+            }
         }
-
-        System.out.println("Internal Sensors: ");
-        printInternalSensors(this.currInternal);
-
-
-
-
-
-        this.generateRules();
 
         //If we don't have a path to follow, find a goal path
         if(this.path.equals("")) {
+            //Build a tree from the generated rules
             this.root = new TreeNode(this, this.rules, now, this.currInternal,
                     this.currExternal, '\0');
             this.root.genSuccessors(3);
+
+            //Find an entire sequence of characters that can reach the goal and get the current action to take
             this.path = this.root.findBestGoalPath(this.root).replace("\0", "");
-            System.out.println("s: " + this.path.charAt(0));
+            //System.out.println("s: " + this.path.charAt(0));
             action = new Action(this.path.charAt(0) + "");
 
+            //Shorten the path by one so that subsequent calls to this method can grab the right action to take
             this.path = this.path.substring(1);
-            System.out.println(action.getName());
-            this.root.printTree();
+            //System.out.println(action.getName());
+            //this.root.printTree();
 
-            //Now that we know what action to take, update the internal sensors so they ar ready for the
+            //Now that we know what action to take, update the internal sensors so they are ready for the
             //next call to this method (next time step)
             this.prevInternal = this.currInternal;
             this.currInternal = new HashMap<Integer, Boolean>();
@@ -120,32 +146,25 @@ public class PhuJusAgent implements IAgent {
                             true);
 
 
-            System.out.println("Next internal sensors: ");
-            printInternalSensors(this.currInternal);
+//            System.out.println("Next internal sensors: ");
+//            printInternalSensors(this.currInternal);
         }
         else{
-            //Get rid of first character of path or assign to empty if path is one character
+            //path has found in previous call to this method, so get the next action
             action = new Action(this.path.charAt(0) + "");
+            //the agent next action will be random until it finds the goal if there was only 1 action in the path
             if(this.path.length() == 1){
                 Random rand = new Random();
                 this.path = actionList[rand.nextInt(getNumActions())].getName();
-
             }
             else {
                 this.path = this.path.substring(1);
             }
         }
-
+        return action;
         //DEBUG: For now, bail out after first call
-        System.exit(0);
-        
-        if(!this.path.equals(null)) {
-            return action;
-        }
-        else{
-            Random rand = new Random();
-            return this.actionList[rand.nextInt(this.getNumActions())];
-        }
+        //System.exit(0);
+
     }
 
     //TODO checkforUniqueID
@@ -153,7 +172,7 @@ public class PhuJusAgent implements IAgent {
         while(!ruleLimitReached()){
             Rule newRule = new Rule(this);
             addRule(newRule);
-            newRule.printRule();
+            //newRule.printRule();
         }
     }
 
@@ -169,8 +188,13 @@ public class PhuJusAgent implements IAgent {
         rules.add(newRule);
     }
 
-    public void removeRule(Rule oldRule) {
-        rules.remove(oldRule);
+    public void removeRule(int id) {
+        for(Rule r : this.rules) {
+            if(r.getRuleId() == id) {
+                rules.remove(r);
+                break;
+            }
+        }
     }
 
     public ArrayList<Rule> getRules() {return this.rules;}

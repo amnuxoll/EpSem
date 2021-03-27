@@ -206,8 +206,6 @@ public class Rule {
         }
         result = abs(Math.log(result));
         this.activationLevel = result;
-
-        System.out.println();
         return this.activationLevel;
     }
 
@@ -276,5 +274,8 @@ public class Rule {
             }
         }
         return 0;
+    }
+    public int getRuleId(){
+        return this.ruleId;
     }
 }//class Rule
