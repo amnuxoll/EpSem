@@ -223,11 +223,21 @@ public class Rule {
         this.lastActTimes[now] = 2;
     }
 
+    public void setRHSInternal(int rhsInternal) {
+        this.rhsInternal = rhsInternal;
+    }
 
     //returns true if this rule matches the given action and sensor values
     public boolean matches(char action, SensorData currExternal, HashMap<Integer, Boolean> currInternal)
     {
         if (this.action != action) { return false; }
+        if(this.lhsInternal != null) {
+            for (Integer i : this.lhsInternal.keySet()) {
+                if (this.lhsInternal.get(i) != currInternal.get(i)) {
+                    return false;
+                }
+            }
+        }
         if(this.lhsExternal != null) {
             for (String s : this.lhsExternal.getSensorNames()) {
                 if (!this.lhsExternal.getSensor(s)
@@ -236,13 +246,7 @@ public class Rule {
                 }
             }
         }
-        if(this.lhsInternal != null) {
-            for (Integer i : this.lhsInternal.keySet()) {
-                if (this.lhsInternal.get(i) != currInternal.get(i)) {
-                    return false;
-                }
-            }
-        }
+
 
         return true;
     }

@@ -162,13 +162,18 @@ public class PhuJusAgentTest {
         // create simple internal sensors for the rule class
         HashMap<Integer, Boolean> currInternal = new HashMap<>();
         currInternal.put(0, false);
+        currInternal.put(1, false);
 
         // add rule to the agent rule's list | predict testSensor1 is TRUE if action "a" is taken
-        Rule ruleOne = new Rule(actions[1].getName().charAt(0), currExternal, currInternal, "testSensor1", true);
+        Rule ruleOne = new Rule(actions[0].getName().charAt(0), currExternal, currInternal, "testSensor1", true);
+        ruleOne.setRHSInternal(0);
 
         // add rule to the agent rule's list | predict GOAL Sensor is TRUE if action "b" is taken
-        Rule ruleTwo = new Rule(actions[0].getName().charAt(0), secCurrExternal, currInternal, SensorData.goalSensor, true);
+        currInternal.put(0, true);
+        Rule ruleTwo = new Rule(actions[1].getName().charAt(0), secCurrExternal, currInternal, SensorData.goalSensor, true);
+        ruleTwo.setRHSInternal(1);
 
+        currInternal.put(1, false);
         agent.addRule(ruleOne);
         agent.addRule(ruleTwo);
         agent.setCurrExternal(currExternal);
@@ -182,7 +187,7 @@ public class PhuJusAgentTest {
         root.printTree();
         System.out.println();
         System.out.println("The Goal Path: " + root.findBestGoalPath(root));
-        Assertions.assertTrue(root.findBestGoalPath(root).equals("\0ba"));
+        Assertions.assertTrue(root.findBestGoalPath(root).equals("\0ab"));
     }
 
     @EpSemTest
@@ -199,35 +204,54 @@ public class PhuJusAgentTest {
         currExternal.setSensor("testSensor1", false);
         currExternal.setSensor("testSensor2", false);
         currExternal.setSensor("testSensor3", false);
+        HashMap<Integer, Boolean> currInternal = new HashMap<>();
+        currInternal.put(0, false);
+        currInternal.put(1, false);
+        currInternal.put(2, false);
+
+
 
         //Second Rule
         SensorData secCurrExternal = new SensorData(false);
         secCurrExternal.setSensor("testSensor1", true);
         secCurrExternal.setSensor("testSensor2", false);
         secCurrExternal.setSensor("testSensor3", false);
+        HashMap<Integer, Boolean> secCurrInternal = new HashMap<>();
+        secCurrInternal.put(0, true);
+        secCurrInternal.put(1, false);
+        secCurrInternal.put(2, false);
+
 
         //Third Rule
         SensorData thrCurrExternal = new SensorData(false);
         thrCurrExternal.setSensor("testSensor1", true);
         thrCurrExternal.setSensor("testSensor2", true);
         thrCurrExternal.setSensor("testSensor3", false);
+        HashMap<Integer, Boolean> thrCurrInternal = new HashMap<>();
+        thrCurrInternal.put(0, false);
+        thrCurrInternal.put(1, true);
+        thrCurrInternal.put(2, false);
 
-        // create simple internal sensors for the rule class
-        HashMap<Integer, Boolean> currInternal = new HashMap<>();
-        currInternal.put(0, false);
+
 
         // add rule to the agent rule's list | predict testSensor1 is TRUE if action "a" is taken
         Rule ruleOne = new Rule(actions[0].getName().charAt(0), currExternal, currInternal, "testSensor1", true);
+        ruleOne.setRHSInternal(0);
 
         // add rule to the agent rule's list | predict testSensor2 is TRUE if action "b" is taken
-        Rule ruleTwo = new Rule(actions[1].getName().charAt(0), secCurrExternal, currInternal, "testSensor2", true);
+        Rule ruleTwo = new Rule(actions[1].getName().charAt(0), secCurrExternal, secCurrInternal, "testSensor2", true);
+        ruleTwo.setRHSInternal(1);
 
         // add rule to the agent's rule's list | predict GOAL sensor is TRUE if action "a" is taken
-        Rule ruleThree = new Rule(actions[0].getName().charAt(0), thrCurrExternal, currInternal, SensorData.goalSensor, true);
+        Rule ruleThree = new Rule(actions[0].getName().charAt(0), thrCurrExternal, thrCurrInternal, SensorData.goalSensor, true);
+        ruleThree.setRHSInternal(2);
+
 
         agent.addRule(ruleOne);
         agent.addRule(ruleTwo);
         agent.addRule(ruleThree);
+
+
         agent.setCurrExternal(currExternal);
         agent.setCurrInternal(currInternal);
 
