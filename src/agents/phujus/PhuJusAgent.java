@@ -44,6 +44,9 @@ public class PhuJusAgent implements IAgent {
     //2 represents the number of arrays of external sensors. NUMEXTERNAL represents the number of external sensors we're using
     private HashMap<String, double[]> predictedExternal = new HashMap<>();
 
+    //Path to take
+    private String path;
+
     //root of the prediction tree
     TreeNode root; // init this somewhere ...
     @Override
@@ -61,6 +64,8 @@ public class PhuJusAgent implements IAgent {
 
     @Override
     public Action getNextAction(SensorData sensorData) throws Exception {
+        Action action = new Action("a" + "");
+        this.path = "";
         if(this.currExternal == null) {
             this.currExternal = sensorData;
             this.prevExternal = this.currExternal;
@@ -90,33 +95,51 @@ public class PhuJusAgent implements IAgent {
 
         this.generateRules();
 
+        //If we don't have a path to follow, find a goal path
+        if(this.path.equals("")) {
+            this.root = new TreeNode(this, this.rules, now, this.currInternal,
+                    this.currExternal, '\0');
+            this.root.genSuccessors(3);
+            this.path = this.root.findBestGoalPath(this.root).replace("\0", "");
+            System.out.println("s: " + this.path.charAt(0));
+            action = new Action(this.path.charAt(0) + "");
 
-        
-        this.root = new TreeNode(this, this.rules, now, this.currInternal, this.currExternal, '\0');
-        this.root.genSuccessors(1);
-        String s = this.root.findBestGoalPath(this.root);
-        System.out.println("s: " + s.charAt(1));
-        Action action = new Action(s.charAt(1) + "");
-        System.out.println(action.getName());
-        this.root.printTree();
+            this.path = this.path.substring(1);
+            System.out.println(action.getName());
+            this.root.printTree();
 
-        //Now that we know what action to take, update the internal sensors so they ar ready for the 
-        //next call to this method (next time step)
-        this.prevInternal = this.currInternal;
-        this.currInternal = new HashMap<Integer, Boolean>();
-        //This variable is needed to make the call but we will throw away the data that it is filled with (for now!)
-        HashMap<String, double[]> deleteMe =  new HashMap<String, double[]>(); 
-        this.root.genNextSensors(s.charAt(1), currInternal, deleteMe);
+            //Now that we know what action to take, update the internal sensors so they ar ready for the
+            //next call to this method (next time step)
+            this.prevInternal = this.currInternal;
+            this.currInternal = new HashMap<Integer, Boolean>();
+            //This variable is needed to make the call but we will throw away the data that it is filled with (for now!)
+            HashMap<String, double[]> deleteMe =
+                    new HashMap<String, double[]>();
+            this.root
+                    .genNextSensors(this.path.charAt(0), currInternal, deleteMe,
+                            true);
 
 
-        System.out.println("Next internal sensors: ");
-        printInternalSensors(this.currInternal);
+            System.out.println("Next internal sensors: ");
+            printInternalSensors(this.currInternal);
+        }
+        else{
+            //Get rid of first character of path or assign to empty if path is one character
+            action = new Action(this.path.charAt(0) + "");
+            if(this.path.length() == 1){
+                Random rand = new Random();
+                this.path = actionList[rand.nextInt(getNumActions())].getName();
 
+            }
+            else {
+                this.path = this.path.substring(1);
+            }
+        }
 
         //DEBUG: For now, bail out after first call
         System.exit(0);
         
-        if(!s.equals(null)) {
+        if(!this.path.equals(null)) {
             return action;
         }
         else{

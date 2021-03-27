@@ -62,7 +62,8 @@ public class TreeNode {
      * CAVEAT:  predictedExternal and nextInternal should not be null!
 
      */
-    public void genNextSensors(char action, HashMap<Integer, Boolean> nextInternal, HashMap<String, double[]> predictedExternal) {
+    public void genNextSensors(char action, HashMap<Integer, Boolean> nextInternal,
+                               HashMap<String, double[]> predictedExternal, boolean updateActivation ) {
 
             for(Rule r : rulesList) {
                 int sIndex = r.getAssocSensor();
@@ -79,8 +80,11 @@ public class TreeNode {
                         predictedExternal.put(r.getRHSSensorName(), votes);
                     }
                     //update predicted external value (currently a placeholder value for r.getActivation arg)
-
+                    if(updateActivation){
+                        r.setActivationLevel(this.episodeIndex);
+                    }
                     votes[r.getRHSValue()] += r.getActivation(this.episodeIndex);
+
                 } else {
                     if (sIndex != -1) {
                         nextInternal.put(sIndex, false); //off
@@ -116,7 +120,7 @@ public class TreeNode {
             // create separate predictedExternal entries for on vs off
             HashMap<String, double[]> predictedExternal = new HashMap<>();
 
-            genNextSensors(action, nextInternal, predictedExternal);
+            genNextSensors(action, nextInternal, predictedExternal, false);
 
             //Create a sensor data to initialize this child node
             SensorData childSD = new SensorData(this.currExternal);

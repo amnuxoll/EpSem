@@ -198,7 +198,6 @@ public class Rule {
 
     //calculates the activation of the rule atm
     public double getActivation(int now) {
-        lastActTimes[now] = 2;
         double result = 0.0;
         for(int j=0; j < lastActTimes.length; ++j) {
             if(lastActTimes[j] != 0) {
@@ -218,6 +217,10 @@ public class Rule {
 
     public double[] getLastActivation() {
         return this.lastActAmount;
+    }
+
+    public void setActivationLevel(int now){
+        this.lastActTimes[now] = 2;
     }
 
 
