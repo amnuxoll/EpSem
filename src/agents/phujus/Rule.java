@@ -20,7 +20,7 @@ public class Rule {
     public static final int ACTHISTLEN = 10;
 
     //to assign a unique id to each rule this shared variable is incremented by the ctor
-    private static int nextRuleId = 1;
+    public static int nextRuleId = 1;
 
     //to track which internal sensor values are available for use
     private static boolean[] intSensorInUse = new boolean[PhuJusAgent.NUMINTERNAL];
@@ -96,8 +96,11 @@ public class Rule {
                 }
             } else {
                 if (this.lhsExternal.getSensor(sNames[randIdx]) != null) {
-                    //try again
-                    pickRandomLHS(agent);
+                    //if max lhs external isn't reached
+                    if(this.lhsExternal.getSensorNames().size() < numExternal) {
+                        //try again
+                        pickRandomLHS(agent);
+                    }
                 } else {
                     //lhs external sensor is determined by external sensor from previous episode
                     this.lhsExternal.setSensor(sNames[randIdx], agent.getPrevExternal().getSensor(sNames[randIdx]));
@@ -108,8 +111,10 @@ public class Rule {
             randIdx = randIdx - numExternal;
 
             if (lhsInternal.containsKey(Integer.valueOf(randIdx))) {
-                //try again if accidentally selected duplicate sensor
-                pickRandomLHS(agent);
+                if(this.lhsInternal.size() < numInternal) {
+                    //try again if accidentally selected duplicate sensor
+                    pickRandomLHS(agent);
+                }
             } else {
                 lhsInternal.put(Integer.valueOf(randIdx), agent.getPrevInternalValue(randIdx));
             }
@@ -221,8 +226,16 @@ public class Rule {
         this.lastActTimes[now] = 2;
     }
 
+    public int getRHSInternal(){
+        return this.rhsInternal;
+    }
+
     public void setRHSInternal(int rhsInternal) {
         this.rhsInternal = rhsInternal;
+    }
+
+    public void turnOffIntSensorInUse(int rhsInternalIdx){
+        this.intSensorInUse[rhsInternalIdx] = false;
     }
 
     //returns true if this rule matches the given action and sensor values

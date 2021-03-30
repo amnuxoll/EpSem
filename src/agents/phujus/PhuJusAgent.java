@@ -46,7 +46,7 @@ public class PhuJusAgent implements IAgent {
     private HashMap<String, double[]> predictedExternal = new HashMap<>();
 
     //Path to take
-    private String path;
+    private String path = "";
 
     //root of the prediction tree
     TreeNode root; // init this somewhere ...
@@ -62,13 +62,17 @@ public class PhuJusAgent implements IAgent {
         for(Integer i : printMe.keySet()) {
             System.out.println("\t" + i.toString() + ":" + printMe.get(i));
         }
-    }        
+    }
 
-    //Based on the sensor data from the current time step, the agent determines the next action to take
+    /**
+     * Gets a subsequent move based on the provided sensorData.
+     *
+     * @param sensorData The {@link SensorData} from the current move.
+     * @return the next Action to try.
+     */
     @Override
     public Action getNextAction(SensorData sensorData) throws Exception {
         Action action = new Action("a" + "");
-        this.path = "";
         //Use case: time step t = 0 when the agent has not taken any action yet
         if(this.currExternal == null) {
             this.currExternal = sensorData;
@@ -78,12 +82,7 @@ public class PhuJusAgent implements IAgent {
             this.prevExternal = this.currExternal;
             this.currExternal = sensorData;
         }
-
-        //Initialize current and previous internal sensors with random values
-        this.currInternal.put(0, false);
-        this.currInternal.put(1, false);
-        this.currInternal.put(2, false);
-        this.currInternal.put(3, false);
+        this.initCurrInternal();
         this.prevInternal = this.currInternal;
 
 //        //print the external sensor data out
@@ -97,14 +96,16 @@ public class PhuJusAgent implements IAgent {
 
         //Create rules based on the agent's current internal and external sensors
         if (sensorData.isGoal()) {
+            System.out.println("We hit the goal!");
+            //Generate random rules if none are in inventory
             if(this.rules == null) {
                 this.generateRules();
             } else{
-
-                //Collections.sort(this.rules);
+                //Getting rid of half the lowest rules
                 for(int i = 0; i < this.rules.size()/2; i++) {
                     double lowestActivation = 100.0;
                     int curRuleId = 0;
+                    //Look for lowest rule
                     for (Rule r : this.rules) {
                         if(r.getActivation(now) < lowestActivation){
                             lowestActivation = r.getActivation(now);
@@ -115,6 +116,8 @@ public class PhuJusAgent implements IAgent {
                 }
                 this.generateRules();
             }
+            //Resetting the path after we've reached the goal
+            this.path = "";
         }
 
         //If we don't have a path to follow, find a goal path
@@ -126,7 +129,7 @@ public class PhuJusAgent implements IAgent {
 
             //Find an entire sequence of characters that can reach the goal and get the current action to take
             this.path = this.root.findBestGoalPath(this.root).replace("\0", "");
-            //System.out.println("s: " + this.path.charAt(0));
+            System.out.println("path: " + this.path);
             action = new Action(this.path.charAt(0) + "");
 
             //Shorten the path by one so that subsequent calls to this method can grab the right action to take
@@ -134,23 +137,11 @@ public class PhuJusAgent implements IAgent {
             //System.out.println(action.getName());
             //this.root.printTree();
 
-            //Now that we know what action to take, update the internal sensors so they are ready for the
-            //next call to this method (next time step)
-            this.prevInternal = this.currInternal;
-            this.currInternal = new HashMap<Integer, Boolean>();
-            //This variable is needed to make the call but we will throw away the data that it is filled with (for now!)
-            HashMap<String, double[]> deleteMe =
-                    new HashMap<String, double[]>();
-            this.root
-                    .genNextSensors(this.path.charAt(0), currInternal, deleteMe,
-                            true);
-
-
 //            System.out.println("Next internal sensors: ");
 //            printInternalSensors(this.currInternal);
         }
         else{
-            //path has found in previous call to this method, so get the next action
+            //path has been found in previous call to this method, so get the next action
             action = new Action(this.path.charAt(0) + "");
             //the agent next action will be random until it finds the goal if there was only 1 action in the path
             if(this.path.length() == 1){
@@ -161,13 +152,33 @@ public class PhuJusAgent implements IAgent {
                 this.path = this.path.substring(1);
             }
         }
+        //Now that we know what action to take, update the internal sensors so they are ready for the
+        //next call to this method (next time step)
+        this.prevInternal = this.currInternal;
+        this.currInternal = new HashMap<Integer, Boolean>();
+        //This variable is needed to make the call but we will throw away the data that it is filled with (for now!)
+        HashMap<String, double[]> deleteMe =
+                new HashMap<String, double[]>();
+        this.root
+                .genNextSensors(this.path.charAt(0), currInternal, deleteMe,
+                        true);
         return action;
         //DEBUG: For now, bail out after first call
         //System.exit(0);
 
     }
 
-    //TODO checkforUniqueID
+    private void initCurrInternal() {
+        //Initialize current and previous internal sensors with random values
+        for(int i = 0; i < NUMINTERNAL; i++) {
+            this.currInternal.put(i, false);
+        }
+    }
+
+    /**
+     * Fills up agent's rule inventory
+     *
+     */
     public void generateRules(){
         while(!ruleLimitReached()){
             Rule newRule = new Rule(this);
@@ -192,6 +203,9 @@ public class PhuJusAgent implements IAgent {
         for(Rule r : this.rules) {
             if(r.getRuleId() == id) {
                 rules.remove(r);
+                if(r.getRHSInternal() != -1) {
+                    r.turnOffIntSensorInUse(r.getRHSInternal());
+                }
                 break;
             }
         }
