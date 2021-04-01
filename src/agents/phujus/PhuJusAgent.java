@@ -85,7 +85,7 @@ public class PhuJusAgent implements IAgent {
         this.initCurrInternal();
         this.prevInternal = this.currInternal;
 
-//        //print the external sensor data out
+//        print the external sensor data out
 //        System.out.println("External Sensors: ");
 //        for(String s : sensorData.getSensorNames()) {
 //            System.out.println("\t" + s + ":" + sensorData.getSensor(s));
@@ -100,7 +100,7 @@ public class PhuJusAgent implements IAgent {
             //Generate random rules if none are in inventory
             if(this.rules == null) {
                 this.generateRules();
-            } else{
+            } else {
                 //Getting rid of half the lowest rules
                 for(int i = 0; i < this.rules.size()/2; i++) {
                     double lowestActivation = 100.0;
@@ -114,6 +114,7 @@ public class PhuJusAgent implements IAgent {
                     }
                     this.removeRule(curRuleId);
                 }
+                //replace the rules that were removed
                 this.generateRules();
             }
             //Resetting the path after we've reached the goal
@@ -127,23 +128,28 @@ public class PhuJusAgent implements IAgent {
                     this.currExternal, '\0');
             this.root.genSuccessors(3);
 
-            //Find an entire sequence of characters that can reach the goal and get the current action to take
+            //find an entire sequence of characters that can reach the goal
             this.path = this.root.findBestGoalPath(this.root).replace("\0", "");
             System.out.println("path: " + this.path);
+
+            //get the first character of the findbestgoalpath sequence
             action = new Action(this.path.charAt(0) + "");
 
-            //Shorten the path by one so that subsequent calls to this method can grab the right action to take
+            //remove first character so that agent will take the characters of the rest of the path in next move
             this.path = this.path.substring(1);
-            //System.out.println(action.getName());
-            //this.root.printTree();
 
-//            System.out.println("Next internal sensors: ");
-//            printInternalSensors(this.currInternal);
+            //print statements
+                //System.out.println(action.getName());
+                //this.root.printTree();
+
+                //System.out.println("Next internal sensors: ");
+                //printInternalSensors(this.currInternal);
         }
-        else{
-            //path has been found in previous call to this method, so get the next action
+        else {
+            //Continue grabbing characters of the path to take as actions
             action = new Action(this.path.charAt(0) + "");
-            //the agent next action will be random until it finds the goal if there was only 1 action in the path
+
+            //if the last action has been taken, substitute random characters in for the next action
             if(this.path.length() == 1){
                 Random rand = new Random();
                 this.path = actionList[rand.nextInt(getNumActions())].getName();
@@ -152,16 +158,16 @@ public class PhuJusAgent implements IAgent {
                 this.path = this.path.substring(1);
             }
         }
+
         //Now that we know what action to take, update the internal sensors so they are ready for the
         //next call to this method (next time step)
         this.prevInternal = this.currInternal;
         this.currInternal = new HashMap<Integer, Boolean>();
+
         //This variable is needed to make the call but we will throw away the data that it is filled with (for now!)
-        HashMap<String, double[]> deleteMe =
-                new HashMap<String, double[]>();
-        this.root
-                .genNextSensors(this.path.charAt(0), currInternal, deleteMe,
-                        true);
+        HashMap<String, double[]> deleteMe = new HashMap<String, double[]>();
+        this.root.genNextSensors(this.path.charAt(0), currInternal, deleteMe, true);
+
         return action;
         //DEBUG: For now, bail out after first call
         //System.exit(0);
