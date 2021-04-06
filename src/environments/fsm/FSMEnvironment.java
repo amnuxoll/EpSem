@@ -103,7 +103,7 @@ public class FSMEnvironment implements IEnvironment {
         this.applySensors(this.currentState, sensorData);
 
         //DEBUG: print the current state
-        //System.err.println("new state: " + this.currentState);
+        System.err.println("new state: " + this.currentState);
         
         return sensorData;
     }

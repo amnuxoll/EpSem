@@ -83,7 +83,7 @@ public class TreeNode {
                     if(updateActivation){
                         r.setActivationLevel(this.episodeIndex);
                     }
-                    votes[r.getRHSValue()] += r.getActivation(this.episodeIndex);
+                    votes[r.getRHSValue()] += r.getActivation();
 
                 }
                 else {
@@ -205,7 +205,7 @@ public class TreeNode {
 
         //look for a path with the goal
         int goalPath = -1;
-        for (int i = 0; i < agent.getNumActions(); i++) {
+        for (int i = agent.getNumActions() -1; i >= 0; i--) {
             if (fbgpHelper(tree.children[i])) {
                 goalPath = i;
                 break;

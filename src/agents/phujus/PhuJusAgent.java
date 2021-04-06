@@ -85,14 +85,14 @@ public class PhuJusAgent implements IAgent {
         this.initCurrInternal();
         this.prevInternal = this.currInternal;
 
-//        //print the external sensor data out
-//        System.out.println("External Sensors: ");
-//        for(String s : sensorData.getSensorNames()) {
-//            System.out.println("\t" + s + ":" + sensorData.getSensor(s));
-//        }
-//
-//        System.out.println("Internal Sensors: ");
-//        printInternalSensors(this.currInternal);
+        //print the external sensor data out
+        System.out.println("External Sensors: ");
+        for(String s : sensorData.getSensorNames()) {
+            System.out.println("\t" + s + ":" + sensorData.getSensor(s));
+        }
+
+        System.out.println("Internal Sensors: ");
+        printInternalSensors(this.currInternal);
 
         //Create rules based on the agent's current internal and external sensors
         if (sensorData.isGoal()) {
@@ -107,8 +107,8 @@ public class PhuJusAgent implements IAgent {
                     int curRuleId = 0;
                     //Look for lowest rule
                     for (Rule r : this.rules) {
-                        if(r.getActivation(now) < lowestActivation){
-                            lowestActivation = r.getActivation(now);
+                        if(r.getActivation() < lowestActivation){
+                            lowestActivation = r.getActivation();
                             curRuleId = r.getRuleId();
                         }
                     }
@@ -116,6 +116,7 @@ public class PhuJusAgent implements IAgent {
                 }
                 this.generateRules();
             }
+
             //Resetting the path after we've reached the goal
             this.path = "";
         }
@@ -152,6 +153,17 @@ public class PhuJusAgent implements IAgent {
                 this.path = this.path.substring(1);
             }
         }
+
+        //DEBUG: printing out rules and checking if it matches
+        System.out.println("Selected action: " + action.getName().charAt(0));
+        for (Rule r : this.rules) {
+            if(r.matches(action.getName().charAt(0), this.currExternal, this.currInternal)){
+                System.out.print("@");
+            } else{
+                System.out.print(" ");
+            }
+                r.printRule();
+        }
         //Now that we know what action to take, update the internal sensors so they are ready for the
         //next call to this method (next time step)
         this.prevInternal = this.currInternal;
@@ -165,7 +177,6 @@ public class PhuJusAgent implements IAgent {
         return action;
         //DEBUG: For now, bail out after first call
         //System.exit(0);
-
     }
 
     private void initCurrInternal() {

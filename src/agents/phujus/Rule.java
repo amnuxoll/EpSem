@@ -25,7 +25,7 @@ public class Rule {
     //to track which internal sensor values are available for use
     private static boolean[] intSensorInUse = new boolean[PhuJusAgent.NUMINTERNAL];
 
-    private Random rand = new Random();
+    private static Random rand = new Random(2);
 
     //each rule has a unique integer id
     private int ruleId;
@@ -198,18 +198,21 @@ public class Rule {
         for(String s : this.rhsExternal.getSensorNames()) {
             System.out.print('(' + s + ',' + this.rhsExternal.getSensor(s) + ')');
         }
+        System.out.print(" * " + this.getActivation());
         System.out.println();
     }
 
     //calculates the activation of the rule atm
-    public double getActivation(int now) {
+    public double getActivation() {
         double result = 0.0;
         for(int j=0; j < lastActTimes.length; ++j) {
             if(lastActTimes[j] != 0) {
                 result += Math.pow(lastActTimes[j], -0.8);
             }
         }
-        result = abs(Math.log(result));
+        if(result != 0.0) {
+            result = abs(Math.log(result));
+        }
         this.activationLevel = result;
         return this.activationLevel;
     }
