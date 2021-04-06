@@ -73,16 +73,18 @@ public class PhuJusAgent implements IAgent {
     @Override
     public Action getNextAction(SensorData sensorData) throws Exception {
         Action action = new Action("a" + "");
+        char act = '\0';
         //Use case: time step t = 0 when the agent has not taken any action yet
         if(this.currExternal == null) {
             this.currExternal = sensorData;
             this.prevExternal = this.currExternal;
+            this.initCurrInternal();
         }
         else {// update external sensor values for t-1 and t
             this.prevExternal = this.currExternal;
             this.currExternal = sensorData;
         }
-        this.initCurrInternal();
+
         this.prevInternal = this.currInternal;
 
         //print the external sensor data out
@@ -133,6 +135,7 @@ public class PhuJusAgent implements IAgent {
             System.out.println("path: " + this.path);
             action = new Action(this.path.charAt(0) + "");
 
+            act = this.path.charAt(0);
             //Shorten the path by one so that subsequent calls to this method can grab the right action to take
             this.path = this.path.substring(1);
             //System.out.println(action.getName());
@@ -150,6 +153,7 @@ public class PhuJusAgent implements IAgent {
                 this.path = actionList[rand.nextInt(getNumActions())].getName();
             }
             else {
+                act = this.path.charAt(0);
                 this.path = this.path.substring(1);
             }
         }
@@ -172,7 +176,7 @@ public class PhuJusAgent implements IAgent {
         HashMap<String, double[]> deleteMe =
                 new HashMap<String, double[]>();
         this.root
-                .genNextSensors(this.path.charAt(0), currInternal, deleteMe,
+                .genNextSensors(act, currInternal, deleteMe,
                         true);
         return action;
         //DEBUG: For now, bail out after first call
