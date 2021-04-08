@@ -48,6 +48,7 @@ public class Rule {
     //other data  (ignore these for feb 11-18)
     private int[] lastActTimes = new int[ACTHISTLEN];  // last N times the rule was activated
     private double[] lastActAmount = new double[ACTHISTLEN]; // amount of activation last N times
+    private int nextActPos = 0;
     private double activationLevel;
     private int lastActUpdate; //when was last time I updated activation
     private double decayRate = 0.8;
@@ -178,7 +179,7 @@ public class Rule {
         System.out.print("#" + this.ruleId + ":");
         System.out.print(this.action);
 
-        //print associated internal sensor 
+        //print associated internal sensor
         System.out.print("<");
         if (this.rhsInternal != -1) {
             System.out.print(this.rhsInternal);
@@ -208,9 +209,10 @@ public class Rule {
         double result = 0.0;
         for(int j=0; j < lastActTimes.length; ++j) {
             if(lastActTimes[j] != 0) {
-                result += Math.pow(lastActTimes[j], -0.8);
+                result += Math.pow(lastActAmount[j], -0.8);
             }
         }
+
         if(result != 0.0) {
             result = abs(Math.log(result));
         }
@@ -233,7 +235,9 @@ public class Rule {
     }
 
     public void setActivationLevel(int now){
-        this.lastActTimes[now] = 2;
+        this.lastActTimes[this.nextActPos] = now;
+        this.lastActAmount[this.nextActPos] = 2;
+        this.nextActPos = (this.nextActPos + 1) % ACTHISTLEN;
     }
 
     public void reduceActivation() {

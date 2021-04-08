@@ -51,6 +51,12 @@ public class PhuJusAgent implements IAgent {
 
     //root of the prediction tree
     TreeNode root; // init this somewhere ...
+
+
+    //random numbers are useful sometimes
+    private Random rand = new Random();
+
+
     @Override
     public void initialize(Action[] actions, IIntrospector introspector) {
         //Store the actions the agents can take and introspector for data analysis later on
@@ -66,6 +72,16 @@ public class PhuJusAgent implements IAgent {
     }
 
     /**
+     * randomActionPath
+     *
+     * generates a string single valid action letter in it
+     */
+    private String randomActionPath() {
+        return actionList[this.rand.nextInt(getNumActions())].getName();
+    }
+
+
+    /**
      * Gets a subsequent move based on the provided sensorData.
      *
      * @param sensorData The {@link SensorData} from the current move.
@@ -73,6 +89,7 @@ public class PhuJusAgent implements IAgent {
      */
     @Override
     public Action getNextAction(SensorData sensorData) throws Exception {
+        now++;
         Action action = new Action("a" + "");
         char act = '\0';
         //Use case: time step t = 0 when the agent has not taken any action yet
@@ -133,7 +150,12 @@ public class PhuJusAgent implements IAgent {
 
             //Find an entire sequence of characters that can reach the goal and get the current action to take
             this.path = this.root.findBestGoalPath(this.root).replace("\0", "");
-            System.out.println("path: " + this.path);
+            if (this.path.equals("")) {
+                this.path = randomActionPath();
+                System.out.println("random path: " + this.path);
+            }else {
+                System.out.println("path: " + this.path);
+            }
             action = new Action(this.path.charAt(0) + "");
 
             act = this.path.charAt(0);
@@ -150,8 +172,7 @@ public class PhuJusAgent implements IAgent {
             action = new Action(this.path.charAt(0) + "");
             //the agent next action will be random until it finds the goal if there was only 1 action in the path
             if(this.path.length() == 1){
-                Random rand = new Random();
-                this.path = actionList[rand.nextInt(getNumActions())].getName();
+                this.path = randomActionPath();
             }
             else {
                 act = this.path.charAt(0);
@@ -167,7 +188,7 @@ public class PhuJusAgent implements IAgent {
             } else{
                 System.out.print(" ");
             }
-                r.printRule();
+            r.printRule();
         }
         //Now that we know what action to take, update the internal sensors so they are ready for the
         //next call to this method (next time step)
@@ -176,9 +197,7 @@ public class PhuJusAgent implements IAgent {
         //This variable is needed to make the call but we will throw away the data that it is filled with (for now!)
         HashMap<String, double[]> deleteMe =
                 new HashMap<String, double[]>();
-        this.root
-                .genNextSensors(act, currInternal, deleteMe,
-                        true);
+        this.root.genNextSensors(act, currInternal, deleteMe, true);
         return action;
         //DEBUG: For now, bail out after first call
         //System.exit(0);

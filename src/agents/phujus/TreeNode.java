@@ -65,36 +65,35 @@ public class TreeNode {
     public void genNextSensors(char action, HashMap<Integer, Boolean> nextInternal,
                                HashMap<String, double[]> predictedExternal, boolean updateActivation ) {
 
-            for(Rule r : rulesList) {
-                int sIndex = r.getAssocSensor();
-                if (r.matches(action, this.currExternal, this.currInternal)) {
-                    if (sIndex != -1) {
-                        nextInternal.put(sIndex, true); //on
-                    }
-
-                    //get the current votes so far
-                    double[] votes = predictedExternal.get(r.getRHSSensorName());
-                    if (votes == null) {
-                        votes = new double[]{0.0, 0.0};
-                        //Create a sensor data to initialize this child node
-                        predictedExternal.put(r.getRHSSensorName(), votes);
-                    }
-                    //update predicted external value (currently a placeholder value for r.getActivation arg)
-                    if(updateActivation){
-                        r.setActivationLevel(this.episodeIndex);
-                    }
-                    votes[r.getRHSValue()] += r.getActivation();
-
+        for(Rule r : rulesList) {
+            int sIndex = r.getAssocSensor();
+            if (r.matches(action, this.currExternal, this.currInternal)) {
+                if (sIndex != -1) {
+                    nextInternal.put(sIndex, true); //on
                 }
-                else {
-                    if (sIndex != -1) {
-                        nextInternal.put(sIndex, false); //off
-                    }
-                    if(updateActivation) {
-                        r.reduceActivation();
-                    }
+
+                //get the current votes so far
+                double[] votes = predictedExternal.get(r.getRHSSensorName());
+                if (votes == null) {
+                    votes = new double[]{0.0, 0.0};
+                    //Create a sensor data to initialize this child node
+                    predictedExternal.put(r.getRHSSensorName(), votes);
                 }
-            }//for
+                //update predicted external value (currently a placeholder value for r.getActivation arg)
+                if(updateActivation){
+                    r.setActivationLevel(this.episodeIndex);
+                }
+                votes[r.getRHSValue()] += r.getActivation();
+            }
+            else {
+                if (sIndex != -1) {
+                    nextInternal.put(sIndex, false); //off
+                }
+                if(updateActivation) {
+                    r.reduceActivation();
+                }
+            }
+        }//for
     }//genNextSensors
 
     /** recursively generate successor nodes */
