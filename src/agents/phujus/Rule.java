@@ -50,7 +50,8 @@ public class Rule {
     private double[] lastActAmount = new double[ACTHISTLEN]; // amount of activation last N times
     private double activationLevel;
     private int lastActUpdate; //when was last time I updated activation
-    private double decayRate;
+    private double decayRate = 0.8;
+    private int decayAmount = 0;
 
     //Constructor with RHS prediction
     public Rule(char act, SensorData currExt, HashMap<Integer, Boolean> currInt, String rhsSensorName, boolean rhsValue){
@@ -213,6 +214,12 @@ public class Rule {
         if(result != 0.0) {
             result = abs(Math.log(result));
         }
+
+        //the amount of times needed to decay (for all missed episodes)
+        for (int i = 0; i<decayAmount; i++) {
+            result = result*decayRate;
+        }
+
         this.activationLevel = result;
         return this.activationLevel;
     }
@@ -227,6 +234,11 @@ public class Rule {
 
     public void setActivationLevel(int now){
         this.lastActTimes[now] = 2;
+    }
+
+    public void reduceActivation() {
+        this.activationLevel = this.activationLevel*decayRate;
+        this.decayAmount++;
     }
 
     public int getRHSInternal(){

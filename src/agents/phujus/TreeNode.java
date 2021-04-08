@@ -90,6 +90,9 @@ public class TreeNode {
                     if (sIndex != -1) {
                         nextInternal.put(sIndex, false); //off
                     }
+                    if(updateActivation) {
+                        r.reduceActivation();
+                    }
                 }
             }//for
     }//genNextSensors

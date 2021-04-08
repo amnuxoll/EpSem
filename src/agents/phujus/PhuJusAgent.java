@@ -28,6 +28,7 @@ public class PhuJusAgent implements IAgent {
 
     private int now = 0; //current timestep 't'
 
+
     private Action[] actionList;
     private IIntrospector introspector;
 
