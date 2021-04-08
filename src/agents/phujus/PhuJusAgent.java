@@ -197,7 +197,12 @@ public class PhuJusAgent implements IAgent {
         //This variable is needed to make the call but we will throw away the data that it is filled with (for now!)
         HashMap<String, double[]> deleteMe =
                 new HashMap<String, double[]>();
-        this.root.genNextSensors(act, currInternal, deleteMe, true);
+
+        //create temporary treeNode to send in correct currInternal
+        TreeNode tempNode = new TreeNode(this, this.rules, now, this.prevInternal,
+                this.currExternal, '\0');
+
+        tempNode.genNextSensors(action.getName().charAt(0), currInternal, deleteMe, true);
         return action;
         //DEBUG: For now, bail out after first call
         //System.exit(0);
