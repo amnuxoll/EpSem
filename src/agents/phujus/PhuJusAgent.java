@@ -10,7 +10,9 @@ import java.util.ArrayList;
 import java.util.*;
 import java.util.HashMap;
 import java.util.Random;
-
+/**
+ * class PhuJusAgent
+ */
 public class PhuJusAgent implements IAgent {
 
     public static final int MAXDEPTH = 3;
