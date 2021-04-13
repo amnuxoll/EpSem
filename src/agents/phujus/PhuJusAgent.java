@@ -66,8 +66,10 @@ public class PhuJusAgent implements IAgent {
         this.introspector = introspector;
     }
 
+
     //DEBUG:  print out internal sensors
     private void printInternalSensors(HashMap<Integer, Boolean> printMe) {
+        System.out.println("Internal Sensors: ");
         for(Integer i : printMe.keySet()) {
             System.out.println("\t" + i.toString() + ":" + printMe.get(i));
         }
@@ -94,107 +96,73 @@ public class PhuJusAgent implements IAgent {
         now++;
         Action action = new Action("a" + "");
         char act = '\0';
-        //Use case: time step t = 0 when the agent has not taken any action yet
-        if(this.currExternal == null) {
+
+        if(this.currExternal == null) { //Use case: time step t = 0 when the agent has not taken any action yet
             this.currExternal = sensorData;
             this.prevExternal = this.currExternal;
+        }
+        else { //get currExternal values from sensorData
+            this.currExternal = sensorData;
+        }
+
+        if(this.currInternal.size() == 0) {
             this.initCurrInternal();
-        }
-        else {// update external sensor values for t-1 and t
-            this.prevExternal = this.currExternal;
-            this.currExternal = sensorData;
+            //prev internal has no previous internal sensors, assign it to curr
+            this.prevInternal = this.currInternal;
         }
 
-        this.prevInternal = this.currInternal;
 
-        //print the external sensor data out
-        System.out.println("External Sensors: ");
-        for(String s : sensorData.getSensorNames()) {
-            System.out.println("\t" + s + ":" + sensorData.getSensor(s));
-        }
-
-        System.out.println("Internal Sensors: ");
-        printInternalSensors(this.currInternal);
 
         //Create rules based on the agent's current internal and external sensors
         if (sensorData.isGoal()) {
             System.out.println("We hit the goal!");
             //Generate random rules if none are in inventory
-            if(this.rules == null) {
+            if(this.rules.size() == 0) {
                 this.generateRules();
             } else{
-                //Getting rid of half the lowest rules
-                for(int i = 0; i < this.rules.size()/2; i++) {
-                    double lowestActivation = 100.0;
-                    int curRuleId = 0;
-                    //Look for lowest rule
-                    for (Rule r : this.rules) {
-                        if(r.getActivation() < lowestActivation){
-                            lowestActivation = r.getActivation();
-                            curRuleId = r.getRuleId();
-                        }
-                    }
-                    this.removeRule(curRuleId);
-                }
-                this.generateRules();
+                //Getting rid of half the lowest rules to update them
+                this.updateRules();
             }
-
             //Resetting the path after we've reached the goal
             this.path = "";
         }
 
         //If we don't have a path to follow, find a goal path
         if(this.path.equals("")) {
-            //Build a tree from the generated rules
-            this.root = new TreeNode(this, this.rules, now, this.currInternal,
-                    this.currExternal, '\0');
-            this.root.genSuccessors(3);
-
-            //Find an entire sequence of characters that can reach the goal and get the current action to take
-            this.path = this.root.findBestGoalPath(this.root).replace("\0", "");
-            if (this.path.equals("")) {
-                this.path = randomActionPath();
-                System.out.println("random path: " + this.path);
-            }else {
-                System.out.println("path: " + this.path);
-            }
+            this.buildPathFromEmpty();
             action = new Action(this.path.charAt(0) + "");
 
-            act = this.path.charAt(0);
             //Shorten the path by one so that subsequent calls to this method can grab the right action to take
             this.path = this.path.substring(1);
-            //System.out.println(action.getName());
-            //this.root.printTree();
-
-//            System.out.println("Next internal sensors: ");
-//            printInternalSensors(this.currInternal);
         }
         else{
             //path has been found in previous call to this method, so get the next action
             action = new Action(this.path.charAt(0) + "");
+
             //the agent next action will be random until it finds the goal if there was only 1 action in the path
             if(this.path.length() == 1){
                 this.path = randomActionPath();
             }
             else {
-                act = this.path.charAt(0);
                 this.path = this.path.substring(1);
             }
         }
 
-        //DEBUG: printing out rules and checking if it matches
-        System.out.println("Selected action: " + action.getName().charAt(0));
-        for (Rule r : this.rules) {
-            if(r.matches(action.getName().charAt(0), this.currExternal, this.currInternal)){
-                System.out.print("@");
-            } else{
-                System.out.print(" ");
-            }
-            r.printRule();
-        }
-        //Now that we know what action to take, update the internal sensors so they are ready for the
-        //next call to this method (next time step)
+        //DEBUG:
+        printExternalSensors(sensorData);
+        printInternalSensors(this.currInternal);
+        printRules(action);
+
+        //Now that we know what action to take, all curr values are now previous values
         this.prevInternal = this.currInternal;
+        this.prevExternal = this.currExternal;
+        //get the new currInternal sensors for next action based on char action taken this step
+        this.getNewInternalSensors(action);
+
+        return action;
+    }
+
+    public void getNewInternalSensors(Action action) {
         this.currInternal = new HashMap<Integer, Boolean>();
         //This variable is needed to make the call but we will throw away the data that it is filled with (for now!)
         HashMap<String, double[]> deleteMe =
@@ -205,9 +173,26 @@ public class PhuJusAgent implements IAgent {
                 this.currExternal, '\0');
 
         tempNode.genNextSensors(action.getName().charAt(0), currInternal, deleteMe, true);
-        return action;
-        //DEBUG: For now, bail out after first call
-        //System.exit(0);
+    }
+
+
+    public void printExternalSensors(SensorData sensorData) {
+        System.out.println("External Sensors: ");
+        for(String s : sensorData.getSensorNames()) {
+            System.out.println("\t" + s + ":" + sensorData.getSensor(s));
+        }
+    }
+
+    public void printRules(Action action) {
+        System.out.println("Selected action: " + action.getName().charAt(0));
+        for (Rule r : this.rules) {
+            if(r.matches(action.getName().charAt(0), this.currExternal, this.currInternal)){
+                System.out.print("@");
+            } else{
+                System.out.print(" ");
+            }
+            r.printRule();
+        }
     }
 
     private void initCurrInternal() {
@@ -215,6 +200,38 @@ public class PhuJusAgent implements IAgent {
         for(int i = 0; i < NUMINTERNAL; i++) {
             this.currInternal.put(i, false);
         }
+    }
+
+    public void buildPathFromEmpty() {
+        this.root = new TreeNode(this, this.rules, now, this.currInternal,
+                this.currExternal, '\0');
+        this.root.genSuccessors(3);
+
+        //Find an entire sequence of characters that can reach the goal and get the current action to take
+        this.path = this.root.findBestGoalPath(this.root).replace("\0", "");
+        //if unable to find path, produce random path for it to take
+        if (this.path.equals("")) {
+            this.path = randomActionPath();
+            System.out.println("random path: " + this.path);
+        }else {
+            System.out.println("path: " + this.path);
+        }
+    }
+
+    public void updateRules() {
+        for(int i = 0; i < this.rules.size()/2; i++) {
+            double lowestActivation = 100.0;
+            int curRuleId = 0;
+            //Look for lowest rule
+            for (Rule r : this.rules) {
+                if(r.getActivation() < lowestActivation){
+                    lowestActivation = r.getActivation();
+                    curRuleId = r.getRuleId();
+                }
+            }
+            this.removeRule(curRuleId);
+        }
+        this.generateRules();
     }
 
     /**
@@ -268,6 +285,12 @@ public class PhuJusAgent implements IAgent {
     public void setPrevExternal(SensorData prevExtern) {this.prevExternal = prevExtern;}
 
     public boolean getPrevInternalValue(int id){
+        if(this.prevInternal == null) {
+            System.out.println("Null!");
+        }
+        if(this.prevInternal.get(Integer.valueOf(id)) == null) {
+            System.out.println("Null!");
+        }
         return this.prevInternal.get(Integer.valueOf(id));
     }
 
@@ -288,17 +311,5 @@ public class PhuJusAgent implements IAgent {
     public void setPrevInternal(HashMap<Integer, Boolean> prevInternal) {
         this.prevInternal = prevInternal;
     }
-
-
-//    public char someMethod() {
-//        root = new TreeNode(this.ruleList, this.now, this.currInternal, this.currExternal);
-//        root.genSuccessor(MAXDEPTH);
-//        char action = root.findBestGoalPath(); //TODO: write this method
-//        return action;
-//
-//    }
-
-
-
 
 }

@@ -68,7 +68,6 @@ public class Rule {
             this.rhsExternal.setSensor(rhsSensorName, rhsValue);
             this.rhsExternal.removeSensor(SensorData.goalSensor);
         }
-        this.lastActAmount = new double[]{0.0, 0.0};
     }
 
 
@@ -118,6 +117,7 @@ public class Rule {
                     pickRandomLHS(agent);
                 }
             } else {
+
                 lhsInternal.put(Integer.valueOf(randIdx), agent.getPrevInternalValue(randIdx));
             }
         }
@@ -171,8 +171,6 @@ public class Rule {
             pickRandomLHS(agent);
         } while (rand.nextInt(2) == 0);
 
-
-        this.lastActAmount = new double[]{0.0, 0.0};
     }
 
     public void printRule(){
