@@ -111,8 +111,6 @@ public class PhuJusAgent implements IAgent {
             this.prevInternal = this.currInternal;
         }
 
-
-
         //Create rules based on the agent's current internal and external sensors
         if (sensorData.isGoal()) {
             System.out.println("We hit the goal!");

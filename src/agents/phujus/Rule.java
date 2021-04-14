@@ -82,46 +82,15 @@ public class Rule {
 
         //this if statements checks to see if we select an external sensor or internal sensor
         if (randIdx < numExternal) {
-            //lhs sensors are determined by lhs sensors from previous episode
-            String[] sNames = agent.getPrevExternal().getSensorNames().toArray(new String[0]);
-            //check if this is the first external sensor
-            if(this.lhsExternal == null) {
-                //handle differently if it is the goal sensor
-                if (sNames[randIdx].equals(SensorData.goalSensor)) {
-                    this.lhsExternal = new SensorData(rand.nextInt(2) == 1);
-                } else {
-                    this.lhsExternal = new SensorData(false);
-                    //lhs external sensor is determined by external sensor from previous episode
-                    this.lhsExternal.setSensor(sNames[randIdx], agent.getPrevExternal().getSensor(sNames[randIdx]));
-                    this.lhsExternal.removeSensor(SensorData.goalSensor);
-                }
-            } else {
-                if (this.lhsExternal.getSensor(sNames[randIdx]) != null) {
-                    //if max lhs external isn't reached
-                    if(this.lhsExternal.getSensorNames().size() < numExternal) {
-                        //try again
-                        pickRandomLHS(agent);
-                    }
-                } else {
-                    //lhs external sensor is determined by external sensor from previous episode
-                    this.lhsExternal.setSensor(sNames[randIdx], agent.getPrevExternal().getSensor(sNames[randIdx]));
-                }
-            }
+            pickLhsExternal(agent, randIdx, numExternal);
         } else {
             // subtract the num of External sensors for valid index
             randIdx = randIdx - numExternal;
-
-            if (lhsInternal.containsKey(Integer.valueOf(randIdx))) {
-                if(this.lhsInternal.size() < numInternal) {
-                    //try again if accidentally selected duplicate sensor
-                    pickRandomLHS(agent);
-                }
-            } else {
-
-                lhsInternal.put(Integer.valueOf(randIdx), agent.getPrevInternalValue(randIdx));
-            }
+            pickLhsInternal(agent, randIdx, numInternal);
         }
     }
+
+
 
     //Constructor to create random rule + add time idx for all previous sensors in previous episode
     public Rule(PhuJusAgent agent){
@@ -171,6 +140,45 @@ public class Rule {
             pickRandomLHS(agent);
         } while (rand.nextInt(2) == 0);
 
+    }
+
+    public void pickLhsInternal(PhuJusAgent agent, int randIdx, int numInternal) {
+        if (lhsInternal.containsKey(Integer.valueOf(randIdx))) {
+            if(this.lhsInternal.size() < numInternal) {
+                //try again if accidentally selected duplicate sensor
+                pickRandomLHS(agent);
+            }
+        } else {
+            lhsInternal.put(Integer.valueOf(randIdx), agent.getPrevInternalValue(randIdx));
+        }
+    }
+
+    public void pickLhsExternal(PhuJusAgent agent, int randIdx, int numExternal) {
+        //lhs sensors are determined by lhs sensors from previous episode
+        String[] sNames = agent.getPrevExternal().getSensorNames().toArray(new String[0]);
+        //check if this is the first external sensor
+        if(this.lhsExternal == null) {
+            //handle differently if it is the goal sensor
+            if (sNames[randIdx].equals(SensorData.goalSensor)) {
+                this.lhsExternal = new SensorData(rand.nextInt(2) == 1);
+            } else {
+                this.lhsExternal = new SensorData(false);
+                //lhs external sensor is determined by external sensor from previous episode
+                this.lhsExternal.setSensor(sNames[randIdx], agent.getPrevExternal().getSensor(sNames[randIdx]));
+                this.lhsExternal.removeSensor(SensorData.goalSensor);
+            }
+        } else {
+            if (this.lhsExternal.getSensor(sNames[randIdx]) != null) {
+                //if max lhs external isn't reached
+                if(this.lhsExternal.getSensorNames().size() < numExternal) {
+                    //try again
+                    pickRandomLHS(agent);
+                }
+            } else {
+                //lhs external sensor is determined by external sensor from previous episode
+                this.lhsExternal.setSensor(sNames[randIdx], agent.getPrevExternal().getSensor(sNames[randIdx]));
+            }
+        }
     }
 
     public void printRule(){
