@@ -1,11 +1,9 @@
 package agents.phujus;
 
-import environments.fsm.FSMEnvironment.Sensor;
 import framework.SensorData;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Arrays;
 
 /**
  *
@@ -18,17 +16,15 @@ import java.util.Arrays;
  */
 
 public class TreeNode {
-    ArrayList<Rule> rulesList = new ArrayList<>();  // all rules in the system
+    private PhuJusAgent agent; //Agent
 
-    private int episodeIndex; //associated timestep for this node
+    private ArrayList<Rule> rulesList = new ArrayList<>();  // all rules in the system
+
+    private int episodeIndex;     //associated timestep for this node
 
     //sensor values for this node
     private HashMap<Integer, Boolean> currInternal = new HashMap<>();
-
     private SensorData currExternal;
-
-    //Agent
-    private PhuJusAgent agent;
 
     //child nodes
     private TreeNode[] children;
@@ -38,7 +34,6 @@ public class TreeNode {
 
     //Character that the tree
     private char characterAction = '\0';
-
 
     /** root node constructor */
     public TreeNode(PhuJusAgent initAgent, ArrayList<Rule> initRulesList, int initEpisodeIndex,
@@ -52,49 +47,6 @@ public class TreeNode {
         this.currExternal = initCurrExternal;
         this.characterAction = action;
     }
-
-    /**
-     * genNextSensors
-     *
-     * generates the nextInternal and predictedExternal sensor values for a
-     * given action for this rule
-     *
-     * CAVEAT:  predictedExternal and nextInternal should not be null!
-
-     */
-    public void genNextSensors(char action, HashMap<Integer, Boolean> nextInternal,
-                               HashMap<String, double[]> predictedExternal, boolean updateActivation ) {
-
-        for(Rule r : rulesList) {
-            int sIndex = r.getAssocSensor();
-            if (r.matches(action, this.currExternal, this.currInternal)) {
-                if (sIndex != -1) {
-                    nextInternal.put(sIndex, true); //on
-                }
-
-                //get the current votes so far
-                double[] votes = predictedExternal.get(r.getRHSSensorName());
-                if (votes == null) {
-                    votes = new double[]{0.0, 0.0};
-                    //Create a sensor data to initialize this child node
-                    predictedExternal.put(r.getRHSSensorName(), votes);
-                }
-                //update predicted external value (currently a placeholder value for r.getActivation arg)
-                if(updateActivation){
-                    r.setActivationLevel(this.episodeIndex);
-                }
-                votes[r.getRHSValue()] += r.getActivation();
-            }
-            else {
-                if (sIndex != -1) {
-                    nextInternal.put(sIndex, false); //off
-                }
-                if(updateActivation) {
-                    r.reduceActivation();
-                }
-            }
-        }//for
-    }//genNextSensors
 
     /** recursively generate successor nodes */
     public void genSuccessors(int depth) {
@@ -110,17 +62,7 @@ public class TreeNode {
             //predicted sensor values for t+1
             HashMap<Integer, Boolean> nextInternal = new HashMap<>();
 
-            /*
-            Example:
-            x: ....1..a->..1.  (act=0.8172)
-            y: .....0.a->..0.  (act=0.7115)
-            z: 01.....a->..0.  (act=0.2005)
-
-            {0.0, 0.0, 0.9120, 0.0}, {0.0, 0.0, 0.8172, 0.0}
-
-            */
-
-            // create separate predictedExternal entries for on vs off
+            // create separate predictedExternal entries for off(0) vs on(1)
             HashMap<String, double[]> predictedExternal = new HashMap<>();
 
             genNextSensors(action, nextInternal, predictedExternal, false);
@@ -142,56 +84,49 @@ public class TreeNode {
             this.children[i].genSuccessors(depth - 1);
 
         }//for
-
-
-
     }//genSuccessor
 
-    public void printTree(){
-        System.out.print(this.characterAction);
-        for(Integer i : this.currInternal.keySet()){
-            System.out.print('(' + String.valueOf(i.intValue()) + ',' + this.currInternal.get(i) + ')');
-        }
-        System.out.print("|");
-        for (String s : this.currExternal.getSensorNames()) {
-            System.out.print(this.currExternal.getSensor(s) + " ");
-        }
-        if(!this.childBool){
-            return;
-        } else {
-            System.out.print(" -> ");
-        }
-        for (int i = 0; i < this.agent.getNumActions(); i++) {
-            System.out.print("( ");
-            this.children[i].printTree();
-            System.out.print(") ");
-        }
-    }
-
-
     /**
-     * fbgpHelper
+     * genNextSensors
      *
-     * recurisve helper method for findBestGoalPath. Returns true if a path to the
-     * goal is found
+     * generates the nextInternal and predictedExternal sensor values for a
+     * given action for this rule
      *
-     */
-    public boolean fbgpHelper(TreeNode tree) {
-        if (tree.currExternal.isGoal()) {
-            return true;
-        }
+     * CAVEAT:  predictedExternal and nextInternal should not be null!
 
-        //recursively check if any of the children contain a goal path
-        for (int i = 0; i < agent.getNumActions(); i++) {
-            if (tree.children[i] != null) {
-                if(fbgpHelper(tree.children[i])) {
-                    return true;
+     */
+    public void genNextSensors(char action, HashMap<Integer, Boolean> nextInternal,
+                               HashMap<String, double[]> predictedExternal, boolean updateActivation ) {
+        for(Rule r : this.rulesList) {
+            int sIndex = r.getRHSInternal();
+            if (r.matches(action, this.currExternal, this.currInternal)) {
+                if (sIndex != -1) {
+                    nextInternal.put(sIndex, true); //on
+                }
+
+                //get the current votes so far
+                double[] votes = predictedExternal.get(r.getRHSExternalSensorName());
+                if (votes == null) {
+                    votes = new double[]{0.0, 0.0};
+                    //Create a sensor data to initialize this child node
+                    predictedExternal.put(r.getRHSExternalSensorName(), votes);
+                }
+                //update predicted external value (currently a placeholder value for r.getActivation arg)
+                if(updateActivation){
+                    r.setActivation(this.episodeIndex);
+                }
+                votes[r.getRHSExternalValue()] += r.getActivation();
+            }
+            else {
+                if (sIndex != -1) {
+                    nextInternal.put(sIndex, false); //off
+                }
+                if(updateActivation) {
+                    r.reduceActivation();
                 }
             }
-        }
-
-        return false;
-    }
+        }//for
+    }//genNextSensors
 
     /**
      * findBestGoalPath
@@ -222,6 +157,53 @@ public class TreeNode {
         return tree.getCharacterAction() + findBestGoalPath(tree.children[goalPath]);
     }
 
+    /**
+     * fbgpHelper
+     *
+     * recurisve helper method for findBestGoalPath. Returns true if a path to the
+     * goal is found
+     *
+     */
+    public boolean fbgpHelper(TreeNode tree) {
+        if (tree.currExternal.isGoal()) {
+            return true;
+        }
+
+        //recursively check if any of the children contain a goal path
+        for (int i = 0; i < agent.getNumActions(); i++) {
+            if (tree.children[i] != null) {
+                if(fbgpHelper(tree.children[i])) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    //DEBUG
+    public void printTree(){
+        System.out.print(this.characterAction);
+        for(Integer i : this.currInternal.keySet()){
+            System.out.print('(' + String.valueOf(i.intValue()) + ',' + this.currInternal.get(i) + ')');
+        }
+        System.out.print("|");
+        for (String s : this.currExternal.getSensorNames()) {
+            System.out.print(this.currExternal.getSensor(s) + " ");
+        }
+        if(!this.childBool){
+            return;
+        } else {
+            System.out.print(" -> ");
+        }
+        for (int i = 0; i < this.agent.getNumActions(); i++) {
+            System.out.print("( ");
+            this.children[i].printTree();
+            System.out.print(") ");
+        }
+    }
+
+    //Getters and Setters for TreeNode instance variables
     /**
      * setChildBool
      *

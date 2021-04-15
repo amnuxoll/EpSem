@@ -1,5 +1,4 @@
 package agents.phujus;
-import environments.fsm.FSMEnvironment.Sensor;
 import framework.Action;
 import framework.SensorData;
 
@@ -15,20 +14,16 @@ import static java.lang.Math.abs;
  */
 
 public class Rule {
-
-    //Constants
+    //the last N times the rule was activated that we consider
     public static final int ACTHISTLEN = 10;
-
-    //to assign a unique id to each rule this shared variable is incremented by the ctor
-    public static int nextRuleId = 1;
-
-    //to track which internal sensor values are available for use
-    private static boolean[] intSensorInUse = new boolean[PhuJusAgent.NUMINTERNAL];
-
-    private static Random rand = new Random(2);
 
     //each rule has a unique integer id
     private int ruleId;
+    //to assign a unique id to each rule this shared variable is incremented by the ctor
+    private int nextRuleId = 1;
+
+    //Random number generator used to create rules with random action, internal and external sensors
+    private Random rand = new Random(2);
 
     //define the LHS of the rule.  This consists of:
     // - 0 or more internal sensors that have a particular value (0 or 1)
@@ -40,10 +35,13 @@ public class Rule {
     private char action;
 
     //define the RHS of the rule.  The RHS always contains:
-    // - a value for exactly one external sensor
     // - optionally, an internal sensor that turns on ('1') when this rule matched in prev epsiode
-    private SensorData rhsExternal = null;
+    // - a value for exactly one external sensor
     private int rhsInternal = -1;  //index into internal sensors *or* -1 if none
+    private SensorData rhsExternal = null;
+
+    //to track which internal sensor values are available for use
+    private boolean[] intSensorInUse = new boolean[PhuJusAgent.NUMINTERNAL];
 
     //other data  (ignore these for feb 11-18)
     private int[] lastActTimes = new int[ACTHISTLEN];  // last N times the rule was activated
@@ -70,28 +68,6 @@ public class Rule {
         }
     }
 
-
-    //Picks random lhs external or internal sensor and adds it to the lhs of this rule. The value
-    // that it assigns to that sensor in this rule will be set to match a given episode.
-    // This method takes care not to add a sensor that's already present i.e. no duplicates
-    public void pickRandomLHS(PhuJusAgent agent) {
-        //select a random sensor
-        int numExternal = agent.getCurrExternal().getSensorNames().size();
-        int numInternal = PhuJusAgent.NUMINTERNAL;
-        int randIdx = rand.nextInt(numExternal+numInternal);
-
-        //this if statements checks to see if we select an external sensor or internal sensor
-        if (randIdx < numExternal) {
-            pickLhsExternal(agent, randIdx, numExternal);
-        } else {
-            // subtract the num of External sensors for valid index
-            randIdx = randIdx - numExternal;
-            pickLhsInternal(agent, randIdx, numInternal);
-        }
-    }
-
-
-
     //Constructor to create random rule + add time idx for all previous sensors in previous episode
     public Rule(PhuJusAgent agent){
         this.ruleId = this.nextRuleId++;
@@ -117,8 +93,7 @@ public class Rule {
         SensorData externalSensors = agent.getCurrExternal();
 
 
-        String[] sNames =
-                externalSensors.getSensorNames().toArray(new String[0]);
+        String[] sNames = externalSensors.getSensorNames().toArray(new String[0]);
 
         //select one random rhs external sensor
         int sensorIndex = rand.nextInt(sNames.length);
@@ -142,18 +117,26 @@ public class Rule {
 
     }
 
-    public void pickLhsInternal(PhuJusAgent agent, int randIdx, int numInternal) {
-        if (lhsInternal.containsKey(Integer.valueOf(randIdx))) {
-            if(this.lhsInternal.size() < numInternal) {
-                //try again if accidentally selected duplicate sensor
-                pickRandomLHS(agent);
-            }
+    //Picks random lhs external or internal sensor and adds it to the lhs of this rule. The value
+    // that it assigns to that sensor in this rule will be set to match a given episode.
+    // This method takes care not to add a sensor that's already present i.e. no duplicates
+    public void pickRandomLHS(PhuJusAgent agent) {
+        //select a random sensor
+        int numExternal = agent.getCurrExternal().getSensorNames().size();
+        int numInternal = PhuJusAgent.NUMINTERNAL;
+        int randIdx = rand.nextInt(numExternal+numInternal);
+
+        //this if statements checks to see if we select an external sensor or internal sensor
+        if (randIdx < numExternal) {
+            pickLHSExternal(agent, randIdx, numExternal);
         } else {
-            lhsInternal.put(Integer.valueOf(randIdx), agent.getPrevInternalValue(randIdx));
+            // subtract the num of External sensors for valid index
+            randIdx = randIdx - numExternal;
+            pickLHSInternal(agent, randIdx, numInternal);
         }
     }
 
-    public void pickLhsExternal(PhuJusAgent agent, int randIdx, int numExternal) {
+    public void pickLHSExternal(PhuJusAgent agent, int randIdx, int numExternal) {
         //lhs sensors are determined by lhs sensors from previous episode
         String[] sNames = agent.getPrevExternal().getSensorNames().toArray(new String[0]);
         //check if this is the first external sensor
@@ -181,6 +164,40 @@ public class Rule {
         }
     }
 
+    public void pickLHSInternal(PhuJusAgent agent, int randIdx, int numInternal) {
+        if (lhsInternal.containsKey(Integer.valueOf(randIdx))) {
+            if(this.lhsInternal.size() < numInternal) {
+                //try again if accidentally selected duplicate sensor
+                pickRandomLHS(agent);
+            }
+        } else {
+            lhsInternal.put(Integer.valueOf(randIdx), agent.getPrevInternalValue(randIdx));
+        }
+    }
+
+    //returns true if this rule matches the given action and sensor values
+    public boolean matches(char action, SensorData currExternal, HashMap<Integer, Boolean> currInternal)
+    {
+        if (this.action != action) { return false; }
+        if(this.lhsInternal != null) {
+            for (Integer i : this.lhsInternal.keySet()) {
+                if (this.lhsInternal.get(i) != currInternal.get(i)) {
+                    return false;
+                }
+            }
+        }
+        if(this.lhsExternal != null) {
+            for (String s : this.lhsExternal.getSensorNames()) {
+                if (!this.lhsExternal.getSensor(s)
+                        .equals(currExternal.getSensor(s))) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    //DEBUG
     public void printRule(){
         System.out.print("#" + this.ruleId + ":");
         System.out.print(this.action);
@@ -210,6 +227,35 @@ public class Rule {
         System.out.println();
     }
 
+    //Getters and Setters for Rule instance variables
+    public int getRuleId(){
+        return this.ruleId;
+    }
+
+    public int getRHSInternal(){
+        return this.rhsInternal;
+    }
+    public void setRHSInternal(int rhsInternal) { this.rhsInternal = rhsInternal; }
+    public void turnOffIntSensorInUse(int rhsInternalIdx){ this.intSensorInUse[rhsInternalIdx] = false; }
+
+    public String getRHSExternalSensorName(){
+        for(String s : this.rhsExternal.getSensorNames()){
+            return s;
+        }
+        return "";
+    }
+    public int getRHSExternalValue(){
+        for(String s : this.rhsExternal.getSensorNames()){
+            if((boolean)this.rhsExternal.getSensor(s)){
+                return 1;
+            }
+            else{
+                return 0;
+            }
+        }
+        return 0;
+    }
+
     //calculates the activation of the rule atm
     public double getActivation() {
         double result = 0.0;
@@ -231,89 +277,13 @@ public class Rule {
         this.activationLevel = result;
         return this.activationLevel;
     }
-
-    public void setLastActivation(double[] lastActivation) {
-        this.lastActAmount = lastActivation;
-    }
-
-    public double[] getLastActivation() {
-        return this.lastActAmount;
-    }
-
-    public void setActivationLevel(int now){
+    public void setActivation(int now){
         this.lastActTimes[this.nextActPos] = now;
         this.lastActAmount[this.nextActPos] = 2;
         this.nextActPos = (this.nextActPos + 1) % ACTHISTLEN;
     }
-
     public void reduceActivation() {
         this.activationLevel = this.activationLevel*decayRate;
         this.decayAmount++;
-    }
-
-    public int getRHSInternal(){
-        return this.rhsInternal;
-    }
-
-    public void setRHSInternal(int rhsInternal) {
-        this.rhsInternal = rhsInternal;
-    }
-
-    public void turnOffIntSensorInUse(int rhsInternalIdx){
-        this.intSensorInUse[rhsInternalIdx] = false;
-    }
-
-    //returns true if this rule matches the given action and sensor values
-    public boolean matches(char action, SensorData currExternal, HashMap<Integer, Boolean> currInternal)
-    {
-        if (this.action != action) { return false; }
-        if(this.lhsInternal != null) {
-            for (Integer i : this.lhsInternal.keySet()) {
-                if (this.lhsInternal.get(i) != currInternal.get(i)) {
-                    return false;
-                }
-            }
-        }
-        if(this.lhsExternal != null) {
-            for (String s : this.lhsExternal.getSensorNames()) {
-                if (!this.lhsExternal.getSensor(s)
-                        .equals(currExternal.getSensor(s))) {
-                    return false;
-                }
-            }
-        }
-
-
-        return true;
-    }
-
-    public int getAssocSensor() {
-        return this.rhsInternal;
-    }
-
-    public char getChar() {
-        return this.action;
-    }
-
-    public SensorData getLHSExternal() { return this.lhsExternal; }
-    public String getRHSSensorName(){
-        for(String s : this.rhsExternal.getSensorNames()){
-            return s;
-        }
-        return "";
-    }
-    public int getRHSValue(){
-        for(String s : this.rhsExternal.getSensorNames()){
-            if((boolean)this.rhsExternal.getSensor(s)){
-                return 1;
-            }
-            else{
-                return 0;
-            }
-        }
-        return 0;
-    }
-    public int getRuleId(){
-        return this.ruleId;
     }
 }//class Rule
