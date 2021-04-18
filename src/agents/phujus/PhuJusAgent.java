@@ -30,19 +30,22 @@ public class PhuJusAgent implements IAgent {
 
     private int now = 0; //current timestep 't'
 
+
     private Action[] actionList;
     private IIntrospector introspector;
-
-    //values from previous instance to build rules
-    private HashMap<Integer, Boolean> prevInternal = new HashMap<>();
-    SensorData prevExternal;
 
     //current sensor values
     private HashMap<Integer, Boolean> currInternal = new HashMap<>();
     SensorData currExternal;
 
-    //predicted internal and external sensor values for t+1
-    private int[] nextInternal = new int[NUMINTERNAL];
+    //values from previous instance to build rules
+    SensorData prevExternal;
+    private HashMap<Integer, Boolean> prevInternal = new HashMap<>();
+
+    //predicted sensor values for t+1
+    int[] nextInternal = new int[NUMINTERNAL];
+
+    //2 represents the number of arrays of external sensors. NUMEXTERNAL represents the number of external sensors we're using
     private HashMap<String, double[]> predictedExternal = new HashMap<>();
 
     //Path to take
@@ -51,8 +54,11 @@ public class PhuJusAgent implements IAgent {
     //root of the prediction tree
     TreeNode root; // init this somewhere ...
 
+
     //random numbers are useful sometimes
     private Random rand = new Random();
+
+    private int testcommit = 0;
 
 
     @Override
@@ -60,9 +66,24 @@ public class PhuJusAgent implements IAgent {
         //Store the actions the agents can take and introspector for data analysis later on
         this.actionList = actions;
         this.introspector = introspector;
-        this.initCurrInternal();
-        //prev internal has no previous internal sensors, assign it to curr
-        this.prevInternal = this.currInternal;
+    }
+
+
+    //DEBUG:  print out internal sensors
+    private void printInternalSensors(HashMap<Integer, Boolean> printMe) {
+        System.out.println("Internal Sensors: ");
+        for(Integer i : printMe.keySet()) {
+            System.out.println("\t" + i.toString() + ":" + printMe.get(i));
+        }
+    }
+
+    /**
+     * randomActionPath
+     *
+     * generates a string single valid action letter in it
+     */
+    private String randomActionPath() {
+        return actionList[this.rand.nextInt(getNumActions())].getName();
     }
 
 
@@ -74,18 +95,22 @@ public class PhuJusAgent implements IAgent {
      */
     @Override
     public Action getNextAction(SensorData sensorData) throws Exception {
-        //Update the episode index
-        this.now++;
-        //the next action the agent will take
+        now++;
         Action action = new Action("a" + "");
+        char act = '\0';
 
-        //Use case: time step t = 0 when the agent has not taken any action yet
-        if(this.currExternal == null) {
+        if(this.currExternal == null) { //Use case: time step t = 0 when the agent has not taken any action yet
             this.currExternal = sensorData;
             this.prevExternal = this.currExternal;
         }
         else { //get currExternal values from sensorData
             this.currExternal = sensorData;
+        }
+
+        if(this.currInternal.size() == 0) {
+            this.initCurrInternal();
+            //prev internal has no previous internal sensors, assign it to curr
+            this.prevInternal = this.currInternal;
         }
 
         //Create rules based on the agent's current internal and external sensors
@@ -137,13 +162,6 @@ public class PhuJusAgent implements IAgent {
         return action;
     }
 
-    private void initCurrInternal() {
-        //Initialize current and previous internal sensors with random values
-        for(int i = 0; i < NUMINTERNAL; i++) {
-            this.currInternal.put(i, false);
-        }
-    }
-
     public void getNewInternalSensors(Action action) {
         this.currInternal = new HashMap<Integer, Boolean>();
         //This variable is needed to make the call but we will throw away the data that it is filled with (for now!)
@@ -151,99 +169,13 @@ public class PhuJusAgent implements IAgent {
                 new HashMap<String, double[]>();
 
         //create temporary treeNode to send in correct currInternal
-        TreeNode tempNode = new TreeNode(this, this.rules, this.now, this.prevInternal,
+        TreeNode tempNode = new TreeNode(this, this.rules, now, this.prevInternal,
                 this.currExternal, '\0');
 
         tempNode.genNextSensors(action.getName().charAt(0), currInternal, deleteMe, true);
     }
 
-    public void buildPathFromEmpty() {
-        this.root = new TreeNode(this, this.rules, this.now, this.currInternal,
-                this.currExternal, '\0');
-        this.root.genSuccessors(MAXDEPTH);
 
-        //Find an entire sequence of characters that can reach the goal and get the current action to take
-        this.path = this.root.findBestGoalPath(this.root).replace("\0", "");
-        //if unable to find path, produce random path for it to take
-        if (this.path.equals("")) {
-            this.path = randomActionPath();
-            System.out.println("random path: " + this.path);
-        }else {
-            System.out.println("path: " + this.path);
-        }
-    }
-
-    /**
-     * randomActionPath
-     *
-     * generates a string single valid action letter in it
-     */
-    private String randomActionPath() {
-        return actionList[this.rand.nextInt(getNumActions())].getName();
-    }
-
-    public boolean ruleLimitReached() {
-        if (rules.size() >= MAXNUMRULES) { return true; }
-        return false;
-    }
-
-    /**
-     * Fills up agent's rule inventory
-     *
-     */
-    public void generateRules(){
-        while(!ruleLimitReached()){
-            Rule newRule = new Rule(this);
-            addRule(newRule);
-            //newRule.printRule();
-        }
-    }
-
-    public void updateRules() {
-        for(int i = 0; i < this.rules.size()/2; i++) {
-            double lowestActivation = 100.0;
-            int curRuleId = 0;
-            //Look for lowest rule
-            for (Rule r : this.rules) {
-                if(r.getActivation() < lowestActivation){
-                    lowestActivation = r.getActivation();
-                    curRuleId = r.getRuleId();
-                }
-            }
-            this.removeRule(curRuleId);
-        }
-        this.generateRules();
-    }
-
-    public void addRule(Rule newRule) {
-        if (this.ruleLimitReached()) {
-            return;
-        }
-        rules.add(newRule);
-    }
-
-    public void removeRule(int id) {
-        //Find the rule to remove by its id
-        for(Rule r : this.rules) {
-            if(r.getRuleId() == id) {
-                rules.remove(r);
-                //Turn off the removed rule's RHS internal sensor
-                // if the rule has matched in a previous episode
-                if(r.getRHSInternal() != -1) {
-                    r.turnOffIntSensorInUse(r.getRHSInternal());
-                }
-                break;
-            }
-        }
-    }
-
-    //DEBUG:  print out internal sensors
-    private void printInternalSensors(HashMap<Integer, Boolean> printMe) {
-        System.out.println("Internal Sensors: ");
-        for(Integer i : printMe.keySet()) {
-            System.out.println("\t" + i.toString() + ":" + printMe.get(i));
-        }
-    }
     public void printExternalSensors(SensorData sensorData) {
         System.out.println("External Sensors: ");
         for(String s : sensorData.getSensorNames()) {
@@ -263,17 +195,94 @@ public class PhuJusAgent implements IAgent {
         }
     }
 
-    //Getters and Setters for PhuJusAgent instance variables
+    private void initCurrInternal() {
+        //Initialize current and previous internal sensors with random values
+        for(int i = 0; i < NUMINTERNAL; i++) {
+            this.currInternal.put(i, false);
+        }
+    }
+
+    public void buildPathFromEmpty() {
+        this.root = new TreeNode(this, this.rules, now, this.currInternal,
+                this.currExternal, '\0');
+        this.root.genSuccessors(3);
+
+        //Find an entire sequence of characters that can reach the goal and get the current action to take
+        this.path = this.root.findBestGoalPath(this.root).replace("\0", "");
+        //if unable to find path, produce random path for it to take
+        if (this.path.equals("")) {
+            this.path = randomActionPath();
+            System.out.println("random path: " + this.path);
+        }else {
+            System.out.println("path: " + this.path);
+        }
+    }
+
+    public void updateRules() {
+        for(int i = 0; i < this.rules.size()/2; i++) {
+            double lowestActivation = 100.0;
+            int curRuleId = 0;
+            //Look for lowest rule
+            for (Rule r : this.rules) {
+                if(r.getActivation() < lowestActivation){
+                    lowestActivation = r.getActivation();
+                    curRuleId = r.getRuleId();
+                }
+            }
+            this.removeRule(curRuleId);
+        }
+        this.generateRules();
+    }
+
+    /**
+     * Fills up agent's rule inventory
+     *
+     */
+    public void generateRules(){
+        while(!ruleLimitReached()){
+            Rule newRule = new Rule(this);
+            addRule(newRule);
+            //newRule.printRule();
+        }
+    }
+
+    public boolean ruleLimitReached() {
+        if (rules.size() >= MAXNUMRULES) { return true; }
+        return false;
+    }
+
+    public void addRule(Rule newRule) {
+        if (this.ruleLimitReached()) {
+            return;
+        }
+        rules.add(newRule);
+    }
+
+    public void removeRule(int id) {
+        for(Rule r : this.rules) {
+            if(r.getRuleId() == id) {
+                rules.remove(r);
+                if(r.getRHSInternal() != -1) {
+                    r.turnOffIntSensorInUse(r.getRHSInternal());
+                }
+                break;
+            }
+        }
+    }
+
     public ArrayList<Rule> getRules() {return this.rules;}
 
-    public int getNow() {
-        return now;
-    }
+    public void setCurrInternal(HashMap<Integer, Boolean> curIntern) {this.currInternal = curIntern;}
 
-    public Action[] getActionList() {return actionList;}
-    public int getNumActions() {
-        return actionList.length;
-    }
+    public HashMap<Integer, Boolean> getCurrInternal() {return this.currInternal;}
+
+    public void setCurrExternal(SensorData curExtern) {this.currExternal = curExtern;}
+
+    public SensorData getCurrExternal() {return this.currExternal;}
+
+    public SensorData getPrevExternal() {return this.prevExternal;}
+
+    public void setPrevExternal(SensorData prevExtern) {this.prevExternal = prevExtern;}
 
     public boolean getPrevInternalValue(int id){
         if(this.prevInternal == null) {
@@ -284,17 +293,23 @@ public class PhuJusAgent implements IAgent {
         }
         return this.prevInternal.get(Integer.valueOf(id));
     }
+
+    public void setNow(int now) {
+        this.now = now;
+    }
+
+    public int getNow() {
+        return now;
+    }
+
+    public int getNumActions() {
+        return actionList.length;
+    }
+
+    public Action[] getActionList() {return actionList;}
+
     public void setPrevInternal(HashMap<Integer, Boolean> prevInternal) {
         this.prevInternal = prevInternal;
     }
-
-    public SensorData getPrevExternal() {return this.prevExternal;}
-    public void setPrevExternal(SensorData prevExtern) {this.prevExternal = prevExtern;}
-
-    public HashMap<Integer, Boolean> getCurrInternal() {return this.currInternal;}
-    public void setCurrInternal(HashMap<Integer, Boolean> curIntern) {this.currInternal = curIntern;}
-
-    public SensorData getCurrExternal() {return this.currExternal;}
-    public void setCurrExternal(SensorData curExtern) {this.currExternal = curExtern;}
 
 }
