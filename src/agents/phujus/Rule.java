@@ -51,7 +51,7 @@ public class Rule {
     private int nextActPos = 0;
     private double activationLevel;
     private int lastActUpdate; //when was last time I updated activation
-    private double decayRate = 0.8;
+    private double decayRate = 0.95;
     private int decayAmount = 0;
 
     //Constructor with RHS prediction
@@ -206,12 +206,12 @@ public class Rule {
         for(String s : this.rhsExternal.getSensorNames()) {
             System.out.print('(' + s + ',' + this.rhsExternal.getSensor(s) + ')');
         }
-        System.out.print(" * " + this.getActivation());
+        System.out.print(" * " + this.getActivationLevel());
         System.out.println();
     }
 
     //calculates the activation of the rule atm
-    public double getActivation() {
+    public double oldGetActivation() {
         double result = 0.0;
         for(int j=0; j < lastActTimes.length; ++j) {
             if(lastActTimes[j] != 0) {
@@ -232,6 +232,20 @@ public class Rule {
         return this.activationLevel;
     }
 
+    //calculates the activation of the rule atm
+    public double getActivation(int now) {
+        double result = 0.0;
+        for(int j=0; j < lastActTimes.length; ++j) {
+            if(lastActTimes[j] != 0) {
+                double decayAmount = Math.pow(decayRate, now-lastActTimes[j]);
+                result += lastActAmount[j]*decayAmount;
+            }
+        }
+
+        this.activationLevel = result;
+        return this.activationLevel;
+    }
+
     public void setLastActivation(double[] lastActivation) {
         this.lastActAmount = lastActivation;
     }
@@ -240,9 +254,13 @@ public class Rule {
         return this.lastActAmount;
     }
 
+    public double getActivationLevel() {
+        return this.activationLevel;
+    }
+
     public void setActivationLevel(int now){
         this.lastActTimes[this.nextActPos] = now;
-        this.lastActAmount[this.nextActPos] = 2;
+        this.lastActAmount[this.nextActPos] = 200;
         this.nextActPos = (this.nextActPos + 1) % ACTHISTLEN;
     }
 
@@ -282,8 +300,36 @@ public class Rule {
                 }
             }
         }
+        return true;
+    }
 
-
+    //returns true if this rule matches the given action and sensor values
+    public boolean correctMatch(char action, SensorData currExternal, HashMap<Integer, Boolean> currInternal, SensorData correctRHS)
+    {
+        if (this.action != action) { return false; }
+        if(this.lhsInternal != null) {
+            for (Integer i : this.lhsInternal.keySet()) {
+                if (this.lhsInternal.get(i) != currInternal.get(i)) {
+                    return false;
+                }
+            }
+        }
+        if(this.lhsExternal != null) {
+            for (String s : this.lhsExternal.getSensorNames()) {
+                if (!this.lhsExternal.getSensor(s)
+                        .equals(currExternal.getSensor(s))) {
+                    return false;
+                }
+            }
+        }
+        if(this.rhsExternal != null) {
+            for (String s : this.rhsExternal.getSensorNames()) {
+                if (!rhsExternal.getSensor(s)
+                        .equals(correctRHS.getSensor(s))) {
+                    return false;
+                }
+            }
+        }
         return true;
     }
 

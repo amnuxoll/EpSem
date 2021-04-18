@@ -83,7 +83,7 @@ public class TreeNode {
                 if(updateActivation){
                     r.setActivationLevel(this.episodeIndex);
                 }
-                votes[r.getRHSValue()] += r.getActivation();
+                votes[r.getRHSValue()] += r.getActivation(this.episodeIndex);
             }
             else {
                 if (sIndex != -1) {

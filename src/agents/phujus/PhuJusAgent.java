@@ -6,18 +6,27 @@ import framework.IIntrospector;
 import framework.SensorData;
 import environments.fsm.FSMEnvironment.Sensor;
 
+import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.*;
 import java.util.HashMap;
 import java.util.Random;
+
 /**
  * class PhuJusAgent
  */
 public class PhuJusAgent implements IAgent {
+    //graphing activation levels
+    private HashMap<Integer, String> rulesActivationCSV = new HashMap<>();
 
     public static final int MAXDEPTH = 3;
     public static final int MAXNUMRULES = 8;
     public static final int NUMINTERNAL = 4;
+
+    //activation
+    public static int RULEMATCHHISTORYLEN = 100;
+    private Rule matchArray[] = new Rule[RULEMATCHHISTORYLEN]; //stores last 100 rules that match and correctly matched the future
+    private int lastMatchIdx = 0;
 
     //a list of all the rules in the system (can't exceed some maximum)
     private ArrayList<Rule> rules = new ArrayList<Rule>(); // convert to arraylist
@@ -58,8 +67,6 @@ public class PhuJusAgent implements IAgent {
     //random numbers are useful sometimes
     private Random rand = new Random();
 
-    private int testcommit = 0;
-
 
     @Override
     public void initialize(Action[] actions, IIntrospector introspector) {
@@ -96,6 +103,7 @@ public class PhuJusAgent implements IAgent {
     @Override
     public Action getNextAction(SensorData sensorData) throws Exception {
         now++;
+        System.out.println("TIME STEP: " + now);
         Action action = new Action("a" + "");
         char act = '\0';
 
@@ -112,6 +120,9 @@ public class PhuJusAgent implements IAgent {
             //prev internal has no previous internal sensors, assign it to curr
             this.prevInternal = this.currInternal;
         }
+
+
+
 
         //Create rules based on the agent's current internal and external sensors
         if (sensorData.isGoal()) {
@@ -148,10 +159,21 @@ public class PhuJusAgent implements IAgent {
             }
         }
 
+        //if the agents' rule was predicted correctly, update the activation level
+        if (now != 0) {
+            for (Rule r : this.rules) {
+                if (r.correctMatch(action.getName().charAt(0), this.prevExternal, this.prevInternal, this.currExternal)) {
+                    r.setActivationLevel(now);
+                }
+            }
+        }
+
         //DEBUG:
         printExternalSensors(sensorData);
         printInternalSensors(this.currInternal);
         printRules(action);
+
+
 
         //Now that we know what action to take, all curr values are now previous values
         this.prevInternal = this.currInternal;
@@ -160,6 +182,18 @@ public class PhuJusAgent implements IAgent {
         this.getNewInternalSensors(action);
 
         return action;
+    }
+
+    public Rule[] getMatchArray() {
+        return this.matchArray;
+    }
+
+    public void incrementMatchIdx() {
+        this.lastMatchIdx=(this.lastMatchIdx+1)%RULEMATCHHISTORYLEN;
+    }
+
+    public int getLastMatchIdx() {
+        return this.lastMatchIdx;
     }
 
     public void getNewInternalSensors(Action action) {
@@ -172,7 +206,7 @@ public class PhuJusAgent implements IAgent {
         TreeNode tempNode = new TreeNode(this, this.rules, now, this.prevInternal,
                 this.currExternal, '\0');
 
-        tempNode.genNextSensors(action.getName().charAt(0), currInternal, deleteMe, true);
+        tempNode.genNextSensors(action.getName().charAt(0), currInternal, deleteMe, false);
     }
 
 
@@ -192,6 +226,7 @@ public class PhuJusAgent implements IAgent {
                 System.out.print(" ");
             }
             r.printRule();
+
         }
     }
 
@@ -224,8 +259,8 @@ public class PhuJusAgent implements IAgent {
             int curRuleId = 0;
             //Look for lowest rule
             for (Rule r : this.rules) {
-                if(r.getActivation() < lowestActivation){
-                    lowestActivation = r.getActivation();
+                if(r.getActivation(this.getNow()) < lowestActivation){
+                    lowestActivation = r.getActivation(this.getNow());
                     curRuleId = r.getRuleId();
                 }
             }
