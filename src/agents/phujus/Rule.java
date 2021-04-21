@@ -23,7 +23,7 @@ public class Rule {
     public static int nextRuleId = 1;
 
     //to track which internal sensor values are available for use
-    private static boolean[] intSensorInUse = new boolean[PhuJusAgent.NUMINTERNAL];
+    public static boolean[] intSensorInUse = new boolean[PhuJusAgent.NUMINTERNAL];
 
     private static Random rand = new Random(2);
 
@@ -279,6 +279,7 @@ public class Rule {
 
     public void turnOffIntSensorInUse(int rhsInternalIdx){
         this.intSensorInUse[rhsInternalIdx] = false;
+        this.setRHSInternal(-1);
     }
 
     //returns true if this rule matches the given action and sensor values

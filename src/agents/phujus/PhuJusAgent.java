@@ -104,6 +104,21 @@ public class PhuJusAgent implements IAgent {
     public Action getNextAction(SensorData sensorData) throws Exception {
         now++;
         System.out.println("TIME STEP: " + now);
+
+        //temporary fix to make sure that all rules maintain rhsInternal sensors
+        //TO DO: (Suspected problem) The parallelization causes new thread to be made
+        // that is trying to access previous thread's int sensors in use. Because of that
+        // the new thread believes that all the intsensors have been used up. Therefore,
+        // we need to turn off all the int sensors of previous cycle for the new cycle
+        // to be able to turn on sensors for its own cycle.
+        // What we know: In an example run through, one cycle can go from time step 1 to
+        // time step 700 with all the correct time steps.
+        if(now == 1) {
+            for(int i = 0; i < PhuJusAgent.NUMINTERNAL; ++i) {
+                Rule.intSensorInUse[i] = false;
+            }
+        }
+
         Action action = new Action("a" + "");
         char act = '\0';
 
