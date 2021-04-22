@@ -1,11 +1,9 @@
 package agents.phujus;
 
-import environments.fsm.FSMEnvironment.Sensor;
 import framework.SensorData;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Arrays;
 
 /**
  *
@@ -83,14 +81,12 @@ public class TreeNode {
                 if(updateActivation){
                     r.setActivationLevel(this.episodeIndex);
                 }
-                votes[r.getRHSValue()] += r.getActivation(this.episodeIndex);
+
+                votes[r.getRHSValue()] += r.calculateActivation(this.episodeIndex);
             }
             else {
                 if (sIndex != -1) {
                     nextInternal.put(sIndex, false); //off
-                }
-                if(updateActivation) {
-                    r.reduceActivation();
                 }
             }
         }//for

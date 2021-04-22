@@ -4,11 +4,8 @@ import framework.Action;
 import framework.IAgent;
 import framework.IIntrospector;
 import framework.SensorData;
-import environments.fsm.FSMEnvironment.Sensor;
 
-import java.io.FileWriter;
 import java.util.ArrayList;
-import java.util.*;
 import java.util.HashMap;
 import java.util.Random;
 
@@ -45,11 +42,12 @@ public class PhuJusAgent implements IAgent {
 
     //current sensor values
     private HashMap<Integer, Boolean> currInternal = new HashMap<>();
-    SensorData currExternal;
+    private SensorData currExternal;
 
     //values from previous instance to build rules
-    SensorData prevExternal;
+    private SensorData prevExternal;
     private HashMap<Integer, Boolean> prevInternal = new HashMap<>();
+    private char prevAction;
 
     //predicted sensor values for t+1
     int[] nextInternal = new int[NUMINTERNAL];
@@ -65,7 +63,7 @@ public class PhuJusAgent implements IAgent {
 
 
     //random numbers are useful sometimes
-    private Random rand = new Random();
+    private static Random rand = new Random(2);
 
 
     @Override
@@ -106,13 +104,11 @@ public class PhuJusAgent implements IAgent {
         System.out.println("TIME STEP: " + now);
 
         //temporary fix to make sure that all rules maintain rhsInternal sensors
-        //TO DO: (Suspected problem) The parallelization causes new thread to be made
-        // that is trying to access previous thread's int sensors in use. Because of that
-        // the new thread believes that all the intsensors have been used up. Therefore,
-        // we need to turn off all the int sensors of previous cycle for the new cycle
-        // to be able to turn on sensors for its own cycle.
-        // What we know: In an example run through, one cycle can go from time step 1 to
-        // time step 700 with all the correct time steps.
+        //BUG/Unknowns: Around the 780th time step, the agent will replace itself with
+        // a new agent with a new copy of itself, while keeping all the previous rules.
+        // It creates a whole new set of rules (all 8) and believes that there are no
+        // rhsInternal sensors available so does not include them.
+        // Temporary Solution: Turn off all internal sensors at the start of time now == 1.
         if(now == 1) {
             for(int i = 0; i < PhuJusAgent.NUMINTERNAL; ++i) {
                 Rule.intSensorInUse[i] = false;
@@ -136,10 +132,11 @@ public class PhuJusAgent implements IAgent {
             this.prevInternal = this.currInternal;
         }
 
-
-
+        //if the agents' rule was predicted correctly, update the activation level
+        this.getPredictionActivation(now);
 
         //Create rules based on the agent's current internal and external sensors
+        //BUG:
         if (sensorData.isGoal()) {
             System.out.println("We hit the goal!");
             //Generate random rules if none are in inventory
@@ -174,41 +171,35 @@ public class PhuJusAgent implements IAgent {
             }
         }
 
-        //if the agents' rule was predicted correctly, update the activation level
-        if (now != 0) {
-            for (Rule r : this.rules) {
-                if (r.correctMatch(action.getName().charAt(0), this.prevExternal, this.prevInternal, this.currExternal)) {
-                    r.setActivationLevel(now);
-                }
-            }
-        }
 
         //DEBUG:
-        printExternalSensors(sensorData);
+        printExternalSensors(this.currExternal);
         printInternalSensors(this.currInternal);
         printRules(action);
-
 
 
         //Now that we know what action to take, all curr values are now previous values
         this.prevInternal = this.currInternal;
         this.prevExternal = this.currExternal;
+        this.prevAction = action.getName().charAt(0);
         //get the new currInternal sensors for next action based on char action taken this step
         this.getNewInternalSensors(action);
 
         return action;
     }
 
-    public Rule[] getMatchArray() {
-        return this.matchArray;
-    }
+    public void getPredictionActivation(int now) {
+        if (now != 1) {
+            for (Rule r : this.rules) {
+                if (r.correctMatch(prevAction, this.prevExternal, this.prevInternal, this.currExternal)) {
+                    r.setActivationLevel(now);
+                    r.calculateActivation(now);
+                } else {
+                    r.calculateActivation(now);
+                }
+            }
+        }
 
-    public void incrementMatchIdx() {
-        this.lastMatchIdx=(this.lastMatchIdx+1)%RULEMATCHHISTORYLEN;
-    }
-
-    public int getLastMatchIdx() {
-        return this.lastMatchIdx;
     }
 
     public void getNewInternalSensors(Action action) {
@@ -274,8 +265,8 @@ public class PhuJusAgent implements IAgent {
             int curRuleId = 0;
             //Look for lowest rule
             for (Rule r : this.rules) {
-                if(r.getActivation(this.getNow()) < lowestActivation){
-                    lowestActivation = r.getActivation(this.getNow());
+                if(r.calculateActivation(this.getNow()) < lowestActivation){
+                    lowestActivation = r.calculateActivation(this.getNow());
                     curRuleId = r.getRuleId();
                 }
             }
@@ -320,19 +311,14 @@ public class PhuJusAgent implements IAgent {
         }
     }
 
+    public Rule[] getMatchArray() { return this.matchArray; }
+    public void incrementMatchIdx() { this.lastMatchIdx=(this.lastMatchIdx+1)%RULEMATCHHISTORYLEN; }
+    public int getLastMatchIdx() { return this.lastMatchIdx; }
+
     public ArrayList<Rule> getRules() {return this.rules;}
 
-    public void setCurrInternal(HashMap<Integer, Boolean> curIntern) {this.currInternal = curIntern;}
-
-    public HashMap<Integer, Boolean> getCurrInternal() {return this.currInternal;}
-
-    public void setCurrExternal(SensorData curExtern) {this.currExternal = curExtern;}
-
-    public SensorData getCurrExternal() {return this.currExternal;}
-
-    public SensorData getPrevExternal() {return this.prevExternal;}
-
-    public void setPrevExternal(SensorData prevExtern) {this.prevExternal = prevExtern;}
+    public void setNow(int now) { this.now = now; }
+    public int getNow() { return now; }
 
     public boolean getPrevInternalValue(int id){
         if(this.prevInternal == null) {
@@ -344,22 +330,18 @@ public class PhuJusAgent implements IAgent {
         return this.prevInternal.get(Integer.valueOf(id));
     }
 
-    public void setNow(int now) {
-        this.now = now;
-    }
+    public void setPrevInternal(HashMap<Integer, Boolean> prevInternal) { this.prevInternal = prevInternal; }
 
-    public int getNow() {
-        return now;
-    }
+    public HashMap<Integer, Boolean> getCurrInternal() {return this.currInternal;}
+    public void setCurrInternal(HashMap<Integer, Boolean> curIntern) {this.currInternal = curIntern;}
 
-    public int getNumActions() {
-        return actionList.length;
-    }
+    public SensorData getCurrExternal() {return this.currExternal;}
+    public void setCurrExternal(SensorData curExtern) {this.currExternal = curExtern;}
 
+    public SensorData getPrevExternal() {return this.prevExternal;}
+    public void setPrevExternal(SensorData prevExtern) {this.prevExternal = prevExtern;}
+
+    public int getNumActions() { return actionList.length; }
     public Action[] getActionList() {return actionList;}
-
-    public void setPrevInternal(HashMap<Integer, Boolean> prevInternal) {
-        this.prevInternal = prevInternal;
-    }
 
 }

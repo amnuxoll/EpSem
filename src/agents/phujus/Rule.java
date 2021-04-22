@@ -210,6 +210,7 @@ public class Rule {
         System.out.println();
     }
 
+
     //calculates the activation of the rule atm
     public double oldGetActivation() {
         double result = 0.0;
@@ -233,7 +234,7 @@ public class Rule {
     }
 
     //calculates the activation of the rule atm
-    public double getActivation(int now) {
+    public double calculateActivation(int now) {
         double result = 0.0;
         for(int j=0; j < lastActTimes.length; ++j) {
             if(lastActTimes[j] != 0) {
@@ -262,11 +263,6 @@ public class Rule {
         this.lastActTimes[this.nextActPos] = now;
         this.lastActAmount[this.nextActPos] = 200;
         this.nextActPos = (this.nextActPos + 1) % ACTHISTLEN;
-    }
-
-    public void reduceActivation() {
-        this.activationLevel = this.activationLevel*decayRate;
-        this.decayAmount++;
     }
 
     public int getRHSInternal(){
@@ -343,12 +339,14 @@ public class Rule {
     }
 
     public SensorData getLHSExternal() { return this.lhsExternal; }
+
     public String getRHSSensorName(){
         for(String s : this.rhsExternal.getSensorNames()){
             return s;
         }
         return "";
     }
+
     public int getRHSValue(){
         for(String s : this.rhsExternal.getSensorNames()){
             if((boolean)this.rhsExternal.getSensor(s)){
@@ -363,4 +361,6 @@ public class Rule {
     public int getRuleId(){
         return this.ruleId;
     }
+
+
 }//class Rule
