@@ -5,16 +5,20 @@ import framework.IAgent;
 import framework.IIntrospector;
 import framework.SensorData;
 
+import java.io.*;
 import java.util.ArrayList;
+import java.util.*;
 import java.util.HashMap;
 import java.util.Random;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * class PhuJusAgent
  */
 public class PhuJusAgent implements IAgent {
     //graphing activation levels
-    private HashMap<Integer, String> rulesActivationCSV = new HashMap<>();
+    private List<String[]> rulesActivationCSV = new ArrayList<>();
 
     public static final int MAXDEPTH = 3;
     public static final int MAXNUMRULES = 8;
@@ -65,12 +69,88 @@ public class PhuJusAgent implements IAgent {
     //random numbers are useful sometimes
     private static Random rand = new Random(2);
 
+    public String convertToCSV(String[] data) {
+        return Stream.of(data)
+                .map(this::escapeSpecialCharacters)
+                .collect(Collectors.joining(","));
+    }
+
+    public void givenDataArray_whenConvertToCSV_thenOutputCreated() throws IOException {
+        //Get the current rules' activation levels during this time step
+        ArrayList<Double> currRuleActLvls = new ArrayList<>();
+        for (Rule r : this.rules) {
+            currRuleActLvls.add(r.calculateActivation(this.now));
+        }
+
+        //Store each rule's activation level on a row
+        String[] row = new String[this.rules.size() + 1];
+        row[0] = String.valueOf(this.now); //First column of the row is the timestep
+        int j = 1;
+        for (int i = 0; i < this.rules.size(); i++) {
+            //Fill in the rest of the row
+            row[j] = String.valueOf(currRuleActLvls.get(i));
+            j++;
+        }
+        this.rulesActivationCSV.add(row);
+
+        //Create output file and append if it already exists
+        FileWriter csvOutputFile = new FileWriter("output.csv", false);
+        try (PrintWriter pw = new PrintWriter(csvOutputFile, true)) {
+//            this.rulesActivationCSV.stream()
+//                    .map(this::convertToCSV)
+//                    .forEach(pw::println);
+            for(String[] rw : this.rulesActivationCSV){
+                for(String s: rw){
+                    pw.print(s + ",");
+                }
+                pw.println();
+            }
+            pw.flush();
+        } catch (Exception e) {
+            System.out.println("something went wrong");
+        }
+    }
+
+    public String escapeSpecialCharacters(String data) {
+        String escapedData = data.replaceAll("\\R", " ");
+        if (data.contains(",") || data.contains("\"") || data.contains("'")) {
+            data = data.replace("\"", "\"\"");
+            escapedData = "\"" + data + "\"";
+        }
+        return escapedData;
+    }
 
     @Override
     public void initialize(Action[] actions, IIntrospector introspector) {
         //Store the actions the agents can take and introspector for data analysis later on
+        this.rules = new ArrayList<Rule>();
         this.actionList = actions;
         this.introspector = introspector;
+        this.now = 0;
+        this.prevAction = '\0';
+        this.prevInternal = new HashMap<>();
+        this.currInternal = new HashMap<>();
+        this.initCurrInternal();
+        //prev internal has no previous internal sensors, assign it to curr
+        this.prevInternal = this.currInternal;
+        for(int i = 0; i < PhuJusAgent.NUMINTERNAL; ++i) {
+            Rule.intSensorInUse[i] = false;
+        }
+
+        defineColumnHeaders();
+    }
+
+    public void defineColumnHeaders() {
+        //Write column names into the first row of a CSV file
+        String[] columnNames = new String[MAXNUMRULES + 1];
+        columnNames[0] = "Timestep"; //First column of the row is the timestep
+        int j = 1;
+        for (int i = 0; i < MAXNUMRULES; i++) {
+            //Label each column by rule's index in the inventory
+            columnNames[j] = "Rule " + (i + 1) + " Activation Level";
+            j++;
+        }
+        this.rulesActivationCSV.add(columnNames);
     }
 
 
@@ -100,20 +180,14 @@ public class PhuJusAgent implements IAgent {
      */
     @Override
     public Action getNextAction(SensorData sensorData) throws Exception {
-        now++;
-        System.out.println("TIME STEP: " + now);
+        this.now++;
+        System.out.println("TIME STEP: " + this.now);
 
-        //temporary fix to make sure that all rules maintain rhsInternal sensors
-        //BUG/Unknowns: Around the 780th time step, the agent will replace itself with
-        // a new agent with a new copy of itself, while keeping all the previous rules.
-        // It creates a whole new set of rules (all 8) and believes that there are no
-        // rhsInternal sensors available so does not include them.
-        // Temporary Solution: Turn off all internal sensors at the start of time now == 1.
-        if(now == 1) {
-            for(int i = 0; i < PhuJusAgent.NUMINTERNAL; ++i) {
-                Rule.intSensorInUse[i] = false;
-            }
-        }
+//        if(now == 1) {
+//            for(int i = 0; i < PhuJusAgent.NUMINTERNAL; ++i) {
+//                Rule.intSensorInUse[i] = false;
+//            }
+//        }
 
         Action action = new Action("a" + "");
         char act = '\0';
@@ -126,17 +200,16 @@ public class PhuJusAgent implements IAgent {
             this.currExternal = sensorData;
         }
 
-        if(this.currInternal.size() == 0) {
-            this.initCurrInternal();
-            //prev internal has no previous internal sensors, assign it to curr
-            this.prevInternal = this.currInternal;
-        }
+//        if(this.currInternal.size() == 0) {
+//            this.initCurrInternal();
+//            //prev internal has no previous internal sensors, assign it to curr
+//            this.prevInternal = this.currInternal;
+//        }
 
         //if the agents' rule was predicted correctly, update the activation level
         this.getPredictionActivation(now);
 
         //Create rules based on the agent's current internal and external sensors
-        //BUG:
         if (sensorData.isGoal()) {
             System.out.println("We hit the goal!");
             //Generate random rules if none are in inventory
@@ -145,6 +218,7 @@ public class PhuJusAgent implements IAgent {
             } else{
                 //Getting rid of half the lowest rules to update them
                 this.updateRules();
+                defineColumnHeaders();
             }
             //Resetting the path after we've reached the goal
             this.path = "";
@@ -176,6 +250,7 @@ public class PhuJusAgent implements IAgent {
         printExternalSensors(this.currExternal);
         printInternalSensors(this.currInternal);
         printRules(action);
+//        givenDataArray_whenConvertToCSV_thenOutputCreated();
 
 
         //Now that we know what action to take, all curr values are now previous values
@@ -209,7 +284,7 @@ public class PhuJusAgent implements IAgent {
                 new HashMap<String, double[]>();
 
         //create temporary treeNode to send in correct currInternal
-        TreeNode tempNode = new TreeNode(this, this.rules, now, this.prevInternal,
+        TreeNode tempNode = new TreeNode(this, this.rules, this.now, this.prevInternal,
                 this.currExternal, '\0');
 
         tempNode.genNextSensors(action.getName().charAt(0), currInternal, deleteMe, false);
@@ -244,7 +319,7 @@ public class PhuJusAgent implements IAgent {
     }
 
     public void buildPathFromEmpty() {
-        this.root = new TreeNode(this, this.rules, now, this.currInternal,
+        this.root = new TreeNode(this, this.rules, this.now, this.currInternal,
                 this.currExternal, '\0');
         this.root.genSuccessors(3);
 
@@ -280,6 +355,18 @@ public class PhuJusAgent implements IAgent {
      *
      */
     public void generateRules(){
+        //DEBUG: add a good rule to start: (IS_EVEN, false) a -> (GOAL, true)
+        SensorData s = new SensorData(false);
+        s.setSensor("IS_EVEN", false);
+        s.removeSensor("GOAL");
+        addRule(new Rule('a', s, new HashMap<Integer, Boolean>(), "GOAL", true));
+
+        //DEBUG: add another good rule: (IS_EVEN, true) b -> (IS_EVEN, false)
+        SensorData secondSensor = new SensorData(false);
+        secondSensor.setSensor("IS_EVEN", true);
+        secondSensor.removeSensor("GOAL");
+        addRule(new Rule('b', secondSensor, new HashMap<Integer, Boolean>(), "IS_EVEN", false));
+
         while(!ruleLimitReached()){
             Rule newRule = new Rule(this);
             addRule(newRule);

@@ -261,7 +261,7 @@ public class Rule {
 
     public void setActivationLevel(int now){
         this.lastActTimes[this.nextActPos] = now;
-        this.lastActAmount[this.nextActPos] = 200;
+        this.lastActAmount[this.nextActPos] = 2;
         this.nextActPos = (this.nextActPos + 1) % ACTHISTLEN;
     }
 

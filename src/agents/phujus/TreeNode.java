@@ -44,7 +44,7 @@ public class TreeNode {
         //initializing agent and its children
         this.agent = initAgent;
         this.rulesList = initRulesList;
-        children = new TreeNode[agent.getNumActions()]; // actionSize
+        this.children = new TreeNode[agent.getNumActions()]; // actionSize
         this.episodeIndex = initEpisodeIndex;
         this.currInternal = initCurrInternal;
         this.currExternal = initCurrExternal;
