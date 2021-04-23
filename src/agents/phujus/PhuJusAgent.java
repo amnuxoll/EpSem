@@ -128,8 +128,8 @@ public class PhuJusAgent implements IAgent {
         this.introspector = introspector;
         this.now = 0;
         this.prevAction = '\0';
-        this.prevInternal = new HashMap<>();
-        this.currInternal = new HashMap<>();
+//        this.prevInternal = new HashMap<>();
+//        this.currInternal = new HashMap<>();
         this.initCurrInternal();
         //prev internal has no previous internal sensors, assign it to curr
         this.prevInternal = this.currInternal;
@@ -200,11 +200,11 @@ public class PhuJusAgent implements IAgent {
             this.currExternal = sensorData;
         }
 
-//        if(this.currInternal.size() == 0) {
-//            this.initCurrInternal();
-//            //prev internal has no previous internal sensors, assign it to curr
-//            this.prevInternal = this.currInternal;
-//        }
+        if(this.currInternal.size() == 0) {
+            this.initCurrInternal();
+            //prev internal has no previous internal sensors, assign it to curr
+            this.prevInternal = this.currInternal;
+        }
 
         //if the agents' rule was predicted correctly, update the activation level
         this.getPredictionActivation(now);
@@ -222,28 +222,30 @@ public class PhuJusAgent implements IAgent {
             }
             //Resetting the path after we've reached the goal
             this.path = "";
-        }
+            action = new Action(randomActionPath().charAt(0) + "");
+        } else{
+            //If we don't have a path to follow, find a goal path
+            if(this.path.equals("")) {
+                this.buildPathFromEmpty();
+                action = new Action(this.path.charAt(0) + "");
 
-        //If we don't have a path to follow, find a goal path
-        if(this.path.equals("")) {
-            this.buildPathFromEmpty();
-            action = new Action(this.path.charAt(0) + "");
-
-            //Shorten the path by one so that subsequent calls to this method can grab the right action to take
-            this.path = this.path.substring(1);
-        }
-        else{
-            //path has been found in previous call to this method, so get the next action
-            action = new Action(this.path.charAt(0) + "");
-
-            //the agent next action will be random until it finds the goal if there was only 1 action in the path
-            if(this.path.length() == 1){
-                this.path = randomActionPath();
-            }
-            else {
+                //Shorten the path by one so that subsequent calls to this method can grab the right action to take
                 this.path = this.path.substring(1);
             }
+            else{
+                //path has been found in previous call to this method, so get the next action
+                action = new Action(this.path.charAt(0) + "");
+
+                //the agent next action will be random until it finds the goal if there was only 1 action in the path
+                if(this.path.length() == 1){
+                    this.path = randomActionPath();
+                }
+                else {
+                    this.path = this.path.substring(1);
+                }
+            }
         }
+
 
 
         //DEBUG:
@@ -355,17 +357,17 @@ public class PhuJusAgent implements IAgent {
      *
      */
     public void generateRules(){
-        //DEBUG: add a good rule to start: (IS_EVEN, false) a -> (GOAL, true)
-        SensorData s = new SensorData(false);
-        s.setSensor("IS_EVEN", false);
-        s.removeSensor("GOAL");
-        addRule(new Rule('a', s, new HashMap<Integer, Boolean>(), "GOAL", true));
-
-        //DEBUG: add another good rule: (IS_EVEN, true) b -> (IS_EVEN, false)
-        SensorData secondSensor = new SensorData(false);
-        secondSensor.setSensor("IS_EVEN", true);
-        secondSensor.removeSensor("GOAL");
-        addRule(new Rule('b', secondSensor, new HashMap<Integer, Boolean>(), "IS_EVEN", false));
+//        //DEBUG: add a good rule to start: (IS_EVEN, false) a -> (GOAL, true)
+//        SensorData s = new SensorData(false);
+//        s.setSensor("IS_EVEN", false);
+//        s.removeSensor("GOAL");
+//        addRule(new Rule('a', s, new HashMap<Integer, Boolean>(), "GOAL", true));
+//
+//        //DEBUG: add another good rule: (IS_EVEN, true) b -> (IS_EVEN, false)
+//        SensorData secondSensor = new SensorData(false);
+//        secondSensor.setSensor("IS_EVEN", true);
+//        secondSensor.removeSensor("GOAL");
+//        addRule(new Rule('b', secondSensor, new HashMap<Integer, Boolean>(), "IS_EVEN", false));
 
         while(!ruleLimitReached()){
             Rule newRule = new Rule(this);

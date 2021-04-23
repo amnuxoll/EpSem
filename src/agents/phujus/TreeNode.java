@@ -78,11 +78,15 @@ public class TreeNode {
                     predictedExternal.put(r.getRHSSensorName(), votes);
                 }
                 //update predicted external value (currently a placeholder value for r.getActivation arg)
+                double activationSum = 0.0;
                 if(updateActivation){
                     r.setActivationLevel(this.episodeIndex);
+                    activationSum = r.calculateActivation(this.episodeIndex);
+                } else {
+                    activationSum = 1.5;
                 }
 
-                votes[r.getRHSValue()] += r.calculateActivation(this.episodeIndex);
+                votes[r.getRHSValue()] += activationSum;
             }
             else {
                 if (sIndex != -1) {
