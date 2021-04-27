@@ -37,10 +37,12 @@ public class TreeNode {
     //Character that the tree
     private char characterAction = '\0';
 
+    private String path = "";
+
 
     /** root node constructor */
     public TreeNode(PhuJusAgent initAgent, ArrayList<Rule> initRulesList, int initEpisodeIndex,
-                    HashMap<Integer, Boolean> initCurrInternal, SensorData initCurrExternal, char action) {
+                    HashMap<Integer, Boolean> initCurrInternal, SensorData initCurrExternal, char action, String path) {
         //initializing agent and its children
         this.agent = initAgent;
         this.rulesList = initRulesList;
@@ -49,6 +51,7 @@ public class TreeNode {
         this.currInternal = initCurrInternal;
         this.currExternal = initCurrExternal;
         this.characterAction = action;
+        this.path = path + this.characterAction;
     }
 
     /**
@@ -83,7 +86,7 @@ public class TreeNode {
                     r.setActivationLevel(this.episodeIndex);
                     activationSum = r.calculateActivation(this.episodeIndex);
                 } else {
-                    activationSum = 1.5;
+                    activationSum = 0.2;
                 }
 
                 votes[r.getRHSValue()] += activationSum;
@@ -134,7 +137,7 @@ public class TreeNode {
             }
 
             this.children[i] = new TreeNode(this.agent, this.rulesList,
-                    this.episodeIndex + 1, nextInternal, childSD, action);
+                    this.episodeIndex + 1, nextInternal, childSD, action, this.path);
 
             //future:  decide here if it's worth looking at this child's successors?
 
@@ -199,7 +202,7 @@ public class TreeNode {
      * searches this tree for the best path to the goal and returns the first action
      * in the sequence of actions on that path
      */
-    public String findBestGoalPath(TreeNode tree) {
+    public String dfFindBestGoalPath(TreeNode tree) {
         //base case
         if (!tree.childBool) {
             return tree.getCharacterAction() + "";
@@ -219,7 +222,66 @@ public class TreeNode {
             return "";
         }
 
-        return tree.getCharacterAction() + findBestGoalPath(tree.children[goalPath]);
+        return tree.getCharacterAction() + dfFindBestGoalPath(tree.children[goalPath]);
+    }
+
+    /**
+     * bfFindBestGoalPath
+     *
+     * searches this tree for the best path to the goal and returns the first action
+     * in the sequence of actions on that path by using depth-first search
+     */
+    public String bfFindBestGoalPath(TreeNode tree) {
+        //base case
+        if (tree.currExternal.isGoal()) {
+            return "";
+        }
+
+        //look for a path with the goal
+        String paths = bfFbgpHelper(tree);
+        if (paths.length() == 0) {
+            return "";
+        }
+
+        String[] listOfPaths = paths.split(" ");
+        String smallestPath = "beatThisLengthHere";
+        for (int i = 0; i < listOfPaths.length; i++) {
+            if (listOfPaths[i].length() < smallestPath.length()) {
+                smallestPath = listOfPaths[i];
+            }
+        }
+
+        return smallestPath;
+    }
+
+    /**
+     * bfFindBestGoalPath
+     *
+     * searches this tree for the best path to the goal and returns the first action
+     * in the sequence of actions on that path by using breadth-first search
+     */
+    public String bfFbgpHelper(TreeNode tree) {
+        if (tree == null) {
+            return "";
+        }
+
+        //look for a path with the goal
+        String pathsFound = "";
+        for (int i = agent.getNumActions() -1; i >= 0; i--) {
+            if (tree.children[i] != null) {
+                if(tree.children[i].currExternal.isGoal()) {
+                    pathsFound = pathsFound + tree.children[i].getPath() + " ";
+                }
+            }
+            else {
+                return "";
+            }
+        }
+
+        if (tree.children[0] == null) {
+            return "";
+        }
+        return pathsFound + bfFbgpHelper(tree.children[0]) + bfFbgpHelper(tree.children[1]);
     }
 
     /**
@@ -241,6 +303,17 @@ public class TreeNode {
     public char getCharacterAction() {
         return this.characterAction;
     }
+
+    /**
+     * getPath
+     *
+     * get the character action instance variable
+     *
+     */
+    public String getPath() {
+        return this.path;
+    }
+
 
 
 

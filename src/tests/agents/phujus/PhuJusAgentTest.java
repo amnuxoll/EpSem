@@ -10,8 +10,6 @@ import tests.EpSemTestClass;
 
 import java.util.HashMap;
 
-import static environments.fsm.FSMEnvironment.Sensor.IS_EVEN;
-
 @EpSemTestClass
 public class PhuJusAgentTest {
     @EpSemTest
@@ -59,7 +57,7 @@ public class PhuJusAgentTest {
 
         //Initialize tree and generate children
         TreeNode root = new TreeNode(agent, agent.getRules(), agent.getNow(),
-                agent.getCurrInternal(), agent.getCurrExternal(), 'z');
+                agent.getCurrInternal(), agent.getCurrExternal(), 'z', "");
         root.genSuccessors(1);
 
         root.printTree();
@@ -94,7 +92,7 @@ public class PhuJusAgentTest {
 
         //Initialize tree and generate children
         TreeNode root = new TreeNode(agent, agent.getRules(), agent.getNow(),
-                agent.getCurrInternal(), agent.getCurrExternal(), 'z');
+                agent.getCurrInternal(), agent.getCurrExternal(), 'z', "");
         root.genSuccessors(2);
 
         root.printTree();
@@ -129,13 +127,13 @@ public class PhuJusAgentTest {
 
         //Initialize tree and generate children
         TreeNode root = new TreeNode(agent, agent.getRules(), agent.getNow(),
-                agent.getCurrInternal(), agent.getCurrExternal(), '\0');
+                agent.getCurrInternal(), agent.getCurrExternal(), '\0', "");
         root.genSuccessors(1);
 
         root.printTree();
         System.out.println();
-        System.out.println("The Goal Path Is: " + root.findBestGoalPath(root));
-        Assertions.assertTrue(root.findBestGoalPath(root).equals("\0b"));
+        System.out.println("The Goal Path Is: " + root.dfFindBestGoalPath(root));
+        Assertions.assertTrue(root.dfFindBestGoalPath(root).equals("\0b"));
     }
 
     @EpSemTest
@@ -181,13 +179,13 @@ public class PhuJusAgentTest {
 
         //Initialize tree and generate children
         TreeNode root = new TreeNode(agent, agent.getRules(), agent.getNow(),
-                agent.getCurrInternal(), agent.getCurrExternal(), '\0');
+                agent.getCurrInternal(), agent.getCurrExternal(), '\0', "");
         root.genSuccessors(2);
 
         root.printTree();
         System.out.println();
-        System.out.println("The Goal Path: " + root.findBestGoalPath(root));
-        Assertions.assertTrue(root.findBestGoalPath(root).equals("\0ab"));
+        System.out.println("The Goal Path: " + root.dfFindBestGoalPath(root));
+        Assertions.assertTrue(root.dfFindBestGoalPath(root).equals("\0ab"));
     }
 
     @EpSemTest
@@ -257,13 +255,13 @@ public class PhuJusAgentTest {
 
         //Initialize tree and generate children
         TreeNode root = new TreeNode(agent, agent.getRules(), agent.getNow(),
-                agent.getCurrInternal(), agent.getCurrExternal(), '\0');
+                agent.getCurrInternal(), agent.getCurrExternal(), '\0', "");
         root.genSuccessors(3);
 
         root.printTree();
         System.out.println();
-        System.out.println("The Goal Path: " + root.findBestGoalPath(root));
-        Assertions.assertTrue(root.findBestGoalPath(root).equals("\0aba"));
+        System.out.println("The Goal Path: " + root.dfFindBestGoalPath(root));
+        Assertions.assertTrue(root.dfFindBestGoalPath(root).equals("\0aba"));
     }
 
     @EpSemTest

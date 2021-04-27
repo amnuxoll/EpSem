@@ -65,6 +65,8 @@ public class PhuJusAgent implements IAgent {
     //root of the prediction tree
     TreeNode root; // init this somewhere ...
 
+    private int cycle = 0;
+
 
     //random numbers are useful sometimes
     private static Random rand = new Random(2);
@@ -181,6 +183,7 @@ public class PhuJusAgent implements IAgent {
     @Override
     public Action getNextAction(SensorData sensorData) throws Exception {
         this.now++;
+        this.cycle++;
         System.out.println("TIME STEP: " + this.now);
 
 //        if(now == 1) {
@@ -188,6 +191,10 @@ public class PhuJusAgent implements IAgent {
 //                Rule.intSensorInUse[i] = false;
 //            }
 //        }
+
+        if(cycle > 5) {
+            this.updateRules();
+        }
 
         Action action = new Action("a" + "");
         char act = '\0';
@@ -209,6 +216,8 @@ public class PhuJusAgent implements IAgent {
         //if the agents' rule was predicted correctly, update the activation level
         this.getPredictionActivation(now);
 
+
+
         //Create rules based on the agent's current internal and external sensors
         if (sensorData.isGoal()) {
             System.out.println("We hit the goal!");
@@ -217,11 +226,12 @@ public class PhuJusAgent implements IAgent {
                 this.generateRules();
             } else{
                 //Getting rid of half the lowest rules to update them
-                this.updateRules();
+                //this.updateRules();
                 defineColumnHeaders();
             }
             //Resetting the path after we've reached the goal
             this.path = "";
+            cycle = 0;
             action = new Action(randomActionPath().charAt(0) + "");
         } else{
             //If we don't have a path to follow, find a goal path
@@ -287,7 +297,7 @@ public class PhuJusAgent implements IAgent {
 
         //create temporary treeNode to send in correct currInternal
         TreeNode tempNode = new TreeNode(this, this.rules, this.now, this.prevInternal,
-                this.currExternal, '\0');
+                this.currExternal, '\0', "");
 
         tempNode.genNextSensors(action.getName().charAt(0), currInternal, deleteMe, false);
     }
@@ -322,11 +332,11 @@ public class PhuJusAgent implements IAgent {
 
     public void buildPathFromEmpty() {
         this.root = new TreeNode(this, this.rules, this.now, this.currInternal,
-                this.currExternal, '\0');
+                this.currExternal, '\0', "");
         this.root.genSuccessors(3);
 
         //Find an entire sequence of characters that can reach the goal and get the current action to take
-        this.path = this.root.findBestGoalPath(this.root).replace("\0", "");
+        this.path = this.root.bfFindBestGoalPath(this.root).replace("\0", "");
         //if unable to find path, produce random path for it to take
         if (this.path.equals("")) {
             this.path = randomActionPath();
@@ -337,8 +347,8 @@ public class PhuJusAgent implements IAgent {
     }
 
     public void updateRules() {
-        for(int i = 0; i < this.rules.size()/2; i++) {
-            double lowestActivation = 100.0;
+        for(int i = 0; i < this.rules.size()/5; i++) {
+            double lowestActivation = 1000.0;
             int curRuleId = 0;
             //Look for lowest rule
             for (Rule r : this.rules) {
