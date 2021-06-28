@@ -244,6 +244,7 @@ public class PhuJusAgentTest {
         Rule ruleThree = new Rule(actions[0].getName().charAt(0), thrCurrExternal, thrCurrInternal, SensorData.goalSensor, true);
         ruleThree.setRHSInternal(2);
 
+//        Rule ruleOne = new Rule(actions[0].getName().charAt(0), th)
 
         agent.addRule(ruleOne);
         agent.addRule(ruleTwo);

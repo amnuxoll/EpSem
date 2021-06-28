@@ -259,11 +259,45 @@ public class Rule {
         return this.activationLevel;
     }
 
-    public void setActivationLevel(int now){
+    public void setActivationLevel(int now, boolean goal, boolean punish, Rule [] matchArray, int lastMatchIdx, int matchHistLength){
+        if(goal) {
+            double reward = 4;
+            this.addActivation(now, reward);
+//            if(punish) {
+//                reward*=-1;
+//            }
+            // Reward rules that have recently matched, under the assumption they helped. Then clears match history
+            int i = lastMatchIdx;
+            while(matchArray[i] != null) {
+                reward = reward*.8;
+                matchArray[i].addActivation(now, reward);
+                // Null it out so it does not get rewarded twice
+                matchArray[i] = null;
+                // Iterate to next rule
+                i--;
+                if(i < 0) {
+                    i = matchHistLength - 1;
+                }
+            }
+//        } else { // Potentially remove this portion and have rules get rewarded just from chaining back goal rewards
+//            this.lastActAmount[this.nextActPos] = 2;
+        }
+    }
+
+    /**
+     * addActivation
+     *
+     * adds a new activation event to this rule.
+     *
+     * @param now time of activation
+     * @param reward amount of activation (can be negative to punish)
+     */
+    public void addActivation(int now, double reward) {
         this.lastActTimes[this.nextActPos] = now;
-        this.lastActAmount[this.nextActPos] = 2;
+        this.lastActAmount[this.nextActPos] = reward;
         this.nextActPos = (this.nextActPos + 1) % ACTHISTLEN;
     }
+
 
     public int getRHSInternal(){
         return this.rhsInternal;
@@ -321,8 +355,12 @@ public class Rule {
         }
         if(this.rhsExternal != null) {
             for (String s : this.rhsExternal.getSensorNames()) {
-                if (!rhsExternal.getSensor(s)
-                        .equals(correctRHS.getSensor(s))) {
+                if(correctRHS != null) {
+                    if (!rhsExternal.getSensor(s)
+                            .equals(correctRHS.getSensor(s))) {
+                        return false;
+                    }
+                } else {
                     return false;
                 }
             }

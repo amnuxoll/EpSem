@@ -25,7 +25,7 @@ public class PhuJusAgent implements IAgent {
     public static final int NUMINTERNAL = 4;
 
     //activation
-    public static int RULEMATCHHISTORYLEN = 100;
+    public static int RULEMATCHHISTORYLEN = 40;
     private Rule matchArray[] = new Rule[RULEMATCHHISTORYLEN]; //stores last 100 rules that match and correctly matched the future
     private int lastMatchIdx = 0;
 
@@ -192,7 +192,7 @@ public class PhuJusAgent implements IAgent {
 //            }
 //        }
 
-        if(cycle > 5) {
+        if((now > 5 && cycle == 1) || (cycle > 5)) {
             this.updateRules();
         }
 
@@ -278,12 +278,50 @@ public class PhuJusAgent implements IAgent {
     public void getPredictionActivation(int now) {
         if (now != 1) {
             for (Rule r : this.rules) {
+                // If prediction was correct, reward it
                 if (r.correctMatch(prevAction, this.prevExternal, this.prevInternal, this.currExternal)) {
-                    r.setActivationLevel(now);
+                    boolean punish = false;
+                    String check = r.getRHSSensorName();
+                    boolean goal;
+                    if (check.equals(SensorData.goalSensor)) {
+                        goal = true;
+                    } else {
+                        goal = false;
+                        this.matchArray[this.lastMatchIdx] = r;
+                        this.lastMatchIdx = (this.lastMatchIdx + 1) % RULEMATCHHISTORYLEN;
+                    }
+                    int prevMatch = this.lastMatchIdx - 1;
+                    if(prevMatch < 0) {
+                        prevMatch = RULEMATCHHISTORYLEN - 1;
+                    }
+                    r.setActivationLevel(now, goal, punish, this.matchArray, prevMatch, this.getRuleMatchHistoryLen());
                     r.calculateActivation(now);
-                } else {
-                    r.calculateActivation(now);
-                }
+                    // If prediction was incorrect, punish it
+                } //else {
+//                    if(r.correctMatch(prevAction, this.prevExternal, this.prevInternal, null)) {
+//                        boolean punish = true;
+//                        String check = r.getRHSSensorName();
+//                        boolean goal;
+//                        if (check.equals(SensorData.goalSensor)) {
+//                            goal = true;
+//                        } else {
+//                            goal = false;
+//                            this.matchArray[this.lastMatchIdx % RULEMATCHHISTORYLEN] = r;
+//                            this.lastMatchIdx++;
+//                        }
+//                        r.setActivationLevel(now, goal, punish, this.matchArray, this.lastMatchIdx-1, this.getRuleMatchHistoryLen());
+//                        r.calculateActivation(now);
+//                        //DEBUG don't use a loop, instead just reallocate the array
+//                        if(goal) {
+////                            for(int i = this.lastMatchIdx-1; i>=0; i--){
+////                                this.matchArray[i] = null;
+////                            }
+//                            this.matchArray = new Rule[RULEMATCHHISTORYLEN];
+//                            this.lastMatchIdx = 0;
+//                        }
+//                    }
+//                    r.calculateActivation(now);
+//                }
             }
         }
 
@@ -318,6 +356,7 @@ public class PhuJusAgent implements IAgent {
             } else{
                 System.out.print(" ");
             }
+            r.calculateActivation(now);
             r.printRule();
 
         }
@@ -379,9 +418,33 @@ public class PhuJusAgent implements IAgent {
 //        secondSensor.removeSensor("GOAL");
 //        addRule(new Rule('b', secondSensor, new HashMap<Integer, Boolean>(), "IS_EVEN", false));
 
+        if(rules.size() == 0) {
+            // Add a good rule: (IS_EVEN, false) a -> (GOAL, true)
+            SensorData gr1 = new SensorData(false);
+            gr1.setSensor("IS_EVEN", false);
+            gr1.removeSensor("GOAL");
+            Rule cheater = new Rule('a', gr1, new HashMap<Integer, Boolean>(), "GOAL", true);
+//        newbie.setRHSInternal(0);
+//        Rule.intSensorInUse[0] = true;
+            addRule(cheater);
+            cheater.addActivation(now, 15);
+
+            // Add a good rule: (IS_EVEN, true) b -> (IS_EVEN, false)
+            SensorData gr2 = new SensorData(false);
+            gr2.setSensor("IS_EVEN", true);
+            gr2.removeSensor("GOAL");
+            Rule cheater2 = new Rule('b', gr2, new HashMap<Integer, Boolean>(), "IS_EVEN", false);
+            addRule(cheater2);
+            cheater2.addActivation(now, 15);
+
+        }
+
+        // Add a good rule: (IS
+
         while(!ruleLimitReached()){
             Rule newRule = new Rule(this);
             addRule(newRule);
+            newRule.addActivation(now, 15); // TODO this should not be a hard coded value
             //newRule.printRule();
         }
     }
@@ -413,6 +476,7 @@ public class PhuJusAgent implements IAgent {
     public Rule[] getMatchArray() { return this.matchArray; }
     public void incrementMatchIdx() { this.lastMatchIdx=(this.lastMatchIdx+1)%RULEMATCHHISTORYLEN; }
     public int getLastMatchIdx() { return this.lastMatchIdx; }
+    public int getRuleMatchHistoryLen() { return RULEMATCHHISTORYLEN; }
 
     public ArrayList<Rule> getRules() {return this.rules;}
 
