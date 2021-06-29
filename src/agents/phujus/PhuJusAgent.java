@@ -429,6 +429,15 @@ public class PhuJusAgent implements IAgent {
             addRule(cheater);
             cheater.addActivation(now, 15);
 
+            SensorData gr3 = new SensorData(false);
+            gr3.setSensor("IS_EVEN", false);
+            gr3.removeSensor("GOAL");
+            Rule cheater3 = new Rule('a', gr3, new HashMap<Integer, Boolean>(), "GOAL", true);
+//        newbie.setRHSInternal(0);
+//        Rule.intSensorInUse[0] = true;
+            addRule(cheater3);
+            cheater3.addActivation(now, 15);
+
             // Add a good rule: (IS_EVEN, true) b -> (IS_EVEN, false)
             SensorData gr2 = new SensorData(false);
             gr2.setSensor("IS_EVEN", true);

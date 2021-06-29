@@ -400,5 +400,73 @@ public class Rule {
         return this.ruleId;
     }
 
+    /**
+     * equals
+     *
+     * checks for rule equivalence on both LHS and RHS
+     * Note: rhsInternal is not compared, and activation levels are ignored
+     */
+    @Override
+    public boolean equals(Object o) {
+        // If it references itself, then return a true
+        if(o == this) {
+            return true;
+        }
+
+        // If a non-rule is passed in, return false
+        if(!(o instanceof Rule)) {
+            return false;
+        }
+
+        Rule rule = (Rule) o;
+
+        // Make sure actions match
+        if(rule.action != this.action) {
+            return false;
+        }
+
+        // Make sure the LHS internal sensors match
+        // If both non-null, check the specific sensors for non-matches, return false
+        if((rule.lhsInternal != null) && (this.lhsInternal != null)) {
+            for(Integer i : this.lhsInternal.keySet()) {
+                if(rule.lhsInternal.get(i) != this.lhsInternal.get(i)) {
+                    return false;
+                }
+            }
+        // If one is null and the other isn't, return false
+        } else if(rule.lhsInternal != this.lhsInternal) {
+            return false;
+        }
+
+        // Make sure the LHS external sensors match
+        // If both non-null, check the specific sensors for non-matches, return false
+        if((rule.lhsExternal != null) && (this.lhsExternal != null)) {
+            for(String s : this.lhsExternal.getSensorNames()) {
+                if(!this.lhsExternal.getSensor(s).equals(rule.lhsExternal.getSensor(s))) {
+                    return false;
+                }
+            }
+        // If one is null and the other isn't, return false
+        } else if(rule.lhsExternal != this.lhsExternal) {
+            return false;
+        }
+
+        // Make sure the RHS external sensors match
+        // If both non-null, check the sensors for match, if they don't, return false
+        if((rule.rhsExternal != null) && (this.rhsExternal != null)) {
+            for(String s : this.rhsExternal.getSensorNames()) {
+                if (!this.rhsExternal.getSensor(s).equals(rule.rhsExternal.getSensor(s))) {
+                    return false;
+                }
+            }
+        // If one is null and the other isn't, return false
+        } else if(rule.rhsExternal != this.rhsExternal) {
+            return false;
+        }
+
+        // All conditions match, return true
+        return true;
+    }
+
 
 }//class Rule
