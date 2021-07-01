@@ -23,7 +23,7 @@ public class Rule {
     public static int nextRuleId = 1;
 
     //to track which internal sensor values are available for use
-    public static boolean[] intSensorInUse = new boolean[PhuJusAgent.NUMINTERNAL];
+    public static boolean[] intSensorInUse = new boolean[PhuJusAgent.NUMINTERNAL]; //TODO shouldn't this be in the agent?
 
     private static Random rand = new Random(2);
 
@@ -75,6 +75,11 @@ public class Rule {
     // that it assigns to that sensor in this rule will be set to match a given episode.
     // This method takes care not to add a sensor that's already present i.e. no duplicates
     public void pickRandomLHS(PhuJusAgent agent) {
+        // guarantee that we get an external sensor
+//        int numExternal = agent.getCurrExternal().getSensorNames().size();
+//        int randIdx = rand.nextInt(numExternal);
+//        pickLhsExternal(agent, randIdx, numExternal);
+
         //select a random sensor
         int numExternal = agent.getCurrExternal().getSensorNames().size();
         int numInternal = PhuJusAgent.NUMINTERNAL;
@@ -95,17 +100,6 @@ public class Rule {
     //Constructor to create random rule + add time idx for all previous sensors in previous episode
     public Rule(PhuJusAgent agent){
         this.ruleId = this.nextRuleId++;
-
-        //assign a sensor if one is available
-        int isBase = rand.nextInt(PhuJusAgent.NUMINTERNAL);
-        for(int i = 0; i < PhuJusAgent.NUMINTERNAL; ++i) {
-            int isIndex = (isBase + i) % PhuJusAgent.NUMINTERNAL;
-            if (! this.intSensorInUse[isIndex]) {
-                this.rhsInternal = isIndex;
-                this.intSensorInUse[isIndex] = true;
-                break;
-            }
-        }
 
         Action[] actions = agent.getActionList();
 
@@ -428,6 +422,10 @@ public class Rule {
         // Make sure the LHS internal sensors match
         // If both non-null, check the specific sensors for non-matches, return false
         if((rule.lhsInternal != null) && (this.lhsInternal != null)) {
+            // If they're not the same size, return false
+            if(rule.lhsInternal.size() != this.lhsInternal.size()) {
+                return false;
+            }
             for(Integer i : this.lhsInternal.keySet()) {
                 if(rule.lhsInternal.get(i) != this.lhsInternal.get(i)) {
                     return false;
@@ -441,10 +439,8 @@ public class Rule {
         // Make sure the LHS external sensors match
         // If both non-null, check the specific sensors for non-matches, return false
         if((rule.lhsExternal != null) && (this.lhsExternal != null)) {
-            for(String s : this.lhsExternal.getSensorNames()) {
-                if(!this.lhsExternal.getSensor(s).equals(rule.lhsExternal.getSensor(s))) {
-                    return false;
-                }
+            if(!(this.lhsExternal.equals(rule.lhsExternal))) {
+                return false;
             }
         // If one is null and the other isn't, return false
         } else if(rule.lhsExternal != this.lhsExternal) {

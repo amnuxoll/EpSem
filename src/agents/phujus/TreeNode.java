@@ -4,6 +4,7 @@ import framework.SensorData;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Vector;
 
 /**
  *
@@ -16,7 +17,7 @@ import java.util.HashMap;
  */
 
 public class TreeNode {
-    ArrayList<Rule> rulesList = new ArrayList<>();  // all rules in the system
+    Vector<Rule> rulesList = new Vector<Rule>();  // all rules in the system
 
     private int episodeIndex; //associated timestep for this node
 
@@ -41,7 +42,7 @@ public class TreeNode {
 
 
     /** root node constructor */
-    public TreeNode(PhuJusAgent initAgent, ArrayList<Rule> initRulesList, int initEpisodeIndex,
+    public TreeNode(PhuJusAgent initAgent, Vector<Rule> initRulesList, int initEpisodeIndex,
                     HashMap<Integer, Boolean> initCurrInternal, SensorData initCurrExternal, char action, String path) {
         //initializing agent and its children
         this.agent = initAgent;
@@ -133,7 +134,7 @@ public class TreeNode {
             for(String sensorName : predictedExternal.keySet()) {
                 double[] votes = predictedExternal.get(sensorName);
                 boolean newSensorVal = votes[1] > votes[0];
-                childSD.setSensor(sensorName, new Boolean(newSensorVal)); // off
+                childSD.setSensor(sensorName, Boolean.valueOf(newSensorVal)); // off
             }
 
             this.children[i] = new TreeNode(this.agent, this.rulesList,

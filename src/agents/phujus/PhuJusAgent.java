@@ -30,7 +30,7 @@ public class PhuJusAgent implements IAgent {
     private int lastMatchIdx = 0;
 
     //a list of all the rules in the system (can't exceed some maximum)
-    private ArrayList<Rule> rules = new ArrayList<Rule>(); // convert to arraylist
+    private Vector<Rule> rules = new Vector<Rule>(); // convert to arraylist
 
     //map to find a rule that activates a particular internal sensor.
     //key:  an internal sensor index
@@ -125,7 +125,7 @@ public class PhuJusAgent implements IAgent {
     @Override
     public void initialize(Action[] actions, IIntrospector introspector) {
         //Store the actions the agents can take and introspector for data analysis later on
-        this.rules = new ArrayList<Rule>();
+        this.rules = new Vector<Rule>();
         this.actionList = actions;
         this.introspector = introspector;
         this.now = 0;
@@ -386,18 +386,20 @@ public class PhuJusAgent implements IAgent {
     }
 
     public void updateRules() {
-        for(int i = 0; i < this.rules.size()/5; i++) {
-            double lowestActivation = 1000.0;
-            int curRuleId = 0;
-            //Look for lowest rule
+//        for(int i = 0; i < this.rules.size()/5; i++) {
+//            double lowestActivation = 1000.0;
+            Rule worstRule = this.rules.get(0);
+            worstRule.calculateActivation(this.now);
+            // Find for lowest rule
             for (Rule r : this.rules) {
-                if(r.calculateActivation(this.getNow()) < lowestActivation){
-                    lowestActivation = r.calculateActivation(this.getNow());
-                    curRuleId = r.getRuleId();
+                if(r.calculateActivation(this.now) < worstRule.getActivationLevel()){
+                    worstRule = r;
                 }
             }
-            this.removeRule(curRuleId);
-        }
+            this.removeRule(worstRule);
+            System.out.print("Removing rule: ");
+            worstRule.printRule();
+//        }
         this.generateRules();
     }
 
@@ -429,15 +431,6 @@ public class PhuJusAgent implements IAgent {
             addRule(cheater);
             cheater.addActivation(now, 15);
 
-            SensorData gr3 = new SensorData(false);
-            gr3.setSensor("IS_EVEN", false);
-            gr3.removeSensor("GOAL");
-            Rule cheater3 = new Rule('a', gr3, new HashMap<Integer, Boolean>(), "GOAL", true);
-//        newbie.setRHSInternal(0);
-//        Rule.intSensorInUse[0] = true;
-            addRule(cheater3);
-            cheater3.addActivation(now, 15);
-
             // Add a good rule: (IS_EVEN, true) b -> (IS_EVEN, false)
             SensorData gr2 = new SensorData(false);
             gr2.setSensor("IS_EVEN", true);
@@ -448,10 +441,12 @@ public class PhuJusAgent implements IAgent {
 
         }
 
-        // Add a good rule: (IS
-
         while(!ruleLimitReached()){
             Rule newRule = new Rule(this);
+            // Make sure there are no duplicate rules
+            while(this.rules.contains(newRule)) {
+                newRule = new Rule(this);
+            }
             addRule(newRule);
             newRule.addActivation(now, 15); // TODO this should not be a hard coded value
             //newRule.printRule();
@@ -468,16 +463,24 @@ public class PhuJusAgent implements IAgent {
             return;
         }
         rules.add(newRule);
+        //assign a sensor if one is available
+        int isBase = rand.nextInt(PhuJusAgent.NUMINTERNAL);
+        for(int i = 0; i < PhuJusAgent.NUMINTERNAL; ++i) {
+            int isIndex = (isBase + i) % PhuJusAgent.NUMINTERNAL;
+            if (! newRule.intSensorInUse[isIndex]) {
+                newRule.setRHSInternal(isIndex);
+                newRule.intSensorInUse[isIndex] = true;
+                break;
+            }
+        }
     }
 
-    public void removeRule(int id) {
-        for(Rule r : this.rules) {
-            if(r.getRuleId() == id) {
-                rules.remove(r);
-                if(r.getRHSInternal() != -1) {
-                    r.turnOffIntSensorInUse(r.getRHSInternal());
-                }
-                break;
+    public void removeRule(Rule r) {
+        while(rules.contains(r)) {
+            rules.remove(r);
+            if(r.getRHSInternal() != -1) {
+                System.out.println("Removed rule has internal sensor ID: " + r.getRHSInternal());
+                r.turnOffIntSensorInUse(r.getRHSInternal());
             }
         }
     }
@@ -487,7 +490,7 @@ public class PhuJusAgent implements IAgent {
     public int getLastMatchIdx() { return this.lastMatchIdx; }
     public int getRuleMatchHistoryLen() { return RULEMATCHHISTORYLEN; }
 
-    public ArrayList<Rule> getRules() {return this.rules;}
+    public Vector<Rule> getRules() {return this.rules;}
 
     public void setNow(int now) { this.now = now; }
     public int getNow() { return now; }
