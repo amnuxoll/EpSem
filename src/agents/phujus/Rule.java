@@ -76,19 +76,20 @@ public class Rule {
     // This method takes care not to add a sensor that's already present i.e. no duplicates
     public void pickRandomLHS(PhuJusAgent agent) {
         // guarantee that we get an external sensor
-//        int numExternal = agent.getCurrExternal().getSensorNames().size();
-//        int randIdx = rand.nextInt(numExternal);
-//        pickLhsExternal(agent, randIdx, numExternal);
+        int numExternal = agent.getCurrExternal().getSensorNames().size();
+        int randIdx = rand.nextInt(numExternal);
+        pickLhsExternal(agent, randIdx, numExternal);
 
         //select a random sensor
-        int numExternal = agent.getCurrExternal().getSensorNames().size();
+        numExternal = agent.getCurrExternal().getSensorNames().size();
         int numInternal = PhuJusAgent.NUMINTERNAL;
-        int randIdx = rand.nextInt(numExternal+numInternal);
+        randIdx = rand.nextInt(numExternal+numInternal);
 
+        double chanceExternal = Math.random();
         //this if statements checks to see if we select an external sensor or internal sensor
-        if (randIdx < numExternal) {
+        if ((randIdx < numExternal) && (chanceExternal < 0.33)) {
             pickLhsExternal(agent, randIdx, numExternal);
-        } else {
+        } else if( randIdx >= numExternal) {
             // subtract the num of External sensors for valid index
             randIdx = randIdx - numExternal;
             pickLhsInternal(agent, randIdx, numInternal);
