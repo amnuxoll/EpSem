@@ -148,9 +148,21 @@ public class Rule {
         }
     }
 
+    /**
+     * pickLhsExternal
+     *
+     * selects a random external sensor condition for a new rule.  This is
+     * always selected from the previous external sensor values to ensure
+     * that the selected condition is possible.
+     *
+     * @param agent
+     * @param randIdx  TODO:  wtf is this?
+     * @param numExternal
+     */
     public void pickLhsExternal(PhuJusAgent agent, int randIdx, int numExternal) {
         //lhs sensors are determined by lhs sensors from previous episode
-        String[] sNames = agent.getPrevExternal().getSensorNames().toArray(new String[0]);
+        SensorData prevExternal = agent.getPrevExternal();
+        String[] sNames = prevExternal.getSensorNames().toArray(new String[0]);
         //check if this is the first external sensor
         if(this.lhsExternal == null) {
             //handle differently if it is the goal sensor
@@ -159,7 +171,7 @@ public class Rule {
             } else {
                 this.lhsExternal = new SensorData(false);
                 //lhs external sensor is determined by external sensor from previous episode
-                this.lhsExternal.setSensor(sNames[randIdx], agent.getPrevExternal().getSensor(sNames[randIdx]));
+                this.lhsExternal.setSensor(sNames[randIdx], prevExternal.getSensor(sNames[randIdx]));
                 this.lhsExternal.removeSensor(SensorData.goalSensor);
             }
         } else {
@@ -171,7 +183,7 @@ public class Rule {
                 }
             } else {
                 //lhs external sensor is determined by external sensor from previous episode
-                this.lhsExternal.setSensor(sNames[randIdx], agent.getPrevExternal().getSensor(sNames[randIdx]));
+                this.lhsExternal.setSensor(sNames[randIdx], prevExternal.getSensor(sNames[randIdx]));
             }
         }
     }

@@ -9,6 +9,8 @@ package framework;
 public class TestSuiteConfiguration {
 
     //region Static Configurations
+    /** Defines a one-FSM (very short) debug configuration. */
+    public static final TestSuiteConfiguration ONCE = new TestSuiteConfiguration(1, 50);
 
     /** Defines a short debug configuration. */
     public static final TestSuiteConfiguration QUICK = new TestSuiteConfiguration(10, 100);
