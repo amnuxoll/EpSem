@@ -5,6 +5,16 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 /**
+ * The main() method in this class runs all the unit tests
+ *
+ * You can run a subset of the unit tests by specifying a file or folder on
+ * the command line as a full path from the project root. Examples:
+ *    java EpSemTestRunner ./src/tests/agents/myagent
+ *    java EpSemTestRunner ./src/tests/agents/myagent/MyAgentTest.java
+ *
+ * You can use the -new flag to 1 more specific test classes to run
+ * Example:
+ *    java EpSemTestRunner -new tests.agents.myagent.MyAgentTest tests.agents.myagent.AgentData
  *
  * @author Zachary Paul Faltersack
  * @version 0.95
@@ -16,17 +26,22 @@ public class EpSemTestRunner {
         TestClassCollection testClassCollection;
         ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
 
+        //Load the test classes based upon command line arguments
         if (args == null || args.length == 0) {
+            //load all the tests I can find (default)
             File srcDir = new File(System.getProperty("user.dir"), "src");
             testClassCollection = new TestClassCollection(classLoader, new File(srcDir, "tests"));
         }
         else {
             if (args[0].equals("-new"))
+                //load specific test classes
                 testClassCollection = new TestClassCollection(classLoader, Arrays.copyOfRange(args, 1, args.length));
             else
+                //load tests in a given file or folder
                 testClassCollection = new TestClassCollection(classLoader, new File(args[0]));
         }
 
+        //Run all the tests
         ArrayList<Results> results = new ArrayList<>();
         for (UnitTestClass testClass : testClassCollection.getUnitTestClasses()) {
 	        try {
@@ -35,6 +50,8 @@ public class EpSemTestRunner {
                 ex.printStackTrace();
 	        }
         }
+
+        //Print final results summary
         int successCount = 0, failureCount = 0;
         for (Results result : results) {
             result.print(false);
@@ -42,6 +59,9 @@ public class EpSemTestRunner {
             failureCount += result.getFailureCount();
         }
         System.out.println();
+        System.out.println("---------------------------------------------------------------------");
+        System.out.println("---------------------------------------------------------------------");
+        System.out.println("---------------------------------------------------------------------");
         System.out.println("Total tests executed: " + (successCount + failureCount));
         System.out.println("Success Count: " + successCount);
         System.out.println("Failure Count: " + failureCount);

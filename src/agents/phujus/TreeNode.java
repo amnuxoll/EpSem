@@ -1,5 +1,6 @@
 package agents.phujus;
 
+import environments.fsm.FSMEnvironment;
 import framework.SensorData;
 
 import java.util.ArrayList;
@@ -151,26 +152,67 @@ public class TreeNode {
 
     }//genSuccessor
 
-    public void printTree(){
-        System.out.print(this.characterAction);
+    /**
+     * toString
+     *
+     * creates a terse ASCII representation of this node.  The child nodes are not depicted.
+     */
+    @Override
+    public String toString() {
+        String result = this.characterAction + "->";
+
+        //internal sensors
         for(Integer i : this.currInternal.keySet()){
-            System.out.print('(' + String.valueOf(i.intValue()) + ',' + this.currInternal.get(i) + ')');
+            result += (this.currInternal.get(i)) ? "1" : "0";
         }
-        System.out.print("|");
+        result += "|";
+
+        //external sensors
         for (String s : this.currExternal.getSensorNames()) {
-            System.out.print(this.currExternal.getSensor(s) + " ");
+             Boolean val = (Boolean)this.currExternal.getSensor(s);
+             result += val.booleanValue() ? "1" : "0";
         }
+
+        return result;
+    }
+
+    /**
+     * prints the tree in an "easily" readable format.  This method is the front facing interface.
+     * {@link #printTreeHelper} is the recursive helper method that traverses the tree
+     */
+    public void printTree(){
+        //Print the sensor names
+        System.out.println("  Internal Sensors: 0-" + (this.currInternal.keySet().size() - 1));
+        System.out.print("  External Sensors: ");
+        for (String s : this.currExternal.getSensorNames()) {
+            System.out.print(s + " ");
+        }
+        System.out.println();
+
+        //print the rules recursively
+        printTreeHelper("");
+    }
+
+    /**
+     * printTreeHelper
+     *
+     * is the helper method for {@link #printTree}
+     *
+     * @param indent how much to indent any output from this method
+     */
+    private void printTreeHelper(String indent){
+        System.out.println(indent + "  " + this.toString());
+
+        //base case: no children
         if(!this.childBool){
             return;
-        } else {
-            System.out.print(" -> ");
         }
+
+        //recursive case: print child nodes
         for (int i = 0; i < this.agent.getNumActions(); i++) {
-            System.out.print("( ");
-            this.children[i].printTree();
-            System.out.print(") ");
+            this.children[i].printTreeHelper(indent + "   ");
         }
-    }
+    }//printTreeHelper
 
 
     /**
@@ -245,8 +287,8 @@ public class TreeNode {
         }
 
         String[] listOfPaths = paths.split(" ");
-        String smallestPath = "beatThisLengthHere";
-        for (int i = 0; i < listOfPaths.length; i++) {
+        String smallestPath = listOfPaths[0];
+        for (int i = 1; i < listOfPaths.length; i++) {
             if (listOfPaths[i].length() < smallestPath.length()) {
                 smallestPath = listOfPaths[i];
             }

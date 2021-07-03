@@ -298,8 +298,8 @@ public class Rule {
         return this.rhsInternal;
     }
 
-    public void setRHSInternal(int rhsInternal) {
-        this.rhsInternal = rhsInternal;
+    public void setRHSInternal(int newInt) {
+        this.rhsInternal = newInt;
     }
 
     public void turnOffIntSensorInUse(int rhsInternalIdx){
@@ -307,10 +307,17 @@ public class Rule {
         this.setRHSInternal(-1);
     }
 
-    //returns true if this rule matches the given action and sensor values
+    /**
+     * matches
+     *
+     * @return true if this rule matches the given action and sensor values
+     */
     public boolean matches(char action, SensorData currExternal, HashMap<Integer, Boolean> currInternal)
     {
+        //action match
         if (this.action != action) { return false; }
+
+        //internal sensors match
         if(this.lhsInternal != null) {
             for (Integer i : this.lhsInternal.keySet()) {
                 if (this.lhsInternal.get(i) != currInternal.get(i)) {
@@ -318,6 +325,8 @@ public class Rule {
                 }
             }
         }
+
+        //external sensors match
         if(this.lhsExternal != null) {
             for (String s : this.lhsExternal.getSensorNames()) {
                 if (!this.lhsExternal.getSensor(s)
@@ -326,8 +335,10 @@ public class Rule {
                 }
             }
         }
+
+        //all tests passed
         return true;
-    }
+    }//matches
 
     //returns true if this rule matches the given action and sensor values
     public boolean correctMatch(char action, SensorData currExternal, HashMap<Integer, Boolean> currInternal, SensorData correctRHS)
