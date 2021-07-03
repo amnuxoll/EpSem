@@ -348,19 +348,32 @@ public class PhuJusAgent implements IAgent {
         }
     }
 
+    /**
+     * printRules
+     *
+     * prints all the rules in an abbreviated format
+     *
+     * @param action  the action the agent has selected.  This can be set to null if the action is not yet known
+     */
     public void printRules(Action action) {
-        System.out.println("Selected action: " + action.getName().charAt(0));
+        if (action != null) {
+            System.out.println("Selected action: " + action.getName().charAt(0));
+        }
+
         for (Rule r : this.rules) {
-            if(r.matches(action.getName().charAt(0), this.currExternal, this.currInternal)){
+            if( (action != null) && (r.matches(action.getName().charAt(0), this.currExternal, this.currInternal)) ){
                 System.out.print("@");
-            } else{
+            } else {
                 System.out.print(" ");
             }
             r.calculateActivation(now);
             r.printRule();
-
         }
     }
+
+    /** convenience version of printRules with no selected action */
+    public void printRules() { printRules(null); }
+
 
     private void initCurrInternal() {
         //Initialize current and previous internal sensors with random values
