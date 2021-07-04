@@ -1,24 +1,20 @@
 package agents.phujus;
 
-import environments.fsm.FSMEnvironment;
 import framework.SensorData;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Vector;
 
 /**
- *
  * class TreeNode
- *
+ * <p>
  * Each instance is a node in an N-ary tree where N is the number of actions (i.e., the FSM's
  * alphabet) that tries to predict outcomes of sequences of actions.  Thus, we can "find" a
  * best (shortest, most confident) sequences of actions to reach the goal
- *
  */
 
 public class TreeNode {
-    Vector<Rule> rulesList = new Vector<Rule>();  // all rules in the system
+    Vector<Rule> rules = new Vector<Rule>();  // all rules in the system
 
     private int episodeIndex; //associated timestep for this node
 
@@ -42,12 +38,14 @@ public class TreeNode {
     private String path = "";
 
 
-    /** root node constructor */
+    /**
+     * root node constructor
+     */
     public TreeNode(PhuJusAgent initAgent, Vector<Rule> initRulesList, int initEpisodeIndex,
                     HashMap<Integer, Boolean> initCurrInternal, SensorData initCurrExternal, char action, String path) {
         //initializing agent and its children
         this.agent = initAgent;
-        this.rulesList = initRulesList;
+        this.rules = initRulesList;
         this.children = new TreeNode[agent.getNumActions()]; // actionSize
         this.episodeIndex = initEpisodeIndex;
         this.currInternal = initCurrInternal;
@@ -57,51 +55,82 @@ public class TreeNode {
     }
 
     /**
-     * genNextSensors
+     * pneHelper
+     * <p>
+     * helper method for {@link #predictNextExternal}.  This method gathers "votes" for
+     * either a true or false value for each sensor based on rules that predict
+     * either value.  If no value is predicted, then no vote entry is created
+     * in the result.
      *
-     * generates the nextInternal and predictedExternal sensor values for a
-     * given action for this rule
-     *
-     * CAVEAT:  predictedExternal and nextInternal should not be null!
-
+     * @return a hash map of sensor name to true and false vote tallies
+     * (each as a two-cell double[])
      */
-    public void genNextSensors(char action, HashMap<Integer, Boolean> nextInternal,
-                               HashMap<String, double[]> predictedExternal, boolean updateActivation ) {
+    private HashMap<String, double[]> pneHelper(char action, boolean updateActivation) {
+        HashMap<String, double[]> result = new HashMap<String, double[]>();
 
-        for(Rule r : rulesList) {
-            int sIndex = r.getAssocSensor();
-            if (r.matches(action, this.currExternal, this.currInternal)) {
-                if (sIndex != -1) {
-                    nextInternal.put(sIndex, true); //on
-                }
-
-                //get the current votes so far
-                double[] votes = predictedExternal.get(r.getRHSSensorName());
-                if (votes == null) {
-                    votes = new double[]{0.0, 0.0};
-                    //Create a sensor data to initialize this child node
-                    predictedExternal.put(r.getRHSSensorName(), votes);
-                }
-                //update predicted external value (currently a placeholder value for r.getActivation arg)
-                double activationSum = 0.0;
-                if(updateActivation){
-                    r.setActivationLevel(this.episodeIndex, false, false, this.agent.getMatchArray(), this.agent.getLastMatchIdx(), this.agent.getRuleMatchHistoryLen());
-                    activationSum = r.calculateActivation(this.episodeIndex);
-                } else {
-                    activationSum = 0.2;
-                }
-
-                votes[r.getRHSValue()] += activationSum;
+        for (Rule r : rules) {
+            //we only care about matching rules
+            if (!r.matches(action, this.currExternal, this.currInternal)) {
+                continue;
             }
-            else {
-                if (sIndex != -1) {
-                    nextInternal.put(sIndex, false); //off
-                }
+
+            //get the current votes so far
+            double[] votes = result.get(r.getRHSSensorName());
+            if (votes == null) {
+                votes = new double[]{0.0, 0.0};
+                //Create a sensor data to initialize this child node
+                result.put(r.getRHSSensorName(), votes);
             }
+
+            //update predicted external value (currently a placeholder value for r.getActivation arg)
+            double activationSum = 0.0;
+            if (updateActivation) {
+                r.setActivationLevel(this.episodeIndex, false, false, this.agent.getMatchArray(), this.agent.getLastMatchIdx(), this.agent.getRuleMatchHistoryLen());
+                activationSum = r.calculateActivation(this.episodeIndex);
+            } else {
+                activationSum = 0.2;  //TODO: wtf is this?
+            }
+
+            votes[r.getRHSValue()] += activationSum;
         }//for
-    }//genNextSensors
 
-    /** recursively generate successor nodes */
+        return result;
+    }//pneHelper
+
+    /**
+     * predictNextExternal
+     * <p>
+     * generates the next external sensor values for a given action for this
+     * rule.  This method will also update the activation of rules that match
+     * if asked.
+     *
+     * @param action           the action selected by the agent
+     * @param updateActivation whether or not to update rule activation
+     */
+    private SensorData predictNextExternal(char action, boolean updateActivation) {
+        //Gather the votes (and activate rules if asked)
+        HashMap<String, double[]> nextExternal = pneHelper(action, updateActivation);
+
+        //Create a sensor data to initialize this child node
+        SensorData childSD = new SensorData(this.currExternal);
+        for (String sensorName : childSD.getSensorNames()) {
+            double[] votes = nextExternal.get(sensorName);
+            if (votes == null) {
+                childSD.setSensor(sensorName, false);
+            } else {
+                boolean newSensorVal = (votes[1] > votes[0]); //are yea's greater than nay's?
+                childSD.setSensor(sensorName, Boolean.valueOf(newSensorVal)); // off
+            }
+        }
+        return childSD;
+    }//predictNextExternal
+
+    /**
+     * genSuccessors
+     * <p>
+     * recursively generates successor nodes up to a given depth.  These
+     * new nodes are placed in this.children (creating a tree)
+     */
     public void genSuccessors(int depth) {
         //base case
         if (depth == 0) {
@@ -109,52 +138,28 @@ public class TreeNode {
             return;
         }
 
-        for(int i = 0; i < agent.getNumActions(); ++i) {
-            char action = (char) ('a' + i);
+        for (int i = 0; i < agent.getNumActions(); ++i) {
+            char action = (char) ('a' + i);  //TODO: do this more elegantly
 
-            //predicted sensor values for t+1
-            HashMap<Integer, Boolean> nextInternal = new HashMap<>();
-
-            /*
-            Example:
-            x: ....1..a->..1.  (act=0.8172)
-            y: .....0.a->..0.  (act=0.7115)
-            z: 01.....a->..0.  (act=0.2005)
-
-            {0.0, 0.0, 0.9120, 0.0}, {0.0, 0.0, 0.8172, 0.0}
-
-            */
-
+            //predict the sensor values for the next timestep
             // create separate predictedExternal entries for on vs off
-            HashMap<String, double[]> predictedExternal = new HashMap<>();
+            HashMap<Integer, Boolean> childInternal = agent.genNextInternal(action, this.currInternal, this.currExternal);
+            SensorData childExternal = predictNextExternal(action, false);
 
-            genNextSensors(action, nextInternal, predictedExternal, false);
-
-            //Create a sensor data to initialize this child node
-            SensorData childSD = new SensorData(this.currExternal);
-            for(String sensorName : predictedExternal.keySet()) {
-                double[] votes = predictedExternal.get(sensorName);
-                boolean newSensorVal = votes[1] > votes[0];
-                childSD.setSensor(sensorName, Boolean.valueOf(newSensorVal)); // off
-            }
-
-            this.children[i] = new TreeNode(this.agent, this.rulesList,
-                    this.episodeIndex + 1, nextInternal, childSD, action, this.path);
-
-            //future:  decide here if it's worth looking at this child's successors?
-
-            //Create the successors of this child
+            //Create the successors of this node
+            //future?:  use a heuristic to decide here if it's worth looking at this node's successors ala A*Search
+            this.children[i] = new TreeNode(this.agent, this.rules,
+                    this.episodeIndex + 1, childInternal, childExternal, action, this.path);
             this.children[i].genSuccessors(depth - 1);
 
         }//for
 
+    }//genSuccessors
 
-
-    }//genSuccessor
 
     /**
      * toString
-     *
+     * <p>
      * creates a terse ASCII representation of this node.  The child nodes are not depicted.
      */
     @Override
@@ -162,15 +167,15 @@ public class TreeNode {
         String result = this.characterAction + "->";
 
         //internal sensors
-        for(Integer i : this.currInternal.keySet()){
+        for (Integer i : this.currInternal.keySet()) {
             result += (this.currInternal.get(i)) ? "1" : "0";
         }
         result += "|";
 
         //external sensors
         for (String s : this.currExternal.getSensorNames()) {
-             Boolean val = (Boolean)this.currExternal.getSensor(s);
-             result += val.booleanValue() ? "1" : "0";
+            Boolean val = (Boolean) this.currExternal.getSensor(s);
+            result += val.booleanValue() ? "1" : "0";
         }
 
         return result;
@@ -180,7 +185,7 @@ public class TreeNode {
      * prints the tree in an "easily" readable format.  This method is the front facing interface.
      * {@link #printTreeHelper} is the recursive helper method that traverses the tree
      */
-    public void printTree(){
+    public void printTree() {
         //Print the sensor names
         System.out.println("  Internal Sensors: 0-" + (this.currInternal.keySet().size() - 1));
         System.out.print("  External Sensors: ");
@@ -195,16 +200,16 @@ public class TreeNode {
 
     /**
      * printTreeHelper
-     *
+     * <p>
      * is the helper method for {@link #printTree}
      *
      * @param indent how much to indent any output from this method
      */
-    private void printTreeHelper(String indent){
+    private void printTreeHelper(String indent) {
         System.out.println(indent + "  " + this.toString());
 
         //base case: no children
-        if(!this.childBool){
+        if (!this.childBool) {
             return;
         }
 
@@ -217,10 +222,9 @@ public class TreeNode {
 
     /**
      * fbgpHelper
-     *
+     * <p>
      * recurisve helper method for findBestGoalPath. Returns true if a path to the
      * goal is found
-     *
      */
     public boolean fbgpHelper(TreeNode tree) {
         if (tree.currExternal.isGoal()) {
@@ -230,7 +234,7 @@ public class TreeNode {
         //recursively check if any of the children contain a goal path
         for (int i = 0; i < agent.getNumActions(); i++) {
             if (tree.children[i] != null) {
-                if(fbgpHelper(tree.children[i])) {
+                if (fbgpHelper(tree.children[i])) {
                     return true;
                 }
             }
@@ -241,7 +245,7 @@ public class TreeNode {
 
     /**
      * findBestGoalPath
-     *
+     * <p>
      * searches this tree for the best path to the goal and returns the first action
      * in the sequence of actions on that path
      */
@@ -253,7 +257,7 @@ public class TreeNode {
 
         //look for a path with the goal
         int goalPath = -1;
-        for (int i = agent.getNumActions() -1; i >= 0; i--) {
+        for (int i = agent.getNumActions() - 1; i >= 0; i--) {
             if (fbgpHelper(tree.children[i])) {
                 goalPath = i;
                 break;
@@ -261,7 +265,7 @@ public class TreeNode {
         }
 
         //if no goal path is found, return nothing
-        if(goalPath == -1) {
+        if (goalPath == -1) {
             return "";
         }
 
@@ -270,7 +274,7 @@ public class TreeNode {
 
     /**
      * bfFindBestGoalPath
-     *
+     * <p>
      * searches this tree for the best path to the goal and returns the first action
      * in the sequence of actions on that path by using depth-first search
      */
@@ -299,7 +303,7 @@ public class TreeNode {
 
     /**
      * bfFindBestGoalPath
-     *
+     * <p>
      * searches this tree for the best path to the goal and returns the first action
      * in the sequence of actions on that path by using breadth-first search
      */
@@ -310,13 +314,12 @@ public class TreeNode {
 
         //look for a path with the goal
         String pathsFound = "";
-        for (int i = agent.getNumActions() -1; i >= 0; i--) {
+        for (int i = agent.getNumActions() - 1; i >= 0; i--) {
             if (tree.children[i] != null) {
-                if(tree.children[i].currExternal.isGoal()) {
+                if (tree.children[i].currExternal.isGoal()) {
                     pathsFound = pathsFound + tree.children[i].getPath() + " ";
                 }
-            }
-            else {
+            } else {
                 return "";
             }
         }
@@ -329,9 +332,8 @@ public class TreeNode {
 
     /**
      * setChildBool
-     *
+     * <p>
      * set childBool to false when there are no children
-     *
      */
     public void setChildBool(boolean childFalse) {
         this.childBool = childFalse;
@@ -339,9 +341,8 @@ public class TreeNode {
 
     /**
      * getCharacterAction
-     *
+     * <p>
      * get the character action instance variable
-     *
      */
     public char getCharacterAction() {
         return this.characterAction;
@@ -349,15 +350,12 @@ public class TreeNode {
 
     /**
      * getPath
-     *
+     * <p>
      * get the character action instance variable
-     *
      */
     public String getPath() {
         return this.path;
     }
-
-
 
 
 }//class TreeNode

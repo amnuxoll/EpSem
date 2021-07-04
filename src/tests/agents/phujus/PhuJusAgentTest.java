@@ -227,7 +227,7 @@ public class PhuJusAgentTest {
 
          Rule ruleOne = quickRuleGen("000","0000", 'a', "1...");
          Rule ruleTwo = quickRuleGen("100", "1000", 'b', ".1..");
-         Rule ruleThree = quickRuleGen("010", "1100", 'a', "...1");
+         Rule ruleThree = quickRuleGen("010", "0100", 'a', "...1");
 
          agent.addRule(ruleOne);
          agent.addRule(ruleTwo);

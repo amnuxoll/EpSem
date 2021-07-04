@@ -157,7 +157,7 @@ public class PhuJusAgent implements IAgent {
         }
 
         //select next action
-        Action action = new Action(this.path.charAt(0) + "");
+        char action = this.path.charAt(0);
         //the agent next action will be random until it finds the goal if there was only 1 action in the path
         if(this.path.length() == 1){
             this.path = randomActionPath();
@@ -171,15 +171,13 @@ public class PhuJusAgent implements IAgent {
         printInternalSensors(this.currInternal);
         printRules(action);
 
-        //Now that we know what action to take, all curr values are now previous values
+        //Now that we know what action to take, setup the sensor values for the next iteration
         this.prevInternal = this.currInternal;
         this.prevExternal = this.currExternal;
-        this.prevAction = action.getName().charAt(0);
+        this.prevAction = action;
+        this.currInternal = genNextInternal(action);
 
-        //set the new currInternal sensors for next action based on char action taken this step
-        setNewInternalSensors(action);
-
-        return action;
+        return new Action(action + "");
     }//getNextAction
 
     /**
@@ -214,22 +212,41 @@ public class PhuJusAgent implements IAgent {
             r.setActivationLevel(this.now, goal, false, this.matchArray, prevMatch, this.getRuleMatchHistoryLen());
             r.calculateActivation(this.now);
         }//for
-    }//getPredictionActivation
+    }//predictionActivation
 
-    //TODO: better to take action as a char than an Action obj?
-    public void setNewInternalSensors(Action action) {
-        this.currInternal = new HashMap<Integer, Boolean>();
-        //This variable is needed to make the call but we will throw away the data that it is filled with (for now!)
-        HashMap<String, double[]> deleteMe =
-                new HashMap<String, double[]>();
+    /**
+     * genNextInternal
+     *
+     * calculates what the internal sensors will be for the next timestep
+     *
+     * TODO: stop pull a helper method out of genNextSensors() for this to avoid the deleteMe variable
+     *
+     * @param action  selected action to generate from
+     * @param currInt internal sensors to generate from
+     * @param currExt external sensors to generate from
+     */
+    public HashMap<Integer, Boolean> genNextInternal(char action,
+                                                     HashMap<Integer, Boolean> currInt,
+                                                     SensorData currExt) {
 
-        //create temporary treeNode to send in correct currInternal
-        TreeNode tempNode = new TreeNode(this, this.rules, this.now, this.prevInternal,
-                this.currExternal, '\0', "");
+        HashMap<Integer, Boolean> result = new HashMap<Integer, Boolean>();
 
-        tempNode.genNextSensors(action.getName().charAt(0), currInternal, deleteMe, false);
-    }
+        for(Rule r : rules) {
+            int sIndex = r.getAssocSensor();
+            if (sIndex == -1) continue; //this rule doesn't set an internal sensor
+            boolean match = r.matches(action, currExt, currInt);
+            result.put(sIndex, match);
+        }//for
 
+        return result;
+    }//genNextInternal
+
+    /** convenience overload that uses the this.currInternal and this.currExternal */
+    public HashMap<Integer, Boolean> genNextInternal(char action) {
+        return genNextInternal(action, this.currInternal, this.currExternal);
+    }//genNextInternal
+
+    //TODO:  this is where :AMN: left off on the overhaul
 
     public void printExternalSensors(SensorData sensorData) {
         System.out.println("External Sensors: ");
@@ -243,15 +260,15 @@ public class PhuJusAgent implements IAgent {
      *
      * prints all the rules in an abbreviated format
      *
-     * @param action  the action the agent has selected.  This can be set to null if the action is not yet known
+     * @param action  the action the agent has selected.  This can be set to '\0' if the action is not yet known
      */
-    public void printRules(Action action) {
-        if (action != null) {
-            System.out.println("Selected action: " + action.getName().charAt(0));
+    public void printRules(char action) {
+        if (action != '\0') {
+            System.out.println("Selected action: " + action);
         }
 
         for (Rule r : this.rules) {
-            if( (action != null) && (r.matches(action.getName().charAt(0), this.currExternal, this.currInternal)) ){
+            if( (action != '\0') && (r.matches(action, this.currExternal, this.currInternal)) ){
                 System.out.print("@");
             } else {
                 System.out.print(" ");
@@ -262,7 +279,7 @@ public class PhuJusAgent implements IAgent {
     }
 
     /** convenience version of printRules with no selected action */
-    public void printRules() { printRules(null); }
+    public void printRules() { printRules('\0'); }
 
 
 
