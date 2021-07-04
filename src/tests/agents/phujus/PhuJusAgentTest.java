@@ -9,6 +9,7 @@ import tests.EpSemTest;
 import tests.EpSemTestClass;
 
 import java.util.HashMap;
+import java.util.Vector;
 
 @EpSemTestClass
 public class PhuJusAgentTest {
@@ -81,6 +82,7 @@ public class PhuJusAgentTest {
      *
      * CAVEAT:  there is no error checking so this right :)
      *
+     * @param agent      the agent that will use this rule
      * @param lhsIntStr  a sequence of binary digits indicating
      *                   the values of the internal sensors
      * @param lhsExtStr  a sequence of binary digits indicating
@@ -91,7 +93,7 @@ public class PhuJusAgentTest {
      *
      * @return  a Rule object matching the specification or null on failure
      */
-    public Rule quickRuleGen(String lhsIntStr, String lhsExtStr, char action, String rhsExtStr) {
+    public Rule quickRuleGen(PhuJusAgent agent, String lhsIntStr, String lhsExtStr, char action, String rhsExtStr) {
         //init internal sensors
         HashMap<Integer, Boolean> lhsInt = quickIntGen(lhsIntStr);
 
@@ -112,7 +114,7 @@ public class PhuJusAgentTest {
             rhsSensorValue = false;
         }
 
-        return new Rule(action, lhsExt, lhsInt, rhsSensorName, rhsSensorValue);
+        return new Rule(agent, action, lhsExt, lhsInt, rhsSensorName, rhsSensorValue);
     }//quickRuleGen
 
 
@@ -121,7 +123,7 @@ public class PhuJusAgentTest {
      */
     @EpSemTest
     public void testFirstRuleMatch(){
-        Rule rule = quickRuleGen("0", "1100", 'a', "1...");
+        Rule rule = quickRuleGen( null, "0", "1100", 'a', "1...");
         SensorData currExternal = quickExtGen("1100");
         HashMap<Integer, Boolean> currInternal = quickIntGen("0");
         Assertions.assertTrue(rule.matches('a',currExternal,currInternal));
@@ -136,7 +138,7 @@ public class PhuJusAgentTest {
          PhuJusAgent agent = quickAgentGen("ab");
 
          //Add rule to the agent
-         Rule rule = quickRuleGen("0", "1100", 'b', "1...");
+         Rule rule = quickRuleGen(agent,"0", "1100", 'b', "1...");
          agent.addRule(rule);
          agent.setCurrExternal(rule.getLHSExternal());  //ensures an initial match
 
@@ -157,7 +159,7 @@ public class PhuJusAgentTest {
          PhuJusAgent agent = quickAgentGen("ab");
 
          //add rule to the agent rule's list | predict GOAL Sensor is TRUE if action "a" is taken
-         Rule rule = quickRuleGen("0", "1100", 'a', "...1");
+         Rule rule = quickRuleGen(agent, "0", "1100", 'a', "...1");
          agent.addRule(rule);
          agent.setCurrExternal(rule.getLHSExternal());
 
@@ -186,10 +188,10 @@ public class PhuJusAgentTest {
          PhuJusAgent agent = quickAgentGen("ab");
 
          // Create rule 1: predict testSensor1 is TRUE if action "a" is taken
-         Rule ruleOne = quickRuleGen("00", "000", 'a', "1..");
+         Rule ruleOne = quickRuleGen(agent, "00", "000", 'a', "1..");
 
          // Create rule 2: predict GOAL Sensor is TRUE if action "b" is taken after rule 1 has fired
-         Rule ruleTwo = quickRuleGen("10", "100", 'b', "..1");
+         Rule ruleTwo = quickRuleGen(agent, "10", "100", 'b', "..1");
 
          //install the rules and setup the agent so that the rules will fire as intended
          agent.addRule(ruleOne);
@@ -225,9 +227,9 @@ public class PhuJusAgentTest {
      public void testFndBestGoalPathDepth3(){
          PhuJusAgent agent = quickAgentGen("ab");
 
-         Rule ruleOne = quickRuleGen("000","0000", 'a', "1...");
-         Rule ruleTwo = quickRuleGen("100", "1000", 'b', ".1..");
-         Rule ruleThree = quickRuleGen("010", "0100", 'a', "...1");
+         Rule ruleOne = quickRuleGen(agent, "000","0000", 'a', "1...");
+         Rule ruleTwo = quickRuleGen(agent, "100", "1000", 'b', ".1..");
+         Rule ruleThree = quickRuleGen(agent, "010", "0100", 'a', "...1");
 
          agent.addRule(ruleOne);
          agent.addRule(ruleTwo);
@@ -272,7 +274,8 @@ public class PhuJusAgentTest {
          agent.generateRules();
 
          //Check to see if rule inventory has been filled up properly
-         Assertions.assertTrue(agent.ruleLimitReached());
+         Vector<Rule> rules = agent.getRules();
+         Assertions.assertTrue(rules.size() == PhuJusAgent.MAXNUMRULES);
      }
 
 }

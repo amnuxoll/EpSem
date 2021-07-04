@@ -45,10 +45,32 @@ public class SensorData {
     public SensorData(SensorData other) {
         this.data = (HashMap<String, Object>)(other.data.clone());
     }
-    
+
+    /**
+     * createEmpty
+     *
+     * creates an empty SensorData.
+     *
+     * There is no ctor to do this because it's an iffy thing to do.  So
+     * you have to explicitly call this method to prove you really
+     * want an empty one.
+     */
+    public static SensorData createEmpty() {
+        SensorData result = new SensorData(false);
+        result.data.clear();
+        return result;
+    }//createEmpty
+
     //endregion
 
     //region Public Methods
+
+    /**
+     * @return the number of entries
+     */
+    public int size() {
+        return this.data.size();
+    }
 
     /**
      * Assigns a sensor value to the given sensor name.

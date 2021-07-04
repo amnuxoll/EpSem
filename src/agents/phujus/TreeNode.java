@@ -85,7 +85,7 @@ public class TreeNode {
             //update predicted external value (currently a placeholder value for r.getActivation arg)
             double activationSum = 0.0;
             if (updateActivation) {
-                r.setActivationLevel(this.episodeIndex, false, false, this.agent.getMatchArray(), this.agent.getLastMatchIdx(), this.agent.getRuleMatchHistoryLen());
+                r.setActivationLevel(this.episodeIndex, false, false, this.agent.getMatchArray(), this.agent.getMatchIdx(), this.agent.getRuleMatchHistoryLen());
                 activationSum = r.calculateActivation(this.episodeIndex);
             } else {
                 activationSum = 0.2;  //TODO: wtf is this?

@@ -1,5 +1,4 @@
 package agents.phujus;
-import environments.fsm.FSMEnvironment.Sensor;
 import framework.Action;
 import framework.SensorData;
 
@@ -19,13 +18,19 @@ public class Rule {
     //Constants
     public static final int ACTHISTLEN = 10;
 
+    /** probability of a new rule getting an extra condition */
+    private static final double EXTRACONDFREQ = 0.33;
+
     //to assign a unique id to each rule this shared variable is incremented by the ctor
     public static int nextRuleId = 1;
 
     //to track which internal sensor values are available for use
     public static boolean[] intSensorInUse = new boolean[PhuJusAgent.NUMINTERNAL]; //TODO shouldn't this be in the agent?
 
-    private static Random rand = new Random(2);
+    private static Random rand = PhuJusAgent.rand;
+
+    //The agent using this rule
+    private PhuJusAgent agent = null;
 
     //each rule has a unique integer id
     private int ruleId;
@@ -55,7 +60,8 @@ public class Rule {
     private int decayAmount = 0;
 
     //Constructor with RHS prediction
-    public Rule(char act, SensorData currExt, HashMap<Integer, Boolean> currInt, String rhsSensorName, boolean rhsValue){
+    public Rule(PhuJusAgent agent, char act, SensorData currExt, HashMap<Integer, Boolean> currInt, String rhsSensorName, boolean rhsValue){
+        this.agent = agent;
         this.ruleId = this.nextRuleId++;
         this.action = act;
         this.lhsExternal = currExt;
@@ -71,35 +77,9 @@ public class Rule {
     }
 
 
-    //Picks random lhs external or internal sensor and adds it to the lhs of this rule. The value
-    // that it assigns to that sensor in this rule will be set to match a given episode.
-    // This method takes care not to add a sensor that's already present i.e. no duplicates
-    public void pickRandomLHS(PhuJusAgent agent) {
-        // guarantee that we get an external sensor
-        int numExternal = agent.getCurrExternal().getSensorNames().size();
-        int randIdx = rand.nextInt(numExternal);
-        pickLhsExternal(agent, randIdx, numExternal);
-
-        //select a random sensor
-        numExternal = agent.getCurrExternal().getSensorNames().size();
-        int numInternal = PhuJusAgent.NUMINTERNAL;
-        randIdx = rand.nextInt(numExternal+numInternal);
-
-        double chanceExternal = Math.random();
-        //this if statements checks to see if we select an external sensor or internal sensor
-        if ((randIdx < numExternal) && (chanceExternal < 0.33)) {
-            pickLhsExternal(agent, randIdx, numExternal);
-        } else if( randIdx >= numExternal) {
-            // subtract the num of External sensors for valid index
-            randIdx = randIdx - numExternal;
-            pickLhsInternal(agent, randIdx, numInternal);
-        }
-    }
-
-
-
     //Constructor to create random rule + add time idx for all previous sensors in previous episode
     public Rule(PhuJusAgent agent){
+        this.agent = agent;
         this.ruleId = this.nextRuleId++;
 
         Action[] actions = agent.getActionList();
@@ -131,62 +111,93 @@ public class Rule {
             this.rhsExternal.removeSensor(SensorData.goalSensor);
         }
 
-        do {
-            pickRandomLHS(agent);
-        } while (rand.nextInt(2) == 0);
+        pickRandomLHS();
 
-    }
-
-    public void pickLhsInternal(PhuJusAgent agent, int randIdx, int numInternal) {
-        if (lhsInternal.containsKey(Integer.valueOf(randIdx))) {
-            if(this.lhsInternal.size() < numInternal) {
-                //try again if accidentally selected duplicate sensor
-                pickRandomLHS(agent);
-            }
-        } else {
-            lhsInternal.put(Integer.valueOf(randIdx), agent.getPrevInternalValue(randIdx));
-        }
     }
 
     /**
-     * pickLhsExternal
+     * addExternalCondition
      *
-     * selects a random external sensor condition for a new rule.  This is
+     * selects a random external sensor condition for this rule.  This is
      * always selected from the previous external sensor values to ensure
-     * that the selected condition is possible.
+     * that the selected condition is possible.  The method verifies that
+     * the condition is unique.
      *
-     * @param agent
-     * @param randIdx  TODO:  wtf is this?
-     * @param numExternal
+     * CAVEAT:  if a new condition can't be added this method does nothing
+     *
      */
-    public void pickLhsExternal(PhuJusAgent agent, int randIdx, int numExternal) {
-        //lhs sensors are determined by lhs sensors from previous episode
-        SensorData prevExternal = agent.getPrevExternal();
-        String[] sNames = prevExternal.getSensorNames().toArray(new String[0]);
-        //check if this is the first external sensor
+    public void addExternalCondition() {
+        //see if lhsExternal needs to be initialized
         if(this.lhsExternal == null) {
-            //handle differently if it is the goal sensor
-            if (sNames[randIdx].equals(SensorData.goalSensor)) {
-                this.lhsExternal = new SensorData(rand.nextInt(2) == 1);
+            this.lhsExternal = SensorData.createEmpty();
+        }
+
+        //Special Case:  LHS already contains all sensor names
+        SensorData prevExternal = this.agent.getPrevExternal();
+        if (this.lhsExternal.size() == prevExternal.size()) {
+            return; //fail silently...
+        }
+
+        //select a LHS condition from the prev external sensors
+        int numExternal = prevExternal.getSensorNames().size();
+        String sName = null;
+        do {
+            String[] sNames = prevExternal.getSensorNames().toArray(new String[0]);
+            sName = sNames[rand.nextInt(sNames.length)];
+        } while(this.lhsExternal.hasSensor(sName));
+
+        //Add the condition
+        Boolean val = (Boolean) prevExternal.getSensor(sName);
+        this.lhsExternal.setSensor(sName, val);
+
+    }//addExternalCondition
+
+    /**
+     * addInternalCondition
+     *
+     * same as {@link #addExternalCondition()} but for an internal condition
+     *
+     */
+    public void addInternalCondition() {
+        int newCondIdx = -1;
+        SensorData prevExternal = this.agent.getPrevExternal();
+        Integer newCond = null;
+        String sName = null;
+        do {
+            newCond = Integer.valueOf(rand.nextInt(PhuJusAgent.NUMINTERNAL));
+        } while(this.lhsInternal.containsKey(newCond));
+
+        //Add the condition
+        Boolean val = (Boolean) agent.getPrevInternalValue(newCond);
+        this.lhsInternal.put(newCond, val);
+    }//addInternalCondition
+
+    /**
+     * pickRandomLHS
+     *
+     * picks random lhs external or internal sensor and adds it to the lhs
+     * of this rule. The value that it assigns to that sensor in this rule
+     * will be set to match a given episode. This method takes care not to
+     * add a sensor that's already present i.e. no duplicates
+     */
+    public void pickRandomLHS() {
+        // ensure at least one external condition
+        addExternalCondition();
+
+        //Add other conditions sometimes
+        while(rand.nextDouble() < EXTRACONDFREQ) {
+            //flip a coin: external or internal
+            if (rand.nextInt(2) == 0) {
+                addExternalCondition();
             } else {
-                this.lhsExternal = new SensorData(false);
-                //lhs external sensor is determined by external sensor from previous episode
-                this.lhsExternal.setSensor(sNames[randIdx], prevExternal.getSensor(sNames[randIdx]));
-                this.lhsExternal.removeSensor(SensorData.goalSensor);
-            }
-        } else {
-            if (this.lhsExternal.getSensor(sNames[randIdx]) != null) {
-                //if max lhs external isn't reached
-                if(this.lhsExternal.getSensorNames().size() < numExternal) {
-                    //try again
-                    pickRandomLHS(agent);
-                }
-            } else {
-                //lhs external sensor is determined by external sensor from previous episode
-                this.lhsExternal.setSensor(sNames[randIdx], prevExternal.getSensor(sNames[randIdx]));
+                addInternalCondition();
             }
         }
-    }
+    }//pickRandomLHS
+
+
+
+
 
     public void printRule(){
         System.out.print("#" + this.ruleId + ":");
