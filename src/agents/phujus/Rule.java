@@ -75,9 +75,8 @@ public class Rule {
         this.agent = agent;
         this.ruleId = Rule.nextRuleId++;
 
-        //choose a random action for the character
-        Action[] actions = agent.getActionList();
-        this.action = actions[rand.nextInt(agent.getNumActions())].getName().charAt(0);
+        //pick the agent's previous action for the new rule
+        this.action = agent.getPrevAction();
 
         pickRandomLHS();
         pickRandomRHS();
@@ -248,6 +247,7 @@ public class Rule {
      */
     public void activateForGoal(){
             Rule[] matchArray = agent.getMatchArray();
+            int[] matchTimes = agent.getMatchTimes();
             double reward = FOUND_GOAL_REWARD;
             this.addActivation(agent.getNow(), reward);
 
@@ -259,6 +259,7 @@ public class Rule {
 
                 // Null it out so it does not get rewarded twice
                 matchArray[i] = null;
+                matchTimes[i] = 0;
 
                 // Iterate to next rule
                 i--;
@@ -403,6 +404,13 @@ public class Rule {
             return s;
         }
         return "";
+    }
+
+    public boolean getRHSSensorValue(){
+        for(String s : this.rhsExternal.getSensorNames()) {
+            return (Boolean) this.rhsExternal.getSensor(s);
+        }
+        return false;
     }
 
     /** returns the RHS sensor value as an int (0 or 1) 

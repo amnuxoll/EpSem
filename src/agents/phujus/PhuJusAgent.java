@@ -20,6 +20,7 @@ import java.util.Random;
  * > implement a debug logging system with levels so we can turn on/off various
  *   types of debug info on the console
  * > Use int[] for internal sensors instead of HashMap (simpler)
+ * > Figure out why the results are non-repeatable with a seeded random
  *
  * TODO research items
  * > Why are the good seed rules being rejected?  We likely need a
@@ -50,6 +51,7 @@ public class PhuJusAgent implements IAgent {
     //and prevMatchIndex() on the matchIdx variable rather than the
     //'++' and '--' operators
     private final Rule[] matchArray = new Rule[RULEMATCHHISTORYLEN]; //stores last N rules that fired and were correct
+    private final int[] matchTimes = new int[RULEMATCHHISTORYLEN]; //mirrors matchArray, but tracks each rule's timestep when fired
     private int matchIdx = 0;
 
     //a list of all the rules in the system (can't exceed some maximum)
@@ -203,12 +205,19 @@ public class PhuJusAgent implements IAgent {
             boolean goal = (r.getRHSSensorName().equals(SensorData.goalSensor));
             if (!goal) {
                 this.matchArray[this.matchIdx] = r;
+                this.matchTimes[this.matchIdx] = now-1;
                 this.matchIdx = nextMatchIdx();
+            } else {
+                // DEBUG
+                for(String sName : r.getLHSExternal().getSensorNames()) {
+                    Boolean val = (Boolean) r.getLHSExternal().getSensor(sName);
+                    findRules(this.now - 1, sName, val);
+                }
+                //Update the rule's activation
+                r.activateForGoal();
+                r.calculateActivation(this.now); // TODO remove this?
             }
 
-            //Update the rule's activation
-            r.activateForGoal();
-            r.calculateActivation(this.now);
         }//for
     }//predictionActivation
 
@@ -318,9 +327,6 @@ public class PhuJusAgent implements IAgent {
      * @param numReplacements  the number of rules to replace
      */
     public void updateRules(int numReplacements) {
-        //No updates can be performed until the agent has taken at least one step
-        if (now <= 1) return;
-
         //Special case:  create the initial set of rules once the agent has
         // a legitimate current and previous set of sensors
         if (this.rules.size() == 0) {
@@ -367,7 +373,7 @@ public class PhuJusAgent implements IAgent {
             gr1.removeSensor("GOAL");
             Rule cheater = new Rule(this, 'a', gr1, new HashMap<>(), "GOAL", true);
             addRule(cheater);
-            cheater.addActivation(now, 15);
+            cheater.addActivation(now, INITIAL_ACTIVATION);
 
             // Add a good rule: (IS_EVEN, true) b -> (IS_EVEN, false)
             SensorData gr2 = new SensorData(false);
@@ -375,7 +381,7 @@ public class PhuJusAgent implements IAgent {
             gr2.removeSensor("GOAL");
             Rule cheater2 = new Rule(this, 'b', gr2, new HashMap<>(), "IS_EVEN", false);
             addRule(cheater2);
-            cheater2.addActivation(now, 15);
+            cheater2.addActivation(now, INITIAL_ACTIVATION);
         }//if
 
         while (rules.size() < MAXNUMRULES) {
@@ -429,6 +435,27 @@ public class PhuJusAgent implements IAgent {
             System.out.println("Removed rule has internal sensor ID: " + r.getRHSInternal());
             r.turnOffIntSensorInUse(r.getRHSInternal());
         }
+    }
+
+    /**
+     * findRules
+     *
+     * finds all the rules that had matched at a given timestamp and predicted a given sensor value
+     * @return the matching rules
+     */
+    public Vector<Rule> findRules(int timestamp, String sName, boolean value) {
+        Vector<Rule> foundRules = new Vector<>();
+        for(int i = 0; i < matchTimes.length; i++) {
+            if(timestamp == matchTimes[i]) {
+                if((matchArray[i].getRHSSensorName().equals(sName) && (matchArray[i].getRHSSensorValue() == value))) {
+                    foundRules.add(matchArray[i]);
+                }
+            }
+        }
+        for(Rule r : foundRules) {
+            r.addActivation(timestamp, Rule.FOUND_GOAL_REWARD);
+        }
+        return foundRules;
     }
 
     //region Getters and Setters
@@ -497,6 +524,14 @@ public class PhuJusAgent implements IAgent {
 
     public Action[] getActionList() {
         return actionList;
+    }
+
+    public int[] getMatchTimes() {
+        return matchTimes;
+    }
+
+    public char getPrevAction() {
+        return prevAction;
     }
 
     //endregion
