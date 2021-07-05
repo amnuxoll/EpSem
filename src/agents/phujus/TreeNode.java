@@ -10,39 +10,38 @@ import java.util.Vector;
  * <p>
  * Each instance is a node in an N-ary tree where N is the number of actions (i.e., the FSM's
  * alphabet) that tries to predict outcomes of sequences of actions.  Thus, we can "find" a
- * best (shortest, most confident) sequences of actions to reach the goal
+ * best (shortest, most confident) sequence of actions to reach the goal
  */
 
 public class TreeNode {
-    Vector<Rule> rules = new Vector<Rule>();  // all rules in the system
+    //Agent
+    private final PhuJusAgent agent;
 
-    private int episodeIndex; //associated timestep for this node
+    // all rules in the system
+    Vector<Rule> rules;
+
+    //associated timestep for this node
+    private final int episodeIndex;
 
     //sensor values for this node
-    private HashMap<Integer, Boolean> currInternal = new HashMap<>();
-
-    private SensorData currExternal;
-
-    //Agent
-    private PhuJusAgent agent;
+    private final HashMap<Integer, Boolean> currInternal;
+    private final SensorData currExternal;
 
     //child nodes
-    private TreeNode[] children;
+    private final TreeNode[] children;
 
-    //bool for if tree has child or not
-    private boolean childBool = true;
+    //bool for if tree has children or not
+    private boolean isLeaf = false;
 
-    //Character that the tree
-    private char characterAction = '\0';
-
-    private String path = "";
+    //This is the path used to reach this node (the root should be "")
+    private final String path;
 
 
     /**
      * root node constructor
      */
     public TreeNode(PhuJusAgent initAgent, Vector<Rule> initRulesList, int initEpisodeIndex,
-                    HashMap<Integer, Boolean> initCurrInternal, SensorData initCurrExternal, char action, String path) {
+                    HashMap<Integer, Boolean> initCurrInternal, SensorData initCurrExternal, String path) {
         //initializing agent and its children
         this.agent = initAgent;
         this.rules = initRulesList;
@@ -50,8 +49,7 @@ public class TreeNode {
         this.episodeIndex = initEpisodeIndex;
         this.currInternal = initCurrInternal;
         this.currExternal = initCurrExternal;
-        this.characterAction = action;
-        this.path = path + this.characterAction;
+        this.path = path;
     }
 
     /**
@@ -66,7 +64,7 @@ public class TreeNode {
      * (each as a two-cell double[])
      */
     private HashMap<String, double[]> pneHelper(char action) {
-        HashMap<String, double[]> result = new HashMap<String, double[]>();
+        HashMap<String, double[]> result = new HashMap<>();
 
         for (Rule r : rules) {
             //we only care about matching rules
@@ -75,15 +73,10 @@ public class TreeNode {
             }
 
             //get the current votes so far
-            double[] votes = result.get(r.getRHSSensorName());
-            if (votes == null) {
-                votes = new double[]{0.0, 0.0};
-                //Create a sensor data to initialize this child node
-                result.put(r.getRHSSensorName(), votes);
-            }
+            double[] votes = result.computeIfAbsent(r.getRHSSensorName(), k -> new double[]{0.0, 0.0});
 
             //each rule votes with its activation level
-            votes[r.getRHSValue()] += 0.2; //TODO: use r.calculateActivation(agent.getNow());
+            votes[r.getRHSIntValue()] += r.calculateActivation(agent.getNow());
         }//for
 
         return result;
@@ -110,7 +103,7 @@ public class TreeNode {
                 childSD.setSensor(sensorName, false);
             } else {
                 boolean newSensorVal = (votes[1] > votes[0]); //are yea's greater than nay's?
-                childSD.setSensor(sensorName, Boolean.valueOf(newSensorVal)); // off
+                childSD.setSensor(sensorName, newSensorVal); // off
             }
         }
         return childSD;
@@ -125,12 +118,12 @@ public class TreeNode {
     public void genSuccessors(int depth) {
         //base case
         if (depth == 0) {
-            this.setChildBool(false);
+            this.isLeaf = true;
             return;
         }
 
-        for (int i = 0; i < agent.getNumActions(); ++i) {
-            char action = (char) ('a' + i);  //TODO: do this more elegantly
+        for(int i = 0; i < agent.getActionList().length; ++i) {
+            char action = agent.getActionList()[i].getName().charAt(0);
 
             //predict the sensor values for the next timestep
             // create separate predictedExternal entries for on vs off
@@ -140,7 +133,7 @@ public class TreeNode {
             //Create the successors of this node
             //future?:  use a heuristic to decide here if it's worth looking at this node's successors ala A*Search
             this.children[i] = new TreeNode(this.agent, this.rules,
-                    this.episodeIndex + 1, childInternal, childExternal, action, this.path);
+                    this.episodeIndex + 1, childInternal, childExternal, this.path + action);
             this.children[i].genSuccessors(depth - 1);
 
         }//for
@@ -155,21 +148,21 @@ public class TreeNode {
      */
     @Override
     public String toString() {
-        String result = this.characterAction + "->";
+        StringBuilder result = new StringBuilder(this.path + "->");
 
         //internal sensors
         for (Integer i : this.currInternal.keySet()) {
-            result += (this.currInternal.get(i)) ? "1" : "0";
+            result.append((this.currInternal.get(i)) ? "1" : "0");
         }
-        result += "|";
+        result.append("|");
 
         //external sensors
         for (String s : this.currExternal.getSensorNames()) {
             Boolean val = (Boolean) this.currExternal.getSensor(s);
-            result += val.booleanValue() ? "1" : "0";
+            result.append(val ? "1" : "0");
         }
 
-        return result;
+        return result.toString();
     }
 
     /**
@@ -197,10 +190,10 @@ public class TreeNode {
      * @param indent how much to indent any output from this method
      */
     private void printTreeHelper(String indent) {
-        System.out.println(indent + "  " + this.toString());
+        System.out.println(indent + "  " + this);
 
         //base case: no children
-        if (!this.childBool) {
+        if (this.isLeaf) {
             return;
         }
 
@@ -210,143 +203,33 @@ public class TreeNode {
         }
     }//printTreeHelper
 
-
-    /**
-     * fbgpHelper
-     * <p>
-     * recurisve helper method for findBestGoalPath. Returns true if a path to the
-     * goal is found
-     */
-    public boolean fbgpHelper(TreeNode tree) {
-        if (tree.currExternal.isGoal()) {
-            return true;
-        }
-
-        //recursively check if any of the children contain a goal path
-        for (int i = 0; i < agent.getNumActions(); i++) {
-            if (tree.children[i] != null) {
-                if (fbgpHelper(tree.children[i])) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    }
-
     /**
      * findBestGoalPath
      * <p>
      * searches this tree for the best path to the goal and returns the first action
      * in the sequence of actions on that path
+     *
+     * @return a goal path if found or empty string ("") if no goal path was found.
      */
-    public String dfFindBestGoalPath(TreeNode tree) {
-        //base case
-        if (!tree.childBool) {
-            return tree.getCharacterAction() + "";
-        }
+    public String findBestGoalPath() {
+        //base case #1: Goal Node found (not at root)
+        if ( (this.currExternal.isGoal()) && (! this.path.equals("")) ) return this.path;
 
-        //look for a path with the goal
-        int goalPath = -1;
-        for (int i = agent.getNumActions() - 1; i >= 0; i--) {
-            if (fbgpHelper(tree.children[i])) {
-                goalPath = i;
-                break;
+        //base case #2:  Leaf Node (no goal found)
+        if (this.isLeaf) return "";
+
+        //search all possible actions
+        String bestPath = "";
+        for(TreeNode child : this.children) {
+            String candPath = child.findBestGoalPath();
+            if ((bestPath.equals("")) || (bestPath.length() < candPath.length())) {
+                bestPath = candPath;
             }
         }
 
-        //if no goal path is found, return nothing
-        if (goalPath == -1) {
-            return "";
-        }
+        return bestPath;
 
-        return tree.getCharacterAction() + dfFindBestGoalPath(tree.children[goalPath]);
-    }
-
-    /**
-     * bfFindBestGoalPath
-     * <p>
-     * searches this tree for the best path to the goal and returns the first action
-     * in the sequence of actions on that path by using depth-first search
-     */
-    public String bfFindBestGoalPath(TreeNode tree) {
-        //base case
-        if (tree.currExternal.isGoal()) {
-            return "";
-        }
-
-        //look for a path with the goal
-        String paths = bfFbgpHelper(tree);
-        if (paths.length() == 0) {
-            return "";
-        }
-
-        String[] listOfPaths = paths.split(" ");
-        String smallestPath = listOfPaths[0];
-        for (int i = 1; i < listOfPaths.length; i++) {
-            if (listOfPaths[i].length() < smallestPath.length()) {
-                smallestPath = listOfPaths[i];
-            }
-        }
-
-        return smallestPath;
-    }
-
-    /**
-     * bfFindBestGoalPath
-     * <p>
-     * searches this tree for the best path to the goal and returns the first action
-     * in the sequence of actions on that path by using breadth-first search
-     */
-    public String bfFbgpHelper(TreeNode tree) {
-        if (tree == null) {
-            return "";
-        }
-
-        //look for a path with the goal
-        String pathsFound = "";
-        for (int i = agent.getNumActions() - 1; i >= 0; i--) {
-            if (tree.children[i] != null) {
-                if (tree.children[i].currExternal.isGoal()) {
-                    pathsFound = pathsFound + tree.children[i].getPath() + " ";
-                }
-            } else {
-                return "";
-            }
-        }
-
-        if (tree.children[0] == null) {
-            return "";
-        }
-        return pathsFound + bfFbgpHelper(tree.children[0]) + bfFbgpHelper(tree.children[1]);
-    }
-
-    /**
-     * setChildBool
-     * <p>
-     * set childBool to false when there are no children
-     */
-    public void setChildBool(boolean childFalse) {
-        this.childBool = childFalse;
-    }
-
-    /**
-     * getCharacterAction
-     * <p>
-     * get the character action instance variable
-     */
-    public char getCharacterAction() {
-        return this.characterAction;
-    }
-
-    /**
-     * getPath
-     * <p>
-     * get the character action instance variable
-     */
-    public String getPath() {
-        return this.path;
-    }
+    }//findBestGoalPath
 
 
 }//class TreeNode

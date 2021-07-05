@@ -5,8 +5,6 @@ import framework.SensorData;
 import java.util.HashMap;
 import java.util.Random;
 
-import static java.lang.Math.abs;
-
 /**
  * class Rule
  *
@@ -27,20 +25,20 @@ public class Rule {
     public static boolean[] intSensorInUse = new boolean[PhuJusAgent.NUMINTERNAL]; //TODO shouldn't this be in the agent?
 
     //same as the agent so it can be seeded for consistent behavior
-    private static Random rand = PhuJusAgent.rand;
+    private static final Random rand = PhuJusAgent.rand;
 
     //The agent using this rule
-    private PhuJusAgent agent = null;
+    private final PhuJusAgent agent;
 
     //each rule has a unique integer id
-    private int ruleId;
+    private final int ruleId;
 
     //define the LHS of the rule.  This consists of:
     // - 0 or more internal sensors that have a particular value (0 or 1)
     // - 1 or more values for external sensors
     private HashMap<Integer, Boolean> lhsInternal = new HashMap<>();
     private SensorData  lhsExternal = null;  //example: {1,-1,0,-1}  note: -1 is "wildcard"
-    private char action;
+    private final char action;
 
     //define the RHS of the rule.  The RHS always contains:
     // - a value for exactly one external sensor
@@ -52,11 +50,11 @@ public class Rule {
     // recency with which it fired and correctly predicted an external
     // sensor value
     public static final int ACTHISTLEN = 10;
-    private int[] lastActTimes = new int[ACTHISTLEN];  // last N times the rule was activated
-    private double[] lastActAmount = new double[ACTHISTLEN]; // amount of activation last N times
+    private final int[] lastActTimes = new int[ACTHISTLEN];  // last N times the rule was activated
+    private final double[] lastActAmount = new double[ACTHISTLEN]; // amount of activation last N times
     private int nextActPos = 0;
     private double activationLevel;  //CAVEAT:  this value may not be correct!  Call calculateActivation() to update it.
-    private double decayRate = 0.95;  //activation decays exponentially over time
+    private static final double DECAY_RATE = 0.95;  //activation decays exponentially over time
 
     /**
      * this ctor initializes the rule with given values
@@ -75,7 +73,7 @@ public class Rule {
     /** ctor to create random rule.  This add time idx for all previous sensors in previous episode */
     public Rule(PhuJusAgent agent){
         this.agent = agent;
-        this.ruleId = this.nextRuleId++;
+        this.ruleId = Rule.nextRuleId++;
 
         //choose a random action for the character
         Action[] actions = agent.getActionList();
@@ -141,16 +139,17 @@ public class Rule {
      *
      */
     public void addInternalCondition() {
-        int newCondIdx = -1;
-        SensorData prevExternal = this.agent.getPrevExternal();
-        Integer newCond = null;
-        String sName = null;
+        //Special case:  this rule is already using all the internal sensors
+        if (this.lhsInternal.size() == PhuJusAgent.NUMINTERNAL) return;
+
+        //select a random internal sensor that's not already being used by this rule
+        int newCond;
         do {
-            newCond = Integer.valueOf(rand.nextInt(PhuJusAgent.NUMINTERNAL));
+            newCond = rand.nextInt(PhuJusAgent.NUMINTERNAL);
         } while(this.lhsInternal.containsKey(newCond));
 
         //Add the condition
-        Boolean val = (Boolean) agent.getPrevInternalValue(newCond);
+        Boolean val = agent.getPrevInternalValue(newCond);
         this.lhsInternal.put(newCond, val);
     }//addInternalCondition
 
@@ -229,7 +228,7 @@ public class Rule {
         double result = 0.0;
         for(int j=0; j < lastActTimes.length; ++j) {
             if(lastActTimes[j] != 0) {
-                double decayAmount = Math.pow(decayRate, now-lastActTimes[j]);
+                double decayAmount = Math.pow(DECAY_RATE, now-lastActTimes[j]);
                 result += lastActAmount[j]*decayAmount;
             }
         }
@@ -389,16 +388,12 @@ public class Rule {
     }
 
     public void turnOffIntSensorInUse(int rhsInternalIdx){
-        this.intSensorInUse[rhsInternalIdx] = false;
+        Rule.intSensorInUse[rhsInternalIdx] = false;
         this.setRHSInternal(-1);
     }
 
     public int getAssocSensor() {
         return this.rhsInternal;
-    }
-
-    public char getChar() {
-        return this.action;
     }
 
     public SensorData getLHSExternal() { return this.lhsExternal; }
@@ -410,20 +405,18 @@ public class Rule {
         return "";
     }
 
-    public int getRHSValue(){
-        for(String s : this.rhsExternal.getSensorNames()){
-            if((boolean)this.rhsExternal.getSensor(s)){
-                return 1;
-            }
-            else{
-                return 0;
-            }
+    /** returns the RHS sensor value as an int (0 or 1) 
+     * Used by TreeNode.pneHelper().
+     */
+    public int getRHSIntValue(){
+        String[] sNames = this.rhsExternal.getSensorNames().toArray(new String[0]);
+        if (sNames.length != 1) {
+            throw new IllegalArgumentException("getRHSIntValue() called on a Rule with a bad RHS");
         }
-        return 0;
+        Boolean val = (Boolean)this.rhsExternal.getSensor(sNames[0]);
+        return (val) ? 1 : 0;
     }
-    public int getRuleId(){
-        return this.ruleId;
-    }
+
     //endregion
 
 

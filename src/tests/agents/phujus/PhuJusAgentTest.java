@@ -11,6 +11,9 @@ import tests.EpSemTestClass;
 import java.util.HashMap;
 import java.util.Vector;
 
+
+@SuppressWarnings("unused")
+
 @EpSemTestClass
 public class PhuJusAgentTest {
 
@@ -80,6 +83,8 @@ public class PhuJusAgentTest {
      * signature.  Example call:
      *    Rule r = quickRuleGen("0010", "000", 'b', ".1.");
      *
+     * Note:  the rule is given an initial activation level
+     *
      * CAVEAT:  there is no error checking so this right :)
      *
      * @param agent      the agent that will use this rule
@@ -114,7 +119,9 @@ public class PhuJusAgentTest {
             rhsSensorValue = false;
         }
 
-        return new Rule(agent, action, lhsExt, lhsInt, rhsSensorName, rhsSensorValue);
+        Rule rule =  new Rule(agent, action, lhsExt, lhsInt, rhsSensorName, rhsSensorValue);
+        rule.addActivation(-1, PhuJusAgent.INITIAL_ACTIVATION);  //kludge: using timestamp -1 to guarantee it's in the past
+        return rule;
     }//quickRuleGen
 
 
@@ -144,7 +151,7 @@ public class PhuJusAgentTest {
 
          //Initialize tree and generate children
          TreeNode root = new TreeNode(agent, agent.getRules(), agent.getNow(),
-                 agent.getCurrInternal(), agent.getCurrExternal(), 'z', "");
+                 agent.getCurrInternal(), agent.getCurrExternal(), "z");
          root.genSuccessors(2);
 
          root.printTree();
@@ -165,7 +172,7 @@ public class PhuJusAgentTest {
 
          //Initialize tree and generate children
          TreeNode root = new TreeNode(agent, agent.getRules(), agent.getNow(),
-                 agent.getCurrInternal(), agent.getCurrExternal(), '\0', "");
+                 agent.getCurrInternal(), agent.getCurrExternal(), "");
          root.genSuccessors(1);
 
          //DEBUG output
@@ -173,9 +180,9 @@ public class PhuJusAgentTest {
          agent.printRules();
          System.out.println("Tree:");
          root.printTree();
-         String expected = "\0b";
+         String expected = "b";
          System.out.println();
-         System.out.println("Received Goal Path: " + root.dfFindBestGoalPath(root));
+         System.out.println("Received Goal Path: " + root.findBestGoalPath());
          System.out.println("Expected Goal Path: " + expected);
      }
 
@@ -203,7 +210,7 @@ public class PhuJusAgentTest {
 
          //Initialize tree and generate children
          TreeNode root = new TreeNode(agent, agent.getRules(), agent.getNow(),
-                 agent.getCurrInternal(), agent.getCurrExternal(), '\0', "");
+                 agent.getCurrInternal(), agent.getCurrExternal(), "");
          root.genSuccessors(2);
 
          //DEBUG output
@@ -211,12 +218,12 @@ public class PhuJusAgentTest {
          agent.printRules();
          System.out.println("Tree:");
          root.printTree();
-         String expected = "\0ab";
+         String expected = "ab";
          System.out.println();
-         System.out.println("Received Goal Path: " + root.dfFindBestGoalPath(root));
+         System.out.println("Received Goal Path: " + root.findBestGoalPath());
          System.out.println("Expected Goal Path: " + expected);
 
-         Assertions.assertTrue(root.dfFindBestGoalPath(root).equals(expected));
+         Assertions.assertTrue(root.findBestGoalPath().equals(expected));
 
      }//findBestGoalPathTestDepth2
 
@@ -242,7 +249,7 @@ public class PhuJusAgentTest {
 
          //Initialize tree and generate children
          TreeNode root = new TreeNode(agent, agent.getRules(), agent.getNow(),
-                 agent.getCurrInternal(), agent.getCurrExternal(), '\0', "");
+                 agent.getCurrInternal(), agent.getCurrExternal(), "");
          root.genSuccessors(3);
 
          //DEBUG output
@@ -250,12 +257,12 @@ public class PhuJusAgentTest {
          agent.printRules();
          System.out.println("Tree:");
          root.printTree();
-         String expected = "\0aba";
+         String expected = "aba";
          System.out.println();
-         System.out.println("Received Goal Path: " + root.dfFindBestGoalPath(root));
+         System.out.println("Received Goal Path: " + root.findBestGoalPath());
          System.out.println("Expected Goal Path: " + expected);
 
-         Assertions.assertTrue(root.dfFindBestGoalPath(root).equals(expected));
+         Assertions.assertTrue(root.findBestGoalPath().equals(expected));
      }
 
     /**

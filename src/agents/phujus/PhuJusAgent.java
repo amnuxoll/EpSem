@@ -30,10 +30,11 @@ import java.util.Random;
  * 6. Use int[] for internal sensors instead of HashMap (simpler)
  *
  * TODO research items
- * 1. Experiment with different values for Rule.EXTRACONDFREQ
- * 2. Experiment with different number of rules replaced in PJA.updateRules()
- * 3. Punish rules that were wrong?  Seems like the absence of reward is enough.
- * 4. <PRIORITY> More sophisticated way to reward rules for helping find the goal
+ * 1. <PRIORITY> Why are the good seed rules being rejected?  We likely need a
+ *    more sophisticated way to reward rules for helping find the goal
+ * 2. Experiment with different values for Rule.EXTRACONDFREQ
+ * 3. Experiment with different number of rules replaced in PJA.updateRules()
+ * 4. Punish rules that were wrong?  Seems like the absence of reward is enough.
  * 5. Rule overhaul idea:
  *    - track tf-idf value for all sensor-value pairs
  *    - an initial rule's LHS is the entire episode weighted by tf-idf
@@ -50,22 +51,15 @@ public class PhuJusAgent implements IAgent {
     //is reached, the data rolls over to zero again.  Use nextMatchIdx()
     //and prevMatchIndex() on the matchIdx variable rather than the
     //'++' and '--' operators
-    private Rule matchArray[] = new Rule[RULEMATCHHISTORYLEN]; //stores last N rules that fired and were correct
+    private final Rule[] matchArray = new Rule[RULEMATCHHISTORYLEN]; //stores last N rules that fired and were correct
     private int matchIdx = 0;
 
     //a list of all the rules in the system (can't exceed some maximum)
-    private Vector<Rule> rules = new Vector<Rule>(); // convert to arraylist
-
-    //map to find a rule that activates a particular internal sensor.
-    //key:  an internal sensor index
-    //value:  the rule that lights it up
-    //e.g., Rule #631 causes internal sensor #298 to turn on when it fires
-    private Rule[] internalMap = new Rule[NUMINTERNAL];
+    private Vector<Rule> rules = new Vector<>(); // convert to arraylist
 
     private int now = 0; //current timestep 't'
 
     private Action[] actionList;  //list of available actions in current FSM
-    private IIntrospector introspector;  //required by framework, not used by this agent
 
     //current sensor values
     private HashMap<Integer, Boolean> currInternal = new HashMap<>();
@@ -78,7 +72,6 @@ public class PhuJusAgent implements IAgent {
 
     //The agent's current selected path to goal (a sequence of actions)
     private String path = "";
-    private int cycle = 0;  //steps taken since last goal
 
     //This tree predicts outcomes of future actions
     TreeNode root;
@@ -97,9 +90,8 @@ public class PhuJusAgent implements IAgent {
      */
     @Override
     public void initialize(Action[] actions, IIntrospector introspector) {
-        this.rules = new Vector<Rule>();
+        this.rules = new Vector<>();
         this.actionList = actions;
-        this.introspector = introspector;
         initInternalSensors();
     }
 
@@ -133,7 +125,7 @@ public class PhuJusAgent implements IAgent {
      * generates a path string with a single valid action letter in it
      */
     private String randomActionPath() {
-        return actionList[this.rand.nextInt(actionList.length)].getName();
+        return actionList[rand.nextInt(actionList.length)].getName();
     }
 
 
@@ -146,7 +138,6 @@ public class PhuJusAgent implements IAgent {
     @Override
     public Action getNextAction(SensorData sensorData) throws Exception {
         this.now++;
-        this.cycle++;
 
         //DEBUG
         System.out.println("----------------------------------------------------------------------");
@@ -160,7 +151,6 @@ public class PhuJusAgent implements IAgent {
         if (sensorData.isGoal()) {
             System.out.println("Found GOAL");
             this.path = "";
-            this.cycle = 0;
         }
 
         //If we don't have a path to follow, calculate a goal path
@@ -236,7 +226,7 @@ public class PhuJusAgent implements IAgent {
     public HashMap<Integer, Boolean> genNextInternal(char action,
                                                      HashMap<Integer, Boolean> currInt,
                                                      SensorData currExt) {
-        HashMap<Integer, Boolean> result = new HashMap<Integer, Boolean>();
+        HashMap<Integer, Boolean> result = new HashMap<>();
 
         for (Rule r : rules) {
             int sIndex = r.getAssocSensor();
@@ -307,11 +297,11 @@ public class PhuJusAgent implements IAgent {
      */
     private void buildPathFromEmpty() {
         this.root = new TreeNode(this, this.rules, this.now, this.currInternal,
-                this.currExternal, '\0', "");
+                this.currExternal, "");
         this.root.genSuccessors(3);
 
         //Find an entire sequence of characters that can reach the goal and get the current action to take
-        this.path = this.root.bfFindBestGoalPath(this.root).replace("\0", "");
+        this.path = this.root.findBestGoalPath();
         //if unable to find path, produce random path for it to take
         if (this.path.equals("")) {
             this.path = randomActionPath();
@@ -377,7 +367,7 @@ public class PhuJusAgent implements IAgent {
             SensorData gr1 = new SensorData(false);
             gr1.setSensor("IS_EVEN", false);
             gr1.removeSensor("GOAL");
-            Rule cheater = new Rule(this, 'a', gr1, new HashMap<Integer, Boolean>(), "GOAL", true);
+            Rule cheater = new Rule(this, 'a', gr1, new HashMap<>(), "GOAL", true);
             addRule(cheater);
             cheater.addActivation(now, 15);
 
@@ -385,7 +375,7 @@ public class PhuJusAgent implements IAgent {
             SensorData gr2 = new SensorData(false);
             gr2.setSensor("IS_EVEN", true);
             gr2.removeSensor("GOAL");
-            Rule cheater2 = new Rule(this, 'b', gr2, new HashMap<Integer, Boolean>(), "IS_EVEN", false);
+            Rule cheater2 = new Rule(this, 'b', gr2, new HashMap<>(), "IS_EVEN", false);
             addRule(cheater2);
             cheater2.addActivation(now, 15);
         }//if
@@ -421,9 +411,9 @@ public class PhuJusAgent implements IAgent {
         int isBase = rand.nextInt(PhuJusAgent.NUMINTERNAL);
         for (int i = 0; i < PhuJusAgent.NUMINTERNAL; ++i) {
             int isIndex = (isBase + i) % PhuJusAgent.NUMINTERNAL;
-            if (!newRule.intSensorInUse[isIndex]) {
+            if (! Rule.intSensorInUse[isIndex]) {
                 newRule.setRHSInternal(isIndex);
-                newRule.intSensorInUse[isIndex] = true;
+                Rule.intSensorInUse[isIndex] = true;
                 break;
             }
         }
@@ -461,20 +451,8 @@ public class PhuJusAgent implements IAgent {
         return result;
     }
 
-    public int getMatchIdx() {
-        return this.matchIdx;
-    }
-
-    public int getRuleMatchHistoryLen() {
-        return RULEMATCHHISTORYLEN;
-    }
-
     public Vector<Rule> getRules() {
         return this.rules;
-    }
-
-    public void setNow(int now) {
-        this.now = now;
     }
 
     public int getNow() {
@@ -485,10 +463,10 @@ public class PhuJusAgent implements IAgent {
         if (this.prevInternal == null) {
             System.err.println("Null!");
         }
-        if (this.prevInternal.get(Integer.valueOf(id)) == null) {
+        if (this.prevInternal.get(id) == null) {
             System.err.println("Null!");
         }
-        return this.prevInternal.get(Integer.valueOf(id));
+        return this.prevInternal.get(id);
     }
 
     public HashMap<Integer, Boolean> getCurrInternal() {
