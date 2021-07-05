@@ -27,10 +27,18 @@ import java.util.Random;
  * 4. implement a debug logging system with levels so we can turn on/off various
  * types of debug info on the console
  * 5. Overhaul string-ified format for Rule objects
+ * 6. Use int[] for internal sensors instead of HashMap (simpler)
  *
  * TODO research items
  * 1. Experiment with different values for Rule.EXTRACONDFREQ
  * 2. Experiment with different number of rules replaced in PJA.updateRules()
+ * 3. Punish rules that were wrong?  Seems like the absence of reward is enough.
+ * 4. <PRIORITY> More sophisticated way to reward rules for helping find the goal
+ * 5. Rule overhaul idea:
+ *    - track tf-idf value for all sensor-value pairs
+ *    - an initial rule's LHS is the entire episode weighted by tf-idf
+ *    - use a partial match algorithm with vote-by-weight
+ *    - raise/lower weights based on rule performance
  */
 public class PhuJusAgent implements IAgent {
     public static final int MAXNUMRULES = 8;
@@ -42,7 +50,7 @@ public class PhuJusAgent implements IAgent {
     //is reached, the data rolls over to zero again.  Use nextMatchIdx()
     //and prevMatchIndex() on the matchIdx variable rather than the
     //'++' and '--' operators
-    private Rule matchArray[] = new Rule[RULEMATCHHISTORYLEN]; //stores last 100 rules that match and correctly matched the future
+    private Rule matchArray[] = new Rule[RULEMATCHHISTORYLEN]; //stores last N rules that fired and were correct
     private int matchIdx = 0;
 
     //a list of all the rules in the system (can't exceed some maximum)
@@ -60,7 +68,7 @@ public class PhuJusAgent implements IAgent {
     private IIntrospector introspector;  //required by framework, not used by this agent
 
     //current sensor values
-    private HashMap<Integer, Boolean> currInternal = new HashMap<>();  //TODO: why isn't this an array or String?
+    private HashMap<Integer, Boolean> currInternal = new HashMap<>();
     private SensorData currExternal;
 
     //sensor values from the previous timestep
@@ -192,14 +200,14 @@ public class PhuJusAgent implements IAgent {
      * updates the activation level of any rules that correctly predicted
      * the current sensor values
      * <p>
-     * TODO:  punish rules that were wrong?
+     *
      */
     public void predictionActivation() {
         //don't do this on the first timestep as there is no "previous" step
         if (this.now == 1) return;
 
         for (Rule r : this.rules) {
-            if (!r.correctMatch(prevAction, this.prevExternal, this.prevInternal, this.currExternal)) {
+            if (!r.predicts(prevAction, this.prevExternal, this.prevInternal, this.currExternal)) {
                 continue;
             }
 
@@ -211,8 +219,7 @@ public class PhuJusAgent implements IAgent {
             }
 
             //Update the rule's activation
-            int prevMatch = prevMatchIndex();
-            r.setActivationLevel(this.now, goal, false, this.matchArray, prevMatch, this.getRuleMatchHistoryLen());
+            r.activateForGoal();
             r.calculateActivation(this.now);
         }//for
     }//predictionActivation

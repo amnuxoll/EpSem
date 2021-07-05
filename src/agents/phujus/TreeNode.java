@@ -65,7 +65,7 @@ public class TreeNode {
      * @return a hash map of sensor name to true and false vote tallies
      * (each as a two-cell double[])
      */
-    private HashMap<String, double[]> pneHelper(char action, boolean updateActivation) {
+    private HashMap<String, double[]> pneHelper(char action) {
         HashMap<String, double[]> result = new HashMap<String, double[]>();
 
         for (Rule r : rules) {
@@ -82,16 +82,8 @@ public class TreeNode {
                 result.put(r.getRHSSensorName(), votes);
             }
 
-            //update predicted external value (currently a placeholder value for r.getActivation arg)
-            double activationSum = 0.0;
-            if (updateActivation) {
-                r.setActivationLevel(this.episodeIndex, false, false, this.agent.getMatchArray(), this.agent.getMatchIdx(), this.agent.getRuleMatchHistoryLen());
-                activationSum = r.calculateActivation(this.episodeIndex);
-            } else {
-                activationSum = 0.2;  //TODO: wtf is this?
-            }
-
-            votes[r.getRHSValue()] += activationSum;
+            //each rule votes with its activation level
+            votes[r.getRHSValue()] += 0.2; //TODO: use r.calculateActivation(agent.getNow());
         }//for
 
         return result;
@@ -105,11 +97,10 @@ public class TreeNode {
      * if asked.
      *
      * @param action           the action selected by the agent
-     * @param updateActivation whether or not to update rule activation
      */
-    private SensorData predictNextExternal(char action, boolean updateActivation) {
+    private SensorData predictNextExternal(char action) {
         //Gather the votes (and activate rules if asked)
-        HashMap<String, double[]> nextExternal = pneHelper(action, updateActivation);
+        HashMap<String, double[]> nextExternal = pneHelper(action);
 
         //Create a sensor data to initialize this child node
         SensorData childSD = new SensorData(this.currExternal);
@@ -144,7 +135,7 @@ public class TreeNode {
             //predict the sensor values for the next timestep
             // create separate predictedExternal entries for on vs off
             HashMap<Integer, Boolean> childInternal = agent.genNextInternal(action, this.currInternal, this.currExternal);
-            SensorData childExternal = predictNextExternal(action, false);
+            SensorData childExternal = predictNextExternal(action);
 
             //Create the successors of this node
             //future?:  use a heuristic to decide here if it's worth looking at this node's successors ala A*Search
