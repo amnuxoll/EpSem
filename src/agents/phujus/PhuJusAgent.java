@@ -72,7 +72,7 @@ public class PhuJusAgent implements IAgent {
     private String path = "";
 
     //This tree predicts outcomes of future actions
-    TreeNode root;
+    private TreeNode root;
 
     //random numbers are useful sometimes (hardcoded seed for debugging)
     public static Random rand = new Random(2);
