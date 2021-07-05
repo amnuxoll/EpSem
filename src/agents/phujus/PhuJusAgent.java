@@ -15,31 +15,29 @@ import java.util.Random;
  * A rule based episodic memory learner
  * <p>
  * TODO code maint items
- * 1. <IN PROGRESS> all the code used by this agent needs a thorough shakedown
- * a. unit test for predictionActivation()
- * 2. consider replacing the activation on rules with:
- * a. a count of correct and incorrect firings
- * b. timestamps of the last N times the rule fired correctly
- * 3. Rules refine/generalize themselves based on experience
- * a. Need to juggle multiple versions of themselves and have the best one be
- * "active" at any given time
- * b. Also need a way to split into two rules if appropriate
- * 4. implement a debug logging system with levels so we can turn on/off various
- * types of debug info on the console
- * 5. Overhaul string-ified format for Rule objects
- * 6. Use int[] for internal sensors instead of HashMap (simpler)
+ * > Overhaul string-ified format for Rule objects
+ * > increase code coverage and thoroughness of unit tests
+ * > implement a debug logging system with levels so we can turn on/off various
+ *   types of debug info on the console
+ * > Use int[] for internal sensors instead of HashMap (simpler)
  *
  * TODO research items
- * 1. <PRIORITY> Why are the good seed rules being rejected?  We likely need a
- *    more sophisticated way to reward rules for helping find the goal
- * 2. Experiment with different values for Rule.EXTRACONDFREQ
- * 3. Experiment with different number of rules replaced in PJA.updateRules()
- * 4. Punish rules that were wrong?  Seems like the absence of reward is enough.
- * 5. Rule overhaul idea:
+ * > Why are the good seed rules being rejected?  We likely need a
+ *   more sophisticated way to reward rules for helping find the goal
+ *   Consider replacing the activation on rules with:
+ *    - a count of correct and incorrect firings
+ *    - timestamps of the last N times the rule fired correctly
+ * > Rule overhaul idea:
  *    - track tf-idf value for all sensor-value pairs
  *    - an initial rule's LHS is the entire episode weighted by tf-idf
  *    - use a partial match algorithm with vote-by-weight
  *    - raise/lower weights based on rule performance
+ * > Rules refine/generalize themselves based on experience.  Rules should be able to:
+ *    - merge when they become very similar
+ *    - split when it will improve the activation of both progeny
+ * > Experiment with different values for Rule.EXTRACONDFREQ
+ * > Experiment with different number of rules replaced in PJA.updateRules()
+ * > Punish rules that were wrong?  Seems like the absence of reward is enough.
  */
 public class PhuJusAgent implements IAgent {
     public static final int MAXNUMRULES = 8;
