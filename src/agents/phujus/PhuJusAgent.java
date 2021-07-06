@@ -15,7 +15,10 @@ import java.util.Random;
  * A rule based episodic memory learner
  * <p>
  * TODO code maint items
+ * > removeRule() should take into account other rules that may test it's rhsInternal
  * > Overhaul string-ified format for Rule objects
+ * > add a toString() to PJA
+ * > remove "new state" message spam and put new state number with TIME STEP message
  * > increase code coverage and thoroughness of unit tests
  * > implement a debug logging system with levels so we can turn on/off various
  *   types of debug info on the console
@@ -23,9 +26,7 @@ import java.util.Random;
  * > Figure out why the results are non-repeatable with a seeded random
  *
  * TODO research items
- * > Why are the good seed rules being rejected?  We likely need a
- *   more sophisticated way to reward rules for helping find the goal
- *   Consider replacing the activation on rules with:
+ * > Consider replacing the activation on rules with:
  *    - a count of correct and incorrect firings
  *    - timestamps of the last N times the rule fired correctly
  * > Rule overhaul idea:
@@ -42,9 +43,10 @@ import java.util.Random;
  */
 public class PhuJusAgent implements IAgent {
     public static final int MAXNUMRULES = 8;
-    public static final int NUMINTERNAL = 4;
+    public static final int NUMINTERNAL = MAXNUMRULES/2;
     public static final int INITIAL_ACTIVATION = 15;
-    public static final int RULEMATCHHISTORYLEN = 40;
+    public static final int RULEMATCHHISTORYLEN = MAXNUMRULES * 5;
+    public static final int FIRINGS_TIL_REPLACE = MAXNUMRULES * 6;
 
     //activation is tracked using a rolling array.  When the end of the array
     //is reached, the data rolls over to zero again.  Use nextMatchIdx()
@@ -73,8 +75,11 @@ public class PhuJusAgent implements IAgent {
     //The agent's current selected path to goal (a sequence of actions)
     private String path = "";
 
-    //This tree predicts outcomes of future actions
-    private TreeNode root;
+    //to track which rules have a given internal sensor on their RHS
+    private final Rule[] intSensorInUse = new Rule[PhuJusAgent.NUMINTERNAL];
+
+    //Track how many rule firings have occurred since a rule was removed
+    private int ruleFirings = 0;
 
     //random numbers are useful sometimes (hardcoded seed for debugging)
     public static Random rand = new Random(2);
@@ -102,20 +107,7 @@ public class PhuJusAgent implements IAgent {
         for (int i = 0; i < NUMINTERNAL; i++) {
             this.currInternal.put(i, false);
             this.prevInternal.put(i, false);
-            Rule.intSensorInUse[i] = false;
-        }
-    }
-
-    /**
-     * DEBUG
-     * prints internal sensors.  Used for debugging.
-     *
-     * @param printMe sensors to print
-     */
-    private void printInternalSensors(HashMap<Integer, Boolean> printMe) {
-        System.out.println("Internal Sensors: ");
-        for (Integer i : printMe.keySet()) {
-            System.out.println("\t" + i.toString() + ":" + printMe.get(i));
+            this.intSensorInUse[i] = null;
         }
     }
 
@@ -145,11 +137,12 @@ public class PhuJusAgent implements IAgent {
 
         //reward rules that correctly predicted the present
         this.currExternal = sensorData;
-        predictionActivation();
+        ruleAcccounting();
 
         //Reset path on goal
         if (sensorData.isGoal()) {
             System.out.println("Found GOAL");
+            rewardRulesForGoal();
             this.path = "";
         }
 
@@ -161,16 +154,12 @@ public class PhuJusAgent implements IAgent {
 
         //select next action
         char action = this.path.charAt(0);
-        //the agent next action will be random until it finds the goal if there was only 1 action in the path
-        if (this.path.length() == 1) {
-            this.path = randomActionPath();
-        } else {
-            this.path = this.path.substring(1);
-        }
+        this.path = this.path.substring(1);
 
         //DEBUG:
         printExternalSensors(this.currExternal);
         printInternalSensors(this.currInternal);
+        System.out.println("Selected action: " + action + " from path: " + action + "" + this.path);
         printRules(action);
 
         //Now that we know what action to take, setup the sensor values for the next iteration
@@ -185,41 +174,30 @@ public class PhuJusAgent implements IAgent {
     }//getNextAction
 
     /**
-     * predictionActivation
-     * <p>
-     * updates the activation level of any rules that correctly predicted
-     * the current sensor values
-     * <p>
-     *
+     * keeps up accounting information about rules that is used by the algorithm
      */
-    public void predictionActivation() {
+    public void ruleAcccounting() {
         //don't do this on the first timestep as there is no "previous" step
         if (this.now == 1) return;
 
-        for (Rule r : this.rules) {
+        for (Rule r : rules) {
+            //record rules that fired in the prev timestep
+            if(! r.matches(this.prevAction, this.prevExternal, this.prevInternal)) {
+                continue;
+            }
+            ruleFirings++;
+
+            //record rules that correctly predicted the current external sensors
             if (!r.predicts(prevAction, this.prevExternal, this.prevInternal, this.currExternal)) {
                 continue;
             }
-
-            //Update log of rules that have fired correctly since last goal
-            boolean goal = (r.getRHSSensorName().equals(SensorData.goalSensor));
-            if (!goal) {
-                this.matchArray[this.matchIdx] = r;
-                this.matchTimes[this.matchIdx] = now-1;
-                this.matchIdx = nextMatchIdx();
-            } else {
-                // DEBUG
-                for(String sName : r.getLHSExternal().getSensorNames()) {
-                    Boolean val = (Boolean) r.getLHSExternal().getSensor(sName);
-                    findRules(this.now - 1, sName, val);
-                }
-                //Update the rule's activation
-                r.activateForGoal();
-                r.calculateActivation(this.now); // TODO remove this?
-            }
-
+            this.matchArray[this.matchIdx] = r;
+            this.matchTimes[this.matchIdx] = now-1;
+            this.matchIdx = nextMatchIdx();
         }//for
-    }//predictionActivation
+
+    }//ruleAcccounting
+
 
     /**
      * genNextInternal
@@ -253,6 +231,19 @@ public class PhuJusAgent implements IAgent {
     }//genNextInternal
 
     /**
+     * DEBUG
+     * prints internal sensors.  Used for debugging.
+     *
+     * @param printMe sensors to print
+     */
+    private void printInternalSensors(HashMap<Integer, Boolean> printMe) {
+        System.out.println("Internal Sensors: ");
+        for (Integer i : printMe.keySet()) {
+            System.out.println("\t" + i.toString() + ":" + printMe.get(i));
+        }
+    }
+
+    /**
      * printExternalSensors
      * <p>
      * verbose debugging println
@@ -274,9 +265,7 @@ public class PhuJusAgent implements IAgent {
      * @param action the action the agent has selected.  This can be set to '\0' if the action is not yet known
      */
     public void printRules(char action) {
-        if (action != '\0') {
-            System.out.println("Selected action: " + action);
-        }
+        if (this.rules.size() == 0) System.out.println("(There are no rules yet.)");
 
         for (Rule r : this.rules) {
             if ((action != '\0') && (r.matches(action, this.currExternal, this.currInternal))) {
@@ -303,13 +292,14 @@ public class PhuJusAgent implements IAgent {
      * The resulting path is placed in this.path.
      */
     private void buildPathFromEmpty() {
-        this.root = new TreeNode(this, this.rules, this.now, this.currInternal,
+        TreeNode root = new TreeNode(this, this.rules, this.now, this.currInternal,
                 this.currExternal, "");
-        this.root.genSuccessors(3);
+        root.genSuccessors(3);
 
         //Find an entire sequence of characters that can reach the goal and get the current action to take
-        this.path = this.root.findBestGoalPath();
+        this.path = root.findBestGoalPath();
         //if unable to find path, produce random path for it to take
+        root.printTree();
         if (this.path.equals("")) {
             this.path = randomActionPath();
             System.out.println("random path: " + this.path);
@@ -324,44 +314,40 @@ public class PhuJusAgent implements IAgent {
      * replaces current rules with low activation with new rules that might
      * be more useful.
      *
-     * @param numReplacements  the number of rules to replace
      */
-    public void updateRules(int numReplacements) {
-        //Special case:  create the initial set of rules once the agent has
-        // a legitimate current and previous set of sensors
-        if (this.rules.size() == 0) {
-            generateRules();
+    public void updateRules() {
+        //If we haven't reached max just add a rule
+        if (this.rules.size() < MAXNUMRULES) {
+            generateRule();
             return;
         }
 
-        for(int i = 0; i < numReplacements; ++i) {
-            Rule worstRule = this.rules.get(0);
-            worstRule.calculateActivation(this.now);
-            // Find for lowest rule
-            for (Rule r : this.rules) {
-                if (r.calculateActivation(this.now) < worstRule.getActivationLevel()) {
-                    worstRule = r;
-                }
-            }
-            this.removeRule(worstRule);
+        //Shouldn't remove a rule until a sufficient number of firings have occurred
+        if (this.ruleFirings < FIRINGS_TIL_REPLACE) return;
 
-            //DEBUGGING
-            System.out.print("Removing rule: ");
-            worstRule.printRule();
+        //Find the rule with lowest activation
+        Rule worstRule = this.rules.get(0);
+        for (Rule r : this.rules) {
+            if (r.calculateActivation(this.now) < worstRule.getActivationLevel()) {
+                worstRule = r;
+            }
         }
 
-        //refill rule set up to max capacity
-        generateRules();
+        //DEBUGGING
+        System.out.print("Removing rule: ");
+        worstRule.printRule();
+
+        //remove and replace
+        removeRule(worstRule);
+        generateRule();
+        this.ruleFirings = 0;
 
     }//updateRules
 
-    /** convenient overload to replace one rule */
-    public void updateRules() { updateRules(1); }
-
     /**
-     * Fills up agent's rule inventory
+     * Adds a new rule to the agent's inventory
      */
-    public void generateRules() {
+    public void generateRule() {
         //At timestep 0 there is no previous so this method can't generate rules
         if (this.prevExternal == null) return;
 
@@ -382,19 +368,20 @@ public class PhuJusAgent implements IAgent {
             Rule cheater2 = new Rule(this, 'b', gr2, new HashMap<>(), "IS_EVEN", false);
             addRule(cheater2);
             cheater2.addActivation(now, INITIAL_ACTIVATION);
+
+            return;
         }//if
 
-        while (rules.size() < MAXNUMRULES) {
-            Rule newRule = new Rule(this);
+        Rule newRule = new Rule(this);
 
-            // Make sure there are no duplicate rules
-            while (this.rules.contains(newRule)) {
-                newRule = new Rule(this);
-            }
-
-            addRule(newRule);
-            newRule.addActivation(now, INITIAL_ACTIVATION);
+        // Make sure there are no duplicate rules
+        while (this.rules.contains(newRule)) {
+            newRule = new Rule(this);
         }
+
+        addRule(newRule);
+        newRule.addActivation(now, INITIAL_ACTIVATION);
+
     }//generateRules
 
     /**
@@ -415,9 +402,9 @@ public class PhuJusAgent implements IAgent {
         int isBase = rand.nextInt(PhuJusAgent.NUMINTERNAL);
         for (int i = 0; i < PhuJusAgent.NUMINTERNAL; ++i) {
             int isIndex = (isBase + i) % PhuJusAgent.NUMINTERNAL;
-            if (! Rule.intSensorInUse[isIndex]) {
+            if (this.intSensorInUse[isIndex] == null) {
                 newRule.setRHSInternal(isIndex);
-                Rule.intSensorInUse[isIndex] = true;
+                this.intSensorInUse[isIndex] = newRule;
                 break;
             }
         }
@@ -432,8 +419,8 @@ public class PhuJusAgent implements IAgent {
         rules.remove(r);
 
         if (r.getRHSInternal() != -1) {
-            System.out.println("Removed rule has internal sensor ID: " + r.getRHSInternal());
-            r.turnOffIntSensorInUse(r.getRHSInternal());
+            this.intSensorInUse[r.getRHSInternal()] = null;
+            //TODO:  this is not sufficient! what if other rules are a LHS condition for this?  Such rules should also be removed.
         }
     }
 
@@ -445,6 +432,10 @@ public class PhuJusAgent implements IAgent {
      */
     public Vector<Rule> findRules(int timestamp, String sName, boolean value) {
         Vector<Rule> foundRules = new Vector<>();
+
+        //special case:  timestamp too far in the past
+        if (timestamp == 0) return foundRules;
+
         for(int i = 0; i < matchTimes.length; i++) {
             if(timestamp == matchTimes[i]) {
                 if((matchArray[i].getRHSSensorName().equals(sName) && (matchArray[i].getRHSSensorValue() == value))) {
@@ -452,11 +443,77 @@ public class PhuJusAgent implements IAgent {
                 }
             }
         }
-        for(Rule r : foundRules) {
-            r.addActivation(timestamp, Rule.FOUND_GOAL_REWARD);
-        }
+
         return foundRules;
     }
+
+    /**
+     * rewardRule
+     *
+     * gives a reward to a given rule and a discounted reward to any rules
+     * that, in a given timestep, predicted the values that let this
+     * reward match.
+     *
+     * CAVEAT:  This method is recursive
+     */
+    public void rewardRule(Rule rule, int timestamp, double reward) {
+        //base case #1:  reward too small to matter
+        if (reward < 0.01) return;  //TODO: use a constant
+
+        //Issue the reward
+        boolean success = rule.addActivation(this.now, reward);
+        if (!success) return; //if this rule has already been rewarded don't recurse
+
+        //Also reward rules that predicted the external LHS conditions int the prev timestep
+        SensorData lhsExternal = rule.getLHSExternal();
+        for(String sName : lhsExternal.getSensorNames()) {
+            Boolean val = (Boolean)lhsExternal.getSensor(sName);
+
+            //Note: another implicit base case comes from the finitely-sized matchArray
+            //which findRules uses to search
+            Vector<Rule> foundRules = findRules(timestamp-1, sName, val);
+            for(Rule r : foundRules) {
+                //DEBUG
+                System.out.print("   for predicting " + sName + "=" + val + " in timestep " + (timestamp) + " ");
+
+                rewardRule(r, timestamp-1, reward * Rule.DECAY_RATE);
+            }
+        }
+
+        //reward rules that fired to activate the internal LHS conditions
+        HashMap<Integer, Boolean> lhsInternal = rule.getLHSInternal();
+        for(int key : lhsInternal.keySet()) {
+            if (lhsInternal.get(key)) {
+                //DEBUG
+                System.out.print("   for predicting <" + key + ">=true in timestep " + (timestamp) + " ");
+
+                Rule rewardMe = this.intSensorInUse[key];
+                rewardRule(rewardMe, timestamp-1, reward * Rule.DECAY_RATE);
+            }
+        }
+
+        //Note: Should we also reward rules that correctly did NOT fire so that their associated internal sensor was false?
+        //THis doesn't seem to make sense since a rule that never matches can get rewarded.
+
+    }//rewardRule
+
+    /**
+     * rewardRulesForGoal
+     *
+     * is called when the agent reaches a goal to reward all the rules
+     * that predicted that would happen
+     */
+    private void rewardRulesForGoal() {
+        Vector<Rule> goalRules = findRules(this.now - 1, SensorData.goalSensor, true);
+        for(Rule r : goalRules) {
+            //DEBUG
+            System.out.print("   for predicting _GOAL_ in timestep " + (now) + " ");
+
+            rewardRule(r, this.now - 1, Rule.FOUND_GOAL_REWARD);
+        }
+    }//rewardRulesForGoal
+
+
 
     //region Getters and Setters
 

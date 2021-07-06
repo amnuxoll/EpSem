@@ -1,5 +1,4 @@
 package agents.phujus;
-import framework.Action;
 import framework.SensorData;
 
 import java.util.HashMap;
@@ -16,13 +15,10 @@ public class Rule {
     private static final double EXTRA_COND_FREQ = 0.33;
 
     /** base reward for a rule that correctly predicts finding the goal. */
-    public static final double FOUND_GOAL_REWARD = 4.0;
+    public static final double FOUND_GOAL_REWARD = 20.0;
 
     //to assign a unique id to each rule this shared variable is incremented by the ctor
     private static int nextRuleId = 1;
-
-    //to track which internal sensor values are available for use
-    public static boolean[] intSensorInUse = new boolean[PhuJusAgent.NUMINTERNAL]; //TODO shouldn't this be in the agent?
 
     //same as the agent so it can be seeded for consistent behavior
     private static final Random rand = PhuJusAgent.rand;
@@ -54,7 +50,7 @@ public class Rule {
     private final double[] lastActAmount = new double[ACTHISTLEN]; // amount of activation last N times
     private int nextActPos = 0;
     private double activationLevel;  //CAVEAT:  this value may not be correct!  Call calculateActivation() to update it.
-    private static final double DECAY_RATE = 0.95;  //activation decays exponentially over time
+    public static final double DECAY_RATE = 0.95;  //activation decays exponentially over time
 
     /**
      * this ctor initializes the rule with given values
@@ -237,50 +233,43 @@ public class Rule {
     }//calculateActivation
 
     /**
-     * activateForGoal
-     *
-     * increases the activation level of a rule for correctly predicting
-     * the agent would find the goal.  This method also gives a
-     * diminishing reward to all rules that fired since the last goal on
-     * the presumption that they helped reach this outcome.
-     *
-     */
-    public void activateForGoal(){
-            Rule[] matchArray = agent.getMatchArray();
-            int[] matchTimes = agent.getMatchTimes();
-            double reward = FOUND_GOAL_REWARD;
-            this.addActivation(agent.getNow(), reward);
-
-            // Reward rules that have recently matched
-            int i = agent.prevMatchIndex();
-            while(matchArray[i] != null) {
-                reward = reward * 0.8;  //reward diminishes based on how long ago
-                matchArray[i].addActivation(agent.getNow(), reward);
-
-                // Null it out so it does not get rewarded twice
-                matchArray[i] = null;
-                matchTimes[i] = 0;
-
-                // Iterate to next rule
-                i--;
-                if(i < 0) {
-                    i = PhuJusAgent.RULEMATCHHISTORYLEN - 1;
-                }
-            }//while
-    }//setActivationLevel
-
-    /**
      * addActivation
      *
      * adds a new activation event to this rule.
      *
      * @param now time of activation
      * @param reward amount of activation (can be negative to punish)
+     *
+     * @return true if the reward was applied
      */
-    public void addActivation(int now, double reward) {
+    public boolean addActivation(int now, double reward) {
+        //Check: rule can't be activated twice in the same timestep
+        int prevIdx = this.nextActPos - 1;
+        if (prevIdx < 0) prevIdx = this.lastActTimes.length - 1;
+        if (lastActTimes[prevIdx] == now) {
+            if (lastActAmount[prevIdx] < reward) {
+                //DEBUG
+                System.out.println("Rule #" + this.ruleId + " reward increased to " + reward);
+
+
+                this.lastActAmount[prevIdx] = reward;
+                return true;
+            }
+
+            //DEBUG
+            else {
+                System.out.println("Rule #" + this.ruleId + " already has a reward.");
+            }
+            return false;
+        }
+
+        //DEBUG
+        System.out.println("Rule #" + this.ruleId + " rewarded " + reward);
+
         this.lastActTimes[this.nextActPos] = now;
         this.lastActAmount[this.nextActPos] = reward;
         this.nextActPos = (this.nextActPos + 1) % ACTHISTLEN;
+        return true;
     }
 
 
@@ -388,16 +377,13 @@ public class Rule {
         this.rhsInternal = newInt;
     }
 
-    public void turnOffIntSensorInUse(int rhsInternalIdx){
-        Rule.intSensorInUse[rhsInternalIdx] = false;
-        this.setRHSInternal(-1);
-    }
-
     public int getAssocSensor() {
         return this.rhsInternal;
     }
 
     public SensorData getLHSExternal() { return this.lhsExternal; }
+
+    public HashMap<Integer, Boolean> getLHSInternal() { return this.lhsInternal; }
 
     public String getRHSSensorName(){
         for(String s : this.rhsExternal.getSensorNames()){

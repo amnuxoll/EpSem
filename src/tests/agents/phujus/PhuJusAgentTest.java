@@ -278,7 +278,9 @@ public class PhuJusAgentTest {
          agent.setCurrInternal(currInternal);
 
          //Generate rules until an agent's rule inventory is full
-         agent.generateRules();
+         while(agent.getRules().size() < PhuJusAgent.MAXNUMRULES) {
+             agent.generateRule();
+         }
 
          //Check to see if rule inventory has been filled up properly
          Vector<Rule> rules = agent.getRules();

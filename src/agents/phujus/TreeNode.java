@@ -190,12 +190,21 @@ public class TreeNode {
      * @param indent how much to indent any output from this method
      */
     private void printTreeHelper(String indent) {
-        System.out.println(indent + "  " + this);
+        System.out.print(indent + "  " + this);
 
-        //base case: no children
-        if (this.isLeaf) {
+        //base case #1: Goal Node found (not at root)
+        if ( (this.currExternal.isGoal()) && (! this.path.equals("")) ) {
+            System.out.println("*");
             return;
         }
+
+        //base case #2:  Leaf Node (no goal found)
+        if (this.isLeaf) {
+            System.out.println();
+            return;
+        }
+
+        System.out.println();
 
         //recursive case: print child nodes
         for (int i = 0; i < this.agent.getNumActions(); i++) {
@@ -222,7 +231,7 @@ public class TreeNode {
         String bestPath = "";
         for(TreeNode child : this.children) {
             String candPath = child.findBestGoalPath();
-            if ((bestPath.equals("")) || (bestPath.length() < candPath.length())) {
+            if ((bestPath.equals("")) || (bestPath.length() > candPath.length())) {
                 bestPath = candPath;
             }
         }
