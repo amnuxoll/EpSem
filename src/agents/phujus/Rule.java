@@ -138,9 +138,11 @@ public class Rule {
         if (this.lhsInternal.size() == PhuJusAgent.NUMINTERNAL) return;
 
         //select a random internal sensor that's not already being used by this rule
+        Integer[] options = agent.getPrevInternalKeys();
+        if (options.length == 0) return;
         int newCond;
         do {
-            newCond = rand.nextInt(PhuJusAgent.NUMINTERNAL);
+            newCond = options[rand.nextInt(options.length)];
         } while(this.lhsInternal.containsKey(newCond));
 
         //Add the condition

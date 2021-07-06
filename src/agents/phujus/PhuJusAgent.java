@@ -82,7 +82,7 @@ public class PhuJusAgent implements IAgent {
     private int ruleFirings = 0;
 
     //random numbers are useful sometimes (hardcoded seed for debugging)
-    public static Random rand = new Random(2);
+    public static Random rand = new Random();
 
     /**
      * This method is called each time a new FSM is created and a new agent is
@@ -541,6 +541,10 @@ public class PhuJusAgent implements IAgent {
         return now;
     }
 
+    public Integer[] getPrevInternalKeys() {
+        return this.prevInternal.keySet().toArray(new Integer[0]);
+    }
+
     public boolean getPrevInternalValue(int id) {
         if (this.prevInternal == null) {
             System.err.println("Null!");
@@ -581,10 +585,6 @@ public class PhuJusAgent implements IAgent {
 
     public Action[] getActionList() {
         return actionList;
-    }
-
-    public int[] getMatchTimes() {
-        return matchTimes;
     }
 
     public char getPrevAction() {
