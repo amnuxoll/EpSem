@@ -135,11 +135,11 @@ public class Rule {
      */
     public void addInternalCondition() {
         //Special case:  this rule is already using all the internal sensors
-        if (this.lhsInternal.size() == PhuJusAgent.NUMINTERNAL) return;
-
-        //select a random internal sensor that's not already being used by this rule
         Integer[] options = agent.getPrevInternalKeys();
         if (options.length == 0) return;
+        if (this.lhsInternal.size() == options.length) return;
+
+        //select a random internal sensor that's not already being used by this rule
         int newCond;
         do {
             newCond = options[rand.nextInt(options.length)];

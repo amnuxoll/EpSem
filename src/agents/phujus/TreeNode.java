@@ -231,7 +231,7 @@ public class TreeNode {
         String bestPath = "";
         for(TreeNode child : this.children) {
             String candPath = child.findBestGoalPath();
-            if ((bestPath.equals("")) || (bestPath.length() > candPath.length())) {
+            if ((!candPath.equals("")) && ((bestPath.equals("")) || (bestPath.length() > candPath.length()))) {
                 bestPath = candPath;
             }
         }

@@ -333,10 +333,6 @@ public class PhuJusAgent implements IAgent {
             }
         }
 
-        //DEBUGGING
-        System.out.print("Removing rule: ");
-        worstRule.printRule();
-
         //remove and replace
         removeRule(worstRule);
         generateRule();
@@ -413,16 +409,38 @@ public class PhuJusAgent implements IAgent {
     /**
      * removeRule
      *
-     * removes a rule from the agent's repertoire
+     * removes a rule from the agent's repertoire.  If the rule has an internal
+     * sensor on its RHS then any rules that test it must also be removed.
+     *
+     * CAVEAT: recursive
      */
-    public void removeRule(Rule r) {
-        rules.remove(r);
+    public void removeRule(Rule removeMe) {
+        rules.remove(removeMe);
 
-        if (r.getRHSInternal() != -1) {
-            this.intSensorInUse[r.getRHSInternal()] = null;
-            //TODO:  this is not sufficient! what if other rules are a LHS condition for this?  Such rules should also be removed.
+        //DEBUGGING
+        System.out.print("Removed rule: ");
+        removeMe.printRule();
+
+
+        //if the removed rule had an internal sensor on its RHS, then all rules test
+        // that sensor must also be removed
+        int rhsInternal = removeMe.getRHSInternal();
+        if (rhsInternal != -1) {
+            this.intSensorInUse[rhsInternal] = null;
+
+            //have to gather all "to remove" vectors first to avoid ConcurrentModification
+            Vector<Rule> toRemove = new Vector<>();
+            for (Rule r : this.rules) {
+                if (r.getLHSInternal().containsKey(rhsInternal)) {
+                    toRemove.add(r);
+                }
+            }
+
+            for (Rule r : toRemove) {
+                removeRule(r);  //recursive call
+            }
         }
-    }
+    }//removeRule
 
     /**
      * findRules
