@@ -96,14 +96,12 @@ public class TreeNode {
         HashMap<String, double[]> nextExternal = pneHelper(action);
 
         //Create a sensor data to initialize this child node
-        SensorData childSD = new SensorData(this.currExternal);
-        for (String sensorName : childSD.getSensorNames()) {
+        SensorData childSD = SensorData.createEmpty();
+        for (String sensorName : nextExternal.keySet()) {
             double[] votes = nextExternal.get(sensorName);
-            if (votes == null) {
-                childSD.setSensor(sensorName, false);
-            } else {
+            if (votes != null) {
                 boolean newSensorVal = (votes[1] > votes[0]); //are yea's greater than nay's?
-                childSD.setSensor(sensorName, newSensorVal); // off
+                childSD.setSensor(sensorName, newSensorVal);
             }
         }
         return childSD;
@@ -193,7 +191,7 @@ public class TreeNode {
         System.out.print(indent + "  " + this);
 
         //base case #1: Goal Node found (not at root)
-        if ( (this.currExternal.isGoal()) && (! this.path.equals("")) ) {
+        if ( isGoalNode() ) {
             System.out.println("*");
             return;
         }
@@ -222,7 +220,7 @@ public class TreeNode {
      */
     public String findBestGoalPath() {
         //base case #1: Goal Node found (not at root)
-        if ( (this.currExternal.isGoal()) && (! this.path.equals("")) ) return this.path;
+        if (isGoalNode()) return this.path;
 
         //base case #2:  Leaf Node (no goal found)
         if (this.isLeaf) return "";
@@ -240,5 +238,15 @@ public class TreeNode {
 
     }//findBestGoalPath
 
+    /**
+     * isGoalNode
+     *
+     * @return true if this node's external sensors include GOAL=true
+     */
+    public boolean isGoalNode() {
+        return ( (this.currExternal.getSensor(SensorData.goalSensor) != null)  //goal sensor is present
+                && (this.currExternal.isGoal())  //goal sensor is true
+                && (! this.path.equals("")) );   //this isn't the root
+    }
 
 }//class TreeNode

@@ -15,7 +15,6 @@ import java.util.Random;
  * A rule based episodic memory learner
  * <p>
  * TODO code maint items
- * > removeRule() should take into account other rules that may test it's rhsInternal
  * > Overhaul string-ified format for Rule objects
  * > add a toString() to PJA
  * > remove "new state" message spam and put new state number with TIME STEP message
@@ -27,8 +26,7 @@ import java.util.Random;
  *
  * TODO research items
  * > Consider replacing the activation on rules with:
- *    - a count of correct and incorrect firings
- *    - timestamps of the last N times the rule fired correctly
+ *    - timestamps of the last N times the rule fired and whether it was correct
  * > Rule overhaul idea:
  *    - track tf-idf value for all sensor-value pairs
  *    - an initial rule's LHS is the entire episode weighted by tf-idf
@@ -39,6 +37,7 @@ import java.util.Random;
  *    - split when it will improve the activation of both progeny
  * > Experiment with different values for Rule.EXTRACONDFREQ
  * > Experiment with different number of rules replaced in PJA.updateRules()
+ * > Should the TreeNode not expand nodes that have no predicted external sensor values?
  * > Punish rules that were wrong?  Seems like the absence of reward is enough.
  */
 public class PhuJusAgent implements IAgent {
