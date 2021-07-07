@@ -41,7 +41,7 @@ import java.util.Random;
  * > Punish rules that were wrong?  Seems like the absence of reward is enough.
  */
 public class PhuJusAgent implements IAgent {
-    public static final int MAXNUMRULES = 8;
+    public static final int MAXNUMRULES = 50;
     public static final int NUMINTERNAL = MAXNUMRULES/2;
     public static final int INITIAL_ACTIVATION = 15;
     public static final int RULEMATCHHISTORYLEN = MAXNUMRULES * 5;
@@ -347,25 +347,25 @@ public class PhuJusAgent implements IAgent {
         if (this.prevExternal == null) return;
 
         //DEBUG:  verify agent keeps good rules
-        if (rules.size() == 0) {
-            // Add a good rule: (IS_EVEN, false) a -> (GOAL, true)
-            SensorData gr1 = new SensorData(false);
-            gr1.setSensor("IS_EVEN", false);
-            gr1.removeSensor("GOAL");
-            Rule cheater = new Rule(this, 'a', gr1, new HashMap<>(), "GOAL", true);
-            addRule(cheater);
-            cheater.addActivation(now, INITIAL_ACTIVATION);
-
-            // Add a good rule: (IS_EVEN, true) b -> (IS_EVEN, false)
-            SensorData gr2 = new SensorData(false);
-            gr2.setSensor("IS_EVEN", true);
-            gr2.removeSensor("GOAL");
-            Rule cheater2 = new Rule(this, 'b', gr2, new HashMap<>(), "IS_EVEN", false);
-            addRule(cheater2);
-            cheater2.addActivation(now, INITIAL_ACTIVATION);
-
-            return;
-        }//if
+//        if (rules.size() == 0) {
+//            // Add a good rule: (IS_EVEN, false) a -> (GOAL, true)
+//            SensorData gr1 = new SensorData(false);
+//            gr1.setSensor("IS_EVEN", false);
+//            gr1.removeSensor("GOAL");
+//            Rule cheater = new Rule(this, 'a', gr1, new HashMap<>(), "GOAL", true);
+//            addRule(cheater);
+//            cheater.addActivation(now, INITIAL_ACTIVATION);
+//
+//            // Add a good rule: (IS_EVEN, true) b -> (IS_EVEN, false)
+//            SensorData gr2 = new SensorData(false);
+//            gr2.setSensor("IS_EVEN", true);
+//            gr2.removeSensor("GOAL");
+//            Rule cheater2 = new Rule(this, 'b', gr2, new HashMap<>(), "IS_EVEN", false);
+//            addRule(cheater2);
+//            cheater2.addActivation(now, INITIAL_ACTIVATION);
+//
+//            return;
+//        }//if
 
         Rule newRule = new Rule(this);
 
