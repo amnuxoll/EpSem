@@ -249,4 +249,20 @@ public class TreeNode {
                 && (! this.path.equals("")) );   //this isn't the root
     }
 
+    /**
+     * isValidPath
+     *
+     * checks to see if a previous path is still valid after an action from it is taken
+     *
+     * @return true is the previous path is still valid, false if new path is needed
+     */
+    public boolean isValidPath(String prevPath, TreeNode root) {
+        String bestPath = root.findBestGoalPath();
+        if(!bestPath.equals("")) {
+            return prevPath.charAt(0) == root.findBestGoalPath().charAt(0);
+        } else {
+            return false;
+        }
+    }
+
 }//class TreeNode

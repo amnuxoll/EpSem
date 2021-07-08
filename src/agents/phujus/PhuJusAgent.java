@@ -145,11 +145,15 @@ public class PhuJusAgent implements IAgent {
             this.path = "";
         }
 
-        //If we don't have a path to follow, calculate a goal path
-        if (this.path.equals("")) {
-            buildPathFromEmpty();
-            updateRules();
-        }
+        // Sanity check the path each time to make sure it's valid
+        buildPathFromEmpty();
+        updateRules();
+
+//        //If we don't have a path to follow, calculate a goal path
+//        if (this.path.equals("")) {
+//            buildPathFromEmpty();
+//            updateRules();
+//        }
 
         //select next action
         char action = this.path.charAt(0);
@@ -295,15 +299,23 @@ public class PhuJusAgent implements IAgent {
                 this.currExternal, "");
         root.genSuccessors(3);
 
-        //Find an entire sequence of characters that can reach the goal and get the current action to take
-        this.path = root.findBestGoalPath();
-        //if unable to find path, produce random path for it to take
-        root.printTree();
-        if (this.path.equals("")) {
-            this.path = randomActionPath();
-            System.out.println("random path: " + this.path);
-        } else {
-            System.out.println("path: " + this.path);
+        // If path still has actions, validate them
+        if(!(this.path.equals(""))) {
+            if (root.isValidPath(this.path, root)) {
+                root.printTree();
+                System.out.println("path: " + this.path);
+            }
+        }else {
+            //Find an entire sequence of characters that can reach the goal and get the current action to take
+            this.path = root.findBestGoalPath();
+            //if unable to find path, produce random path for it to take
+            root.printTree();
+            if (this.path.equals("")) {
+                this.path = randomActionPath();
+                System.out.println("random path: " + this.path);
+            } else {
+                System.out.println("path: " + this.path);
+            }
         }
     }//buildPathFromEmpty
 
