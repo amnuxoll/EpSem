@@ -256,13 +256,30 @@ public class TreeNode {
      *
      * @return true is the previous path is still valid, false if new path is needed
      */
-    public boolean isValidPath(String prevPath, TreeNode root) {
-        String bestPath = root.findBestGoalPath();
-        if(!bestPath.equals("")) {
-            return prevPath.charAt(0) == root.findBestGoalPath().charAt(0);
-        } else {
+    public boolean isValidPath(String prevPath) {
+        // Check to make sure there is a path
+        if(prevPath.equals("")) {
             return false;
         }
-    }
+
+        // Path-to-take and Path-to-Nodes are reversed
+        // So compare first char to in Path-to-take to last char in Path-to-Node
+        char nextStep = prevPath.charAt(0);
+        for(TreeNode child : this.children) {
+            if(child.path.charAt(child.path.length()-1) == nextStep) {
+                if(child.isGoalNode()) {
+                    return true;
+                } else if(child.isLeaf) {
+                    return false;
+                } else {
+                    child.isValidPath(prevPath.substring(1));
+                }
+            }
+        }
+
+        // If we don't find children, return false
+        return false;
+
+    }//isValidPath
 
 }//class TreeNode

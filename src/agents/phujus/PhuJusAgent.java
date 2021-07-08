@@ -146,14 +146,11 @@ public class PhuJusAgent implements IAgent {
         }
 
         // Sanity check the path each time to make sure it's valid
-        buildPathFromEmpty();
+        TreeNode root = buildTree();
+        if(this.path.equals("") || !root.isValidPath(this.path)) {
+            buildPathFromEmpty(root);
+        }
         updateRules();
-
-//        //If we don't have a path to follow, calculate a goal path
-//        if (this.path.equals("")) {
-//            buildPathFromEmpty();
-//            updateRules();
-//        }
 
         //select next action
         char action = this.path.charAt(0);
@@ -294,30 +291,30 @@ public class PhuJusAgent implements IAgent {
      * builds a tree of predicted outcomes to calculate a path to goal.
      * The resulting path is placed in this.path.
      */
-    private void buildPathFromEmpty() {
+    private void buildPathFromEmpty(TreeNode root) {
+        //Find an entire sequence of characters that can reach the goal and get the current action to take
+        this.path = root.findBestGoalPath();
+        //if unable to find path, produce random path for it to take
+        root.printTree();
+        if (this.path.equals("")) {
+            this.path = randomActionPath();
+            System.out.println("random path: " + this.path);
+        } else {
+            System.out.println("path: " + this.path);
+        }
+    }//buildPathFromEmpty
+
+    /**
+     * buildTree
+     *
+     * @return a prediction tree based on the current rules and sensing
+     */
+    private TreeNode buildTree() {
         TreeNode root = new TreeNode(this, this.rules, this.now, this.currInternal,
                 this.currExternal, "");
         root.genSuccessors(3);
-
-        // If path still has actions, validate them
-        if(!(this.path.equals(""))) {
-            if (root.isValidPath(this.path, root)) {
-                root.printTree();
-                System.out.println("path: " + this.path);
-            }
-        }else {
-            //Find an entire sequence of characters that can reach the goal and get the current action to take
-            this.path = root.findBestGoalPath();
-            //if unable to find path, produce random path for it to take
-            root.printTree();
-            if (this.path.equals("")) {
-                this.path = randomActionPath();
-                System.out.println("random path: " + this.path);
-            } else {
-                System.out.println("path: " + this.path);
-            }
-        }
-    }//buildPathFromEmpty
+        return root;
+    }
 
     /**
      * updateRules
@@ -357,27 +354,6 @@ public class PhuJusAgent implements IAgent {
     public void generateRule() {
         //At timestep 0 there is no previous so this method can't generate rules
         if (this.prevExternal == null) return;
-
-        //DEBUG:  verify agent keeps good rules
-//        if (rules.size() == 0) {
-//            // Add a good rule: (IS_EVEN, false) a -> (GOAL, true)
-//            SensorData gr1 = new SensorData(false);
-//            gr1.setSensor("IS_EVEN", false);
-//            gr1.removeSensor("GOAL");
-//            Rule cheater = new Rule(this, 'a', gr1, new HashMap<>(), "GOAL", true);
-//            addRule(cheater);
-//            cheater.addActivation(now, INITIAL_ACTIVATION);
-//
-//            // Add a good rule: (IS_EVEN, true) b -> (IS_EVEN, false)
-//            SensorData gr2 = new SensorData(false);
-//            gr2.setSensor("IS_EVEN", true);
-//            gr2.removeSensor("GOAL");
-//            Rule cheater2 = new Rule(this, 'b', gr2, new HashMap<>(), "IS_EVEN", false);
-//            addRule(cheater2);
-//            cheater2.addActivation(now, INITIAL_ACTIVATION);
-//
-//            return;
-//        }//if
 
         Rule newRule = new Rule(this);
 
@@ -468,13 +444,16 @@ public class PhuJusAgent implements IAgent {
         for(int i = 0; i < matchTimes.length; i++) {
             if(timestamp == matchTimes[i]) {
                 if((matchArray[i].getRHSSensorName().equals(sName) && (matchArray[i].getRHSSensorValue() == value))) {
-                    foundRules.add(matchArray[i]);
+                    // Make sure this rule has not been removed
+                    if(this.rules.contains(matchArray[i])) {
+                        foundRules.add(matchArray[i]);
+                    }
                 }
             }
         }
 
         return foundRules;
-    }
+    }//findRules
 
     /**
      * rewardRule
