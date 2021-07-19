@@ -23,6 +23,7 @@ import java.util.Random;
  *   types of debug info on the console
  * > Use int[] for internal sensors instead of HashMap (simpler)
  * > Figure out why the results are non-repeatable with a seeded random
+ * > Profiling (timing the code)
  *
  * TODO research items
  * > Consider replacing the activation on rules with:
@@ -46,6 +47,14 @@ public class PhuJusAgent implements IAgent {
     public static final int INITIAL_ACTIVATION = 15;
     public static final int RULEMATCHHISTORYLEN = MAXNUMRULES * 5;
     public static final int FIRINGS_TIL_REPLACE = MAXNUMRULES * 6;
+
+    // Arrays that track internal sensors longevity and trues and falses
+    private final int[] internalLongevity = new int[NUMINTERNAL];
+    private final int[] internalTrues = new int[NUMINTERNAL];
+    private final int[] internalFalses = new int[NUMINTERNAL];
+
+    // DEBUG variable to toggle println statements (on/off = true/false)
+    public static final boolean DEBUGPRINTSWITCH = true;
 
     //activation is tracked using a rolling array.  When the end of the array
     //is reached, the data rolls over to zero again.  Use nextMatchIdx()
@@ -131,8 +140,8 @@ public class PhuJusAgent implements IAgent {
         this.now++;
 
         //DEBUG
-        System.out.println("----------------------------------------------------------------------");
-        System.out.println("TIME STEP: " + this.now);
+        debugPrintln("----------------------------------------------------------------------");
+        debugPrintln("TIME STEP: " + this.now);
 
         //reward rules that correctly predicted the present
         this.currExternal = sensorData;
@@ -159,7 +168,9 @@ public class PhuJusAgent implements IAgent {
         //DEBUG:
         printExternalSensors(this.currExternal);
         printInternalSensors(this.currInternal);
-        System.out.println("Selected action: " + action + " from path: " + action + "" + this.path);
+        trackInternals(this.currInternal);
+        printInternalData();
+        debugPrintln("Selected action: " + action + " from path: " + action + "" + this.path);
         printRules(action);
 
         //Now that we know what action to take, setup the sensor values for the next iteration
@@ -237,9 +248,22 @@ public class PhuJusAgent implements IAgent {
      * @param printMe sensors to print
      */
     private void printInternalSensors(HashMap<Integer, Boolean> printMe) {
-        System.out.println("Internal Sensors: ");
+        debugPrintln("Internal Sensors: ");
         for (Integer i : printMe.keySet()) {
-            System.out.println("\t" + i.toString() + ":" + printMe.get(i));
+            debugPrintln("\t" + i.toString() + ":" + printMe.get(i));
+        }
+    }
+
+    /**
+     * DEBUG
+     * prints the tracker data of the internal sensors. Used for debugging.
+     */
+    private void printInternalData() {
+        System.out.println("Internal Sensor Data: ");
+        for(int i = 0; i < NUMINTERNAL; i++) {
+            System.out.println("\t" + i + ": age-" + internalLongevity[i] +
+                                        "  trues-" + internalTrues[i] +
+                                        "   falses-" + internalFalses[i]);
         }
     }
 
@@ -405,14 +429,17 @@ public class PhuJusAgent implements IAgent {
         rules.remove(removeMe);
 
         //DEBUGGING
-        System.out.print("Removed rule: ");
-        removeMe.printRule();
+        debugPrint("Removed rule: ");
+        if(DEBUGPRINTSWITCH) {
+            removeMe.printRule();
+        }
 
 
         //if the removed rule had an internal sensor on its RHS, then all rules test
         // that sensor must also be removed
         int rhsInternal = removeMe.getRHSInternal();
         if (rhsInternal != -1) {
+            resetInternalTrackers(rhsInternal); // reset the data tracker for that sensor
             this.intSensorInUse[rhsInternal] = null;
 
             //have to gather all "to remove" vectors first to avoid ConcurrentModification
@@ -482,7 +509,7 @@ public class PhuJusAgent implements IAgent {
             Vector<Rule> foundRules = findRules(timestamp-1, sName, val);
             for(Rule r : foundRules) {
                 //DEBUG
-                System.out.print("   for predicting " + sName + "=" + val + " in timestep " + (timestamp) + " ");
+                debugPrint("   for predicting " + sName + "=" + val + " in timestep " + (timestamp) + " ");
 
                 rewardRule(r, timestamp-1, reward * Rule.DECAY_RATE);
             }
@@ -493,7 +520,7 @@ public class PhuJusAgent implements IAgent {
         for(int key : lhsInternal.keySet()) {
             if (lhsInternal.get(key)) {
                 //DEBUG
-                System.out.print("   for predicting <" + key + ">=true in timestep " + (timestamp) + " ");
+                debugPrint("   for predicting <" + key + ">=true in timestep " + (timestamp) + " ");
 
                 Rule rewardMe = this.intSensorInUse[key];
                 rewardRule(rewardMe, timestamp-1, reward * Rule.DECAY_RATE);
@@ -515,13 +542,68 @@ public class PhuJusAgent implements IAgent {
         Vector<Rule> goalRules = findRules(this.now - 1, SensorData.goalSensor, true);
         for(Rule r : goalRules) {
             //DEBUG
-            System.out.print("   for predicting _GOAL_ in timestep " + (now) + " ");
+            debugPrint("   for predicting _GOAL_ in timestep " + (now) + " ");
 
             rewardRule(r, this.now - 1, Rule.FOUND_GOAL_REWARD);
         }
     }//rewardRulesForGoal
 
+    /**
+     * debugPrintln
+     *
+     * is utilized as a helper method to print useful debug information to the console on a line
+     * It can be toggled on and off using the DEBUGPRINT variable
+     */
+    public void debugPrintln(String db) {
+        if(DEBUGPRINTSWITCH) {
+            System.out.println(db);
+        }
+    }//debugPrintln
 
+    /**
+     * debugPrintln
+     *
+     * is utilized as a helper method to print useful debug information to the console
+     * It can be toggled on/off (true/false) using the DEBUGPRINT variable
+     */
+    public void debugPrint(String db) {
+        if(DEBUGPRINTSWITCH) {
+            System.out.print(db);
+        }
+    }//debugPrint
+
+    /**
+     * trackInternals
+     *
+     * updates the values of the arrays tracking internal sensor data including
+     * longevity, true occurrences, and false occurrences
+     *
+     * @param internals the Hashmap including all internal sensors
+     */
+    public void trackInternals(HashMap<Integer, Boolean> internals) {
+        for(Integer i : internals.keySet()) {
+            internalLongevity[i]++;
+            if(internals.get(i)) {
+                internalTrues[i]++;
+            } else if(!(internals.get(i))) {
+                internalFalses[i]++;
+            }
+        }
+    }//trackInternals
+
+    /**
+     * resetInternalTracker
+     *
+     * resets the counts of the internalLongevity, internalTrues, and internalFalses trackers
+     * for a specific internal sensor number
+     *
+     * @param i the index of the internal sensor to reset the values of
+     */
+    public void resetInternalTrackers(int i) {
+        internalLongevity[i] = 0;
+        internalTrues[i] = 0;
+        internalFalses[i] = 0;
+    }//resetInternalTrackers
 
     //region Getters and Setters
 

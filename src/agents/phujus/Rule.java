@@ -251,7 +251,7 @@ public class Rule {
         if (lastActTimes[prevIdx] == now) {
             if (lastActAmount[prevIdx] < reward) {
                 //DEBUG
-                System.out.println("Rule #" + this.ruleId + " reward increased to " + reward);
+                agent.debugPrintln("Rule #" + this.ruleId + " reward increased to " + reward);
 
 
                 this.lastActAmount[prevIdx] = reward;
@@ -260,13 +260,13 @@ public class Rule {
 
             //DEBUG
             else {
-                System.out.println("Rule #" + this.ruleId + " already has a reward.");
+                agent.debugPrintln("Rule #" + this.ruleId + " already has a reward.");
             }
             return false;
         }
 
         //DEBUG
-        System.out.println("Rule #" + this.ruleId + " rewarded " + reward);
+        agent.debugPrintln("Rule #" + this.ruleId + " rewarded " + reward);
 
         this.lastActTimes[this.nextActPos] = now;
         this.lastActAmount[this.nextActPos] = reward;
