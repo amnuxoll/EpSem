@@ -48,10 +48,14 @@ public class PhuJusAgent implements IAgent {
     public static final int RULEMATCHHISTORYLEN = MAXNUMRULES * 5;
     public static final int FIRINGS_TIL_REPLACE = MAXNUMRULES * 6;
 
-    // Arrays that track internal sensors longevity and trues and falses
+    // Arrays that track internal sensors' longevity and trues and falses
     private final int[] internalLongevity = new int[NUMINTERNAL];
     private final int[] internalTrues = new int[NUMINTERNAL];
     private final int[] internalFalses = new int[NUMINTERNAL];
+
+    // Arrays that track external sensors' trues and falses
+    private final int[] externalTrues = new int[2]; //TODO fix this hard coded value
+    private final int[] externalFalses = new int[2];
 
     // DEBUG variable to toggle println statements (on/off = true/false)
     public static final boolean DEBUGPRINTSWITCH = true;
@@ -167,6 +171,8 @@ public class PhuJusAgent implements IAgent {
 
         //DEBUG:
         printExternalSensors(this.currExternal);
+        trackExternals(this.currExternal);
+        printExternalData();
         printInternalSensors(this.currInternal);
         trackInternals(this.currInternal);
         printInternalData();
@@ -267,6 +273,16 @@ public class PhuJusAgent implements IAgent {
                                         "  trues-" + internalTrues[i] +
                                         "   falses-" + internalFalses[i]);
         }
+    }
+
+    /**
+     * DEBUG
+     * prints the tracker data of the external sensors. Used for debugging.
+     */
+    private void printExternalData() {
+        System.out.println("External Sensor Data: ");
+        System.out.println("\tGOAL:   trues-" + externalTrues[0] + "   falses-" + externalFalses[0]);
+        System.out.println("\tIS_EVEN:   trues-" + externalTrues[1] + "   falses-" + externalFalses[1]);
     }
 
     /**
@@ -583,6 +599,38 @@ public class PhuJusAgent implements IAgent {
             System.out.print(db);
         }
     }//debugPrint
+
+    /**
+     * trackExternals
+     *
+     * updates the values of the arrays tracking external sensor data including true occurrences
+     * and false occurences
+     *
+     */
+    public void trackExternals(SensorData sensorData) {
+        for(String s : sensorData.getSensorNames()) {
+            if(s.equals("GOAL")) {
+                if(sensorData.getSensor(s) instanceof Boolean) {
+                    boolean value = (boolean) sensorData.getSensor(s);
+                    if(value) {
+                        externalTrues[0]++;
+                    } else if(!value) {
+                        externalFalses[0]++;
+                    }
+                }
+            }
+            if(s.equals("IS_EVEN")) {
+                if(sensorData.getSensor(s) instanceof Boolean) {
+                    boolean value = (boolean) sensorData.getSensor(s);
+                    if(value) {
+                        externalTrues[1]++;
+                    } else if(!value) {
+                        externalFalses[1]++;
+                    }
+                }
+            }
+        }
+    }//trackExternals
 
     /**
      * trackInternals
