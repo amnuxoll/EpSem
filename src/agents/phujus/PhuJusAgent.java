@@ -44,7 +44,7 @@ import java.util.Random;
 public class PhuJusAgent implements IAgent {
     public static final int MAXNUMRULES = 50;
     public static final int NUMINTERNAL = MAXNUMRULES/2;
-    public static final int INITIAL_ACTIVATION = 15;
+    public static final int INITIAL_ACTIVATION = 15;  //initial activation for first set of rules
     public static final int RULEMATCHHISTORYLEN = MAXNUMRULES * 5;
     public static final int FIRINGS_TIL_REPLACE = MAXNUMRULES * 6;
 
@@ -145,7 +145,7 @@ public class PhuJusAgent implements IAgent {
 
         //reward rules that correctly predicted the present
         this.currExternal = sensorData;
-        ruleAcccounting();
+        ruleAccounting();
 
         //Reset path on goal
         if (sensorData.isGoal()) {
@@ -187,7 +187,7 @@ public class PhuJusAgent implements IAgent {
     /**
      * keeps up accounting information about rules that is used by the algorithm
      */
-    public void ruleAcccounting() {
+    public void ruleAccounting() {
         //don't do this on the first timestep as there is no "previous" step
         if (this.now == 1) return;
 
@@ -197,17 +197,19 @@ public class PhuJusAgent implements IAgent {
                 continue;
             }
             ruleFirings++;
+            r.incrMatches();
 
             //record rules that correctly predicted the current external sensors
             if (!r.predicts(prevAction, this.prevExternal, this.prevInternal, this.currExternal)) {
                 continue;
             }
+            r.incrPredicts();
             this.matchArray[this.matchIdx] = r;
             this.matchTimes[this.matchIdx] = now-1;
             this.matchIdx = nextMatchIdx();
         }//for
 
-    }//ruleAcccounting
+    }//ruleAccounting
 
 
     /**
@@ -350,7 +352,7 @@ public class PhuJusAgent implements IAgent {
     public void updateRules() {
         //If we haven't reached max just add a rule
         if (this.rules.size() < MAXNUMRULES) {
-            generateRule();
+            generateRule(INITIAL_ACTIVATION);
             return;
         }
 
@@ -358,24 +360,34 @@ public class PhuJusAgent implements IAgent {
         if (this.ruleFirings < FIRINGS_TIL_REPLACE) return;
 
         //Find the rule with lowest activation
+        double activationSum = 0.0;
         Rule worstRule = this.rules.get(0);
+        double worstScore = worstRule.calculateActivation(this.now) * worstRule.getAccuracy();
         for (Rule r : this.rules) {
-            if (r.calculateActivation(this.now) < worstRule.getActivationLevel()) {
+            double activation = r.calculateActivation(this.now);
+            double score = activation * r.getAccuracy();
+            if (score < worstScore) {
+                worstScore = score;
                 worstRule = r;
             }
+
+            //we'll need this info later
+            activationSum += activation;
         }
 
         //remove and replace
         removeRule(worstRule);
-        generateRule();
+        generateRule(activationSum / this.rules.size());
         this.ruleFirings = 0;
 
     }//updateRules
 
     /**
      * Adds a new rule to the agent's inventory
+     *
+     * @param initAct initial activation level for this rule
      */
-    public void generateRule() {
+    public void generateRule(double initAct) {
         //At timestep 0 there is no previous so this method can't generate rules
         if (this.prevExternal == null) return;
 
@@ -387,7 +399,7 @@ public class PhuJusAgent implements IAgent {
         }
 
         addRule(newRule);
-        newRule.addActivation(now, INITIAL_ACTIVATION);
+        newRule.addActivation(now, initAct);
 
     }//generateRules
 

@@ -52,6 +52,10 @@ public class Rule {
     private double activationLevel;  //CAVEAT:  this value may not be correct!  Call calculateActivation() to update it.
     public static final double DECAY_RATE = 0.95;  //activation decays exponentially over time
 
+    // Track the accuracy of this rule
+    private double numMatches = 1;
+    private double numPredicts = 1;
+
     /**
      * this ctor initializes the rule with given values
      */
@@ -207,7 +211,8 @@ public class Rule {
         for(String s : this.rhsExternal.getSensorNames()) {
             System.out.print('(' + s + ',' + this.rhsExternal.getSensor(s) + ')');
         }
-        System.out.print(" * " + this.getActivationLevel());
+        System.out.print(" ^ " + String.format("%.3e", this.getActivationLevel()));
+        System.out.print(" * " + String.format("%.2f", this.getAccuracy()));
         System.out.println();
     }
 
@@ -314,7 +319,7 @@ public class Rule {
     /**
      * compare this rule's LHS and RHS to given sensors
      *
-     * @return true if LHS matches and correclty predicts the RHS
+     * @return true if LHS matches and correctly predicts the RHS
      */
     public boolean predicts(char action, SensorData currExternal, HashMap<Integer, Boolean> currInternal, SensorData correctRHS)
     {
@@ -412,6 +417,24 @@ public class Rule {
         Boolean val = (Boolean)this.rhsExternal.getSensor(sNames[0]);
         return (val) ? 1 : 0;
     }
+
+    /**
+     * incrMatches
+     */
+    public void incrMatches() {
+        numMatches++;
+    }
+
+    /**
+     * incrPredicts
+     */
+    public void incrPredicts() {
+        numPredicts++;
+    }
+
+    public double getAccuracy() {
+        return numPredicts / numMatches;
+    }//getAccuracy
 
     //endregion
 

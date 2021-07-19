@@ -75,8 +75,8 @@ public class TreeNode {
             //get the current votes so far
             double[] votes = result.computeIfAbsent(r.getRHSSensorName(), k -> new double[]{0.0, 0.0});
 
-            //each rule votes with its activation level
-            votes[r.getRHSIntValue()] += r.calculateActivation(agent.getNow());
+            //each rule votes with its accuracy
+            votes[r.getRHSIntValue()] += r.getAccuracy();
         }//for
 
         return result;
