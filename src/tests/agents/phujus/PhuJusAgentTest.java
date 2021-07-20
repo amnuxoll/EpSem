@@ -85,7 +85,7 @@ public class PhuJusAgentTest {
      *
      * Note:  the rule is given an initial activation level
      *
-     * CAVEAT:  there is no error checking so this right :)
+     * CAVEAT:  there is no error checking so do this right :)
      *
      * @param agent      the agent that will use this rule
      * @param lhsIntStr  a sequence of binary digits indicating
@@ -108,7 +108,7 @@ public class PhuJusAgentTest {
         //calculate the correct sensor name for the RHS.
         String rhsSensorName = SensorData.goalSensor;
         boolean rhsSensorValue = true;
-        if (rhsExtStr.endsWith(".")) {
+        if (rhsExtStr.endsWith(".")) {  //indifferent about goal sensor
             if (rhsExtStr.contains("0")) {
                 rhsSensorName = "sen" + rhsExtStr.indexOf("0");
                 rhsSensorValue = false;
@@ -130,7 +130,8 @@ public class PhuJusAgentTest {
      */
     @EpSemTest
     public void testFirstRuleMatch(){
-        Rule rule = quickRuleGen( null, "0", "1100", 'a', "1...");
+        PhuJusAgent agent = quickAgentGen("ab");
+        Rule rule = quickRuleGen( agent, "0", "1100", 'a', "1...");
         SensorData currExternal = quickExtGen("1100");
         HashMap<Integer, Boolean> currInternal = quickIntGen("0");
         Assertions.assertTrue(rule.matches('a',currExternal,currInternal));
@@ -155,7 +156,8 @@ public class PhuJusAgentTest {
          root.genSuccessors(2);
 
          root.printTree();
-         Assertions.assertTrue(root.toString().equals("z->0000|1100"));
+         Assertions.assertTrue(root.toString().startsWith("z->0"));
+         Assertions.assertTrue(root.toString().endsWith("0|1100"));
      }
 
     /**
@@ -194,11 +196,11 @@ public class PhuJusAgentTest {
      public void testFindBestGoalPathDepth2(){
          PhuJusAgent agent = quickAgentGen("ab");
 
-         // Create rule 1: predict testSensor1 is TRUE if action "a" is taken
-         Rule ruleOne = quickRuleGen(agent, "00", "000", 'a', "1..");
+         // Create rule 1: predict sen0 is TRUE if action "a" is taken
+         Rule ruleOne = quickRuleGen(agent, "..", "..0", 'a', "1..");
 
          // Create rule 2: predict GOAL Sensor is TRUE if action "b" is taken after rule 1 has fired
-         Rule ruleTwo = quickRuleGen(agent, "10", "100", 'b', "..1");
+         Rule ruleTwo = quickRuleGen(agent, "1.", "1..", 'b', "..1");
 
          //install the rules and setup the agent so that the rules will fire as intended
          agent.addRule(ruleOne);

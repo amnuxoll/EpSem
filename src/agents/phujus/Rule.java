@@ -304,9 +304,9 @@ public class Rule {
 
         //external sensors match
         if(this.lhsExternal != null) {
-            for (String s : this.lhsExternal.getSensorNames()) {
-                if (!this.lhsExternal.getSensor(s)
-                        .equals(currExternal.getSensor(s))) {
+            for (String sname : this.lhsExternal.getSensorNames()) {
+                if (!this.lhsExternal.getSensor(sname)
+                        .equals(currExternal.getSensor(sname))) {
                     return false;
                 }
             }

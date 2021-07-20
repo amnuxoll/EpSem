@@ -31,18 +31,22 @@ public class UnitTestClass {
     //region Public Methods
     public String getClassName() { return this.testClass.getName(); }
 
-    public Results executeTestClass() {
+    public Results executeTestClass(boolean stoponfail) {
         System.out.println("Running test class: " + this.testClass.getName());
         Results results = new Results(this.testClass.getName());
         for (Method test : this.unitTests) {
             try {
+                System.out.println();
+                System.out.println("--------========= " + test.getName() + "========--------");
                 test.invoke(this.testClassInstance);
                 results.addResult(test.getName());
             }catch (InvocationTargetException exc) {
                 // This would be our failed assertions (most of the time... hopefully)
                 results.addResult(test.getName(), (Exception) exc.getTargetException());
+                if (stoponfail) break;
             } catch (Exception exception) {
                 results.addResult(test.getName(), exception);
+                if (stoponfail) break;
             }
         }
         return results;
