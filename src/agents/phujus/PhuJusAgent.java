@@ -54,8 +54,8 @@ public class PhuJusAgent implements IAgent {
     private final int[] internalFalses = new int[NUMINTERNAL];
 
     // Arrays that track external sensors' trues and falses
-    private final int[] externalTrues = new int[2]; //TODO fix this hard coded value
-    private final int[] externalFalses = new int[2];
+    private HashMap<String, Integer> externalTrues = new HashMap<>();
+    private HashMap<String, Integer> externalFalses = new HashMap<>();
 
     // DEBUG variable to toggle println statements (on/off = true/false)
     public static final boolean DEBUGPRINTSWITCH = true;
@@ -281,8 +281,9 @@ public class PhuJusAgent implements IAgent {
      */
     private void printExternalData() {
         System.out.println("External Sensor Data: ");
-        System.out.println("\tGOAL:   trues-" + externalTrues[0] + "   falses-" + externalFalses[0]);
-        System.out.println("\tIS_EVEN:   trues-" + externalTrues[1] + "   falses-" + externalFalses[1]);
+        for(String sname : this.externalTrues.keySet()) {
+            System.out.println("\t" + sname + ":   trues-" + externalTrues.get(sname) + "   falses-" + externalFalses.get(sname));
+        }
     }
 
     /**
@@ -604,30 +605,18 @@ public class PhuJusAgent implements IAgent {
      * trackExternals
      *
      * updates the values of the arrays tracking external sensor data including true occurrences
-     * and false occurences
+     * and false occurrences
      *
      */
     public void trackExternals(SensorData sensorData) {
-        for(String s : sensorData.getSensorNames()) {
-            if(s.equals("GOAL")) {
-                if(sensorData.getSensor(s) instanceof Boolean) {
-                    boolean value = (boolean) sensorData.getSensor(s);
-                    if(value) {
-                        externalTrues[0]++;
-                    } else if(!value) {
-                        externalFalses[0]++;
-                    }
-                }
-            }
-            if(s.equals("IS_EVEN")) {
-                if(sensorData.getSensor(s) instanceof Boolean) {
-                    boolean value = (boolean) sensorData.getSensor(s);
-                    if(value) {
-                        externalTrues[1]++;
-                    } else if(!value) {
-                        externalFalses[1]++;
-                    }
-                }
+        for(String sname : sensorData.getSensorNames()) {
+            boolean val = (Boolean)sensorData.getSensor(sname);
+            HashMap<String, Integer> toUpdate = this.externalTrues;
+            if (!val) toUpdate = this.externalFalses;
+            if (toUpdate.containsKey(sname)) {
+                toUpdate.put(sname, toUpdate.get(sname) + 1);
+            } else {
+                toUpdate.put(sname, 1);
             }
         }
     }//trackExternals
