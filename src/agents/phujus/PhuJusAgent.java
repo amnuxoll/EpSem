@@ -418,7 +418,7 @@ public class PhuJusAgent implements IAgent {
         addRule(newRule);
         newRule.addActivation(now, initAct);
 
-    }//generateRules
+    }//generateRule
 
     /**
      * addRule
@@ -653,6 +653,34 @@ public class PhuJusAgent implements IAgent {
         internalTrues[i] = 0;
         internalFalses[i] = 0;
     }//resetInternalTrackers
+
+    /**
+     * getExternalRarity
+     *
+     * @param sName the sensor we are checking
+     * @param value the value that we are checking
+     * @return the likelihood that a particular external sensor has a particular value
+     */
+
+    public double getExternalRarity(String sName, boolean value) {
+        int numTrues = 0;
+        int numFalses = 0;
+        if(this.externalTrues.containsKey(sName)) {
+            numTrues = this.externalTrues.get(sName);
+        }
+        if(this.externalFalses.containsKey(sName)) {
+            numFalses = this.externalFalses.get(sName);
+        }
+        int sum = numTrues + numFalses;
+        if(sum == 0) {
+            return -1.0; // Passing the buck! Divide by zero should be handled where getExternalRarity is called
+        }
+        if(value) {
+            return ((double) numTrues) / ((double) sum);
+        } else {
+            return ((double) numFalses) / ((double) sum);
+        }
+    }//getExternalRarity
 
     //region Getters and Setters
 
