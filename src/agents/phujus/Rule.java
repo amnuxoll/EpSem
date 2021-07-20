@@ -101,7 +101,7 @@ public class Rule {
         String sName;
         do {
             String[] sNames = src.getSensorNames().toArray(new String[0]);
-            sName = sNames[rand.nextInt(sNames.length)];
+            sName = softmaxSelect(src);
         } while(dest.hasSensor(sName));
 
         //Copy the entry
@@ -109,6 +109,38 @@ public class Rule {
         dest.setSensor(sName, val);
     }//copyOneSensorVal
 
+    /**
+     * softmaxSelect
+     *
+     * selects one sensor from a SensorData randomly weighted using a softmax formula
+     * https://en.wikipedia.org/wiki/Softmax_function
+     *
+     * @param src the SensorData to select from
+     *
+     * @return the name of the selected sensor
+     */
+    private String softmaxSelect(SensorData src) {
+        double sum = 0.0;
+        for(String sName : src.getSensorNames()) {
+            boolean val = (Boolean) src.getSensor(sName);
+            double rarity = agent.getExternalRarity(sName, val);
+            double weight = (rarity >= 0.0) ? 1.0 - rarity : 0.0;
+            sum += Math.pow(Math.E, weight);
+        }
+
+        double random = rand.nextDouble();
+
+        for(String sName : src.getSensorNames()) {
+            boolean val = (Boolean) src.getSensor(sName);
+            double rarity = agent.getExternalRarity(sName, val);
+            double weight = (rarity >= 0.0) ? 1.0 - rarity : 0.0;
+            random -= (Math.pow(Math.E, weight) / sum);
+            if(random <= 0.0) {
+                return sName;
+            }
+        }
+        return null; //This should never happen
+    }//softmaxSelect
 
     /**
      * addExternalCondition
