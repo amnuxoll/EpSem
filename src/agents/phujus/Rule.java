@@ -82,37 +82,11 @@ public class Rule {
         pickRandomRHS();
     }//random ctor
 
-
-    /**
-     * copyOneSensorVal
-     *
-     * copies a random entry from one SensorData to another.  This method
-     * fails silently if dest isn't smaller than src (which presumably
-     * means that all the entries in src are already in dest).
-     *
-     * @param src  copy an entry from here
-     * @param dest to here
-     */
-    private void copyOneSensorVal(SensorData src, SensorData dest) {
-        //Special case:  nothing left to copy
-        if (src.size() == dest.size()) return;
-
-        //select an entry from the src
-        String sName;
-        do {
-            String[] sNames = src.getSensorNames().toArray(new String[0]);
-            sName = softmaxSelect(src);
-        } while(dest.hasSensor(sName));
-
-        //Copy the entry
-        Boolean val = (Boolean) src.getSensor(sName);
-        dest.setSensor(sName, val);
-    }//copyOneSensorVal
-
     /**
      * softmaxSelect
      *
-     * selects one external sensor from a SensorData randomly weighted using a softmax formula
+     * randomly selects one external sensor from a SensorData using a softmax formula.
+     * The selection is weighted so that rarer sensor values are more likely to be selected.
      * https://en.wikipedia.org/wiki/Softmax_function
      *
      * @param src the SensorData to select from
@@ -153,8 +127,9 @@ public class Rule {
     /**
      * softmaxSelect
      *
-     * selects one internal sensor from a SensorData randomly weighted using a softmax formula
-     * https://en.wikipedia.org/wiki/Softmax_function
+     * randomly selects one internal sensor from a hashmap using a softmax formula.
+     * The selection is weighted so that rarer sensor values are more likely to be selected.
+     * See https://en.wikipedia.org/wiki/Softmax_function
      *
      * @param src the internal sensor hashmap to select from
      * @return the index of the selected sensor or -1 if none selected
@@ -189,6 +164,31 @@ public class Rule {
         int selIndex = rand.nextInt(src.keySet().size());
         return src.keySet().toArray(new Integer[0])[selIndex];
     }//softmaxSelect
+
+    /**
+     * copyOneSensorVal
+     *
+     * copies a random entry from one SensorData to another.  This method
+     * fails silently if dest isn't smaller than src (which presumably
+     * means that all the entries in src are already in dest).
+     *
+     * @param src  copy an entry from here
+     * @param dest to here
+     */
+    private void copyOneSensorVal(SensorData src, SensorData dest) {
+        //Special case:  nothing left to copy
+        if (src.size() == dest.size()) return;
+
+        //select an entry from the src
+        String sName;
+        do {
+            sName = softmaxSelect(src);
+        } while(dest.hasSensor(sName));
+
+        //Copy the entry
+        Boolean val = (Boolean) src.getSensor(sName);
+        dest.setSensor(sName, val);
+    }//copyOneSensorVal
 
     /**
      * addExternalCondition
