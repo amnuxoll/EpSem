@@ -335,23 +335,11 @@ public class Rule {
         if (prevIdx < 0) prevIdx = this.lastActTimes.length - 1;
         if (lastActTimes[prevIdx] == now) {
             if (lastActAmount[prevIdx] < reward) {
-                //DEBUG
-                agent.debugPrintln("Rule #" + this.ruleId + " reward increased to " + reward);
-
-
                 this.lastActAmount[prevIdx] = reward;
                 return true;
             }
-
-            //DEBUG
-            else {
-                agent.debugPrintln("Rule #" + this.ruleId + " already has a reward.");
-            }
             return false;
         }
-
-        //DEBUG
-        agent.debugPrintln("Rule #" + this.ruleId + " rewarded " + reward);
 
         this.lastActTimes[this.nextActPos] = now;
         this.lastActAmount[this.nextActPos] = reward;

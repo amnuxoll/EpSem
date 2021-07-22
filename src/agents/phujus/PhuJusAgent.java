@@ -547,9 +547,6 @@ public class PhuJusAgent implements IAgent {
             //which findRules uses to search
             Vector<Rule> foundRules = findRules(timestamp-1, sName, val);
             for(Rule r : foundRules) {
-                //DEBUG
-                debugPrint("   for predicting " + sName + "=" + val + " in timestep " + (timestamp) + " ");
-
                 rewardRule(r, timestamp-1, reward * Rule.DECAY_RATE);
             }
         }
@@ -558,9 +555,6 @@ public class PhuJusAgent implements IAgent {
         HashMap<Integer, Boolean> lhsInternal = rule.getLHSInternal();
         for(int key : lhsInternal.keySet()) {
             if (lhsInternal.get(key)) {
-                //DEBUG
-                debugPrint("   for predicting <" + key + ">=true in timestep " + (timestamp) + " ");
-
                 Rule rewardMe = this.intSensorInUse[key];
                 rewardRule(rewardMe, timestamp-1, reward * Rule.DECAY_RATE);
             }
