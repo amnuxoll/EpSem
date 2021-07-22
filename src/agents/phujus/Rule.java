@@ -112,11 +112,10 @@ public class Rule {
     /**
      * softmaxSelect
      *
-     * selects one sensor from a SensorData randomly weighted using a softmax formula
+     * selects one external sensor from a SensorData randomly weighted using a softmax formula
      * https://en.wikipedia.org/wiki/Softmax_function
      *
      * @param src the SensorData to select from
-     *
      * @return the name of the selected sensor
      */
     private String softmaxSelect(SensorData src) {
@@ -141,6 +140,29 @@ public class Rule {
         }
         return null; //This should never happen
     }//softmaxSelect
+
+    private int softmaxSelect(HashMap<Integer, Boolean> currInternal) {
+        double sum = 0.0;
+        for(Integer i : currInternal.keySet()) {
+            boolean val = currInternal.get(i);
+            double rarity = agent.getInternalRarity(i, val);
+            double weight = (rarity >= 0) ? 1.0 - rarity : 0.0;
+            sum += Math.pow(Math.E, weight);
+        }
+
+        double random = rand.nextDouble();
+
+        for(Integer i : currInternal.keySet()) {
+            boolean val = currInternal.get(i);
+            double rarity = agent.getInternalRarity(i, val);
+            double weight = (rarity >= 0) ? 1.0 - rarity : 0.0;
+            random -= (Math.pow(Math.E, weight) / sum);
+            if(random <= 0.0) {
+                return i;
+            }
+        }
+        return -1; //This should never happen
+    }
 
     /**
      * addExternalCondition
@@ -178,7 +200,7 @@ public class Rule {
         //select a random internal sensor that's not already being used by this rule
         int newCond;
         do {
-            newCond = options[rand.nextInt(options.length)];
+            newCond = options[softmaxSelect(agent.getCurrInternal())]; //TODO this crashes the program each run
         } while(this.lhsInternal.containsKey(newCond));
 
         //Add the condition
