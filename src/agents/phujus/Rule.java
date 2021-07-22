@@ -123,8 +123,9 @@ public class Rule {
         for(String sName : src.getSensorNames()) {
             boolean val = (Boolean) src.getSensor(sName);
             double rarity = agent.getExternalRarity(sName, val);
-            double weight = (rarity >= 0.0) ? 1.0 - rarity : 0.0;
-            sum += Math.pow(Math.E, weight);
+            if (rarity >= 0.0) {
+                sum += Math.pow(Math.E, 1.0 - rarity);
+            }
         }
 
         double random = rand.nextDouble();
@@ -132,37 +133,62 @@ public class Rule {
         for(String sName : src.getSensorNames()) {
             boolean val = (Boolean) src.getSensor(sName);
             double rarity = agent.getExternalRarity(sName, val);
-            double weight = (rarity >= 0.0) ? 1.0 - rarity : 0.0;
-            random -= (Math.pow(Math.E, weight) / sum);
-            if(random <= 0.0) {
-                return sName;
+            if (rarity >= 0.0) {
+                double weight = (rarity >= 0.0) ? 1.0 - rarity : 0.0;
+                random -= (Math.pow(Math.E, weight) / sum);
+                if (random <= 0.0) {
+                    return sName;
+                }
             }
         }
-        return null; //This should never happen
+
+
+        //Note:  We should only reach this point in the code at start of simulation, when there
+        // are no rarity values on any external sensor.  This would be indicated by (sum == 0.0).
+        //In this special case, just select randomly
+        int selIndex = rand.nextInt(src.getSensorNames().size());
+        return src.getSensorNames().toArray(new String[0])[selIndex];
     }//softmaxSelect
 
-    private int softmaxSelect(HashMap<Integer, Boolean> currInternal) {
+    /**
+     * softmaxSelect
+     *
+     * selects one internal sensor from a SensorData randomly weighted using a softmax formula
+     * https://en.wikipedia.org/wiki/Softmax_function
+     *
+     * @param src the internal sensor hashmap to select from
+     * @return the index of the selected sensor or -1 if none selected
+     */
+    private int softmaxSelect(HashMap<Integer, Boolean> src) {
         double sum = 0.0;
-        for(Integer i : currInternal.keySet()) {
-            boolean val = currInternal.get(i);
+        for(Integer i : src.keySet()) {
+            boolean val = src.get(i);
             double rarity = agent.getInternalRarity(i, val);
-            double weight = (rarity >= 0) ? 1.0 - rarity : 0.0;
-            sum += Math.pow(Math.E, weight);
+            if (rarity >= 0.0) {
+                sum += Math.pow(Math.E, 1.0 - rarity);
+            }
         }
 
         double random = rand.nextDouble();
 
-        for(Integer i : currInternal.keySet()) {
-            boolean val = currInternal.get(i);
+        for(Integer i : src.keySet()) {
+            boolean val = src.get(i);
             double rarity = agent.getInternalRarity(i, val);
-            double weight = (rarity >= 0) ? 1.0 - rarity : 0.0;
-            random -= (Math.pow(Math.E, weight) / sum);
-            if(random <= 0.0) {
-                return i;
+            if (rarity >= 0.0) {
+                double weight = (rarity >= 0) ? 1.0 - rarity : 0.0;
+                random -= (Math.pow(Math.E, weight) / sum);
+                if(random <= 0.0) {
+                    return i;
+                }
             }
         }
-        return -1; //This should never happen
-    }
+
+        //Note:  We should only reach this point in the code at start of simulation, when there
+        // are no rarity values on any internal sensor.  This would be indicated by (sum == 0.0).
+        //In this special case, just select randomly
+        int selIndex = rand.nextInt(src.keySet().size());
+        return src.keySet().toArray(new Integer[0])[selIndex];
+    }//softmaxSelect
 
     /**
      * addExternalCondition
@@ -200,7 +226,7 @@ public class Rule {
         //select a random internal sensor that's not already being used by this rule
         int newCond;
         do {
-            newCond = options[softmaxSelect(agent.getCurrInternal())]; //TODO this crashes the program each run
+            newCond = softmaxSelect(agent.getPrevInternal());
         } while(this.lhsInternal.containsKey(newCond));
 
         //Add the condition

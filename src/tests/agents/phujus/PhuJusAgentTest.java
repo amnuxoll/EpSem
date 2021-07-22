@@ -66,7 +66,15 @@ public class PhuJusAgentTest {
      *                  Example:  "0100"
      */
     public SensorData quickExtGen(String lhsExtStr) {
-        SensorData lhsExt = new SensorData(lhsExtStr.endsWith("1"));
+        SensorData lhsExt = SensorData.createEmpty();
+
+        //If a GOAL value is set, init lhsExt with that value
+        char lastChar = lhsExtStr.charAt(lhsExtStr.length() - 1);
+        if (lastChar != '.') {
+            lhsExt = new SensorData(lastChar == 1);
+        }
+
+        //Create the other sensors as needed
         for(int i = 0; i < lhsExtStr.length() - 1; ++i) {
             if (lhsExtStr.charAt(i) != '.') {
                 lhsExt.setSensor("sen" + i, lhsExtStr.charAt(i) == '1');
@@ -237,8 +245,8 @@ public class PhuJusAgentTest {
          PhuJusAgent agent = quickAgentGen("ab");
 
          Rule ruleOne = quickRuleGen(agent, "000","0000", 'a', "1...");
-         Rule ruleTwo = quickRuleGen(agent, "100", "1000", 'b', ".1..");
-         Rule ruleThree = quickRuleGen(agent, "010", "0100", 'a', "...1");
+         Rule ruleTwo = quickRuleGen(agent, "1..", "1...", 'b', ".1..");
+         Rule ruleThree = quickRuleGen(agent, ".1.", ".1..", 'a', "...1");
 
          agent.addRule(ruleOne);
          agent.addRule(ruleTwo);

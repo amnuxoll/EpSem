@@ -746,6 +746,10 @@ public class PhuJusAgent implements IAgent {
         return this.currInternal;
     }
 
+    public HashMap<Integer, Boolean> getPrevInternal() {
+        return this.prevInternal;
+    }
+
     public void setCurrInternal(HashMap<Integer, Boolean> curIntern) {
         this.currInternal = curIntern;
     }
