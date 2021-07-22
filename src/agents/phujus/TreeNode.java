@@ -1,7 +1,6 @@
 package agents.phujus;
 
 import framework.SensorData;
-
 import java.util.HashMap;
 import java.util.Vector;
 
@@ -110,31 +109,82 @@ public class TreeNode {
     /**
      * genSuccessors
      * <p>
-     * recursively generates successor nodes up to a given depth.  These
-     * new nodes are placed in this.children (creating a tree)
+     * recursively generates the tree in an iterative deepending fashion
+     * stopping when a goal node is found (or max depth is reached)
      */
-    public void genSuccessors(int depth) {
-        //base case
-        if (depth == 0) {
+    public void genSuccessors() {
+        for(int max = 1; max <= PhuJusAgent.MAXDEPTH; ++max) {
+            Vector<TreeNode> visited = new Vector<>();
+            int goalDepth = genSuccHelper(0, max, visited);
+            if (goalDepth < max)
+                break;
+        }
+    }
+
+
+    /**
+     * genSuccHelper
+     *
+     * recursive helper method for {@link #genSuccessors}
+     *
+     * @param depth  depth of this node
+     * @param maxDepth maximum depth allowed
+     * @param visited nodes we've visited so far
+     *
+     * @return the depth that a goal was found at (or maxDepth if not found)
+     */
+    public int genSuccHelper(int depth, int maxDepth, Vector<TreeNode> visited) {
+        //base case:  found goal
+        if (isGoalNode()) {
             this.isLeaf = true;
-            return;
+            return depth;
         }
 
+        //base case:  max depth
+        if (depth >= maxDepth) {
+            this.isLeaf = true;
+            return maxDepth;
+        }
+
+        //Recursive case: examine child nodes
         for(int i = 0; i < agent.getActionList().length; ++i) {
-            char action = agent.getActionList()[i].getName().charAt(0);
+            //Create the child node for this action if it doesn't exist yet
+            TreeNode child = this.children[i];
+            if (child == null) {
+                char action = agent.getActionList()[i].getName().charAt(0);
 
-            //predict the sensor values for the next timestep
-            // create separate predictedExternal entries for on vs off
-            HashMap<Integer, Boolean> childInternal = agent.genNextInternal(action, this.currInternal, this.currExternal);
-            SensorData childExternal = predictNextExternal(action);
+                //predict the sensor values for the next timestep
+                // create separate predictedExternal entries for on vs off
+                HashMap<Integer, Boolean> childInternal = agent.genNextInternal(action, this.currInternal, this.currExternal);
+                SensorData childExternal = predictNextExternal(action);
 
-            //Create the successors of this node
-            //future?:  use a heuristic to decide here if it's worth looking at this node's successors ala A*Search
-            this.children[i] = new TreeNode(this.agent, this.rules,
-                    this.episodeIndex + 1, childInternal, childExternal, this.path + action);
-            this.children[i].genSuccessors(depth - 1);
+                child = new TreeNode(this.agent, this.rules,
+                          this.episodeIndex + 1, childInternal,
+                                        childExternal, this.path + action);
+                this.children[i] = child;
+            } //if create new child node
+            else {
+                child.isLeaf = false; //reset from any prev use of this child
+            }
+
+            //Reasons not to expand this child node (effectively more base cases):
+            // 1.  no external sensors are set in the child
+            // 2.  we've seen this node elsewhere in the tree
+            if ( (child.currExternal.size() == 0) || (visited.contains(child)) ) {
+                child.isLeaf = true;
+                continue;
+            }
+
+            //Recursive case
+            visited.add(child);
+            int newDepth = child.genSuccHelper(depth + 1, maxDepth, visited);
+            if (newDepth < maxDepth){
+                maxDepth = newDepth;
+            }
 
         }//for
+
+        return maxDepth;
 
     }//genSuccessors
 
@@ -281,6 +331,34 @@ public class TreeNode {
         return false;
 
     }//isValidPath
+
+    /**
+     * equals
+     *
+     * method is overridden to only compare sensors and most recent action in the path
+     */
+    @Override
+    public boolean equals(Object obj) {
+        if (! (obj instanceof TreeNode) ) return false;
+        TreeNode other = (TreeNode)obj;
+
+        //compare actions
+        if (! other.path.equals(this.path)) {
+            if (other.path.equals("")) return false;
+            if (this.path.equals("")) return false;
+            char thisAct = this.path.charAt(this.path.length() - 1);
+            char otherAct = other.path.charAt(other.path.length() - 1);
+            if (thisAct != otherAct) return false;
+        }
+
+        //compare sensors
+        if (! other.currExternal.equals(this.currExternal)) return false;
+        if (! other.currInternal.equals(this.currInternal)) return false;
+
+        //All tests passed
+        return true;
+
+    }//equals
 
     public boolean matches(Rule r) {
         // Special case: Looking at the root of the tree

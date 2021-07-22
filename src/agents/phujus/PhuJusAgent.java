@@ -47,7 +47,7 @@ public class PhuJusAgent implements IAgent {
     public static final int INITIAL_ACTIVATION = 15;  //initial activation for first set of rules
     public static final int RULEMATCHHISTORYLEN = MAXNUMRULES * 5;
     public static final int FIRINGS_TIL_REPLACE = MAXNUMRULES * 6;
-    public static final int MAXDEPTH = 3; //TODO investigate how to set this
+    public static final int MAXDEPTH = 100; //TODO investigate how to set this
 
     // Arrays that track internal sensors' longevity and trues and falses
     private final int[] internalLongevity = new int[NUMINTERNAL];
@@ -173,10 +173,8 @@ public class PhuJusAgent implements IAgent {
         //DEBUG:
         printExternalSensors(this.currExternal);
         trackExternals(this.currExternal);
-        printExternalData();
         printInternalSensors(this.currInternal);
         trackInternals(this.currInternal);
-        printInternalData();
         debugPrintln("Selected action: " + action + " from path: " + action + "" + this.path);
         printRules(action);
 
@@ -257,10 +255,12 @@ public class PhuJusAgent implements IAgent {
      * @param printMe sensors to print
      */
     private void printInternalSensors(HashMap<Integer, Boolean> printMe) {
-        debugPrintln("Internal Sensors: ");
+        debugPrint("Internal Sensors: ");
         for (Integer i : printMe.keySet()) {
-            debugPrintln("\t" + i.toString() + ":" + printMe.get(i));
+            boolean val = printMe.get(i);
+            if (val) debugPrint("" + i.toString() + ", ");
         }
+        debugPrintln("");
     }
 
     /**
@@ -356,7 +356,7 @@ public class PhuJusAgent implements IAgent {
     private TreeNode buildTree() {
         TreeNode root = new TreeNode(this, this.rules, this.now, this.currInternal,
                 this.currExternal, "");
-        root.genSuccessors(MAXDEPTH);
+        root.genSuccessors();
         return root;
     }
 
@@ -755,7 +755,7 @@ public class PhuJusAgent implements IAgent {
         }
         TreeNode root = new TreeNode(this, this.rules, this.now,
                                         rootInternal, rootExternal, "");
-        root.genSuccessors(MAXDEPTH);
+        root.genSuccessors();
         return (cprAccHelper(root, cand, worst) > 0);
     }//comparePotentialRuleAccuracy
 
