@@ -47,6 +47,7 @@ public class PhuJusAgent implements IAgent {
     public static final int INITIAL_ACTIVATION = 15;  //initial activation for first set of rules
     public static final int RULEMATCHHISTORYLEN = MAXNUMRULES * 5;
     public static final int FIRINGS_TIL_REPLACE = MAXNUMRULES * 6;
+    public static final int MAXDEPTH = 3; //TODO investigate how to set this
 
     // Arrays that track internal sensors' longevity and trues and falses
     private final int[] internalLongevity = new int[NUMINTERNAL];
@@ -355,7 +356,7 @@ public class PhuJusAgent implements IAgent {
     private TreeNode buildTree() {
         TreeNode root = new TreeNode(this, this.rules, this.now, this.currInternal,
                 this.currExternal, "");
-        root.genSuccessors(3);
+        root.genSuccessors(MAXDEPTH);
         return root;
     }
 
@@ -369,12 +370,15 @@ public class PhuJusAgent implements IAgent {
     public void updateRules() {
         //If we haven't reached max just add a rule
         if (this.rules.size() < MAXNUMRULES) {
-            generateRule(INITIAL_ACTIVATION);
+            Rule candidate = generateRule(INITIAL_ACTIVATION);
+            if(candidate != null) {
+                addRule(candidate);
+            }
             return;
         }
 
         //Shouldn't remove a rule until a sufficient number of firings have occurred
-        if (this.ruleFirings < FIRINGS_TIL_REPLACE) return;
+//        if (this.ruleFirings < FIRINGS_TIL_REPLACE) return;
 
         //Find the rule with lowest activation
         double activationSum = 0.0;
@@ -392,21 +396,27 @@ public class PhuJusAgent implements IAgent {
             activationSum += activation;
         }
 
-        //remove and replace
-        removeRule(worstRule);
-        generateRule(activationSum / this.rules.size());
-        this.ruleFirings = 0;
+        Rule candidate = generateRule(activationSum / this.rules.size());
+
+        if(comparePotentialRuleActivation(candidate, worstRule)
+                && comparePotentialRuleAccuracy(candidate, worstRule)) {
+            //remove and replace
+            removeRule(worstRule);
+            addRule(candidate);
+            this.ruleFirings = 0;
+        }
 
     }//updateRules
 
     /**
-     * Adds a new rule to the agent's inventory
+     * Creates a new candidate rule to the agent's inventory
      *
      * @param initAct initial activation level for this rule
+     * @return a candidate Rule to add
      */
-    public void generateRule(double initAct) {
+    public Rule generateRule(double initAct) {
         //At timestep 0 there is no previous so this method can't generate rules
-        if (this.prevExternal == null) return;
+        if (this.prevExternal == null) return null;
 
         Rule newRule = new Rule(this);
 
@@ -415,8 +425,8 @@ public class PhuJusAgent implements IAgent {
             newRule = new Rule(this);
         }
 
-        addRule(newRule);
         newRule.addActivation(now, initAct);
+        return newRule;
 
     }//generateRule
 
@@ -701,6 +711,107 @@ public class PhuJusAgent implements IAgent {
             return ((double) numFalses) / ((double) sum);
         }
     }//getInternalRarity
+
+    /**
+     * comparePotentialRuleActivation
+     *
+     * @param cand the candidate Rule to compare
+     * @param worst the current worst Rule
+     * @return whether the candidate Rule has more potential activation than the current worst Rule
+     */
+    private boolean comparePotentialRuleActivation(Rule cand, Rule worst) {
+        int candScore = 0;
+        int worstScore = 0;
+        String candRHS = cand.getRHSSensorName();
+        String worstRHS = worst.getRHSSensorName();
+        boolean candVal = cand.getRHSSensorValue();
+        boolean worstVal = cand.getRHSSensorValue();
+        for(Rule r : this.rules) {
+            //Special case: Let's not compare the candidate to the worst rule
+            if(r.equals(worst)) {
+                continue;
+            }
+            for(String sName : r.getLHSExternal().getSensorNames()) {
+                if(sName.equals(candRHS) && ((Boolean) r.getLHSExternal().getSensor(sName)) == candVal) {
+                    candScore++;
+                }
+                if(sName.equals(worstRHS) && ((Boolean) r.getLHSExternal().getSensor(sName)) == worstVal) {
+                    worstScore++;
+                }
+            }
+        }
+
+        return (candScore > worstScore);
+    }//comparePotentialRuleActivation
+
+    /**
+     * comparePotentialRuleAccuracy
+     *
+     * @param cand the candidate Rule
+     * @param worst the current worst Rule
+     * @return whether the candidate Rule has more potential accuracy than the current worst Rule
+     */
+    private boolean comparePotentialRuleAccuracy(Rule cand, Rule worst) {
+        HashMap<Integer, Boolean> rootInternal = new HashMap<>();
+        SensorData rootExternal = SensorData.createEmpty();
+        for(String sName : currExternal.getSensorNames()) {
+            int numTrues = this.externalTrues.get(sName);
+            int numFalses = this.externalFalses.get(sName);
+            rootExternal.setSensor(sName, (numTrues > numFalses)); // if equal, we like the default to false
+        }
+        TreeNode root = new TreeNode(this, this.rules, this.now,
+                                        rootInternal, rootExternal, "");
+        root.genSuccessors(MAXDEPTH);
+        return (cprAccHelper(root, cand, worst) > 0);
+    }//comparePotentialRuleAccuracy
+
+    /**
+     * cprAccHelper
+     *
+     * traverses a given tree to help predict the accuracy of
+     * a potential rule to add. Compares candidate Rule to the
+     * current worst Rule
+     *
+     * @param current the current node we are on
+     * @param cand the candidate rule
+     * @param worst the current worst rule
+     * @return sum of their performance (positive = cand Rule did better)
+     */
+    private int cprAccHelper(TreeNode current, Rule cand, Rule worst) {
+        int candScore = 0;
+        int worstScore = 0;
+        int sum = 0; // sum of candScore - worstScore for all children
+        // Iterate through each child in the tree
+        for(TreeNode child : current.getChildren()) {
+            if(child.isLeaf()) {
+                // Base Case: When leaf node child, compare the LHS of each rule with the current,
+                //            and the RHS with the child
+                if(current.matches(cand)) {
+                    String candSName = cand.getRHSSensorName();
+                    boolean candVal = cand.getRHSSensorValue();
+                    if(child.hasRHS(candSName, candVal)) {
+                        candScore++;
+                    } else {
+                        candScore--;
+                    }
+                }
+                if(current.matches(worst)) {
+                    String worstSName = worst.getRHSSensorName();
+                    boolean worstVal = worst.getRHSSensorValue();
+                    if(child.hasRHS(worstSName, worstVal)) {
+                        worstScore++;
+                    } else {
+                        worstScore--;
+                    }
+                }
+            } else {
+                // Recursive Case: repeat on each non-leaf child
+                sum += cprAccHelper(child, cand, worst);
+            }
+        }
+        sum += (candScore - worstScore);
+        return sum; // Positive sum means candScore had better accuracy, negative = worstScore is better
+    }//cprAccHelper
 
     //region Getters and Setters
 

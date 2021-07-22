@@ -282,4 +282,25 @@ public class TreeNode {
 
     }//isValidPath
 
+    public boolean matches(Rule r) {
+        // Special case: Looking at the root of the tree
+        if(this.path.equals("")) {
+            return false;
+        }
+        return r.matches(this.path.charAt(path.length()-1), this.currExternal, this.currInternal);
+    }//matches
+
+    public TreeNode[] getChildren() {
+        return this.children;
+    }
+
+    public boolean isLeaf() {
+        return this.isLeaf;
+    }
+
+    public boolean hasRHS(String sName, boolean val) {
+        return (this.currExternal.hasSensor(sName) &&
+                ((Boolean) this.currExternal.getSensor(sName)) == val);
+    }
+
 }//class TreeNode
