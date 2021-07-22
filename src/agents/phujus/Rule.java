@@ -265,37 +265,54 @@ public class Rule {
         copyOneSensorVal(agent.getCurrExternal(), this.rhsExternal);
     }//pickRandomRHS
 
-    //TODO: come back to this after I hear back from Braeden
-    public void printRule(){
-        System.out.print("#" + this.ruleId + ":");
-        System.out.print(this.action);
+    /**
+     * general format: [rule id]: ([internal lhs])|[external lhs] -> ([int rhs])|[ext rhs] ^ [activation] * [accuracy]
+     */
+    @Override
+    public String toString() {
+        //rule number
+        StringBuilder result = new StringBuilder();
+        result.append("#" + this.ruleId + ": ");
 
-        //print associated internal sensor
-        System.out.print("<");
-        if (this.rhsInternal != -1) {
-            System.out.print(this.rhsInternal);
-        }
-        System.out.print(">");
-
+        //LHS internal sensors
+        result.append('(');
+        int count = 0;
         for(Integer i : this.lhsInternal.keySet()){
-            System.out.print('(' + String.valueOf(i.intValue()) + ',' + this.lhsInternal.get(i) + ')');
+            if (! this.lhsInternal.get(i)) result.append('!');
+            if (count > 0) result.append(',');
+            result.append(String.valueOf(i.intValue()));
+            count++;
         }
-        System.out.print("|");
+        result.append(")|");
+
+        //LHS external sensors
         if(this.lhsExternal != null) {
-            for (String s : this.lhsExternal.getSensorNames()) {
-                System.out.print('(' + s + ',' + this.lhsExternal.getSensor(s) +
-                        ')');
+            for (String sName : this.lhsExternal.getSensorNames()) {
+                result.append('(' + sName + ',' + this.lhsExternal.getSensor(sName) + ')');
             }
         }
-        System.out.print(" -> ");
-        for(String s : this.rhsExternal.getSensorNames()) {
-            System.out.print('(' + s + ',' + this.rhsExternal.getSensor(s) + ')');
-        }
-        System.out.print(" ^ " + String.format("%.3e", this.getActivationLevel()));
-        System.out.print(" * " + String.format("%.2f", this.getAccuracy()));
-        System.out.println();
-    }
+        //action and arrow
+        result.append(this.action);
+        result.append(" -> ");
 
+        //RHS internal sensor
+        result.append("(");
+        if (this.rhsInternal != -1) {
+            result.append(this.rhsInternal);
+        }
+        result.append(")|");
+
+        //RHS external sensors
+        for(String s : this.rhsExternal.getSensorNames()) {
+            result.append('(' + s + ',' + this.rhsExternal.getSensor(s) + ')');
+        }
+
+        //activation and accuracy
+        result.append(" ^ " + String.format("%.3e", this.getActivationLevel()));
+        result.append(" * " + String.format("%.2f", this.getAccuracy()));
+
+        return result.toString();
+    }//toString
 
     /**
      * calculateActivation

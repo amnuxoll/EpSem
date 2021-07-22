@@ -15,7 +15,6 @@ import java.util.Random;
  * A rule based episodic memory learner
  * <p>
  * TODO code maint items
- * > Overhaul string-ified format for Rule objects
  * > add a toString() to PJA
  * > remove "new state" message spam and put new state number with TIME STEP message
  * > increase code coverage and thoroughness of unit tests
@@ -47,7 +46,7 @@ public class PhuJusAgent implements IAgent {
     public static final int INITIAL_ACTIVATION = 15;  //initial activation for first set of rules
     public static final int RULEMATCHHISTORYLEN = MAXNUMRULES * 5;
     public static final int FIRINGS_TIL_REPLACE = MAXNUMRULES * 6;
-    public static final int MAXDEPTH = 100; //TODO investigate how to set this
+    public static final int MAXDEPTH = 100;
 
     // Arrays that track internal sensors' longevity and trues and falses
     private final int[] internalLongevity = new int[NUMINTERNAL];
@@ -318,7 +317,7 @@ public class PhuJusAgent implements IAgent {
                 System.out.print(" ");
             }
             r.calculateActivation(now);
-            r.printRule();
+            debugPrintln(r.toString());
         }
     }
 
@@ -469,10 +468,7 @@ public class PhuJusAgent implements IAgent {
 
         //DEBUGGING
         debugPrint("Removed rule: ");
-        if(DEBUGPRINTSWITCH) {
-            removeMe.printRule();
-        }
-
+        debugPrintln(removeMe.toString());
 
         //if the removed rule had an internal sensor on its RHS, then all rules test
         // that sensor must also be removed
