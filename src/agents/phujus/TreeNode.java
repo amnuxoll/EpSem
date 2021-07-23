@@ -320,7 +320,11 @@ public class TreeNode {
                 if(child.isGoalNode()) {
                     return true;
                 } else if(child.isLeaf) {
-                    return false;
+                    //this likely happens because the tree was truncated by
+                    // genSuccessors() when it found a shorter path.  We don't
+                    //want to switch to a shorter path mid-stream (causes loops)
+                    //so stick with this one and assume it's okay
+                    return true;
                 } else {
                     child.isValidPath(prevPath.substring(1));
                 }

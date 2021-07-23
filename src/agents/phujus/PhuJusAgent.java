@@ -170,12 +170,14 @@ public class PhuJusAgent implements IAgent {
         this.path = this.path.substring(1);
 
         //DEBUG:
-        printExternalSensors(this.currExternal);
-        trackExternals(this.currExternal);
-        printInternalSensors(this.currInternal);
-        trackInternals(this.currInternal);
-        debugPrintln("Selected action: " + action + " from path: " + action + "" + this.path);
-        printRules(action);
+        if (PhuJusAgent.DEBUGPRINTSWITCH) {
+            printExternalSensors(this.currExternal);
+            trackExternals(this.currExternal);
+            printInternalSensors(this.currInternal);
+            trackInternals(this.currInternal);
+            debugPrintln("Selected action: " + action + " from path: " + action + "" + this.path);
+            printRules(action);
+        }
 
         //Now that we know what action to take, setup the sensor values for the next iteration
         this.prevInternal = this.currInternal;
@@ -338,12 +340,12 @@ public class PhuJusAgent implements IAgent {
         //Find an entire sequence of characters that can reach the goal and get the current action to take
         this.path = root.findBestGoalPath();
         //if unable to find path, produce random path for it to take
-        root.printTree();
+        if (PhuJusAgent.DEBUGPRINTSWITCH) root.printTree();
         if (this.path.equals("")) {
             this.path = randomActionPath();
-            System.out.println("random path: " + this.path);
+            debugPrintln("random path: " + this.path);
         } else {
-            System.out.println("path: " + this.path);
+            debugPrintln("path: " + this.path);
         }
     }//buildPathFromEmpty
 
@@ -703,35 +705,75 @@ public class PhuJusAgent implements IAgent {
     }//getInternalRarity
 
     /**
+     * estimateDistToGoal
+     *
+     * estimates how many steps between a given candidate rule and the goal.
+     * This is used as a means of estimating how much activation a candidate
+     * rule will have.
+     *
+     * CAVEAT:  recursive
+     *
+     * @param cand rule to measure
+     * @param alreadyUsed list of rules already used in the search (pass in an empty vector to start)
+     * @return  number of steps from a rule that finds the GOAL (or -1 if none found)
+     */
+    private int estimateDistToGoal(Rule cand, Vector<Rule> alreadyUsed) {
+
+        //Base Case:  this rule predicts a goal
+        String candRHS = cand.getRHSSensorName();
+        boolean candVal = cand.getRHSSensorValue();
+        if (candRHS.equals(SensorData.goalSensor) && (candVal)) {
+            return 0;
+        }
+
+        //Find all the rules that can use the cand's RHS and haven't been used yet
+        Vector<Rule> matches = new Vector<>();
+        for(Rule r : this.rules) {
+            if (r.getLHSExternal().hasSensor(candRHS)
+                    && ((Boolean)r.getLHSExternal().getSensor(candRHS)) == candVal
+                    && ! alreadyUsed.contains(r))
+            {
+                matches.add(r);
+            }
+        }
+
+        //Mark all matches as used
+        for(Rule m : matches) {
+            alreadyUsed.add(m);
+        }
+
+        //Hidden Base Case:  matches will eventually be an empty vector
+
+        //Recursive Case: see which of the matches is closest to goal
+        int bestSteps = this.rules.size() + 1;  //guaranteed to be too big
+        for(Rule m : matches) {
+            int steps = 1 + estimateDistToGoal(m, alreadyUsed);
+            if (bestSteps > steps) {
+                bestSteps = steps;
+            }
+        }
+
+        return bestSteps;
+
+    }//estimateDistToGoal
+
+    /**
      * comparePotentialRuleActivation
+     *
+     * Attempts to estimate the relative, expected, future activation of a new
+     * candidate rule vs the current worst rule by estimating how many
+     * timesteps would occur starting when this rule fires until a goal
+     * is reached.
      *
      * @param cand the candidate Rule to compare
      * @param worst the current worst Rule
      * @return whether the candidate Rule has more potential activation than the current worst Rule
      */
     private boolean comparePotentialRuleActivation(Rule cand, Rule worst) {
-        int candScore = 0;
-        int worstScore = 0;
-        String candRHS = cand.getRHSSensorName();
-        String worstRHS = worst.getRHSSensorName();
-        boolean candVal = cand.getRHSSensorValue();
-        boolean worstVal = cand.getRHSSensorValue();
-        for(Rule r : this.rules) {
-            //Special case: Let's not compare the candidate to the worst rule
-            if(r.equals(worst)) {
-                continue;
-            }
-            for(String sName : r.getLHSExternal().getSensorNames()) {
-                if(sName.equals(candRHS) && ((Boolean) r.getLHSExternal().getSensor(sName)) == candVal) {
-                    candScore++;
-                }
-                if(sName.equals(worstRHS) && ((Boolean) r.getLHSExternal().getSensor(sName)) == worstVal) {
-                    worstScore++;
-                }
-            }
-        }
+        int candScore = estimateDistToGoal(cand, new Vector<Rule>());
+        int worstScore = estimateDistToGoal(worst, new Vector<Rule>());
 
-        return (candScore > worstScore);
+        return (candScore < worstScore);
     }//comparePotentialRuleActivation
 
     /**
@@ -745,8 +787,10 @@ public class PhuJusAgent implements IAgent {
         HashMap<Integer, Boolean> rootInternal = new HashMap<>();
         SensorData rootExternal = SensorData.createEmpty();
         for(String sName : currExternal.getSensorNames()) {
-            int numTrues = this.externalTrues.get(sName);
-            int numFalses = this.externalFalses.get(sName);
+            Integer temp = this.externalTrues.get(sName);
+            int numTrues = (temp == null) ? 0 : temp;
+            temp = this.externalFalses.get(sName);
+            int numFalses = (temp == null) ? 0 : temp;
             rootExternal.setSensor(sName, (numTrues > numFalses)); // if equal, we like the default to false
         }
         TreeNode root = new TreeNode(this, this.rules, this.now,

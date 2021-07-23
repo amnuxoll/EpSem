@@ -161,7 +161,7 @@ public class PhuJusAgentTest {
          //Initialize tree and generate children
          TreeNode root = new TreeNode(agent, agent.getRules(), agent.getNow(),
                  agent.getCurrInternal(), agent.getCurrExternal(), "z");
-         root.genSuccessors(2);
+         root.genSuccessors();
 
          root.printTree();
          Assertions.assertTrue(root.toString().startsWith("z->0"));
@@ -183,7 +183,7 @@ public class PhuJusAgentTest {
          //Initialize tree and generate children
          TreeNode root = new TreeNode(agent, agent.getRules(), agent.getNow(),
                  agent.getCurrInternal(), agent.getCurrExternal(), "");
-         root.genSuccessors(1);
+         root.genSuccessors();
 
          //DEBUG output
          System.out.println("Rules:");
@@ -221,7 +221,7 @@ public class PhuJusAgentTest {
          //Initialize tree and generate children
          TreeNode root = new TreeNode(agent, agent.getRules(), agent.getNow(),
                  agent.getCurrInternal(), agent.getCurrExternal(), "");
-         root.genSuccessors(2);
+         root.genSuccessors();
 
          //DEBUG output
          System.out.println("Rules:");
@@ -260,7 +260,7 @@ public class PhuJusAgentTest {
          //Initialize tree and generate children
          TreeNode root = new TreeNode(agent, agent.getRules(), agent.getNow(),
                  agent.getCurrInternal(), agent.getCurrExternal(), "");
-         root.genSuccessors(3);
+         root.genSuccessors();
 
          //DEBUG output
          System.out.println("Rules:");
