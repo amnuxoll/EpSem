@@ -12,7 +12,7 @@ import java.util.Random;
 
 public class Rule {
     /** probability of a new rule getting an extra condition */
-    private static final double EXTRA_COND_FREQ = 0.33;
+    private static final double EXTRA_COND_FREQ = 0.67;
 
     /** base reward for a rule that correctly predicts finding the goal. */
     public static final double FOUND_GOAL_REWARD = 20.0;
@@ -278,10 +278,10 @@ public class Rule {
         result.append('(');
         int count = 0;
         for(Integer i : this.lhsInternal.keySet()){
-            if (! this.lhsInternal.get(i)) result.append('!');
             if (count > 0) result.append(',');
-            result.append(String.valueOf(i.intValue()));
             count++;
+            if (! this.lhsInternal.get(i)) result.append('!');
+            result.append(String.valueOf(i.intValue()));
         }
         result.append(")|");
 

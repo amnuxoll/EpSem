@@ -15,12 +15,12 @@ import java.util.Random;
  * A rule based episodic memory learner
  * <p>
  * TODO code maint items
+ * > Implement .dot format print-to-file for the current FSM
  * > add a toString() to PJA
  * > remove "new state" message spam and put new state number with TIME STEP message
  * > increase code coverage and thoroughness of unit tests
  * > implement a debug logging system with levels so we can turn on/off various
  *   types of debug info on the console
- * > Use int[] for internal sensors instead of HashMap (simpler)
  * > Figure out why the results are non-repeatable with a seeded random
  * > Profiling (timing the code)
  *
