@@ -42,6 +42,43 @@ public class FSMTransitionTable {
         return this.transitions;
     }
 
+    /**
+     * Calculates the shortest path to the goal if the agent has a perfect model
+     * of the environment but does not know what state it has started in.  This
+     * method uses A* search to reduce resource usage.
+     *
+     * CAVEAT: This method is solving an NP-hard probelm and can take a really
+     * long time to execute on larger FSMs.
+     *
+     * TODO: reimplement this method for this class (stolen from a prev FSM generator)
+     */
+    public String shortestBlindPathToGoal() {
+//        //An ordered set containing this initial node
+//        PathNode pn = new PathNode();
+//        TreeSet<PathNode> queue = new TreeSet<PathNode>();
+//        queue.add(pn);
+//
+//        //Main search loop
+//        while(! queue.isEmpty()) {
+//            PathNode parent = queue.first();
+//            queue.remove(parent);
+//            for(char c : alphabet) {
+//
+//                //Create a child node with this action
+//                PathNode node = new PathNode(parent);
+//                node.advance(c);
+//
+//                //Did we find the shortest path?
+//                if (node.allGoal()) return node.path;
+//
+//                //Use this node as parent for future searching
+//                queue.add(node);
+//            }//for
+//        }//while
+//
+        return "OOPS!"; //should not be reached
+    }//shortestBlindPathToGoal
+
     public HashMap<Integer, ArrayList<Action>> getShortestSequences() {
         if (this.shortestSequences == null)
         {
@@ -61,6 +98,7 @@ public class FSMTransitionTable {
     }
 
     public Sequence getUniversalSequence() {
+        getShortestSequences();
         if (this.universalSequence == null)
         {
             ArrayList<Integer> states = new ArrayList<>(this.shortestSequences.keySet());

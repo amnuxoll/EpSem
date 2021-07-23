@@ -56,6 +56,9 @@ public class FSMEnvironment implements IEnvironment {
         //DEBUG: print the transition table
         //System.err.println("Transition table:");
         //System.err.println(this.transitionTable);
+
+        //DEBUG: print the universal sequence
+        System.err.println("Universal sequence: " + this.transitionTable.getUniversalSequence());
     }
 
     private FSMEnvironment(FSMEnvironment toCopy) {
@@ -66,6 +69,12 @@ public class FSMEnvironment implements IEnvironment {
         this.actions = toCopy.actions;
         this.currentState = toCopy.currentState;
     }
+
+    //endregion
+
+    //region Accessors
+
+    public int getCurrentState() { return this.currentState; }
 
     //endregion
 
@@ -102,9 +111,6 @@ public class FSMEnvironment implements IEnvironment {
             sensorData = new SensorData(false);
         this.applySensors(this.currentState, sensorData);
 
-        //DEBUG: print the current state
-        System.err.println("new state: " + this.currentState);
-        
         return sensorData;
     }
 
