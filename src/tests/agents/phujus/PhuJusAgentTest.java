@@ -1,4 +1,5 @@
 package tests.agents.phujus;
+import agents.phujus.EpRule;
 import agents.phujus.PhuJusAgent;
 import agents.phujus.Rule;
 import agents.phujus.TreeNode;
@@ -168,6 +169,53 @@ public class PhuJusAgentTest {
          Assertions.assertTrue(root.toString().endsWith("0|1100"));
      }
 
+     @EpSemTest
+     public void testEpRuleEquals() {
+         //Setup an agent that has taken two steps
+         PhuJusAgent agent = quickAgentGen("ab");
+         SensorData sd1 = new SensorData(true);
+         sd1.setSensor("sen1", false);
+         SensorData sd2 = new SensorData(false);
+         sd2.setSensor("sen1", true);
+         try {
+             agent.getNextAction(sd1);
+         } catch(Exception e) {
+             //this should not happen
+             Assertions.assertTrue(false);
+         }
+
+         //Create two EpRules from the agent should match
+         EpRule er1 = new EpRule(agent);
+         EpRule er2 = new EpRule(agent);
+         Assertions.assertTrue(er1.compareTo(er2) == 1.0);
+
+     }//testEpRuleEquals
+
+    /**
+     * tests that the agent can generate random rules based on its current sensors
+     */
+    @EpSemTest
+    public void testGenerateRules(){
+        PhuJusAgent agent = quickAgentGen("ab");
+        SensorData currExternal = quickExtGen("0000");
+        HashMap<Integer, Boolean> currInternal = quickIntGen("1");
+        agent.setPrevExternal(currExternal);
+        agent.setCurrExternal(currExternal);
+        agent.setCurrInternal(currInternal);
+
+        //Generate rules until an agent's rule inventory is full
+        while(agent.getRules().size() < PhuJusAgent.MAXNUMRULES) {
+            Rule candidate = agent.generateRule(PhuJusAgent.INITIAL_ACTIVATION);
+            if(candidate != null) {
+                agent.addRule(candidate);
+            }
+        }
+
+        //Check to see if rule inventory has been filled up properly
+        Vector<Rule> rules = agent.getRules();
+        Assertions.assertTrue(rules.size() == PhuJusAgent.MAXNUMRULES);
+    }
+
     /**
      * tests that the agent can find a goal path at depth 1 in a tree
      */
@@ -275,29 +323,6 @@ public class PhuJusAgentTest {
          Assertions.assertTrue(root.findBestGoalPath().equals(expected));
      }
 
-    /**
-     * tests that the agent can generate random rules based on its current sensors
-     */
-     @EpSemTest
-     public void testGenerateRules(){
-         PhuJusAgent agent = quickAgentGen("ab");
-         SensorData currExternal = quickExtGen("0000");
-         HashMap<Integer, Boolean> currInternal = quickIntGen("1");
-         agent.setPrevExternal(currExternal);
-         agent.setCurrExternal(currExternal);
-         agent.setCurrInternal(currInternal);
 
-         //Generate rules until an agent's rule inventory is full
-         while(agent.getRules().size() < PhuJusAgent.MAXNUMRULES) {
-             Rule candidate = agent.generateRule(PhuJusAgent.INITIAL_ACTIVATION);
-             if(candidate != null) {
-                 agent.addRule(candidate);
-             }
-         }
-
-         //Check to see if rule inventory has been filled up properly
-         Vector<Rule> rules = agent.getRules();
-         Assertions.assertTrue(rules.size() == PhuJusAgent.MAXNUMRULES);
-     }
 
 }
