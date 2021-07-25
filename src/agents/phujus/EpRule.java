@@ -228,6 +228,10 @@ public class EpRule {
             }
         }
 
+        //Note:  A special case here might be if sum == 0.0.  That can only
+        //happen if the rule has no conditions.  I don't think that's worth
+        //checking for.
+
         double count = this.lhsInternal.size() + this.lhsExternal.size();
         return sum / count;
     }//matchScore

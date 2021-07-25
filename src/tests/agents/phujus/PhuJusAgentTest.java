@@ -169,8 +169,9 @@ public class PhuJusAgentTest {
          Assertions.assertTrue(root.toString().endsWith("0|1100"));
      }
 
+     /** test the EpRule.compareTo() method */
      @EpSemTest
-     public void testEpRuleEquals() {
+     public void testEpRuleCompare() {
          //Setup an agent that has taken two steps
          PhuJusAgent agent = quickAgentGen("ab");
          SensorData sd1 = new SensorData(true);
@@ -184,12 +185,62 @@ public class PhuJusAgentTest {
              Assertions.assertTrue(false);
          }
 
-         //Create two EpRules from the agent should match
+         //Create two EpRules from the agent and they should match
          EpRule er1 = new EpRule(agent);
          EpRule er2 = new EpRule(agent);
          Assertions.assertTrue(er1.compareTo(er2) == 1.0);
 
-     }//testEpRuleEquals
+         //Take another step
+         try {
+             agent.getNextAction(sd2);
+         } catch(Exception e) {
+             //this should not happen
+             Assertions.assertTrue(false);
+         }
+
+         //Create a new rule.  It should be different but first two should be unchanged
+         EpRule er3 = new EpRule(agent);
+         Assertions.assertTrue(er3.compareTo(er2) < 1.0);
+         Assertions.assertTrue(er3.compareTo(er2) >= 0.0);
+         Assertions.assertTrue(er1.compareTo(er2) == 1.0);
+
+     }//testEpRuleCompare
+
+    /** test the EpRule.matchScore() method */
+    @EpSemTest
+    public void testEpRuleMatchScore() {
+        //Setup an agent that has taken two steps
+        PhuJusAgent agent = quickAgentGen("ab");
+        SensorData sd1 = new SensorData(true);
+        sd1.setSensor("sen1", false);
+        SensorData sd2 = new SensorData(false);
+        sd2.setSensor("sen1", true);
+        try {
+            agent.getNextAction(sd1);
+        } catch(Exception e) {
+            //this should not happen
+            Assertions.assertTrue(false);
+        }
+
+        //The first rule should be a perfect match
+        EpRule er1 = new EpRule(agent);
+        Assertions.assertTrue(er1.matchScore() == 1.0);
+
+        //Take another step
+        try {
+            agent.getNextAction(sd2);
+        } catch(Exception e) {
+            //this should not happen
+            Assertions.assertTrue(false);
+        }
+
+        //Now it shouldn't be a perfect match
+        Assertions.assertTrue(er1.matchScore() < 1.0);
+        Assertions.assertTrue(er1.matchScore() >= 0.0);
+
+
+    }//testEpRuleMatchScore
+
 
     /**
      * tests that the agent can generate random rules based on its current sensors
