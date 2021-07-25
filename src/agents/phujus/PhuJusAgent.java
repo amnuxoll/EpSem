@@ -25,8 +25,6 @@ import java.util.Random;
  * > Profiling (timing the code)
  *
  * TODO research items
- * > Consider replacing the activation on rules with:
- *    - timestamps of the last N times the rule fired and whether it was correct
  * > Rule overhaul idea:
  *    - track tf-idf value for all sensor-value pairs
  *    - an initial rule's LHS is the entire episode weighted by tf-idf
@@ -35,10 +33,8 @@ import java.util.Random;
  * > Rules refine/generalize themselves based on experience.  Rules should be able to:
  *    - merge when they become very similar
  *    - split when it will improve the activation of both progeny
- * > Experiment with different values for Rule.EXTRACONDFREQ
- * > Experiment with different number of rules replaced in PJA.updateRules()
- * > Should the TreeNode not expand nodes that have no predicted external sensor values?
- * > Punish rules that were wrong?  Seems like the absence of reward is enough.
+ * > Change currInternal to be a HashSet of rules that fired?  I'm not sure if
+ *   logging that a rule didn't fire is useful?
  */
 public class PhuJusAgent implements IAgent {
     public static final int MAXNUMRULES = 50;
@@ -60,10 +56,10 @@ public class PhuJusAgent implements IAgent {
     // DEBUG variable to toggle println statements (on/off = true/false)
     public static final boolean DEBUGPRINTSWITCH = true;
 
-    //activation is tracked using a rolling array.  When the end of the array
-    //is reached, the data rolls over to zero again.  Use nextMatchIdx()
-    //and prevMatchIndex() on the matchIdx variable rather than the
-    //'++' and '--' operators
+    //recent rule matches are tracked using a rolling array.  When the end of
+    // the array is reached, the data rolls over to zero again.  Use
+    // nextMatchIdx() and prevMatchIndex() on the matchIdx variable rather
+    // than the '++' and '--' operators
     private final Rule[] matchArray = new Rule[RULEMATCHHISTORYLEN]; //stores last N rules that fired and were correct
     private final int[] matchTimes = new int[RULEMATCHHISTORYLEN]; //mirrors matchArray, but tracks each rule's timestep when fired
     private int matchIdx = 0;
@@ -378,10 +374,7 @@ public class PhuJusAgent implements IAgent {
             return;
         }
 
-        //Shouldn't remove a rule until a sufficient number of firings have occurred
-//        if (this.ruleFirings < FIRINGS_TIL_REPLACE) return;
-
-        //Find the rule with lowest activation
+        //Find the rule with lowest activation & accuracy
         double activationSum = 0.0;
         Rule worstRule = this.rules.get(0);
         double worstScore = worstRule.calculateActivation(this.now) * worstRule.getAccuracy();
@@ -399,8 +392,8 @@ public class PhuJusAgent implements IAgent {
 
         Rule candidate = generateRule(activationSum / this.rules.size());
 
-        if(comparePotentialRuleActivation(candidate, worstRule)
-                && comparePotentialRuleAccuracy(candidate, worstRule)) {
+        if(betterPotentialRuleActivation(candidate, worstRule)
+                && betterPotentialRuleAccuracy(candidate, worstRule)) {
             //remove and replace
             removeRule(worstRule);
             addRule(candidate);
@@ -572,9 +565,6 @@ public class PhuJusAgent implements IAgent {
     private void rewardRulesForGoal() {
         Vector<Rule> goalRules = findRules(this.now - 1, SensorData.goalSensor, true);
         for(Rule r : goalRules) {
-            //DEBUG
-            debugPrint("   for predicting _GOAL_ in timestep " + (now) + " ");
-
             rewardRule(r, this.now - 1, Rule.FOUND_GOAL_REWARD);
         }
     }//rewardRulesForGoal
@@ -758,7 +748,7 @@ public class PhuJusAgent implements IAgent {
     }//estimateDistToGoal
 
     /**
-     * comparePotentialRuleActivation
+     * betterPotentialRuleActivation
      *
      * Attempts to estimate the relative, expected, future activation of a new
      * candidate rule vs the current worst rule by estimating how many
@@ -769,21 +759,21 @@ public class PhuJusAgent implements IAgent {
      * @param worst the current worst Rule
      * @return whether the candidate Rule has more potential activation than the current worst Rule
      */
-    private boolean comparePotentialRuleActivation(Rule cand, Rule worst) {
+    private boolean betterPotentialRuleActivation(Rule cand, Rule worst) {
         int candScore = estimateDistToGoal(cand, new Vector<Rule>());
         int worstScore = estimateDistToGoal(worst, new Vector<Rule>());
 
         return (candScore < worstScore);
-    }//comparePotentialRuleActivation
+    }//betterPotentialRuleActivation
 
     /**
-     * comparePotentialRuleAccuracy
+     * betterPotentialRuleAccuracy
      *
      * @param cand the candidate Rule
      * @param worst the current worst Rule
      * @return whether the candidate Rule has more potential accuracy than the current worst Rule
      */
-    private boolean comparePotentialRuleAccuracy(Rule cand, Rule worst) {
+    private boolean betterPotentialRuleAccuracy(Rule cand, Rule worst) {
         HashMap<Integer, Boolean> rootInternal = new HashMap<>();
         SensorData rootExternal = SensorData.createEmpty();
         for(String sName : currExternal.getSensorNames()) {
@@ -796,11 +786,11 @@ public class PhuJusAgent implements IAgent {
         TreeNode root = new TreeNode(this, this.rules, this.now,
                                         rootInternal, rootExternal, "");
         root.genSuccessors();
-        return (cprAccHelper(root, cand, worst) > 0);
-    }//comparePotentialRuleAccuracy
+        return (bprAccHelper(root, cand, worst) > 0);
+    }//betterPotentialRuleAccuracy
 
     /**
-     * cprAccHelper
+     * bprAccHelper
      *
      * traverses a given tree to help predict the accuracy of
      * a potential rule to add. Compares candidate Rule to the
@@ -811,7 +801,7 @@ public class PhuJusAgent implements IAgent {
      * @param worst the current worst rule
      * @return sum of their performance (positive = cand Rule did better)
      */
-    private int cprAccHelper(TreeNode current, Rule cand, Rule worst) {
+    private int bprAccHelper(TreeNode current, Rule cand, Rule worst) {
         int candScore = 0;
         int worstScore = 0;
         int sum = 0; // sum of candScore - worstScore for all children
@@ -840,12 +830,12 @@ public class PhuJusAgent implements IAgent {
                 }
             } else {
                 // Recursive Case: repeat on each non-leaf child
-                sum += cprAccHelper(child, cand, worst);
+                sum += bprAccHelper(child, cand, worst);
             }
         }
         sum += (candScore - worstScore);
         return sum; // Positive sum means candScore had better accuracy, negative = worstScore is better
-    }//cprAccHelper
+    }//bprAccHelper
 
     //region Getters and Setters
 

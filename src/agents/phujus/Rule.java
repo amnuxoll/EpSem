@@ -52,7 +52,10 @@ public class Rule {
     private double activationLevel;  //CAVEAT:  this value may not be correct!  Call calculateActivation() to update it.
     public static final double DECAY_RATE = 0.95;  //activation decays exponentially over time
 
-    // Track the accuracy of this rule
+    // Track the accuracy of this rule.  numMatches is how often it has matched (fired).
+    // numPredicts is how many times it matched and correctly predicted the next step.
+    // These values are init'd to 1 to account for the episodes the rule is created from
+    // (also prevents divide-by-zero errors).
     private double numMatches = 1;
     private double numPredicts = 1;
 
@@ -364,8 +367,6 @@ public class Rule {
         return true;
     }
 
-
-
     /**
      * matches
      *
@@ -459,7 +460,6 @@ public class Rule {
     public double getActivationLevel() {
         return this.activationLevel;
     }
-
 
     public int getRHSInternal(){
         return this.rhsInternal;
