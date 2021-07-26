@@ -17,7 +17,7 @@ public class TreeNode {
     private final PhuJusAgent agent;
 
     // all rules in the system
-    Vector<Rule> rules;
+    Vector<EpRule> rules;
 
     //associated timestep for this node
     private final int episodeIndex;
@@ -32,118 +32,113 @@ public class TreeNode {
     //bool for if tree has children or not
     private boolean isLeaf = false;
 
-    //This is the path used to reach this node (the root should be "")
-    private final String path;
+    //This is the rule used to reach this node (use null for the root)
+    private EpRule rule;
+
+    //This is the path used to reach this node (the root should be an empty list)
+    private final Vector<TreeNode> path;
 
 
     /**
-     * root node constructor
+     * This root node constructor is built from the agent.
+     *
      */
-    public TreeNode(PhuJusAgent initAgent, Vector<Rule> initRulesList, int initEpisodeIndex,
-                    HashMap<Integer, Boolean> initCurrInternal, SensorData initCurrExternal, String path) {
+    public TreeNode(PhuJusAgent initAgent) {
         //initializing agent and its children
         this.agent = initAgent;
-        this.rules = initRulesList;
+        this.rules = agent.getRules();
         this.children = new TreeNode[agent.getNumActions()]; // actionSize
-        this.episodeIndex = initEpisodeIndex;
-        this.currInternal = initCurrInternal;
-        this.currExternal = initCurrExternal;
-        this.path = path;
+        this.episodeIndex = agent.getNow();
+        this.rule = null;
+        this.currInternal = agent.getCurrInternal();
+        this.currExternal = agent.getCurrExternal();
+        this.path = new Vector<TreeNode>();
+
     }
 
     /**
-     * pneHelper
-     * <p>
-     * helper method for {@link #predictNextExternal}.  This method gathers "votes" for
-     * either a true or false value for each sensor based on rules that predict
-     * either value.  If no value is predicted, then no vote entry is created
-     * in the result.
+     * This child node constructor is built from a parent node and a rule
      *
-     * @return a hash map of sensor name to true and false vote tallies
-     * (each as a two-cell double[])
      */
-    private HashMap<String, double[]> pneHelper(char action) {
-        HashMap<String, double[]> result = new HashMap<>();
-
-        for (Rule r : rules) {
-            //we only care about matching rules
-            if (!r.matches(action, this.currExternal, this.currInternal)) {
-                continue;
-            }
-
-            //get the current votes so far
-            double[] votes = result.computeIfAbsent(r.getRHSSensorName(), k -> new double[]{0.0, 0.0});
-
-            //each rule votes with its accuracy
-            votes[r.getRHSIntValue()] += r.getAccuracy();
-        }//for
-
-        return result;
-    }//pneHelper
+    public TreeNode(TreeNode parent, EpRule rule) {
+        //initializing agent and its children
+        this.agent = parent.agent;
+        this.rules = parent.rules;
+        this.children = new TreeNode[agent.getNumActions()]; // actionSize
+        this.episodeIndex = parent.episodeIndex + 1;
+        this.rule = rule;
+        this.currInternal = rule.getLHSInternal();
+        this.currExternal = rule.getLHSExternal();
+        this.path = (Vector<TreeNode>)parent.path.clone();
+        this.path.add(this);
+    }
 
     /**
-     * predictNextExternal
-     * <p>
-     * generates the next external sensor values for a given action for this
-     * rule.  This method will also update the activation of rules that match
-     * if asked.
+     * calcBestMatchingRule
      *
-     * @param action           the action selected by the agent
+     * calculates which rule best matches this node with a given action
      */
-    private SensorData predictNextExternal(char action) {
-        //Gather the votes (and activate rules if asked)
-        HashMap<String, double[]> nextExternal = pneHelper(action);
+    private EpRule calcBestMatchingRule(char action) {
+        //Find the best matching rule
+        double bestScore = -1.0;
+        EpRule bestRule = null;
 
-        //Create a sensor data to initialize this child node
-        SensorData childSD = SensorData.createEmpty();
-        for (String sensorName : nextExternal.keySet()) {
-            double[] votes = nextExternal.get(sensorName);
-            if (votes != null) {
-                boolean newSensorVal = (votes[1] > votes[0]); //are yea's greater than nay's?
-                childSD.setSensor(sensorName, newSensorVal);
+        //Find the best matching rule
+        //TODO:  should it consider other top rules that are almost as good?
+        for (EpRule r : this.rules) {
+            double score = r.matchScore(action, this.currInternal, this.currExternal);
+            if (score > bestScore) {
+                bestScore = score;
+                bestRule = r;
             }
         }
-        return childSD;
-    }//predictNextExternal
+
+        return bestRule;
+
+    }//calcBestMatchingRule
 
     /**
-     * genSuccessors
+     * findBestGoalPath
      * <p>
-     * recursively generates the tree in an iterative deepending fashion
-     * stopping when a goal node is found (or max depth is reached)
+     * uses an iterative deepening search tree to find a path to the goal
+     *
+     * //TODO:  consider longer paths that are more reliable?  Hopefully rule confidence adjustments will make this unncessary.
+     * //TODO:  A*Search instead?
      */
-    public void genSuccessors() {
+    public Vector<TreeNode> findBestGoalPath() {
         for(int max = 1; max <= PhuJusAgent.MAXDEPTH; ++max) {
             Vector<TreeNode> visited = new Vector<>();
-            int goalDepth = genSuccHelper(0, max, visited);
-            if (goalDepth < max)
-                break;
+            Vector<TreeNode> path = fbgpHelper(0, max, visited);
+            if ( (path != null) && (path.size() < max) )
+                return path;
         }
-    }
+
+        return null;  //failed to find a path to goal
+    }//findBestGoalPath
 
 
     /**
-     * genSuccHelper
+     * fbgpHelper
      *
-     * recursive helper method for {@link #genSuccessors}
+     * recursive helper method for {@link #findBestGoalPath}
      *
      * @param depth  depth of this node
      * @param maxDepth maximum depth allowed
      * @param visited nodes we've visited so far
      *
-     * @return the depth that a goal was found at (or maxDepth if not found)
+     * @return a path to the goal (or null if not found)
      */
-    public int genSuccHelper(int depth, int maxDepth, Vector<TreeNode> visited) {
+    private Vector<TreeNode> fbgpHelper(int depth, int maxDepth, Vector<TreeNode> visited) {
         //base case:  found goal
         if (isGoalNode()) {
             this.isLeaf = true;
-            return depth;
+            return this.path;
         }
 
         //base case:  max depth
         if (depth >= maxDepth) {
             this.isLeaf = true;
-            return maxDepth;
+            return null;
         }
 
         //Recursive case: examine child nodes
@@ -153,40 +148,34 @@ public class TreeNode {
             if (child == null) {
                 char action = agent.getActionList()[i].getName().charAt(0);
 
-                //predict the sensor values for the next timestep
-                // create separate predictedExternal entries for on vs off
-                HashMap<Integer, Boolean> childInternal = agent.genNextInternal(action, this.currInternal, this.currExternal);
-                SensorData childExternal = predictNextExternal(action);
-
-                child = new TreeNode(this.agent, this.rules,
-                          this.episodeIndex + 1, childInternal,
-                                        childExternal, this.path + action);
+                EpRule bestRule = calcBestMatchingRule(action);
+                child = new TreeNode(this, bestRule);
                 this.children[i] = child;
             } //if create new child node
             else {
                 child.isLeaf = false; //reset from any prev use of this child
             }
 
-            //Reasons not to expand this child node (effectively more base cases):
-            // 1.  no external sensors are set in the child
-            // 2.  we've seen this node elsewhere in the tree
-            if ( (child.currExternal.size() == 0) || (visited.contains(child)) ) {
+            //don't expand this child node if we've seen it before
+            if (visited.contains(child)) {
                 child.isLeaf = true;
                 continue;
             }
 
             //Recursive case
             visited.add(child);
-            int newDepth = child.genSuccHelper(depth + 1, maxDepth, visited);
-            if (newDepth < maxDepth){
-                maxDepth = newDepth;
+            Vector<TreeNode> path = child.fbgpHelper(depth + 1, maxDepth, visited);
+            if ( path != null) {
+                if (path.size() < maxDepth) {
+                    maxDepth = path.size();
+                }
+                return path;  //TODO:  test all children and return shortest path (or path with highest confidence)
             }
-
         }//for
 
-        return maxDepth;
+        return null;
 
-    }//genSuccessors
+    }//fbgpHelper
 
 
     /**
@@ -261,34 +250,6 @@ public class TreeNode {
     }//printTreeHelper
 
     /**
-     * findBestGoalPath
-     * <p>
-     * searches this tree for the best path to the goal and returns the first action
-     * in the sequence of actions on that path
-     *
-     * @return a goal path if found or empty string ("") if no goal path was found.
-     */
-    public String findBestGoalPath() {
-        //base case #1: Goal Node found (not at root)
-        if (isGoalNode()) return this.path;
-
-        //base case #2:  Leaf Node (no goal found)
-        if (this.isLeaf) return "";
-
-        //search all possible actions
-        String bestPath = "";
-        for(TreeNode child : this.children) {
-            String candPath = child.findBestGoalPath();
-            if ((!candPath.equals("")) && ((bestPath.equals("")) || (bestPath.length() > candPath.length()))) {
-                bestPath = candPath;
-            }
-        }
-
-        return bestPath;
-
-    }//findBestGoalPath
-
-    /**
      * isGoalNode
      *
      * @return true if this node's external sensors include GOAL=true
@@ -299,6 +260,7 @@ public class TreeNode {
                 && (! this.path.equals("")) );   //this isn't the root
     }
 
+    //TODO: get this working with EpRules.  Mothballed for now
     /**
      * isValidPath
      *
@@ -306,40 +268,40 @@ public class TreeNode {
      *
      * @return true is the previous path is still valid, false if new path is needed
      */
-    public boolean isValidPath(String prevPath) {
-        // Check to make sure there is a path
-        if(prevPath.equals("")) {
-            return false;
-        }
-
-        // Path-to-take and Path-to-Nodes are reversed
-        // So compare first char to in Path-to-take to last char in Path-to-Node
-        char nextStep = prevPath.charAt(0);
-        for(TreeNode child : this.children) {
-            if(child.path.charAt(child.path.length()-1) == nextStep) {
-                if(child.isGoalNode()) {
-                    return true;
-                } else if(child.isLeaf) {
-                    //this likely happens because the tree was truncated by
-                    // genSuccessors() when it found a shorter path.  We don't
-                    //want to switch to a shorter path mid-stream (causes loops)
-                    //so stick with this one and assume it's okay
-                    return true;
-                } else {
-                    child.isValidPath(prevPath.substring(1));
-                }
-            }
-        }
-
-        // If we don't find children, return false
-        return false;
-
-    }//isValidPath
+//    public boolean isValidPath(String prevPath) {
+//        // Check to make sure there is a path
+//        if(prevPath.equals("")) {
+//            return false;
+//        }
+//
+//        // Path-to-take and Path-to-Nodes are reversed
+//        // So compare first char to in Path-to-take to last char in Path-to-Node
+//        char nextStep = prevPath.charAt(0);
+//        for(TreeNode child : this.children) {
+//            if(child.path.charAt(child.path.length()-1) == nextStep) {
+//                if(child.isGoalNode()) {
+//                    return true;
+//                } else if(child.isLeaf) {
+//                    //this likely happens because the tree was truncated by
+//                    // genSuccessors() when it found a shorter path.  We don't
+//                    //want to switch to a shorter path mid-stream (causes loops)
+//                    //so stick with this one and assume it's okay
+//                    return true;
+//                } else {
+//                    child.isValidPath(prevPath.substring(1));
+//                }
+//            }
+//        }
+//
+//        // If we don't find children, return false
+//        return false;
+//
+//    }//isValidPath
 
     /**
      * equals
      *
-     * method is overridden to only compare sensors and most recent action in the path
+     * method is overridden to only compare sensors and action
      */
     @Override
     public boolean equals(Object obj) {
@@ -347,13 +309,7 @@ public class TreeNode {
         TreeNode other = (TreeNode)obj;
 
         //compare actions
-        if (! other.path.equals(this.path)) {
-            if (other.path.equals("")) return false;
-            if (this.path.equals("")) return false;
-            char thisAct = this.path.charAt(this.path.length() - 1);
-            char otherAct = other.path.charAt(other.path.length() - 1);
-            if (thisAct != otherAct) return false;
-        }
+        if (this.getAction() != other.getAction()) return false;
 
         //compare sensors
         if (! other.currExternal.equals(this.currExternal)) return false;
@@ -364,25 +320,8 @@ public class TreeNode {
 
     }//equals
 
-    public boolean matches(Rule r) {
-        // Special case: Looking at the root of the tree
-        if(this.path.equals("")) {
-            return false;
-        }
-        return r.matches(this.path.charAt(path.length()-1), this.currExternal, this.currInternal);
-    }//matches
+    public char getAction() { return this.rule.getAction(); }
 
-    public TreeNode[] getChildren() {
-        return this.children;
-    }
-
-    public boolean isLeaf() {
-        return this.isLeaf;
-    }
-
-    public boolean hasRHS(String sName, boolean val) {
-        return (this.currExternal.hasSensor(sName) &&
-                ((Boolean) this.currExternal.getSensor(sName)) == val);
-    }
+    public EpRule getRule() { return this.rule; }
 
 }//class TreeNode

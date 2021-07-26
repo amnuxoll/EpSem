@@ -13,6 +13,7 @@ import java.util.Random;
  */
 public class EpRule {
 
+//region Inner Classes
     /**
      * class Condition
      *
@@ -83,6 +84,7 @@ public class EpRule {
         }
     }//class IntCond
 
+//endregion
 
     /** base reward for a rule that correctly predicts finding the goal. */
     public static final double FOUND_GOAL_REWARD = 20.0;
@@ -113,6 +115,24 @@ public class EpRule {
     // present when the rule was created
     private HashSet<ExtCond> rhsExternal;
 
+    // Each rule has an activation level that tracks the frequency and
+    // recency with which it fired and correctly predicted an external
+    // sensor value
+    public static final int ACTHISTLEN = 10;
+    private final int[] lastActTimes = new int[ACTHISTLEN];  // last N times the rule was activated
+    private final double[] lastActAmount = new double[ACTHISTLEN]; // amount of activation last N times
+    private int nextActPos = 0;
+    private double activationLevel;  //CAVEAT:  this value may not be correct!  Call calculateActivation() to update it.
+    public static final double DECAY_RATE = 0.95;  //activation decays exponentially over time
+
+    // Track the accuracy of this rule.  numMatches is how often it has matched (fired).
+    // numPredicts is how many times it matched and correctly predicted the next step.
+    // These values are init'd to 1 to account for the episodes the rule is created from
+    // (also prevents divide-by-zero errors).
+    private double numMatches = 1;
+    private double numPredicts = 1;
+
+//region Ctors and Init
     /**
      * this ctor initializes the rule from the agent's current and previous episodes
      */
@@ -149,6 +169,8 @@ public class EpRule {
         }
         return result;
     }//initInternal
+
+//endregion
 
     /**
      * General format: [rule id]: ([internal lhs])|[external lhs] -> [ext rhs] ^ [activation]
@@ -202,12 +224,16 @@ public class EpRule {
     }//toString
 
     /**
-     * calculates how closely this rule matches the agent's current sensors
+     * calculates how closely this rule matches a given action and sensors
      *
      * @return  a match score from 0.0 to 1.0
      */
-    public double matchScore() {
+    public double matchScore(char action, HashMap<Integer, Boolean> lhsInt, SensorData lhsExt) {
         double sum = 0.0;
+
+        //If the action doesn't match this rule can't match at all
+        //TODO:  should we do partial matching for actions?
+        if (action != this.action) return 0.0;
 
         //Compare LHS internal values
         for (IntCond iCond : this.lhsInternal) {
@@ -235,6 +261,11 @@ public class EpRule {
         double count = this.lhsInternal.size() + this.lhsExternal.size();
         return sum / count;
     }//matchScore
+
+    /** convenience function that uses the sensors in the current agent */
+    public double matchScore(char action) {
+        return matchScore(action, this.agent.getCurrInternal(), this.agent.getCurrExternal());
+    }
 
     /**
      * calculates how closely this rule matches another given rule
@@ -279,6 +310,115 @@ public class EpRule {
         return sum / count;
     }//matchScore
 
+    /**
+     * calculateActivation
+     *
+     * calculates the activation of the rule atm.  Activation is increased
+     * by fixed amounts and each increase decays over time.
+     * The sum of these values is the total activation.
+     *
+     * @see #addActivation(int, double)
+     */
+    public double calculateActivation(int now) {
+        double result = 0.0;
+        for(int j=0; j < lastActTimes.length; ++j) {
+            if(lastActTimes[j] != 0) {
+                double decayAmount = Math.pow(DECAY_RATE, now-lastActTimes[j]);
+                result += lastActAmount[j]*decayAmount;
+            }
+        }
 
+        this.activationLevel = result;
+        return this.activationLevel;
+    }//calculateActivation
+
+    /**
+     * addActivation
+     *
+     * adds a new activation event to this rule.
+     *
+     * @param now time of activation
+     * @param reward amount of activation (can be negative to punish)
+     *
+     * @return true if the reward was applied
+     */
+    public boolean addActivation(int now, double reward) {
+        //Check: rule can't be activated twice in the same timestep
+        int prevIdx = this.nextActPos - 1;
+        if (prevIdx < 0) prevIdx = this.lastActTimes.length - 1;
+        if (lastActTimes[prevIdx] == now) {
+            if (lastActAmount[prevIdx] < reward) {
+                this.lastActAmount[prevIdx] = reward;
+                return true;
+            }
+            return false;
+        }
+
+        this.lastActTimes[this.nextActPos] = now;
+        this.lastActAmount[this.nextActPos] = reward;
+        this.nextActPos = (this.nextActPos + 1) % ACTHISTLEN;
+        return true;
+    }
+
+
+//region Getters and Setters
+
+    public int getId() { return this.ruleId; }
+    public char getAction() { return this.action; }
+
+    /** convert this.lhsInternal back to to a HashMap */
+    public HashMap<Integer, Boolean> getLHSInternal() {
+        HashMap<Integer, Boolean> result = new HashMap<>();
+        for(IntCond iCond : this.lhsInternal) {
+            result.put(iCond.sId, true);
+        }
+        return result;
+    }
+
+    /** convert this.lhsExternal back to to a SensorData */
+    public SensorData getLHSExternal() {
+        SensorData result = SensorData.createEmpty();
+        for(ExtCond eCond : this.lhsExternal) {
+            result.setSensor(eCond.sName, eCond.val);
+        }
+        return result;
+    }
+
+    /** convert this.rhsExternal back to to a SensorData */
+    public SensorData getRHSExternal() {
+        SensorData result = SensorData.createEmpty();
+        for(ExtCond eCond : this.rhsExternal) {
+            result.setSensor(eCond.sName, eCond.val);
+        }
+        return result;
+    }
+
+    public void incrMatches() {
+        numMatches++;
+    }
+
+    public void incrPredicts() {
+        numPredicts++;
+    }
+
+    public double getAccuracy() {
+        return numPredicts / numMatches;
+    }//getAccuracy
+
+    public boolean testsIntSensor(int sId) {
+        for(IntCond iCond : this.lhsInternal) {
+            if (iCond.sId == sId) return true;
+        }
+        return false;
+    }
+
+    /** called when the associated rule is deleted */
+    public void removeIntSensor(int sId) {
+        this.lhsInternal.remove(sId);
+    }
+
+
+
+//endregion
 
 }//class EpRule

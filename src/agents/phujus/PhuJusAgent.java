@@ -38,20 +38,19 @@ import java.util.Random;
  */
 public class PhuJusAgent implements IAgent {
     public static final int MAXNUMRULES = 50;
-    public static final int NUMINTERNAL = MAXNUMRULES/2;
     public static final int INITIAL_ACTIVATION = 15;  //initial activation for first set of rules
     public static final int RULEMATCHHISTORYLEN = MAXNUMRULES * 5;
-    public static final int FIRINGS_TIL_REPLACE = MAXNUMRULES * 6;
     public static final int MAXDEPTH = 100;
 
-    // Arrays that track internal sensors' longevity and trues and falses
-    private final int[] internalLongevity = new int[NUMINTERNAL];
-    private final int[] internalTrues = new int[NUMINTERNAL];
-    private final int[] internalFalses = new int[NUMINTERNAL];
-
-    // Arrays that track external sensors' trues and falses
-    private HashMap<String, Integer> externalTrues = new HashMap<>();
-    private HashMap<String, Integer> externalFalses = new HashMap<>();
+    // These variables are used to track sensor longevity and rarity of sensor values
+    //TODO: implement this
+//    private final int[] internalLongevity = new int[MAXNUMRULES];
+//    private final int[] internalTrues = new int[MAXNUMRULES];
+//    private final int[] internalFalses = new int[MAXNUMRULES];
+//
+//    // Arrays that track external sensors' trues and falses
+//    private HashMap<String, Integer> externalTrues = new HashMap<>();
+//    private HashMap<String, Integer> externalFalses = new HashMap<>();
 
     // DEBUG variable to toggle println statements (on/off = true/false)
     public static final boolean DEBUGPRINTSWITCH = true;
@@ -60,37 +59,32 @@ public class PhuJusAgent implements IAgent {
     // the array is reached, the data rolls over to zero again.  Use
     // nextMatchIdx() and prevMatchIndex() on the matchIdx variable rather
     // than the '++' and '--' operators
-    private final Rule[] matchArray = new Rule[RULEMATCHHISTORYLEN]; //stores last N rules that fired and were correct
+    private final EpRule[] matchArray = new EpRule[RULEMATCHHISTORYLEN]; //stores last N rules that fired TODO: and were correct?
     private final int[] matchTimes = new int[RULEMATCHHISTORYLEN]; //mirrors matchArray, but tracks each rule's timestep when fired
     private int matchIdx = 0;
 
     //a list of all the rules in the system (can't exceed some maximum)
-    private Vector<Rule> rules = new Vector<>(); // convert to arraylist
+    private Vector<EpRule> rules = new Vector<>();
 
     private int now = 0; //current timestep 't'
 
     private Action[] actionList;  //list of available actions in current FSM
 
-    //current sensor values
+    //current sensor values (TODO: change to HashSet of trues only)
     private HashMap<Integer, Boolean> currInternal = new HashMap<>();
     private SensorData currExternal;
 
     //sensor values from the previous timestep
+    private HashMap<Integer, Boolean> prevInternal = new HashMap<>();  //TODO: also change to HashSet
     private SensorData prevExternal = null;
-    private HashMap<Integer, Boolean> prevInternal = new HashMap<>();
     private char prevAction = '\0';
 
-    //The agent's current selected path to goal (a sequence of actions)
-    private String path = "";
+    //The agent's current selected path to goal (a sequence of nodes in the search tree)
+    private Vector<TreeNode> pathToDo;
+    private Vector<TreeNode> pathTraversedSoFar = new Vector<>();
 
-    //to track which rules have a given internal sensor on their RHS
-    private final Rule[] intSensorInUse = new Rule[PhuJusAgent.NUMINTERNAL];
-
-    //Track how many rule firings have occurred since a rule was removed
-    private int ruleFirings = 0;
-
-    //random numbers are useful sometimes (hardcoded seed for debugging)
-    public static Random rand = new Random();
+    //random numbers are useful sometimes (use a hardcoded seed for debugging)
+    public static Random rand = new Random(2);
 
     /**
      * This method is called each time a new FSM is created and a new agent is
@@ -105,29 +99,7 @@ public class PhuJusAgent implements IAgent {
     public void initialize(Action[] actions, IIntrospector introspector) {
         this.rules = new Vector<>();
         this.actionList = actions;
-        initInternalSensors();
     }
-
-    /**
-     * Resets the internal sensor-related variables.
-     */
-    private void initInternalSensors() {
-        for (int i = 0; i < NUMINTERNAL; i++) {
-            this.currInternal.put(i, false);
-            this.prevInternal.put(i, false);
-            this.intSensorInUse[i] = null;
-        }
-    }
-
-    /**
-     * randomActionPath
-     * <p>
-     * generates a path string with a single valid action letter in it
-     */
-    private String randomActionPath() {
-        return actionList[rand.nextInt(actionList.length)].getName();
-    }
-
 
     /**
      * Gets a subsequent move based on the provided sensorData.
@@ -145,33 +117,38 @@ public class PhuJusAgent implements IAgent {
 
         //reward rules that correctly predicted the present
         this.currExternal = sensorData;
-        ruleAccounting();
 
-        //Reset path on goal
+        //Reset path when goal is reached
         if (sensorData.isGoal()) {
             System.out.println("Found GOAL");
             rewardRulesForGoal();
-            this.path = "";
+            buildNewPath();
+
+        //reset path once expended with no goal
+        } else if (this.pathToDo.size() == 0) {
+            buildNewPath();
         }
 
-        // Sanity check the path each time to make sure it's valid
-        TreeNode root = buildTree();
-        if(this.path.equals("") || !root.isValidPath(this.path)) {
-            buildPathFromEmpty(root);
-        }
+        //TODO: reset path if it's no longer valid
+
         updateRules();
 
-        //select next action
-        char action = this.path.charAt(0);
-        this.path = this.path.substring(1);
+        //extract next action
+        char action;
+        if (pathToDo != null) {
+            action = this.pathToDo.get(0).getAction();
+            this.pathTraversedSoFar.add(this.pathToDo.remove(0));
+        } else {
+            //random action
+            action = actionList[rand.nextInt(actionList.length)].getName().charAt(0);
+            debugPrintln("random action: " + action);
+        }
 
         //DEBUG:
         if (PhuJusAgent.DEBUGPRINTSWITCH) {
             printExternalSensors(this.currExternal);
-            trackExternals(this.currExternal);
             printInternalSensors(this.currInternal);
-            trackInternals(this.currInternal);
-            debugPrintln("Selected action: " + action + " from path: " + action + "" + this.path);
+            debugPrintln("Selected action: " + action + " from path: " + action + "" + this.pathToString(this.pathToDo));
             printRules(action);
         }
 
@@ -186,38 +163,19 @@ public class PhuJusAgent implements IAgent {
         return new Action(action + "");
     }//getNextAction
 
-    /**
-     * keeps up accounting information about rules that is used by the algorithm
-     */
-    public void ruleAccounting() {
-        //don't do this on the first timestep as there is no "previous" step
-        if (this.now == 1) return;
-
-        for (Rule r : rules) {
-            //record rules that fired in the prev timestep
-            if(! r.matches(this.prevAction, this.prevExternal, this.prevInternal)) {
-                continue;
-            }
-            ruleFirings++;
-            r.incrMatches();
-
-            //record rules that correctly predicted the current external sensors
-            if (!r.predicts(prevAction, this.prevExternal, this.prevInternal, this.currExternal)) {
-                continue;
-            }
-            r.incrPredicts();
-            this.matchArray[this.matchIdx] = r;
-            this.matchTimes[this.matchIdx] = now-1;
-            this.matchIdx = nextMatchIdx();
-        }//for
-
-    }//ruleAccounting
-
+    private void resetPath() {
+        this.pathToDo = null;
+        this.pathTraversedSoFar.clear();
+    }
 
     /**
      * genNextInternal
      * <p>
      * calculates what the internal sensors will be for the next timestep
+     * by seeing which rules have a sufficient match score.
+     *
+     * At the moment, "sufficient" is more than halfway between the average and
+     * best score.  TODO:  something more statistically sound?
      * <p>
      * @param action  selected action to generate from
      * @param currInt internal sensors to generate from
@@ -227,12 +185,33 @@ public class PhuJusAgent implements IAgent {
                                                      HashMap<Integer, Boolean> currInt,
                                                      SensorData currExt) {
         HashMap<Integer, Boolean> result = new HashMap<>();
+        double bestScore = 0.0;
+        double scoreSum = 0.0;
+        double matchCount = 0.0;
+        int index = 0;
+        double[] scores = new double[this.rules.size()];
 
-        for (Rule r : rules) {
-            int sIndex = r.getAssocSensor();
-            if (sIndex == -1) continue; //this rule doesn't set an internal sensor
-            boolean match = r.matches(action, currExt, currInt);
-            result.put(sIndex, match);
+        //Get a match score for every rule
+        //  also calc the average and best
+        for (EpRule r : this.rules) {
+            scores[index] = r.matchScore(action, currInt, currExt);
+            if (scores[index] > 0.0) {
+                scoreSum += scores[index];
+                matchCount++;
+            }
+            if (scores[index] > bestScore) {
+                bestScore = scores[index];
+            }
+            index++;
+        }
+        double avgScore = scoreSum / matchCount;
+
+        //set the sensor values for matching rules
+        double threshold = avgScore + ((bestScore - avgScore) / 2);
+        index = 0;
+        for(EpRule r : this.rules) {
+            boolean val = scores[index] > threshold;
+            result.put(r.getId(), val);
         }//for
 
         return result;
@@ -261,30 +240,6 @@ public class PhuJusAgent implements IAgent {
     }
 
     /**
-     * DEBUG
-     * prints the tracker data of the internal sensors. Used for debugging.
-     */
-    private void printInternalData() {
-        System.out.println("Internal Sensor Data: ");
-        for(int i = 0; i < NUMINTERNAL; i++) {
-            System.out.println("\t" + i + ": age-" + internalLongevity[i] +
-                                        "  trues-" + internalTrues[i] +
-                                        "   falses-" + internalFalses[i]);
-        }
-    }
-
-    /**
-     * DEBUG
-     * prints the tracker data of the external sensors. Used for debugging.
-     */
-    private void printExternalData() {
-        System.out.println("External Sensor Data: ");
-        for(String sname : this.externalTrues.keySet()) {
-            System.out.println("\t" + sname + ":   trues-" + externalTrues.get(sname) + "   falses-" + externalFalses.get(sname));
-        }
-    }
-
-    /**
      * printExternalSensors
      * <p>
      * verbose debugging println
@@ -308,54 +263,55 @@ public class PhuJusAgent implements IAgent {
     public void printRules(char action) {
         if (this.rules.size() == 0) System.out.println("(There are no rules yet.)");
 
-        for (Rule r : this.rules) {
-            if ((action != '\0') && (r.matches(action, this.currExternal, this.currInternal))) {
-                System.out.print("@");
+        for (EpRule r : this.rules) {
+            //Print a match score first
+            if (action != '\0') {
+                double score = r.matchScore(action);
+                System.out.print(String.format("0.3f", score));
             } else {
-                System.out.print(" ");
+                System.out.print("     ");
             }
-            r.calculateActivation(now);
+
+            //TODO: update activation here?: r.calculateActivation(now);
+
             debugPrintln(r.toString());
         }
-    }
+    }//printRules
 
-    /**
-     * convenience version of printRules with no selected action
-     */
-    public void printRules() {
-        printRules('\0');
-    }
+    /** convenience version of printRules with no selected action */
+    public void printRules() { printRules('\0'); }
 
-    /**
-     * buildPathFromEmpty
-     *
-     * builds a tree of predicted outcomes to calculate a path to goal.
-     * The resulting path is placed in this.path.
-     */
-    private void buildPathFromEmpty(TreeNode root) {
-        //Find an entire sequence of characters that can reach the goal and get the current action to take
-        this.path = root.findBestGoalPath();
-        //if unable to find path, produce random path for it to take
-        if (PhuJusAgent.DEBUGPRINTSWITCH) root.printTree();
-        if (this.path.equals("")) {
-            this.path = randomActionPath();
-            debugPrintln("random path: " + this.path);
-        } else {
-            debugPrintln("path: " + this.path);
+    /** prints the sequence of actions discovered by a path */
+    public String pathToString(Vector<TreeNode> path) {
+        StringBuilder sbResult = new StringBuilder();
+        for(TreeNode node : path) {
+            sbResult.append(node.getAction());
         }
-    }//buildPathFromEmpty
+        return sbResult.toString();
+    }//pathToString
 
     /**
-     * buildTree
+     * buildNewPath
      *
-     * @return a prediction tree based on the current rules and sensing
+     * uses a search tree to find a path to goal.  The resulting path is
+     * placed in this.pathToDo if found.  Otherwise, this.pathToDO is
+     * set to null.
+     *
      */
-    private TreeNode buildTree() {
-        TreeNode root = new TreeNode(this, this.rules, this.now, this.currInternal,
-                this.currExternal, "");
-        root.genSuccessors();
-        return root;
-    }
+    private void buildNewPath() {
+        this.pathTraversedSoFar.clear();
+
+        //Find a new path to the goal
+        TreeNode root = new TreeNode(this);
+        this.pathToDo = root.findBestGoalPath();
+
+        //DEBUG
+        if ( (PhuJusAgent.DEBUGPRINTSWITCH) && (this.pathToDo != null) ) {
+            root.printTree();
+            debugPrintln("found path: " + pathToString(this.pathToDo));
+        }
+
+    }//buildNewPath
 
     /**
      * updateRules
@@ -365,20 +321,41 @@ public class PhuJusAgent implements IAgent {
      *
      */
     public void updateRules() {
-        //If we haven't reached max just add a rule
-        if (this.rules.size() < MAXNUMRULES) {
-            Rule candidate = generateRule(INITIAL_ACTIVATION);
-            if(candidate != null) {
-                addRule(candidate);
+        //Create a candidate new rule based on agent's current state
+        EpRule cand = new EpRule(this);
+
+        //Find the existing rule that is most similar
+        EpRule bestMatch = this.rules.get(0);
+        double bestScore = 0.0;
+        for(EpRule r : this.rules) {
+            double score = r.compareTo(cand);
+            if (score > bestScore) {
+                bestMatch = r;
+                bestScore = score;
             }
+        }
+
+        //If the two rules are equal there is nothing to gain by adding this
+        if (bestScore == 1.0) return;
+
+        //If we haven't reached max just add it
+        if (this.rules.size() < MAXNUMRULES) {
+            addRule(cand);
             return;
+        }
+
+        //TODO:  consider merging cand with the bestRule?
+        double revScore = cand.compareTo(bestMatch);
+        if (revScore == 1.0) {
+            //DEBUG
+            debugPrintln("Note:  revScore is 1.0");
         }
 
         //Find the rule with lowest activation & accuracy
         double activationSum = 0.0;
-        Rule worstRule = this.rules.get(0);
+        EpRule worstRule = this.rules.get(0);
         double worstScore = worstRule.calculateActivation(this.now) * worstRule.getAccuracy();
-        for (Rule r : this.rules) {
+        for (EpRule r : this.rules) {
             double activation = r.calculateActivation(this.now);
             double score = activation * r.getAccuracy();
             if (score < worstScore) {
@@ -390,39 +367,12 @@ public class PhuJusAgent implements IAgent {
             activationSum += activation;
         }
 
-        Rule candidate = generateRule(activationSum / this.rules.size());
-
-        if(betterPotentialRuleActivation(candidate, worstRule)
-                && betterPotentialRuleAccuracy(candidate, worstRule)) {
-            //remove and replace
-            removeRule(worstRule);
-            addRule(candidate);
-            this.ruleFirings = 0;
-        }
+        //remove and replace
+        removeRule(worstRule);
+        addRule(cand);
 
     }//updateRules
 
-    /**
-     * Creates a new candidate rule to the agent's inventory
-     *
-     * @param initAct initial activation level for this rule
-     * @return a candidate Rule to add
-     */
-    public Rule generateRule(double initAct) {
-        //At timestep 0 there is no previous so this method can't generate rules
-        if (this.prevExternal == null) return null;
-
-        Rule newRule = new Rule(this);
-
-        // Make sure there are no duplicate rules
-        while (this.rules.contains(newRule)) {
-            newRule = new Rule(this);
-        }
-
-        newRule.addActivation(now, initAct);
-        return newRule;
-
-    }//generateRule
 
     /**
      * addRule
@@ -432,22 +382,11 @@ public class PhuJusAgent implements IAgent {
      * will also assign an internal sensor to the new rule if one is
      * available.
      */
-    public void addRule(Rule newRule) {
+    public void addRule(EpRule newRule) {
         if (rules.size() >= MAXNUMRULES) {
             return;
         }
         rules.add(newRule);
-
-        //assign an internal sensor
-        int isBase = rand.nextInt(PhuJusAgent.NUMINTERNAL);
-        for (int i = 0; i < PhuJusAgent.NUMINTERNAL; ++i) {
-            int isIndex = (isBase + i) % PhuJusAgent.NUMINTERNAL;
-            if (this.intSensorInUse[isIndex] == null) {
-                newRule.setRHSInternal(isIndex);
-                this.intSensorInUse[isIndex] = newRule;
-                break;
-            }
-        }
     }
 
     /**
@@ -458,114 +397,42 @@ public class PhuJusAgent implements IAgent {
      *
      * CAVEAT: recursive
      */
-    public void removeRule(Rule removeMe) {
+    public void removeRule(EpRule removeMe) {
         rules.remove(removeMe);
 
         //DEBUGGING
         debugPrint("Removed rule: ");
         debugPrintln(removeMe.toString());
 
-        //if the removed rule had an internal sensor on its RHS, then all rules test
-        // that sensor must also be removed
-        int rhsInternal = removeMe.getRHSInternal();
-        if (rhsInternal != -1) {
-            resetInternalTrackers(rhsInternal); // reset the data tracker for that sensor
-            this.intSensorInUse[rhsInternal] = null;
-
-            //have to gather all "to remove" vectors first to avoid ConcurrentModification
-            Vector<Rule> toRemove = new Vector<>();
-            for (Rule r : this.rules) {
-                if (r.getLHSInternal().containsKey(rhsInternal)) {
-                    toRemove.add(r);
-                }
-            }
-
-            for (Rule r : toRemove) {
-                removeRule(r);  //recursive call
+        // If any rule has a condition that test for 'removeMe' then that
+        // condition must be removed
+        for (EpRule r : this.rules) {
+            if (r.testsIntSensor(removeMe.getId())) {
+                r.removeIntSensor(removeMe.getId());
+                //TODO: reset rule activation, matches and predicts?
+                //TODO: reset internal trackers?  I don't think we need this anymore
+                break;
             }
         }
     }//removeRule
 
     /**
-     * findRules
-     *
-     * finds all the rules that had matched at a given timestamp and predicted a given sensor value
-     * @return the matching rules
-     */
-    public Vector<Rule> findRules(int timestamp, String sName, boolean value) {
-        Vector<Rule> foundRules = new Vector<>();
-
-        //special case:  timestamp too far in the past
-        if (timestamp == 0) return foundRules;
-
-        for(int i = 0; i < matchTimes.length; i++) {
-            if(timestamp == matchTimes[i]) {
-                if((matchArray[i].getRHSSensorName().equals(sName) && (matchArray[i].getRHSSensorValue() == value))) {
-                    // Make sure this rule has not been removed
-                    if(this.rules.contains(matchArray[i])) {
-                        foundRules.add(matchArray[i]);
-                    }
-                }
-            }
-        }
-
-        return foundRules;
-    }//findRules
-
-    /**
-     * rewardRule
-     *
-     * gives a reward to a given rule and a discounted reward to any rules
-     * that, in a given timestep, predicted the values that let this
-     * reward match.
-     *
-     * CAVEAT:  This method is recursive
-     */
-    public void rewardRule(Rule rule, int timestamp, double reward) {
-        //base case #1:  reward too small to matter
-        if (reward < 0.01) return;  //TODO: use a constant
-
-        //Issue the reward
-        boolean success = rule.addActivation(this.now, reward);
-        if (!success) return; //if this rule has already been rewarded don't recurse
-
-        //Also reward rules that predicted the external LHS conditions int the prev timestep
-        SensorData lhsExternal = rule.getLHSExternal();
-        for(String sName : lhsExternal.getSensorNames()) {
-            Boolean val = (Boolean)lhsExternal.getSensor(sName);
-
-            //Note: another implicit base case comes from the finitely-sized matchArray
-            //which findRules uses to search
-            Vector<Rule> foundRules = findRules(timestamp-1, sName, val);
-            for(Rule r : foundRules) {
-                rewardRule(r, timestamp-1, reward * Rule.DECAY_RATE);
-            }
-        }
-
-        //reward rules that fired to activate the internal LHS conditions
-        HashMap<Integer, Boolean> lhsInternal = rule.getLHSInternal();
-        for(int key : lhsInternal.keySet()) {
-            if (lhsInternal.get(key)) {
-                Rule rewardMe = this.intSensorInUse[key];
-                rewardRule(rewardMe, timestamp-1, reward * Rule.DECAY_RATE);
-            }
-        }
-
-        //Note: Should we also reward rules that correctly did NOT fire so that their associated internal sensor was false?
-        //THis doesn't seem to make sense since a rule that never matches can get rewarded.
-
-    }//rewardRule
-
-    /**
      * rewardRulesForGoal
      *
      * is called when the agent reaches a goal to reward all the rules
-     * that predicted that would happen
+     * that predicted that would happen.  Rewards passed back decay
+     * ala reinforcement learning.
      */
     private void rewardRulesForGoal() {
-        Vector<Rule> goalRules = findRules(this.now - 1, SensorData.goalSensor, true);
-        for(Rule r : goalRules) {
-            rewardRule(r, this.now - 1, Rule.FOUND_GOAL_REWARD);
+        //reward the rules in reverse order
+        double reward = EpRule.FOUND_GOAL_REWARD;
+        int time = this.now;
+        for(int i = this.pathTraversedSoFar.size() - 1; i >= 0; --i) {
+            TreeNode node = this.pathTraversedSoFar.get(i);
+            EpRule rule = node.getRule();
+            if (rule != null) rule.addActivation(time, reward);
+            time--;
+            reward *= EpRule.DECAY_RATE;
         }
     }//rewardRulesForGoal
 
@@ -593,253 +460,10 @@ public class PhuJusAgent implements IAgent {
         }
     }//debugPrint
 
-    /**
-     * trackExternals
-     *
-     * updates the values of the arrays tracking external sensor data including true occurrences
-     * and false occurrences
-     *
-     */
-    public void trackExternals(SensorData sensorData) {
-        for(String sname : sensorData.getSensorNames()) {
-            boolean val = (Boolean)sensorData.getSensor(sname);
-            HashMap<String, Integer> toUpdate = this.externalTrues;
-            if (!val) toUpdate = this.externalFalses;
-            if (toUpdate.containsKey(sname)) {
-                toUpdate.put(sname, toUpdate.get(sname) + 1);
-            } else {
-                toUpdate.put(sname, 1);
-            }
-        }
-    }//trackExternals
-
-    /**
-     * trackInternals
-     *
-     * updates the values of the arrays tracking internal sensor data including
-     * longevity, true occurrences, and false occurrences
-     *
-     * @param internals the Hashmap including all internal sensors
-     */
-    public void trackInternals(HashMap<Integer, Boolean> internals) {
-        for(Integer i : internals.keySet()) {
-            internalLongevity[i]++;
-            if(internals.get(i)) {
-                internalTrues[i]++;
-            } else if(!(internals.get(i))) {
-                internalFalses[i]++;
-            }
-        }
-    }//trackInternals
-
-    /**
-     * resetInternalTracker
-     *
-     * resets the counts of the internalLongevity, internalTrues, and internalFalses trackers
-     * for a specific internal sensor number
-     *
-     * @param i the index of the internal sensor to reset the values of
-     */
-    public void resetInternalTrackers(int i) {
-        internalLongevity[i] = 0;
-        internalTrues[i] = 0;
-        internalFalses[i] = 0;
-    }//resetInternalTrackers
-
-    /**
-     * getExternalRarity
-     *
-     * @param sName the sensor we are checking
-     * @param value the value that we are checking
-     * @return the likelihood that a particular external sensor has a particular value
-     */
-    public double getExternalRarity(String sName, boolean value) {
-        int numTrues = 0;
-        int numFalses = 0;
-        if(this.externalTrues.containsKey(sName)) {
-            numTrues = this.externalTrues.get(sName);
-        }
-        if(this.externalFalses.containsKey(sName)) {
-            numFalses = this.externalFalses.get(sName);
-        }
-        int sum = numTrues + numFalses;
-        if(sum == 0) {
-            return -1.0; // Passing the buck! Divide by zero should be handled where getExternalRarity is called
-        }
-        if(value) {
-            return ((double) numTrues) / ((double) sum);
-        } else {
-            return ((double) numFalses) / ((double) sum);
-        }
-    }//getExternalRarity
-
-    /**
-     * getInternalRarity
-     *
-     * @param sNum the integer the internal sensor is associated with that we are checking
-     * @param value the value that we are checking
-     * @return the likelihood that a particular external sensor has a particular value
-     */
-    public double getInternalRarity(int sNum, boolean value) {
-        int numTrues = this.internalTrues[sNum];
-        int numFalses = this.internalFalses[sNum];
-        int sum = numTrues + numFalses;
-        if(sum == 0) {
-            return -1.0; // Passing the buck! Divide by zero should be handled where getInternalRarity is called
-        }
-        if(value) {
-            return ((double) numTrues) / ((double) sum);
-        } else {
-            return ((double) numFalses) / ((double) sum);
-        }
-    }//getInternalRarity
-
-    /**
-     * estimateDistToGoal
-     *
-     * estimates how many steps between a given candidate rule and the goal.
-     * This is used as a means of estimating how much activation a candidate
-     * rule will have.
-     *
-     * CAVEAT:  recursive
-     *
-     * @param cand rule to measure
-     * @param alreadyUsed list of rules already used in the search (pass in an empty vector to start)
-     * @return  number of steps from a rule that finds the GOAL (or -1 if none found)
-     */
-    private int estimateDistToGoal(Rule cand, Vector<Rule> alreadyUsed) {
-
-        //Base Case:  this rule predicts a goal
-        String candRHS = cand.getRHSSensorName();
-        boolean candVal = cand.getRHSSensorValue();
-        if (candRHS.equals(SensorData.goalSensor) && (candVal)) {
-            return 0;
-        }
-
-        //Find all the rules that can use the cand's RHS and haven't been used yet
-        Vector<Rule> matches = new Vector<>();
-        for(Rule r : this.rules) {
-            if (r.getLHSExternal().hasSensor(candRHS)
-                    && ((Boolean)r.getLHSExternal().getSensor(candRHS)) == candVal
-                    && ! alreadyUsed.contains(r))
-            {
-                matches.add(r);
-            }
-        }
-
-        //Mark all matches as used
-        for(Rule m : matches) {
-            alreadyUsed.add(m);
-        }
-
-        //Hidden Base Case:  matches will eventually be an empty vector
-
-        //Recursive Case: see which of the matches is closest to goal
-        int bestSteps = this.rules.size() + 1;  //guaranteed to be too big
-        for(Rule m : matches) {
-            int steps = 1 + estimateDistToGoal(m, alreadyUsed);
-            if (bestSteps > steps) {
-                bestSteps = steps;
-            }
-        }
-
-        return bestSteps;
-
-    }//estimateDistToGoal
-
-    /**
-     * betterPotentialRuleActivation
-     *
-     * Attempts to estimate the relative, expected, future activation of a new
-     * candidate rule vs the current worst rule by estimating how many
-     * timesteps would occur starting when this rule fires until a goal
-     * is reached.
-     *
-     * @param cand the candidate Rule to compare
-     * @param worst the current worst Rule
-     * @return whether the candidate Rule has more potential activation than the current worst Rule
-     */
-    private boolean betterPotentialRuleActivation(Rule cand, Rule worst) {
-        int candScore = estimateDistToGoal(cand, new Vector<Rule>());
-        int worstScore = estimateDistToGoal(worst, new Vector<Rule>());
-
-        return (candScore < worstScore);
-    }//betterPotentialRuleActivation
-
-    /**
-     * betterPotentialRuleAccuracy
-     *
-     * @param cand the candidate Rule
-     * @param worst the current worst Rule
-     * @return whether the candidate Rule has more potential accuracy than the current worst Rule
-     */
-    private boolean betterPotentialRuleAccuracy(Rule cand, Rule worst) {
-        HashMap<Integer, Boolean> rootInternal = new HashMap<>();
-        SensorData rootExternal = SensorData.createEmpty();
-        for(String sName : currExternal.getSensorNames()) {
-            Integer temp = this.externalTrues.get(sName);
-            int numTrues = (temp == null) ? 0 : temp;
-            temp = this.externalFalses.get(sName);
-            int numFalses = (temp == null) ? 0 : temp;
-            rootExternal.setSensor(sName, (numTrues > numFalses)); // if equal, we like the default to false
-        }
-        TreeNode root = new TreeNode(this, this.rules, this.now,
-                                        rootInternal, rootExternal, "");
-        root.genSuccessors();
-        return (bprAccHelper(root, cand, worst) > 0);
-    }//betterPotentialRuleAccuracy
-
-    /**
-     * bprAccHelper
-     *
-     * traverses a given tree to help predict the accuracy of
-     * a potential rule to add. Compares candidate Rule to the
-     * current worst Rule
-     *
-     * @param current the current node we are on
-     * @param cand the candidate rule
-     * @param worst the current worst rule
-     * @return sum of their performance (positive = cand Rule did better)
-     */
-    private int bprAccHelper(TreeNode current, Rule cand, Rule worst) {
-        int candScore = 0;
-        int worstScore = 0;
-        int sum = 0; // sum of candScore - worstScore for all children
-        // Iterate through each child in the tree
-        for(TreeNode child : current.getChildren()) {
-            if(child.isLeaf()) {
-                // Base Case: When leaf node child, compare the LHS of each rule with the current,
-                //            and the RHS with the child
-                if(current.matches(cand)) {
-                    String candSName = cand.getRHSSensorName();
-                    boolean candVal = cand.getRHSSensorValue();
-                    if(child.hasRHS(candSName, candVal)) {
-                        candScore++;
-                    } else {
-                        candScore--;
-                    }
-                }
-                if(current.matches(worst)) {
-                    String worstSName = worst.getRHSSensorName();
-                    boolean worstVal = worst.getRHSSensorValue();
-                    if(child.hasRHS(worstSName, worstVal)) {
-                        worstScore++;
-                    } else {
-                        worstScore--;
-                    }
-                }
-            } else {
-                // Recursive Case: repeat on each non-leaf child
-                sum += bprAccHelper(child, cand, worst);
-            }
-        }
-        sum += (candScore - worstScore);
-        return sum; // Positive sum means candScore had better accuracy, negative = worstScore is better
-    }//bprAccHelper
 
     //region Getters and Setters
 
-    public Rule[] getMatchArray() {
+    public EpRule[] getMatchArray() {
         return this.matchArray;
     }
 
@@ -855,7 +479,7 @@ public class PhuJusAgent implements IAgent {
         return result;
     }
 
-    public Vector<Rule> getRules() {
+    public Vector<EpRule> getRules() {
         return this.rules;
     }
 

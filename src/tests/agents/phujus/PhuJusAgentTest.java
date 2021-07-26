@@ -107,28 +107,13 @@ public class PhuJusAgentTest {
      *
      * @return  a Rule object matching the specification or null on failure
      */
-    public Rule quickRuleGen(PhuJusAgent agent, String lhsIntStr, String lhsExtStr, char action, String rhsExtStr) {
-        //init internal sensors
+    public EpRule quickRuleGen(PhuJusAgent agent, String lhsIntStr, String lhsExtStr, char action, String rhsExtStr) {
+        //init sensors
         HashMap<Integer, Boolean> lhsInt = quickIntGen(lhsIntStr);
-
-        //init external sensors
         SensorData lhsExt = quickExtGen(lhsExtStr);
+        SensorData rhsExt = quickExtGen(rhsExtStr);
 
-        //calculate the correct sensor name for the RHS.
-        String rhsSensorName = SensorData.goalSensor;
-        boolean rhsSensorValue = true;
-        if (rhsExtStr.endsWith(".")) {  //indifferent about goal sensor
-            if (rhsExtStr.contains("0")) {
-                rhsSensorName = "sen" + rhsExtStr.indexOf("0");
-                rhsSensorValue = false;
-            } else {
-                rhsSensorName = "sen" + rhsExtStr.indexOf("1");
-            }
-        } else if (rhsExtStr.endsWith("0")) {
-            rhsSensorValue = false;
-        }
-
-        Rule rule =  new Rule(agent, action, lhsExt, lhsInt, rhsSensorName, rhsSensorValue);
+        EpRule rule =  new Rule(agent);
         rule.addActivation(-1, PhuJusAgent.INITIAL_ACTIVATION);  //kludge: using timestamp -1 to guarantee it's in the past
         return rule;
     }//quickRuleGen
