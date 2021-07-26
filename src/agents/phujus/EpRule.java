@@ -102,7 +102,7 @@ public class EpRule {
     private final int ruleId;
 
     //define the LHS of the rule.  This consists of:
-    // - a set of internal sensor values indicating what other rules fired in the previous timestep
+    // - a set of internal sensor values indicating what other rules fired two timesteps ago
     // - a set of external sensor values that were present in the previous timestep
     // - the action that the agent took just before this rule was created
     //Initially, all sensor values are present but, over time, they may get culled if they
@@ -255,7 +255,7 @@ public class EpRule {
         }
 
         //Note:  A special case here might be if sum == 0.0.  That can only
-        //happen if the rule has no conditions.  I don't think that's worth
+        //happen if the rule has no mathcing conditions.  I don't think that's worth
         //checking for.
 
         double count = this.lhsInternal.size() + this.lhsExternal.size();
@@ -308,7 +308,7 @@ public class EpRule {
 
         double count = this.lhsInternal.size() + this.lhsExternal.size() + this.rhsExternal.size();
         return sum / count;
-    }//matchScore
+    }//compareTo
 
     /**
      * calculateActivation

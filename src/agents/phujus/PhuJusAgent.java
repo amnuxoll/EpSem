@@ -34,7 +34,7 @@ import java.util.Random;
  *    - merge when they become very similar
  *    - split when it will improve the activation of both progeny
  * > Change currInternal to be a HashSet of rules that fired?  I'm not sure if
- *   logging that a rule didn't fire is useful?
+ *    logging that a rule didn't fire is useful?
  */
 public class PhuJusAgent implements IAgent {
     public static final int MAXNUMRULES = 50;
@@ -410,7 +410,7 @@ public class PhuJusAgent implements IAgent {
             if (r.testsIntSensor(removeMe.getId())) {
                 r.removeIntSensor(removeMe.getId());
                 //TODO: reset rule activation, matches and predicts?
-                //TODO: reset internal trackers?  I don't think we need this anymore
+                //TODO: reset internal trackers?
                 break;
             }
         }

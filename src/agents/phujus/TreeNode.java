@@ -67,7 +67,7 @@ public class TreeNode {
         this.children = new TreeNode[agent.getNumActions()]; // actionSize
         this.episodeIndex = parent.episodeIndex + 1;
         this.rule = rule;
-        this.currInternal = rule.getLHSInternal();
+        this.currInternal = rule.getLHSInternal();  //TODO:  shouldn't this be RHS?
         this.currExternal = rule.getLHSExternal();
         this.path = (Vector<TreeNode>)parent.path.clone();
         this.path.add(this);
@@ -257,7 +257,7 @@ public class TreeNode {
     public boolean isGoalNode() {
         return ( (this.currExternal.getSensor(SensorData.goalSensor) != null)  //goal sensor is present
                 && (this.currExternal.isGoal())  //goal sensor is true
-                && (! this.path.equals("")) );   //this isn't the root
+                && (this.rule != null) );   //this isn't the root
     }
 
     //TODO: get this working with EpRules.  Mothballed for now
