@@ -211,11 +211,11 @@ public class PhuJusAgentTest {
     }
 
     /**
-     * test that the agent can build a tree from a single rule
+     * test that the agent can build a tree from multiple rules
      */
     @EpSemTest
     public void testCreateTreeDepth2() throws Exception {
-        //Create an agent with a single rule that leads to goal
+        //Create an agent with multiple rules that leads to goal
         PhuJusAgent agent = quickAgentGen("ab");
         String[] extList = {"100", "011"};
         String actions = quickRuleGen(agent, extList);
@@ -223,7 +223,7 @@ public class PhuJusAgentTest {
         //Agent must have non-null external sensors to avoid disaster
         agent.setCurrExternal(quickExtGen("000"));
 
-        //Build a search tree that uses that rule to "find" the goal
+        //Build a search tree that uses those rules to "find" the goal
         TreeNode root = new TreeNode(agent);
         Vector<TreeNode> path = root.findBestGoalPath();
 
