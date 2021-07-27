@@ -137,6 +137,7 @@ public class PhuJusAgent implements IAgent {
         char action;
         if (pathToDo != null) {
             action = this.pathToDo.get(0).getAction();
+            debugPrintln("Selected action: " + action + " from path: " + pathToString(this.pathToDo));
             this.pathTraversedSoFar.add(this.pathToDo.remove(0));
         } else {
             //random action
@@ -148,7 +149,6 @@ public class PhuJusAgent implements IAgent {
         if (PhuJusAgent.DEBUGPRINTSWITCH) {
             printExternalSensors(this.currExternal);
             printInternalSensors(this.currInternal);
-            debugPrintln("Selected action: " + action + " from path: " + action + "" + this.pathToString(this.pathToDo));
             printRules(action);
         }
 

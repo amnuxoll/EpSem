@@ -135,6 +135,42 @@ public class PhuJusAgentTest {
         return actions.substring(0, actions.length() - 1);
     }//quickRuleGen
 
+     /** test the EpRule.compareTo() method */
+     @EpSemTest
+     public void testEpRuleCompare() {
+         //Setup an agent that has taken two steps
+         PhuJusAgent agent = quickAgentGen("ab");
+         SensorData sd1 = new SensorData(true);
+         sd1.setSensor("sen1", false);
+         SensorData sd2 = new SensorData(false);
+         sd2.setSensor("sen1", true);
+         try {
+             agent.getNextAction(sd1);
+         } catch(Exception e) {
+             //this should not happen
+             Assertions.assertTrue(false);
+         }
+
+         //Create two EpRules from the agent and they should match
+         EpRule er1 = new EpRule(agent);
+         EpRule er2 = new EpRule(agent);
+         Assertions.assertTrue(er1.compareTo(er2) == 1.0);
+
+         //Take another step
+         try {
+             agent.getNextAction(sd2);
+         } catch(Exception e) {
+             //this should not happen
+             Assertions.assertTrue(false);
+         }
+
+         //Create a new rule.  It should be different but first two should be unchanged
+         EpRule er3 = new EpRule(agent);
+         Assertions.assertTrue(er3.compareTo(er2) < 1.0);
+         Assertions.assertTrue(er3.compareTo(er2) >= 0.0);
+         Assertions.assertTrue(er1.compareTo(er2) == 1.0);
+
+     }//testEpRuleCompare
 
     /**
      * Test that a rule can match current sensors
@@ -150,64 +186,53 @@ public class PhuJusAgentTest {
 
     }
 
-//    /**
-//     * test that the agent can build a tree from a set of rules
-//     */
-//     @EpSemTest
-//     public void testGenSuccessors(){
-//         PhuJusAgent agent = quickAgentGen("ab");
-//
-//         //Add rule to the agent
-//         Rule rule = quickRuleGen(agent,"0", "1100", 'b', "1...");
-//         agent.addRule(rule);
-//         agent.setCurrExternal(rule.getLHSExternal());  //ensures an initial match
-//
-//         //Initialize tree and generate children
-//         TreeNode root = new TreeNode(agent, agent.getRules(), agent.getNow(),
-//                 agent.getCurrInternal(), agent.getCurrExternal(), "z");
-//         root.genSuccessors();
-//
-//         root.printTree();
-//         Assertions.assertTrue(root.toString().startsWith("z->0"));
-//         Assertions.assertTrue(root.toString().endsWith("0|1100"));
-//     }
-//
-//     /** test the EpRule.compareTo() method */
-//     @EpSemTest
-//     public void testEpRuleCompare() {
-//         //Setup an agent that has taken two steps
-//         PhuJusAgent agent = quickAgentGen("ab");
-//         SensorData sd1 = new SensorData(true);
-//         sd1.setSensor("sen1", false);
-//         SensorData sd2 = new SensorData(false);
-//         sd2.setSensor("sen1", true);
-//         try {
-//             agent.getNextAction(sd1);
-//         } catch(Exception e) {
-//             //this should not happen
-//             Assertions.assertTrue(false);
-//         }
-//
-//         //Create two EpRules from the agent and they should match
-//         EpRule er1 = new EpRule(agent);
-//         EpRule er2 = new EpRule(agent);
-//         Assertions.assertTrue(er1.compareTo(er2) == 1.0);
-//
-//         //Take another step
-//         try {
-//             agent.getNextAction(sd2);
-//         } catch(Exception e) {
-//             //this should not happen
-//             Assertions.assertTrue(false);
-//         }
-//
-//         //Create a new rule.  It should be different but first two should be unchanged
-//         EpRule er3 = new EpRule(agent);
-//         Assertions.assertTrue(er3.compareTo(er2) < 1.0);
-//         Assertions.assertTrue(er3.compareTo(er2) >= 0.0);
-//         Assertions.assertTrue(er1.compareTo(er2) == 1.0);
-//
-//     }//testEpRuleCompare
+
+    /**
+     * test that the agent can build a tree from a single rule
+     */
+    @EpSemTest
+    public void testCreateTree() throws Exception {
+        //Create an agent with a single rule that leads to goal
+        PhuJusAgent agent = quickAgentGen("ab");
+        String[] extList = {"101"};
+        String action = quickRuleGen(agent, extList);
+
+        //Agent must have non-null external sensors to avoid disaster
+        agent.setCurrExternal(quickExtGen("000"));
+
+        //Build a search tree that uses that rule to "find" the goal
+        TreeNode root = new TreeNode(agent);
+        Vector<TreeNode> path = root.findBestGoalPath();
+
+        //Verify the tree has the right path
+        Assertions.assertTrue(path.size() == 1);
+        Assertions.assertTrue(path.get(0).getAction() == action.charAt(0));
+
+    }
+
+    /**
+     * test that the agent can build a tree from a single rule
+     */
+    @EpSemTest
+    public void testCreateTreeDepth2() throws Exception {
+        //Create an agent with a single rule that leads to goal
+        PhuJusAgent agent = quickAgentGen("ab");
+        String[] extList = {"100", "011"};
+        String actions = quickRuleGen(agent, extList);
+
+        //Agent must have non-null external sensors to avoid disaster
+        agent.setCurrExternal(quickExtGen("000"));
+
+        //Build a search tree that uses that rule to "find" the goal
+        TreeNode root = new TreeNode(agent);
+        Vector<TreeNode> path = root.findBestGoalPath();
+
+        //Verify the tree has the right path
+        Assertions.assertTrue(path.size() == 2);
+        Assertions.assertTrue(path.get(0).getAction() == actions.charAt(0));
+        Assertions.assertTrue(path.get(1).getAction() == actions.charAt(1));
+
+    }
 //
 //    /** test the EpRule.matchScore() method */
 //    @EpSemTest
