@@ -20,14 +20,14 @@ public class PhuJusAgentTest {
 
     /**
      * quickAgentGen
-     *
+     * <p>
      * is a helper method that quickly creates an agent
      *
-     * @param actStr  A string containing the valid action chars for this agent
+     * @param actStr A string containing the valid action chars for this agent
      */
     public PhuJusAgent quickAgentGen(String actStr) {
         Action[] actions = new Action[actStr.length()];
-        for(int i = 0; i < actions.length; ++i) {
+        for (int i = 0; i < actions.length; ++i) {
             actions[i] = new Action("" + actStr.charAt(i));
         }
         PhuJusAgent agent = new PhuJusAgent();
@@ -38,7 +38,7 @@ public class PhuJusAgentTest {
 
     /**
      * quickIntGen
-     *
+     * <p>
      * is a helper method to quickly create a set of internal sensors given a signature
      *
      * @param lhsIntStr a string of binary digits representing sensor values.  A dot
@@ -46,7 +46,7 @@ public class PhuJusAgentTest {
      */
     public HashMap<Integer, Boolean> quickIntGen(String lhsIntStr) {
         HashMap<Integer, Boolean> lhsInt = new HashMap<>();
-        for(int i = 0; i < lhsIntStr.length(); ++i) {
+        for (int i = 0; i < lhsIntStr.length(); ++i) {
             if (lhsIntStr.charAt(i) != '.') {
                 lhsInt.put(i, lhsIntStr.charAt(i) == '1');
             }
@@ -56,8 +56,8 @@ public class PhuJusAgentTest {
 
     /**
      * quickIntGen
-     *
-     *  is a helper method to quickly create a set of external sensors given a signature
+     * <p>
+     * is a helper method to quickly create a set of external sensors given a signature
      *
      * @param lhsExtStr a sequence of binary digits indicating
      *                  the values of the external sensors.  Default sensor
@@ -76,7 +76,7 @@ public class PhuJusAgentTest {
         }
 
         //Create the other sensors as needed
-        for(int i = 0; i < lhsExtStr.length() - 1; ++i) {
+        for (int i = 0; i < lhsExtStr.length() - 1; ++i) {
             if (lhsExtStr.charAt(i) != '.') {
                 lhsExt.setSensor("sen" + i, lhsExtStr.charAt(i) == '1');
             }
@@ -87,27 +87,26 @@ public class PhuJusAgentTest {
 
     /**
      * quickRuleGen
-     *
+     * <p>
      * is a helper method to quickly create rules that match a given
      * sequence of external sensor values and actions.  The resulting
      * rules are added to a given agent (side effect).
-     *    Rule r = quickRuleGen(agent, {"100", "010", "011"});
-     *
+     * Rule r = quickRuleGen(agent, {"100", "010", "011"});
+     * <p>
      * Note:  This method does not support internal sensors since there is no
-     *        easy way to control those.
+     * easy way to control those.
      * CAVEAT:  there is no error checking so do this right :)
      *
-     * @param agent      the agent that will use this rule
-     * @param exts       an array of strings of binary digits that represent sensor values.
-     *
-     * @return  the actions that were assigned to each rule (as a String)
+     * @param agent the agent that will use this rule
+     * @param exts  an array of strings of binary digits that represent sensor values.
+     * @return the actions that were assigned to each rule (as a String)
      */
     public String quickRuleGen(PhuJusAgent agent, String[] exts) {
 
         //Extract the actions allowed for this agent
         Action[] acts = agent.getActionList();
         String actions = "";
-        for(int i = 0; i < acts.length; ++i) {
+        for (int i = 0; i < acts.length; ++i) {
             actions += acts[i].getName().charAt(0);
         }
 
@@ -115,14 +114,15 @@ public class PhuJusAgentTest {
         // the state of the given agent
         PhuJusAgent tempAgent = quickAgentGen(actions);
         actions = "";
-        for(int i = 0; i < exts.length; ++i) {
+        for (int i = 0; i < exts.length; ++i) {
             SensorData sd = quickExtGen(exts[i]);
             try {
                 actions += tempAgent.getNextAction(sd);
-            } catch (Exception e) {}
+            } catch (Exception e) {
+            }
         }
 
-        for(EpRule r : tempAgent.getRules()) {
+        for (EpRule r : tempAgent.getRules()) {
             agent.addRule(r);
         }
 
@@ -134,10 +134,10 @@ public class PhuJusAgentTest {
      * Test that a rule can match current sensors
      */
     @EpSemTest
-    public void testFirstRuleMatch() throws Exception{
+    public void testFirstRuleMatch() throws Exception {
         PhuJusAgent agent = quickAgentGen("ab");
         String[] extList = {"001"};
-        String action = quickRuleGen( agent, extList);
+        String action = quickRuleGen(agent, extList);
         Action chosenAction = chosenAction = agent.getNextAction(quickExtGen("001"));
 
         Assertions.assertEquals(chosenAction.getName(), action);
@@ -370,7 +370,4 @@ public class PhuJusAgentTest {
 //
 //         Assertions.assertTrue(root.findBestGoalPath().equals(expected));
 //     }
-
-
-
 }
