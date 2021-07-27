@@ -80,7 +80,7 @@ public class PhuJusAgent implements IAgent {
     private char prevAction = '\0';
 
     //The agent's current selected path to goal (a sequence of nodes in the search tree)
-    private Vector<TreeNode> pathToDo;
+    private Vector<TreeNode> pathToDo = new Vector<>();
     private Vector<TreeNode> pathTraversedSoFar = new Vector<>();
 
     //random numbers are useful sometimes (use a hardcoded seed for debugging)
