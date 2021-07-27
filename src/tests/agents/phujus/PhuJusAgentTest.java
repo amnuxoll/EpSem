@@ -72,7 +72,7 @@ public class PhuJusAgentTest {
         //If a GOAL value is set, init lhsExt with that value
         char lastChar = lhsExtStr.charAt(lhsExtStr.length() - 1);
         if (lastChar != '.') {
-            lhsExt = new SensorData(lastChar == 1);
+            lhsExt = new SensorData(lastChar == '1');
         }
 
         //Create the other sensors as needed
@@ -101,7 +101,7 @@ public class PhuJusAgentTest {
      * @param exts  an array of strings of binary digits that represent sensor values.
      * @return the actions that were assigned to each rule (as a String)
      */
-    public String quickRuleGen(PhuJusAgent agent, String[] exts) {
+    public String quickRuleGen(PhuJusAgent agent, String[] exts) throws Exception {
 
         //Extract the actions allowed for this agent
         Action[] acts = agent.getActionList();
@@ -113,20 +113,26 @@ public class PhuJusAgentTest {
         //a temporary agent is used to create the rules so as not to disturb
         // the state of the given agent
         PhuJusAgent tempAgent = quickAgentGen(actions);
+
+        //The agent needs to take one step first so that updateRules()
+        //will actually create a rule (it skips timestep 1)
         actions = "";
+        SensorData initSD = quickExtGen(exts[0]);
+        actions += tempAgent.getNextAction(initSD);
+
+
         for (int i = 0; i < exts.length; ++i) {
             SensorData sd = quickExtGen(exts[i]);
-            try {
-                actions += tempAgent.getNextAction(sd);
-            } catch (Exception e) {
-            }
+            actions += tempAgent.getNextAction(sd);
         }
 
         for (EpRule r : tempAgent.getRules()) {
             agent.addRule(r);
         }
 
-        return actions;
+        //remove the last action from the list since it's not part of the
+        // rules that were generated
+        return actions.substring(0, actions.length() - 1);
     }//quickRuleGen
 
 

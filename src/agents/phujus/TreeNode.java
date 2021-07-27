@@ -149,8 +149,13 @@ public class TreeNode {
                 char action = agent.getActionList()[i].getName().charAt(0);
 
                 EpRule bestRule = calcBestMatchingRule(action);
-                child = new TreeNode(this, bestRule);
-                this.children[i] = child;
+                if (bestRule != null) {
+                    child = new TreeNode(this, bestRule);
+                    this.children[i] = child;
+                } else {
+                    this.children[i] = null;
+                    continue;
+                }
             } //if create new child node
             else {
                 child.isLeaf = false; //reset from any prev use of this child
@@ -185,7 +190,14 @@ public class TreeNode {
      */
     @Override
     public String toString() {
-        StringBuilder result = new StringBuilder(this.path + "->");
+        StringBuilder result = new StringBuilder();
+
+        //create a path string of actions that led to this node
+        for (TreeNode node : this.path) {
+            result.append(node.getAction());
+        }
+
+        result.append("->");
 
         //internal sensors
         for (Integer i : this.currInternal.keySet()) {
@@ -245,7 +257,9 @@ public class TreeNode {
 
         //recursive case: print child nodes
         for (int i = 0; i < this.agent.getNumActions(); i++) {
-            this.children[i].printTreeHelper(indent + "   ");
+            if (this.children[i] != null) {
+                this.children[i].printTreeHelper(indent + "   ");
+            }
         }
     }//printTreeHelper
 

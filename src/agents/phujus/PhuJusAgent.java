@@ -80,7 +80,7 @@ public class PhuJusAgent implements IAgent {
     private char prevAction = '\0';
 
     //The agent's current selected path to goal (a sequence of nodes in the search tree)
-    private Vector<TreeNode> pathToDo = new Vector<>();
+    private Vector<TreeNode> pathToDo = null;
     private Vector<TreeNode> pathTraversedSoFar = new Vector<>();
 
     //random numbers are useful sometimes (use a hardcoded seed for debugging)
@@ -125,7 +125,7 @@ public class PhuJusAgent implements IAgent {
             buildNewPath();
 
         //reset path once expended with no goal
-        } else if (this.pathToDo.size() == 0) {
+        } else if ((this.pathToDo == null) || (this.pathToDo.size() == 0)) {
             buildNewPath();
         }
 
@@ -283,6 +283,7 @@ public class PhuJusAgent implements IAgent {
 
     /** prints the sequence of actions discovered by a path */
     public String pathToString(Vector<TreeNode> path) {
+        if (path == null) return "<null path>";
         StringBuilder sbResult = new StringBuilder();
         for(TreeNode node : path) {
             sbResult.append(node.getAction());
@@ -321,12 +322,15 @@ public class PhuJusAgent implements IAgent {
      *
      */
     public void updateRules() {
+        //Can't create a rule if there is not previous timestep
+        if (this.now == 1) return;
+
         //Create a candidate new rule based on agent's current state
         EpRule cand = new EpRule(this);
 
         //Find the existing rule that is most similar
-        EpRule bestMatch = this.rules.get(0);
-        double bestScore = 0.0;
+        EpRule bestMatch = null;
+        double bestScore = -1.0;
         for(EpRule r : this.rules) {
             double score = r.compareTo(cand);
             if (score > bestScore) {
