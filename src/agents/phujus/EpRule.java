@@ -264,7 +264,7 @@ public class EpRule {
             count++;
             result.append(iCond.sId);
             result.append('$');
-            result.append(iCond.getConfidence());
+            result.append(String.format("%.2f", iCond.getConfidence()));
         }
         result.append(")|");
 
@@ -277,7 +277,7 @@ public class EpRule {
             if (! eCond.val) result.append('!');
             result.append(eCond.sName);
             result.append('$');
-            result.append(eCond.getConfidence());
+            result.append(String.format("%.2f", eCond.getConfidence()));
         }
         result.append(")");
 
@@ -294,9 +294,12 @@ public class EpRule {
             if (! eCond.val) result.append('!');
             result.append(eCond.sName);
             result.append('$');
-            result.append(eCond.getConfidence());
+            result.append(String.format("%.2f", eCond.getConfidence()));
         }
-        result.append(")");
+        result.append(") ^ ");
+
+        //Activation
+        result.append(String.format("%.5f", calculateActivation(agent.getNow())));
 
         return "#" + this.ruleId + ": " + toShortString() + "    " + result;
     }//toString
@@ -321,7 +324,7 @@ public class EpRule {
             }
         }
 
-        //Compare RHS external values
+        //Compare LHS external values
         for (ExtCond eCond : this.lhsExternal) {
             if (lhsExt.hasSensor(eCond.sName)) {
                 Boolean sVal = (Boolean) lhsExt.getSensor(eCond.sName);
@@ -436,6 +439,55 @@ public class EpRule {
         this.nextActPos = (this.nextActPos + 1) % ACTHISTLEN;
         return true;
     }
+
+    /**
+     * updateConfidences
+     *
+     * adjusts the confiedence values of this rule based upon how well it matched
+     * the given LHS values and predicted the given RHS values.
+     *
+     * CAVEAT:  Do not call this method with sensors it didn't match with!
+     */
+    public void updateConfidences(HashMap<Integer, Boolean> lhsInt, SensorData lhsExt, SensorData rhsExt) {
+        //Compare LHS internal values
+        for (IntCond iCond : this.lhsInternal) {
+            Integer sIdVal = iCond.sId;
+            if ( lhsInt.containsKey(sIdVal) && lhsInt.get(sIdVal) ) {
+                iCond.increaseConfidence();
+            } else {
+                iCond.decreaseConfidence();
+            }
+        }
+
+        //Compare LHS external values
+        for (ExtCond eCond : this.lhsExternal) {
+            if (lhsExt.hasSensor(eCond.sName)) {
+                Boolean sVal = (Boolean) lhsExt.getSensor(eCond.sName);
+                if (sVal == eCond.val){
+                    eCond.increaseConfidence();
+                } else {
+                    eCond.decreaseConfidence();
+                }
+            } else {
+                eCond.decreaseConfidence();
+            }
+        }
+
+        //Compare RHS external values
+        for (ExtCond eCond : this.rhsExternal) {
+            if (rhsExt.hasSensor(eCond.sName)) {
+                Boolean sVal = (Boolean) rhsExt.getSensor(eCond.sName);
+                if (sVal == eCond.val){
+                    eCond.increaseConfidence();
+                } else {
+                    eCond.decreaseConfidence();
+                }
+            } else {
+                eCond.decreaseConfidence();
+            }
+        }
+
+    }//updateConfidences
 
 
 //region Getters and Setters

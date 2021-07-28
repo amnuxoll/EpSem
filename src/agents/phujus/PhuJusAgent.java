@@ -70,12 +70,12 @@ public class PhuJusAgent implements IAgent {
 
     private Action[] actionList;  //list of available actions in current FSM
 
-    //current sensor values (TODO: change to HashSet of trues only)
+    //current sensor values (TODO: change to HashSet of trues only?)
     private HashMap<Integer, Boolean> currInternal = new HashMap<>();
     private SensorData currExternal;
 
     //sensor values from the previous timestep
-    private HashMap<Integer, Boolean> prevInternal = new HashMap<>();  //TODO: also change to HashSet
+    private HashMap<Integer, Boolean> prevInternal = new HashMap<>();
     private SensorData prevExternal = null;
     private char prevAction = '\0';
 
@@ -112,7 +112,6 @@ public class PhuJusAgent implements IAgent {
         this.now++;
 
         //DEBUG
-        debugPrintln("----------------------------------------------------------------------");
         debugPrintln("TIME STEP: " + this.now);
 
         //reward rules that correctly predicted the present
@@ -130,8 +129,9 @@ public class PhuJusAgent implements IAgent {
         }
 
         //TODO: reset path if it's no longer valid
+        updateRuleConfidence();
 
-        updateRules();
+        updateRuleSet();
 
         //extract next action
         char action;
@@ -159,6 +159,9 @@ public class PhuJusAgent implements IAgent {
         if (this.rules.size() > 0) {  //can't update if no rules yet
             this.currInternal = genNextInternal(action);
         }
+
+        //DEBUG
+        debugPrintln("----------------------------------------------------------------------");
 
         return new Action(action + "");
     }//getNextAction
@@ -228,10 +231,20 @@ public class PhuJusAgent implements IAgent {
      */
     private void printInternalSensors(HashMap<Integer, Boolean> printMe) {
         debugPrint("Internal Sensors: ");
+        int count = 0;
         for (Integer i : printMe.keySet()) {
-            boolean val = printMe.get(i);
-            if (val) debugPrint("" + i.toString() + ", ");
+           boolean val = printMe.get(i);
+            if (val) {
+                if (count > 0) debugPrint(", ");
+                debugPrint("" + i.toString());
+                count++;
+            }
         }
+
+        if (count == 0) {
+            debugPrint("none");
+        }
+
         debugPrintln("");
     }
 
@@ -261,15 +274,15 @@ public class PhuJusAgent implements IAgent {
 
         for (EpRule r : this.rules) {
             //Print a match score first
-            if (action != '\0') {
-                double score = r.matchScore(action);
-                System.out.printf("0.3f", score);
+            double score = r.matchScore(action);
+            if ((action != '\0') && (score > 0.0)){
+                debugPrint(String.format("%.3f", score));
+                debugPrint(" ");
             } else {
-                System.out.print("     ");
+                debugPrint("      ");
             }
 
-            //TODO: update activation here?: r.calculateActivation(now);
-
+            r.calculateActivation(now);  //update this so it's accurate
             debugPrintln(r.toString());
         }
     }//printRules
@@ -308,13 +321,29 @@ public class PhuJusAgent implements IAgent {
     }//buildNewPath
 
     /**
-     * updateRules
+     * updateRuleConfidence
+     *
+     * examines all the rules that fired last timestep and updates the
+     * confidence level of each of their conditions on both LHS and RHS
+     */
+    private void updateRuleConfidence() {
+        for(EpRule r : this.rules) {
+            if (this.currInternal.get(r.getId())) {
+                r.updateConfidences(this.prevInternal, this.prevExternal, this.currExternal);
+            }
+        }
+    }//updateRuleConfidence
+
+
+
+    /**
+     * updateRuleSet
      *
      * replaces current rules with low activation with new rules that might
      * be more useful.
      *
      */
-    public void updateRules() {
+    public void updateRuleSet() {
         //Can't create a rule if there is not previous timestep
         if (this.now == 1) return;
 
@@ -364,7 +393,7 @@ public class PhuJusAgent implements IAgent {
         removeRule(worstRule);
         addRule(cand);
 
-    }//updateRules
+    }//updateRuleSet
 
 
     /**

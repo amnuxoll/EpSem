@@ -119,7 +119,7 @@ public class TestRun implements IIntrospector, Runnable {
                 //DEBUG
                 if (this.environment instanceof FSMEnvironment) {
                     FSMEnvironment env = (FSMEnvironment)this.environment;
-                    System.err.println("new state: " + env.getCurrentState());
+                    System.out.println("new state: " + env.getCurrentState());
                 }
 
                 if (sensorData.isGoal()) {

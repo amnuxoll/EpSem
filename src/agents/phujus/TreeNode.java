@@ -10,8 +10,8 @@ import java.util.Vector;
  * class TreeNode
  * <p>
  * Each instance is a node in an N-ary tree where N is the number of actions (i.e., the FSM's
- * alphabet) that tries to predict outcomes of sequences of actions.  Thus, we can "find" a
- * best (shortest, most confident) sequence of actions to reach the goal
+ * alphabet) that tries to predict outcomes of sequences of actions.  Thus, we can find a
+ * "best" (shortest, most confident) sequence of actions to reach the goal
  */
 
 public class TreeNode {
@@ -82,7 +82,7 @@ public class TreeNode {
      */
     private EpRule calcBestMatchingRule(char action) {
         //Find the best matching rule
-        double bestScore = -1.0;
+        double bestScore = 0.00001; //set to slightly above zero so the "best" match isn't a non-match
         EpRule bestRule = null;
 
         //Find the best matching rule
@@ -244,6 +244,15 @@ public class TreeNode {
         for (String s : sortedKeys(this.currExternal)) {
             Boolean val = (Boolean) this.currExternal.getSensor(s);
             result.append(val ? "1" : "0");
+        }
+
+        //Rule # and match score
+        if (this.rule != null) {
+            result.append(" #");
+            result.append(this.rule.getId());
+            result.append("=");
+            double score = this.rule.matchScore(this.getAction(), this.currInternal, this.currExternal);
+            result.append(String.format("%.2f", score));
         }
 
         return result.toString();
