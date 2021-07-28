@@ -81,7 +81,7 @@ public class PhuJusAgent implements IAgent {
 
     //The agent's current selected path to goal (a sequence of nodes in the search tree)
     private Vector<TreeNode> pathToDo = null;
-    private Vector<TreeNode> pathTraversedSoFar = new Vector<>();
+    private final Vector<TreeNode> pathTraversedSoFar = new Vector<>();
 
     //random numbers are useful sometimes (use a hardcoded seed for debugging)
     public static Random rand = new Random(2);
@@ -162,11 +162,6 @@ public class PhuJusAgent implements IAgent {
 
         return new Action(action + "");
     }//getNextAction
-
-    private void resetPath() {
-        this.pathToDo = null;
-        this.pathTraversedSoFar.clear();
-    }
 
     /**
      * genNextInternal
@@ -268,7 +263,7 @@ public class PhuJusAgent implements IAgent {
             //Print a match score first
             if (action != '\0') {
                 double score = r.matchScore(action);
-                System.out.print(String.format("0.3f", score));
+                System.out.printf("0.3f", score);
             } else {
                 System.out.print("     ");
             }
@@ -278,9 +273,6 @@ public class PhuJusAgent implements IAgent {
             debugPrintln(r.toString());
         }
     }//printRules
-
-    /** convenience version of printRules with no selected action */
-    public void printRules() { printRules('\0'); }
 
     /** prints the sequence of actions discovered by a path */
     public String pathToString(Vector<TreeNode> path) {
@@ -357,7 +349,6 @@ public class PhuJusAgent implements IAgent {
         }
 
         //Find the rule with lowest activation & accuracy
-        double activationSum = 0.0;
         EpRule worstRule = this.rules.get(0);
         double worstScore = worstRule.calculateActivation(this.now) * worstRule.getAccuracy();
         for (EpRule r : this.rules) {
@@ -367,9 +358,6 @@ public class PhuJusAgent implements IAgent {
                 worstScore = score;
                 worstRule = r;
             }
-
-            //we'll need this info later
-            activationSum += activation;
         }
 
         //remove and replace

@@ -1,7 +1,6 @@
 package tests.agents.phujus;
 import agents.phujus.EpRule;
 import agents.phujus.PhuJusAgent;
-import agents.phujus.Rule;
 import agents.phujus.TreeNode;
 import framework.Action;
 import framework.SensorData;
@@ -9,7 +8,6 @@ import tests.Assertions;
 import tests.EpSemTest;
 import tests.EpSemTestClass;
 
-import java.util.HashMap;
 import java.util.Vector;
 
 

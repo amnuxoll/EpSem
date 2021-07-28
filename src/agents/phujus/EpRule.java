@@ -17,7 +17,7 @@ public class EpRule {
      *
      * tracks a LHS or RHS value and the rule's confidence in it
      */
-    public abstract class Condition {
+    public abstract static class Condition {
         public static final int TRUEMASK  = 0b00010000;
         public static final int MAXVAL = 0b00011111;
         //TODO:  generate the value of MAXVAL and TRUEMASK from a size parameter
@@ -43,7 +43,7 @@ public class EpRule {
      *
      * Tracks external conditions (LHS or RHS)
      */
-    public class ExtCond extends Condition implements Comparable<ExtCond> {
+    public static class ExtCond extends Condition implements Comparable<ExtCond> {
         public String sName;  //sensor name
         public boolean val;   //sensor value
 
@@ -72,7 +72,7 @@ public class EpRule {
      *
      * Tracks internal conditions (LHS or RHS)
      */
-    public class IntCond extends Condition {
+    public static class IntCond extends Condition {
         public int sId;
 
         public IntCond(int initSId) {
@@ -101,9 +101,6 @@ public class EpRule {
     //to assign a unique id to each rule this shared variable is incremented by the ctor
     private static int nextRuleId = 1;
 
-    //same as the agent so it can be seeded for consistent behavior
-    private static final Random rand = PhuJusAgent.rand;
-
     //The agent using this rule
     private final PhuJusAgent agent;
 
@@ -116,13 +113,13 @@ public class EpRule {
     // - the action that the agent took just before this rule was created
     //Initially, all sensor values are present but, over time, they may get culled if they
     //prove inconsistent with the agent's experiences
-    private HashSet<IntCond> lhsInternal;
-    private HashSet<ExtCond> lhsExternal;
+    private final HashSet<IntCond> lhsInternal;
+    private final HashSet<ExtCond> lhsExternal;
     private final char action;
 
     //The RHS of the rule consists of a set of external sensor values that were
     // present when the rule was created
-    private HashSet<ExtCond> rhsExternal;
+    private final HashSet<ExtCond> rhsExternal;
 
     // Each rule has an activation level that tracks the frequency and
     // recency with which it fired and correctly predicted an external
@@ -172,7 +169,7 @@ public class EpRule {
     private HashSet<IntCond> initInternal(HashMap<Integer, Boolean> map) {
         HashSet<IntCond> result = new HashSet<>();
         for(Integer key : map.keySet()) {
-            if ((Boolean)map.get(key)) {  //only care about true's
+            if (map.get(key)) {  //only care about true's
                 result.add(new IntCond(key));
             }
         }
@@ -217,7 +214,13 @@ public class EpRule {
 
         //LHS internal sensors
         for(int i = 0; i < agent.getCurrInternal().size(); ++i) {
-            char bit = (this.lhsInternal.contains(i)) ? '1' : '0';
+            char bit = '0';
+            for(IntCond iCond : this.lhsInternal) {
+                if (iCond.sId == i) {
+                    bit = '1';
+                    break;
+                }
+            }
             result.append(bit);
         }
         result.append('|');
@@ -259,7 +262,9 @@ public class EpRule {
         for(IntCond iCond : this.lhsInternal){
             if (count > 0) result.append(", ");
             count++;
-            result.append(iCond.sId + "$" + iCond.getConfidence());
+            result.append(iCond.sId);
+            result.append('$');
+            result.append(iCond.getConfidence());
         }
         result.append(")|");
 
@@ -270,7 +275,9 @@ public class EpRule {
             if (count > 0) result.append(", ");
             count++;
             if (! eCond.val) result.append('!');
-            result.append(eCond.sName + '$' + eCond.getConfidence());
+            result.append(eCond.sName);
+            result.append('$');
+            result.append(eCond.getConfidence());
         }
         result.append(")");
 
@@ -285,7 +292,9 @@ public class EpRule {
             if (count > 0) result.append(',');
             count++;
             if (! eCond.val) result.append('!');
-            result.append(eCond.sName + '$' + eCond.getConfidence());
+            result.append(eCond.sName);
+            result.append('$');
+            result.append(eCond.getConfidence());
         }
         result.append(")");
 
@@ -301,12 +310,12 @@ public class EpRule {
         double sum = 0.0;
 
         //If the action doesn't match this rule can't match at all
-        //TODO:  should we do partial matching for actions?
+        //TODO:  should we do partial matching for actions? Seems like no but leaving this thought in here for now.
         if (action != this.action) return 0.0;
 
         //Compare LHS internal values
         for (IntCond iCond : this.lhsInternal) {
-            Integer sIdVal = Integer.valueOf(iCond.sId);
+            Integer sIdVal = iCond.sId;
             if ( lhsInt.containsKey(sIdVal) && lhsInt.get(sIdVal) ) {
                 sum += iCond.getConfidence();
             }
@@ -482,7 +491,14 @@ public class EpRule {
 
     /** called when the associated rule is deleted */
     public void removeIntSensor(int sId) {
-        this.lhsInternal.remove(sId);
+        IntCond removeMe = null;
+        for(IntCond iCond : this.lhsInternal) {
+            if (iCond.sId == sId) {
+                removeMe = iCond;
+                break;
+            }
+        }
+        if (removeMe != null) this.lhsInternal.remove(removeMe);
     }
 
 

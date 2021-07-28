@@ -35,7 +35,7 @@ public class TreeNode {
     private boolean isLeaf = false;
 
     //This is the rule used to reach this node (use null for the root)
-    private EpRule rule;
+    private final EpRule rule;
 
     //This is the path used to reach this node (the root should be an empty list)
     private final Vector<TreeNode> path;
@@ -54,7 +54,7 @@ public class TreeNode {
         this.rule = null;
         this.currInternal = agent.getCurrInternal();
         this.currExternal = agent.getCurrExternal();
-        this.path = new Vector<TreeNode>();
+        this.path = new Vector<>();
 
     }
 
@@ -71,7 +71,7 @@ public class TreeNode {
         this.rule = rule;
         this.currInternal = agent.genNextInternal(rule.getAction(), parent.currInternal, parent.currExternal);
         this.currExternal = rule.getRHSExternal();
-        this.path = (Vector<TreeNode>)parent.path.clone();
+        this.path = new Vector<>(parent.path);
         this.path.add(this);
     }
 
@@ -201,7 +201,7 @@ public class TreeNode {
     /**
      * sortedKeys
      *
-     * @returns a sorted Vector of the Integer keys in an external sensor SensorData.
+     * @return a sorted Vector of the Integer keys in an external sensor SensorData.
      * The GOAL sensor is always put at the end, however.
      */
     private Vector<String> sortedKeys(SensorData external) {
@@ -310,13 +310,13 @@ public class TreeNode {
     }
 
     //TODO: get this working with EpRules.  Mothballed for now
-    /**
-     * isValidPath
-     *
-     * checks to see if a previous path is still valid after an action from it is taken
-     *
-     * @return true is the previous path is still valid, false if new path is needed
-     */
+//    /**
+//     * isValidPath
+//     *
+//     * checks to see if a previous path is still valid after an action from it is taken
+//     *
+//     * @return true is the previous path is still valid, false if new path is needed
+//     */
 //    public boolean isValidPath(String prevPath) {
 //        // Check to make sure there is a path
 //        if(prevPath.equals("")) {
