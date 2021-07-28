@@ -40,7 +40,7 @@ public class PhuJusAgent implements IAgent {
     public static final int MAXNUMRULES = 50;
     public static final int INITIAL_ACTIVATION = 15;  //initial activation for first set of rules
     public static final int RULEMATCHHISTORYLEN = MAXNUMRULES * 5;
-    public static final int MAXDEPTH = 100;
+    public static final int MAXDEPTH = 5; //TODO: get the search to self prune again
 
     // These variables are used to track sensor longevity and rarity of sensor values
     //TODO: implement this
@@ -212,6 +212,7 @@ public class PhuJusAgent implements IAgent {
         for(EpRule r : this.rules) {
             boolean val = scores[index] > threshold;
             result.put(r.getId(), val);
+            index++;
         }//for
 
         return result;

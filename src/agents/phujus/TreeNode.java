@@ -1,6 +1,8 @@
 package agents.phujus;
 
 import framework.SensorData;
+
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Vector;
 
@@ -67,8 +69,8 @@ public class TreeNode {
         this.children = new TreeNode[agent.getNumActions()]; // actionSize
         this.episodeIndex = parent.episodeIndex + 1;
         this.rule = rule;
-        this.currInternal = rule.getLHSInternal();  //TODO:  shouldn't this be RHS?
-        this.currExternal = rule.getLHSExternal();
+        this.currInternal = agent.genNextInternal(rule.getAction(), parent.currInternal, parent.currExternal);
+        this.currExternal = rule.getRHSExternal();
         this.path = (Vector<TreeNode>)parent.path.clone();
         this.path.add(this);
     }
@@ -109,7 +111,7 @@ public class TreeNode {
         for(int max = 1; max <= PhuJusAgent.MAXDEPTH; ++max) {
             Vector<TreeNode> visited = new Vector<>();
             Vector<TreeNode> path = fbgpHelper(0, max, visited);
-            if ( (path != null) && (path.size() < max) )
+            if ( (path != null) && (path.size() <= max) )
                 return path;
         }
 
@@ -142,6 +144,8 @@ public class TreeNode {
         }
 
         //Recursive case: examine child nodes
+        Vector<TreeNode> bestPath = null;  //used to store best path found
+
         for(int i = 0; i < agent.getActionList().length; ++i) {
             //Create the child node for this action if it doesn't exist yet
             TreeNode child = this.children[i];
@@ -162,25 +166,56 @@ public class TreeNode {
             }
 
             //don't expand this child node if we've seen it before
-            if (visited.contains(child)) {
-                child.isLeaf = true;
-                continue;
-            }
+            //TODO:  I don't think we can do this.  It's preventing us from finding goals
+//            if (visited.contains(child)) {
+//                child.isLeaf = true;
+//                continue;
+//            }
 
-            //Recursive case
+            //Recursive case: test all children and return shortest path
+            // TODO: path confidence should play a role not just path length
             visited.add(child);
-            Vector<TreeNode> path = child.fbgpHelper(depth + 1, maxDepth, visited);
-            if ( path != null) {
-                if (path.size() < maxDepth) {
-                    maxDepth = path.size();
+            Vector<TreeNode> foundPath = child.fbgpHelper(depth + 1, maxDepth, visited);
+            if ( foundPath != null) {
+                if ((bestPath == null) || (foundPath.size() < bestPath.size())) {
+                    bestPath = foundPath;
                 }
-                return path;  //TODO:  test all children and return shortest path (or path with highest confidence)
             }
         }//for
 
-        return null;
+        return bestPath;
 
     }//fbgpHelper
+
+    /**
+     * sortedKeys
+     *
+     * @return a sorted Vector of the Integer keys in an internal sensor HashMap
+     */
+    private Vector<Integer> sortedKeys(HashMap<Integer, Boolean> internal) {
+        Vector<Integer> result = new Vector<>(internal.keySet());
+        Collections.sort(result);
+        return result;
+    }
+
+    /**
+     * sortedKeys
+     *
+     * @returns a sorted Vector of the Integer keys in an external sensor SensorData.
+     * The GOAL sensor is always put at the end, however.
+     */
+    private Vector<String> sortedKeys(SensorData external) {
+        Vector<String> result = new Vector<>(external.getSensorNames());
+        Collections.sort(result);
+
+        //Move the goal to the end
+        if (result.contains(SensorData.goalSensor)) {
+            result.remove(SensorData.goalSensor);
+            result.add(SensorData.goalSensor);
+        }
+
+        return result;
+    }//sortedKeys
 
 
     /**
@@ -200,13 +235,13 @@ public class TreeNode {
         result.append("->");
 
         //internal sensors
-        for (Integer i : this.currInternal.keySet()) {
+        for (Integer i : sortedKeys(this.currInternal)) {
             result.append((this.currInternal.get(i)) ? "1" : "0");
         }
         result.append("|");
 
         //external sensors
-        for (String s : this.currExternal.getSensorNames()) {
+        for (String s : sortedKeys(this.currExternal)) {
             Boolean val = (Boolean) this.currExternal.getSensor(s);
             result.append(val ? "1" : "0");
         }

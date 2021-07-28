@@ -157,9 +157,9 @@ public class SensorData {
             if (leftKey.equals(rightKey))
                 return 0;
             if (leftKey.equals(SensorData.goalSensor))
-                return -1;
-            if (rightKey.equals(SensorData.goalSensor))
                 return 1;
+            if (rightKey.equals(SensorData.goalSensor))
+                return -1;
             return leftKey.compareTo(rightKey);
         });
 
@@ -180,6 +180,12 @@ public class SensorData {
         stringBuilder.append("]");
         return stringBuilder.toString();
     }
+
+    @Override
+    public String toString() {
+        return this.toString(true);
+    }
+
 
     /**
      * Gets all the sensors that are configured in this {@link SensorData}.
@@ -269,11 +275,6 @@ public class SensorData {
         return hashcode;
     }
 
-
-    @Override
-    public String toString() {
-        return this.toString(false);
-    }
 
     //endregion
 }

@@ -2,9 +2,7 @@ package agents.phujus;
 
 import framework.SensorData;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Random;
+import java.util.*;
 
 /**
  * class EpRule
@@ -45,7 +43,7 @@ public class EpRule {
      *
      * Tracks external conditions (LHS or RHS)
      */
-    public class ExtCond extends Condition {
+    public class ExtCond extends Condition implements Comparable<ExtCond> {
         public String sName;  //sensor name
         public boolean val;   //sensor value
 
@@ -61,6 +59,12 @@ public class EpRule {
             ExtCond other = (ExtCond) o;
             return (this.sName.equals(other.sName)) && (this.val == other.val);
         }
+
+        @Override
+        public String toString() { return sName + "=" + val; }
+
+        @Override
+        public int compareTo(ExtCond o) { return this.sName.compareTo(o.sName); }
     }//class ExtCond
 
     /**
@@ -82,6 +86,11 @@ public class EpRule {
             IntCond other = (IntCond) o;
             return (this.sId == other.sId);
         }
+
+        @Override
+        public String toString() { return "" + sId; }
+
+
     }//class IntCond
 
 //endregion
@@ -173,6 +182,67 @@ public class EpRule {
 //endregion
 
     /**
+     * sortedConds
+     *
+     * creates a Vector from a HashSet of ExtCond where the conditions are in sorted order
+     * but with the GOAL at the end.
+     * */
+    public Vector<ExtCond> sortedConds(HashSet<ExtCond> conds) {
+        //Sort the vector
+        Vector<ExtCond> result = new Vector<>(conds);
+        Collections.sort(result);
+
+        //Move the GOAL to the end
+        int goalIndex = 0;
+        for(int i = 0; i < result.size(); ++i) {
+            if (result.get(i).sName.equals(SensorData.goalSensor)) {
+                goalIndex = i;
+                break;
+            }
+        }
+        ExtCond goalCond = result.remove(goalIndex);
+        result.add(goalCond);
+
+        return result;
+    }//sortedConds
+
+
+    /**
+     * like toString() but much less verbose.  Each condition is represented by a single '1' or '0'
+     * Example:   0100111|010a->100
+     *
+     */
+    public String toShortString() {
+        StringBuilder result = new StringBuilder();
+
+        //LHS internal sensors
+        for(int i = 0; i < agent.getCurrInternal().size(); ++i) {
+            char bit = (this.lhsInternal.contains(i)) ? '1' : '0';
+            result.append(bit);
+        }
+        result.append('|');
+
+        //LHS external sensors
+        for (ExtCond eCond : sortedConds(this.lhsExternal)) {
+            char bit = (eCond.val) ? '1' : '0';
+            result.append(bit);
+        }
+
+        //action and arrow
+        result.append(this.action);
+        result.append(" -> ");
+
+        //RHS external sensors
+        for (ExtCond eCond : sortedConds(this.rhsExternal)) {
+            char bit = (eCond.val) ? '1' : '0';
+            result.append(bit);
+        }
+
+        return result.toString();
+
+    }//toShortString
+
+    /**
      * General format: [rule id]: ([internal lhs])|[external lhs] -> [ext rhs] ^ [activation]
      * Each condition consists of a value$confidence.  An external condition with
      * a false value is preceded by a '!'
@@ -182,13 +252,12 @@ public class EpRule {
     public String toString() {
         //rule number
         StringBuilder result = new StringBuilder();
-        result.append("#" + this.ruleId + ": ");
 
-        //LHS internal sensors
+        //LHS internal sensors (long version)
         result.append('(');
         int count = 0;
         for(IntCond iCond : this.lhsInternal){
-            if (count > 0) result.append(',');
+            if (count > 0) result.append(", ");
             count++;
             result.append(iCond.sId + "$" + iCond.getConfidence());
         }
@@ -197,8 +266,8 @@ public class EpRule {
         //LHS external sensors
         result.append('(');
         count = 0;
-        for (ExtCond eCond : this.lhsExternal) {
-            if (count > 0) result.append(',');
+        for (ExtCond eCond : sortedConds(this.lhsExternal)) {
+            if (count > 0) result.append(", ");
             count++;
             if (! eCond.val) result.append('!');
             result.append(eCond.sName + '$' + eCond.getConfidence());
@@ -212,7 +281,7 @@ public class EpRule {
         //RHS external sensors
         result.append('(');
         count = 0;
-        for (ExtCond eCond : this.rhsExternal) {
+        for (ExtCond eCond : sortedConds(this.rhsExternal)) {
             if (count > 0) result.append(',');
             count++;
             if (! eCond.val) result.append('!');
@@ -220,7 +289,7 @@ public class EpRule {
         }
         result.append(")");
 
-        return result.toString();
+        return "#" + this.ruleId + ": " + toShortString() + "    " + result;
     }//toString
 
     /**
@@ -238,16 +307,15 @@ public class EpRule {
         //Compare LHS internal values
         for (IntCond iCond : this.lhsInternal) {
             Integer sIdVal = Integer.valueOf(iCond.sId);
-            if ( agent.getCurrInternal().containsKey(sIdVal)
-                 && agent.getCurrInternal().get(sIdVal) ) {
+            if ( lhsInt.containsKey(sIdVal) && lhsInt.get(sIdVal) ) {
                 sum += iCond.getConfidence();
             }
         }
 
         //Compare RHS external values
         for (ExtCond eCond : this.lhsExternal) {
-            if (agent.getCurrExternal().hasSensor(eCond.sName)) {
-                Boolean sVal = (Boolean) agent.getCurrExternal().getSensor(eCond.sName);
+            if (lhsExt.hasSensor(eCond.sName)) {
+                Boolean sVal = (Boolean) lhsExt.getSensor(eCond.sName);
                 if (sVal == eCond.val){
                     sum += eCond.getConfidence();
                 }
@@ -255,7 +323,7 @@ public class EpRule {
         }
 
         //Note:  A special case here might be if sum == 0.0.  That can only
-        //happen if the rule has no mathcing conditions.  I don't think that's worth
+        //happen if the rule has no matching conditions.  I don't think that's worth
         //checking for.
 
         double count = this.lhsInternal.size() + this.lhsExternal.size();
