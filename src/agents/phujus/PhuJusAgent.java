@@ -91,6 +91,8 @@ public class PhuJusAgent implements IAgent {
     //random numbers are useful sometimes (use a hardcoded seed for debugging)
     public static Random rand = new Random(2);
 
+    public int stepsSinceLastGoal = 0;
+
     /**
      * This method is called each time a new FSM is created and a new agent is
      * created.  As such, it also performs the duties of a ctor.
@@ -115,7 +117,13 @@ public class PhuJusAgent implements IAgent {
     @Override
     public Action getNextAction(SensorData sensorData) throws Exception {
         this.now++;
+        this.stepsSinceLastGoal++;
         this.currExternal = sensorData;
+
+        //DEBUG if hit, we did not fix the loop bug... YET
+        if(this.stepsSinceLastGoal > 100) {
+            System.out.println();
+        }
 
         //DEBUG
         if (PhuJusAgent.DEBUGPRINTSWITCH) {
@@ -145,22 +153,25 @@ public class PhuJusAgent implements IAgent {
         //Reset path when goal is reached
         if (sensorData.isGoal()) {
             System.out.println("Found GOAL");
+            this.stepsSinceLastGoal = 0;
             rewardRulesForGoal();
             buildNewPath();
 
         //reset path once expended with no goal
-        } else if ((this.pathToDo == null) || (this.pathToDo.size() == 0)) {
+        } else if ((this.pathToDo == null)) {
             buildNewPath();
         } else {
             //reset path if it's no longer valid
             //TODO:  are we holding the rules to too high a standard here?
-            EpRule stepRule = this.pathToDo.get(0).getRule();
+            EpRule stepRule = this.pathTraversedSoFar.get(this.pathTraversedSoFar.size() - 1).getRule();
             if (!effectiveRules.contains(stepRule)) {
                 //Put the rule in the refractory queue
                 stepRule.setRefractory();
                 this.refractory.add(stepRule);
 
                 //build a path without it
+                buildNewPath();
+            } else if ((this.pathToDo.size() == 0)) {
                 buildNewPath();
             }
         }
