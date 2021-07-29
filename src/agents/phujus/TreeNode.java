@@ -158,14 +158,6 @@ public class TreeNode {
 
                 EpRule bestRule = calcBestMatchingRule(action);
                 if (bestRule != null) {
-                    //DEBUG
-                    double score = bestRule.matchScore(action);
-                    if (score < 0.001) {
-                        System.out.println();
-                        calcBestMatchingRule(action);
-                    }
-
-
                     child = new TreeNode(this, bestRule);
                     this.children[i] = child;
                 } else {
@@ -277,15 +269,7 @@ public class TreeNode {
      * {@link #printTreeHelper} is the recursive helper method that traverses the tree
      */
     public void printTree() {
-        //Print the sensor names
-        System.out.println("  Internal Sensors: 0-" + (this.currInternal.keySet().size() - 1));
-        System.out.print("  External Sensors: ");
-        for (String s : this.currExternal.getSensorNames()) {
-            System.out.print(s + " ");
-        }
-        System.out.println();
-
-        //print the rules recursively
+        //print the nodes recursively
         printTreeHelper("");
     }
 

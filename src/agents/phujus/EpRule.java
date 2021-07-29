@@ -140,7 +140,8 @@ public class EpRule {
 
     //A rule can briefly enter a refractory state where it can't fire
     //TODO:  to be more robust this would work like activation with repeated misuses making the rule unusable for longer and longer periods
-    private boolean refractory = false;
+    private int refractory = 0;  //how many timesteps until this rule recovers
+    private int nextRefractPeriod = 1;  //how long next period will be
 
 //region Ctors and Init
     /**
@@ -217,17 +218,14 @@ public class EpRule {
         StringBuilder result = new StringBuilder();
 
         //LHS internal sensors
-        for(int i = 0; i < agent.getCurrInternal().size(); ++i) {
-            char bit = '0';
-            for(IntCond iCond : this.lhsInternal) {
-                if (iCond.sId == i) {
-                    bit = '1';
-                    break;
-                }
-            }
-            result.append(bit);
+        result.append('(');
+        int count = 0;
+        for(IntCond iCond : this.lhsInternal){
+            if (count > 0) result.append(", ");
+            count++;
+            result.append(iCond.sId);
         }
-        result.append('|');
+        result.append(")|");
 
         //LHS external sensors
         for (ExtCond eCond : sortedConds(this.lhsExternal)) {
@@ -260,7 +258,7 @@ public class EpRule {
         //rule number
         StringBuilder result = new StringBuilder();
 
-        //LHS internal sensors (long version)
+        //LHS internal sensors
         result.append('(');
         int count = 0;
         for(IntCond iCond : this.lhsInternal){
@@ -317,7 +315,7 @@ public class EpRule {
         double sum = 0.0;
 
         //If this rule is in a refractory state it can't match
-        if (this.refractory) return 0.0;
+        if (this.refractory > 0) return 0.0;
 
         //If the action doesn't match this rule can't match at all
         //TODO:  should we do partial matching for actions? Seems like no but leaving this thought in here for now.
@@ -385,18 +383,30 @@ public class EpRule {
         double sum = 0.0;
 
         //Compare LHS internal values
-        for (IntCond thisICond : this.lhsInternal) {
-            for (IntCond otherICond : other.lhsInternal) {
-                if (thisICond.equals(otherICond)) {
-                    sum += (thisICond.getConfidence() + otherICond.getConfidence()) / 2;
+        HashSet<IntCond> largerLHSInt = this.lhsInternal;
+        HashSet<IntCond> smallerLHSInt = other.lhsInternal;
+        if (largerLHSInt.size() < smallerLHSInt.size()) {
+            largerLHSInt = other.lhsInternal;
+            smallerLHSInt = this.lhsInternal;
+        }
+        for (IntCond iCond1 : largerLHSInt) {
+            for (IntCond iCond2 : smallerLHSInt) {
+                if (iCond1.equals(iCond2)) {
+                    sum += (iCond1.getConfidence() + iCond2.getConfidence()) / 2;
                     break;
                 }
             }
         }
 
         //Compare LHS external values
-        for (ExtCond thisECond : this.lhsExternal) {
-            for (ExtCond otherECond : other.lhsExternal) {
+        HashSet<ExtCond> largerLHSExt = this.lhsExternal;
+        HashSet<ExtCond> smallerLHSExt = other.lhsExternal;
+        if (largerLHSExt.size() < smallerLHSExt.size()) {
+            largerLHSExt = other.lhsExternal;
+            smallerLHSExt = this.lhsExternal;
+        }
+        for (ExtCond thisECond : largerLHSExt) {
+            for (ExtCond otherECond : smallerLHSExt) {
                 if (thisECond.equals(otherECond)) {
                     sum += (thisECond.getConfidence() + otherECond.getConfidence()) / 2;
                     break;
@@ -405,8 +415,14 @@ public class EpRule {
         }
 
         //Compare RHS external values
-        for (ExtCond thisECond : this.rhsExternal) {
-            for (ExtCond otherECond : other.rhsExternal) {
+        HashSet<ExtCond> largerRHSExt = this.rhsExternal;
+        HashSet<ExtCond> smallerRHSExt = other.rhsExternal;
+        if (largerRHSExt.size() > smallerRHSExt.size()) {
+            largerRHSExt = other.rhsExternal;
+            smallerRHSExt = this.rhsExternal;
+        }
+        for (ExtCond thisECond : largerRHSExt) {
+            for (ExtCond otherECond : smallerRHSExt) {
                 if (thisECond.equals(otherECond)) {
                     sum += (thisECond.getConfidence() + otherECond.getConfidence()) / 2;
                     break;
@@ -414,7 +430,7 @@ public class EpRule {
             }
         }
 
-        double count = this.lhsInternal.size() + this.lhsExternal.size() + this.rhsExternal.size();
+        double count = largerLHSInt.size() + largerLHSExt.size() + largerRHSExt.size();
         return sum / count;
     }//compareTo
 
@@ -583,9 +599,24 @@ public class EpRule {
         if (removeMe != null) this.lhsInternal.remove(removeMe);
     }
 
-    public void setRefractory() { this.refractory = true; }
-    public void clearRefractory() { this.refractory = false; }
+    /** rule enters a refractory period */
+    public void setRefractory() {
+        this.refractory = this.nextRefractPeriod;
+        this.nextRefractPeriod *= 2;
+    }
 
+    /** one timestep goes by in the refractory period */
+    public void tickRefractory() {
+        if (this.refractory > 0) {
+            this.refractory--;
+        } else if (this.nextRefractPeriod > 1) {
+            this.nextRefractPeriod--;
+        }
+    }
+
+    public boolean isRefractory() {
+        return this.refractory > 0;
+    }
 
 //endregion
 

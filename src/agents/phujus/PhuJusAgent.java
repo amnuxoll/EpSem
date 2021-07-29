@@ -35,6 +35,8 @@ import java.util.Random;
  *    - split when it will improve the activation of both progeny
  * > Change currInternal to be a HashSet of rules that fired?  I'm not sure if
  *    logging that a rule didn't fire is useful?
+ * > Curiosity: when selecting a random action the agent prefers an action that
+ *   does not match any known rule.
  */
 public class PhuJusAgent implements IAgent {
     public static final int MAXNUMRULES = 50;
@@ -113,18 +115,29 @@ public class PhuJusAgent implements IAgent {
     @Override
     public Action getNextAction(SensorData sensorData) throws Exception {
         this.now++;
-
-        //DEBUG
-        debugPrintln("TIME STEP: " + this.now);
-
-        //reward rules that correctly predicted the present
         this.currExternal = sensorData;
 
-        //reset refractory rules
-        while(this.refractory.size() > 0) {
-            EpRule r = refractory.remove(0);
-            r.clearRefractory();
+        //DEBUG
+        if (PhuJusAgent.DEBUGPRINTSWITCH) {
+            debugPrintln("TIME STEP: " + this.now);
+            printInternalSensors(this.currInternal);
+            printExternalSensors(this.currExternal);
         }
+
+        //tick the refractory period
+        while(this.refractory.size() > 0) {
+            Vector<EpRule> toRemove = new Vector<>();
+            for(EpRule r : this.refractory) {
+                r.tickRefractory();
+                if (!r.isRefractory()) {
+                    toRemove.add(r);
+                }
+            }
+
+            for(EpRule r : toRemove) {
+                this.refractory.remove(r);
+            }
+        }//while
 
         //see which rules correctly predicted these sensor values
         Vector<EpRule> effectiveRules = updateRuleConfidences();
@@ -143,9 +156,9 @@ public class PhuJusAgent implements IAgent {
             //TODO:  are we holding the rules to too high a standard here?
             EpRule stepRule = this.pathToDo.get(0).getRule();
             if (!effectiveRules.contains(stepRule)) {
-                //Put the rule in refractory queue
-                this.rules.remove(stepRule);
+                //Put the rule in the refractory queue
                 stepRule.setRefractory();
+                this.refractory.add(stepRule);
 
                 //build a path without it
                 buildNewPath();
@@ -169,8 +182,6 @@ public class PhuJusAgent implements IAgent {
 
         //DEBUG:
         if (PhuJusAgent.DEBUGPRINTSWITCH) {
-            printExternalSensors(this.currExternal);
-            printInternalSensors(this.currInternal);
             printRules(action);
         }
 
@@ -336,9 +347,13 @@ public class PhuJusAgent implements IAgent {
         this.pathToDo = root.findBestGoalPath();
 
         //DEBUG
-        if ( (PhuJusAgent.DEBUGPRINTSWITCH) && (this.pathToDo != null) ) {
+        if (PhuJusAgent.DEBUGPRINTSWITCH) {
             root.printTree();
-            debugPrintln("found path: " + pathToString(this.pathToDo));
+            if (this.pathToDo != null) {
+                debugPrintln("found path: " + pathToString(this.pathToDo));
+            } else {
+                debugPrintln("no path found");
+            }
         }
 
     }//buildNewPath
@@ -456,12 +471,9 @@ public class PhuJusAgent implements IAgent {
         }
 
         //TODO:  consider merging cand with the bestRule?
-        double revScore = cand.compareTo(bestMatch);
-        if (revScore == 1.0) {
-            //DEBUG
-            debugPrintln("Note:  revScore is 1.0");
-
-            //TODO: merge would happen here if revScore is high enough
+        double mergeScore = cand.compareTo(bestMatch);
+        if (mergeScore > 0.75) {
+            //TODO: merge would happen here if revScore is high enough.  Need something less arbitrary than 0.75
         }
 
         //Find the rule with lowest activation & accuracy
