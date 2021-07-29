@@ -138,6 +138,10 @@ public class EpRule {
     private double numMatches = 1;
     private double numPredicts = 1;
 
+    //A rule can briefly enter a refractory state where it can't fire
+    //TODO:  to be more robust this would work like activation with repeated misuses making the rule unusable for longer and longer periods
+    private boolean refractory = false;
+
 //region Ctors and Init
     /**
      * this ctor initializes the rule from the agent's current and previous episodes
@@ -305,12 +309,15 @@ public class EpRule {
     }//toString
 
     /**
-     * calculates how closely this rule matches a given action and sensors
+     * calculates how closely this rule matches a given action and lhs sensors
      *
      * @return  a match score from 0.0 to 1.0
      */
-    public double matchScore(char action, HashMap<Integer, Boolean> lhsInt, SensorData lhsExt) {
+    public double lhsMatchScore(char action, HashMap<Integer, Boolean> lhsInt, SensorData lhsExt) {
         double sum = 0.0;
+
+        //If this rule is in a refractory state it can't match
+        if (this.refractory) return 0.0;
 
         //If the action doesn't match this rule can't match at all
         //TODO:  should we do partial matching for actions? Seems like no but leaving this thought in here for now.
@@ -340,11 +347,32 @@ public class EpRule {
 
         double count = this.lhsInternal.size() + this.lhsExternal.size();
         return sum / count;
-    }//matchScore
+    }//lhsMatchScore
+
+    /**
+     * calculates how closely this rule matches a given rhs sensors
+     *
+     * @return  a match score from 0.0 to 1.0
+     */
+    public double rhsMatchScore(SensorData rhsExt) {
+        double sum = 0.0;
+
+        //Compare RHS external values
+        for (ExtCond eCond : this.rhsExternal) {
+            if (rhsExt.hasSensor(eCond.sName)) {
+                Boolean sVal = (Boolean) rhsExt.getSensor(eCond.sName);
+                if (sVal == eCond.val){
+                    sum += eCond.getConfidence();
+                }
+            }
+        }
+
+        return sum / this.rhsExternal.size();
+    }//rhsMatchScore
 
     /** convenience function that uses the sensors in the current agent */
     public double matchScore(char action) {
-        return matchScore(action, this.agent.getCurrInternal(), this.agent.getCurrExternal());
+        return lhsMatchScore(action, this.agent.getCurrInternal(), this.agent.getCurrExternal());
     }
 
     /**
@@ -446,6 +474,8 @@ public class EpRule {
      * adjusts the confiedence values of this rule based upon how well it matched
      * the given LHS values and predicted the given RHS values.
      *
+     * CAVEAT:  This rule should be called when the rule correctly predicted
+     *          the future.  Not when it didn't.
      * CAVEAT:  Do not call this method with sensors it didn't match with!
      */
     public void updateConfidences(HashMap<Integer, Boolean> lhsInt, SensorData lhsExt, SensorData rhsExt) {
@@ -553,6 +583,8 @@ public class EpRule {
         if (removeMe != null) this.lhsInternal.remove(removeMe);
     }
 
+    public void setRefractory() { this.refractory = true; }
+    public void clearRefractory() { this.refractory = false; }
 
 
 //endregion

@@ -28,6 +28,9 @@ public class TreeNode {
     private final HashMap<Integer, Boolean> currInternal;
     private final SensorData currExternal;
 
+    //This is the parent node
+    private final TreeNode parent;
+
     //child nodes
     private final TreeNode[] children;
 
@@ -40,7 +43,6 @@ public class TreeNode {
     //This is the path used to reach this node (the root should be an empty list)
     private final Vector<TreeNode> path;
 
-
     /**
      * This root node constructor is built from the agent.
      *
@@ -49,6 +51,7 @@ public class TreeNode {
         //initializing agent and its children
         this.agent = initAgent;
         this.rules = agent.getRules();
+        this.parent = null;
         this.children = new TreeNode[agent.getNumActions()]; // actionSize
         this.episodeIndex = agent.getNow();
         this.rule = null;
@@ -66,6 +69,7 @@ public class TreeNode {
         //initializing agent and its children
         this.agent = parent.agent;
         this.rules = parent.rules;
+        this.parent = parent;
         this.children = new TreeNode[agent.getNumActions()]; // actionSize
         this.episodeIndex = parent.episodeIndex + 1;
         this.rule = rule;
@@ -88,7 +92,7 @@ public class TreeNode {
         //Find the best matching rule
         //TODO:  should it consider other top rules that are almost as good?
         for (EpRule r : this.rules) {
-            double score = r.matchScore(action, this.currInternal, this.currExternal);
+            double score = r.lhsMatchScore(action, this.currInternal, this.currExternal);
             if (score > bestScore) {
                 bestScore = score;
                 bestRule = r;
@@ -154,6 +158,14 @@ public class TreeNode {
 
                 EpRule bestRule = calcBestMatchingRule(action);
                 if (bestRule != null) {
+                    //DEBUG
+                    double score = bestRule.matchScore(action);
+                    if (score < 0.001) {
+                        System.out.println();
+                        calcBestMatchingRule(action);
+                    }
+
+
                     child = new TreeNode(this, bestRule);
                     this.children[i] = child;
                 } else {
@@ -251,7 +263,9 @@ public class TreeNode {
             result.append(" #");
             result.append(this.rule.getId());
             result.append("=");
-            double score = this.rule.matchScore(this.getAction(), this.currInternal, this.currExternal);
+            double score = this.rule.lhsMatchScore(this.rule.getAction(),
+                                                   this.parent.currInternal,
+                                                   this.parent.currExternal);
             result.append(String.format("%.2f", score));
         }
 

@@ -66,6 +66,9 @@ public class PhuJusAgent implements IAgent {
     //a list of all the rules in the system (can't exceed some maximum)
     private Vector<EpRule> rules = new Vector<>();
 
+    //keeps track of which rules are currently in a refractory state
+    private Vector<EpRule> refractory = new Vector<>();
+
     private int now = 0; //current timestep 't'
 
     private Action[] actionList;  //list of available actions in current FSM
@@ -117,6 +120,15 @@ public class PhuJusAgent implements IAgent {
         //reward rules that correctly predicted the present
         this.currExternal = sensorData;
 
+        //reset refractory rules
+        while(this.refractory.size() > 0) {
+            EpRule r = refractory.remove(0);
+            r.clearRefractory();
+        }
+
+        //see which rules correctly predicted these sensor values
+        Vector<EpRule> effectiveRules = updateRuleConfidences();
+
         //Reset path when goal is reached
         if (sensorData.isGoal()) {
             System.out.println("Found GOAL");
@@ -126,11 +138,21 @@ public class PhuJusAgent implements IAgent {
         //reset path once expended with no goal
         } else if ((this.pathToDo == null) || (this.pathToDo.size() == 0)) {
             buildNewPath();
+        } else {
+            //reset path if it's no longer valid
+            //TODO:  are we holding the rules to too high a standard here?
+            EpRule stepRule = this.pathToDo.get(0).getRule();
+            if (!effectiveRules.contains(stepRule)) {
+                //Put the rule in refractory queue
+                this.rules.remove(stepRule);
+                stepRule.setRefractory();
+
+                //build a path without it
+                buildNewPath();
+            }
         }
 
-        //TODO: reset path if it's no longer valid
-        updateRuleConfidence();
-
+        //New rule may be added, old rule may be removed
         updateRuleSet();
 
         //extract next action
@@ -152,7 +174,8 @@ public class PhuJusAgent implements IAgent {
             printRules(action);
         }
 
-        //Now that we know what action to take, setup the sensor values for the next iteration
+        //Now that we know what action the agent will take, setup the sensor
+        // values for the next iteration
         this.prevInternal = this.currInternal;
         this.prevExternal = this.currExternal;
         this.prevAction = action;
@@ -192,7 +215,7 @@ public class PhuJusAgent implements IAgent {
         //Get a match score for every rule
         //  also calc the average and best
         for (EpRule r : this.rules) {
-            scores[index] = r.matchScore(action, currInt, currExt);
+            scores[index] = r.lhsMatchScore(action, currInt, currExt);
             if (scores[index] > 0.0) {
                 scoreSum += scores[index];
                 matchCount++;
@@ -321,20 +344,82 @@ public class PhuJusAgent implements IAgent {
     }//buildNewPath
 
     /**
-     * updateRuleConfidence
+     * getRHSMatches
      *
-     * examines all the rules that fired last timestep and updates the
-     * confidence level of each of their conditions on both LHS and RHS
+     * calculates which rules have a RHS that best match the agent's sensors.
+     * This, in effect, tells you which rules *should* have matched last timestep.
+     *
+     * Note:  this method uses the same iffy statistics as
+     * {@link #genNextInternal(char, HashMap, SensorData)} and thus is subject
+     * to the same skepticism.
      */
-    private void updateRuleConfidence() {
+    public Vector<EpRule> getRHSMatches() {
+        Vector<EpRule> result = new Vector<>();
+        double bestScore = 0.0;
+        double scoreSum = 0.0;
+        double matchCount = 0.0;
+        int index = 0;
+        double[] scores = new double[this.rules.size()];
+
+        //Get a RHS match score for every rule
+        //  also calc the average and best
+        for (EpRule r : this.rules) {
+            scores[index] = r.rhsMatchScore(this.currExternal);
+            if (scores[index] > 0.0) {
+                scoreSum += scores[index];
+                matchCount++;
+            }
+            if (scores[index] > bestScore) {
+                bestScore = scores[index];
+            }
+            index++;
+        }
+        double avgScore = scoreSum / matchCount;
+
+        //Decide which rules match using an iffy threshold
+        double threshold = avgScore + ((bestScore - avgScore) / 2);
+        index = 0;
         for(EpRule r : this.rules) {
-            if (this.currInternal.get(r.getId())) {
-                r.updateConfidences(this.prevInternal, this.prevExternal, this.currExternal);
+            if (scores[index] > threshold) {
+                result.add(r);
+            }
+            index++;
+        }//for
+
+        return result;
+    }//getRHSMatches
+
+    /**
+     * updateRuleConfidences
+     *
+     * examines all the rules that fired last timestep and updates
+     * the confidence of those that made an effective prediction.
+     * The list of effective rules is returned to the caller.
+     *
+     * TODO:  Do we need this method?  If trees built on all matches
+     * rather than just best matches then we could validate using the tree.
+     * OTOH, the deeper you go in the tree the less you should be penalziing rules, yes?
+     */
+    private Vector<EpRule> updateRuleConfidences() {
+        Vector<EpRule> effectiveRules = new Vector<EpRule>();
+
+        //Compare all the rules that matched RHS to the ones that matched LHS last timestep
+        Vector<EpRule> rhsMatches = getRHSMatches();
+        for(EpRule r : this.rules) {
+            if (this.currInternal.get(r.getId())) {  //did the rule match last timestep?
+                if (rhsMatches.contains(r)) {
+                    effectiveRules.add(r);
+                    //effective prediction means we can adjust confidences
+                    r.updateConfidences(this.prevInternal, this.prevExternal, this.currExternal);
+                } else {
+                    //TODO:  should we tinker with anything when the rule was wrong?
+                    //Answer:  I think no.  This will happen in the path validation
+                }
             }
         }
-    }//updateRuleConfidence
 
-
+        return effectiveRules;
+    }//updateRuleConfidences
 
     /**
      * updateRuleSet
@@ -344,7 +429,7 @@ public class PhuJusAgent implements IAgent {
      *
      */
     public void updateRuleSet() {
-        //Can't create a rule if there is not previous timestep
+        //Can't create a rule if there is not a previous timestep
         if (this.now == 1) return;
 
         //Create a candidate new rule based on agent's current state
@@ -375,9 +460,12 @@ public class PhuJusAgent implements IAgent {
         if (revScore == 1.0) {
             //DEBUG
             debugPrintln("Note:  revScore is 1.0");
+
+            //TODO: merge would happen here if revScore is high enough
         }
 
         //Find the rule with lowest activation & accuracy
+        //TODO:  right now accuracy is always 1.0 (TBI)
         EpRule worstRule = this.rules.get(0);
         double worstScore = worstRule.calculateActivation(this.now) * worstRule.getAccuracy();
         for (EpRule r : this.rules) {
