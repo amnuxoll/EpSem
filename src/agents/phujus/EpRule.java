@@ -314,6 +314,7 @@ public class EpRule {
      */
     public double lhsMatchScore(char action, HashMap<Integer, Boolean> lhsInt, SensorData lhsExt) {
         double sum = 0.0;
+        double count = 0.0;
 
         //If this rule is in a refractory state it can't match
         if (this.refractory > 0) return 0.0;
@@ -326,7 +327,10 @@ public class EpRule {
         for (IntCond iCond : this.lhsInternal) {
             Integer sIdVal = iCond.sId;
             if ( lhsInt.containsKey(sIdVal) && lhsInt.get(sIdVal) ) {
-                sum += iCond.getConfidence();
+                if(iCond.getConfidence() > 0.0) {
+                    sum += iCond.getConfidence();
+                    count++;
+                }
             }
         }
 
@@ -335,7 +339,10 @@ public class EpRule {
             if (lhsExt.hasSensor(eCond.sName)) {
                 Boolean sVal = (Boolean) lhsExt.getSensor(eCond.sName);
                 if (sVal == eCond.val){
-                    sum += eCond.getConfidence();
+                    if(eCond.getConfidence() > 0.0) {
+                        sum += eCond.getConfidence();
+                        count++;
+                    }
                 }
             }
         }
@@ -344,7 +351,10 @@ public class EpRule {
         //happen if the rule has no matching conditions.  I don't think that's worth
         //checking for.
 
-        double count = this.lhsInternal.size() + this.lhsExternal.size();
+//        double count = this.lhsInternal.size() + this.lhsExternal.size();
+        if(count == 0.0) {
+            return 0.0;
+        }
         return sum / count;
     }//lhsMatchScore
 
