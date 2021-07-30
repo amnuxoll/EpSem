@@ -10,7 +10,6 @@ import java.util.*;
  * This is a replacement for Rule that is similar to a weighted episode.
  */
 public class EpRule {
-
 //region Inner Classes
     /**
      * class Condition
@@ -309,6 +308,8 @@ public class EpRule {
     /**
      * calculates how closely this rule matches a given action and lhs sensors
      *
+     * TODO:  I think this method should ignore zero-confidence conditions.
+     *
      * @return  a match score from 0.0 to 1.0
      */
     public double lhsMatchScore(char action, HashMap<Integer, Boolean> lhsInt, SensorData lhsExt) {
@@ -485,16 +486,16 @@ public class EpRule {
     }
 
     /**
-     * updateConfidences
+     * updateConfidencesForPrediction
      *
-     * adjusts the confiedence values of this rule based upon how well it matched
-     * the given LHS values and predicted the given RHS values.
+     * adjusts the confidence values of this rule when it effectively predicts
+     * the next state
      *
      * CAVEAT:  This rule should be called when the rule correctly predicted
      *          the future.  Not when it didn't.
      * CAVEAT:  Do not call this method with sensors it didn't match with!
      */
-    public void updateConfidences(HashMap<Integer, Boolean> lhsInt, SensorData lhsExt, SensorData rhsExt) {
+    public void updateConfidencesForPrediction(HashMap<Integer, Boolean> lhsInt, SensorData lhsExt, SensorData rhsExt) {
         //Compare LHS internal values
         for (IntCond iCond : this.lhsInternal) {
             Integer sIdVal = iCond.sId;
@@ -532,9 +533,35 @@ public class EpRule {
                 eCond.decreaseConfidence();
             }
         }
+    }//updateConfidencesForPrediction
 
-    }//updateConfidences
+    /**
+     * when a rule is used to build a path that fails, I want to decrease my
+     * confidence in conditions that matched and caused the rule to be
+     * selected to build that path.
+     */
+    public void updateConfidencesForBadPath(TreeNode misstep) {
+        HashMap<Integer, Boolean> lhsInt = misstep.getCurrInternal();
+        SensorData lhsExt = misstep.getCurrExternal();
 
+        //Compare LHS internal values
+        for (IntCond iCond : this.lhsInternal) {
+            Integer sIdVal = iCond.sId;
+            if ( lhsInt.containsKey(sIdVal) && lhsInt.get(sIdVal) ) {
+                iCond.decreaseConfidence();
+            }
+        }
+
+        //Compare LHS external values
+        for (ExtCond eCond : this.lhsExternal) {
+            if (lhsExt.hasSensor(eCond.sName)) {
+                Boolean sVal = (Boolean) lhsExt.getSensor(eCond.sName);
+                if (sVal == eCond.val) {
+                    eCond.decreaseConfidence();
+                }
+            }
+        }
+    }//updateConfidencesForBadPath
 
 //region Getters and Setters
 
@@ -599,24 +626,6 @@ public class EpRule {
         if (removeMe != null) this.lhsInternal.remove(removeMe);
     }
 
-    /** rule enters a refractory period */
-    public void setRefractory() {
-        this.refractory = this.nextRefractPeriod;
-        this.nextRefractPeriod *= 2;
-    }
-
-    /** one timestep goes by in the refractory period */
-    public void tickRefractory() {
-        if (this.refractory > 0) {
-            this.refractory--;
-        } else if (this.nextRefractPeriod > 1) {
-            this.nextRefractPeriod--;
-        }
-    }
-
-    public boolean isRefractory() {
-        return this.refractory > 0;
-    }
 
 //endregion
 

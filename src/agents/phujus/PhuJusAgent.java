@@ -132,21 +132,6 @@ public class PhuJusAgent implements IAgent {
             printExternalSensors(this.currExternal);
         }
 
-        //tick the refractory period
-        while(this.refractory.size() > 0) {
-            Vector<EpRule> toRemove = new Vector<>();
-            for(EpRule r : this.refractory) {
-                r.tickRefractory();
-                if (!r.isRefractory()) {
-                    toRemove.add(r);
-                }
-            }
-
-            for(EpRule r : toRemove) {
-                this.refractory.remove(r);
-            }
-        }//while
-
         //see which rules correctly predicted these sensor values
         Vector<EpRule> effectiveRules = updateRuleConfidences();
 
@@ -163,11 +148,10 @@ public class PhuJusAgent implements IAgent {
         } else {
             //reset path if it's no longer valid
             //TODO:  are we holding the rules to too high a standard here?
-            EpRule stepRule = this.pathTraversedSoFar.get(this.pathTraversedSoFar.size() - 1).getRule();
+            TreeNode misstep = this.pathTraversedSoFar.get(this.pathTraversedSoFar.size() - 1);
+            EpRule stepRule = misstep.getRule();
             if (!effectiveRules.contains(stepRule)) {
-                //Put the rule in the refractory queue
-                stepRule.setRefractory();
-                this.refractory.add(stepRule);
+                stepRule.updateConfidencesForBadPath(misstep.getParent());
 
                 //build a path without it
                 buildNewPath();
@@ -436,7 +420,7 @@ public class PhuJusAgent implements IAgent {
                 if (rhsMatches.contains(r)) {
                     effectiveRules.add(r);
                     //effective prediction means we can adjust confidences
-                    r.updateConfidences(this.prevInternal, this.prevExternal, this.currExternal);
+                    r.updateConfidencesForPrediction(this.prevInternal, this.prevExternal, this.currExternal);
                 } else {
                     //TODO:  should we tinker with anything when the rule was wrong?
                     //Answer:  I think no.  This will happen in the path validation

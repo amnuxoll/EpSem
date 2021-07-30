@@ -377,7 +377,9 @@ public class TreeNode {
     }//equals
 
     public char getAction() { return this.rule.getAction(); }
-
     public EpRule getRule() { return this.rule; }
+    public HashMap<Integer, Boolean> getCurrInternal() { return this.currInternal; }
+    public SensorData getCurrExternal() { return this.currExternal; }
+    public TreeNode getParent() { return this.parent; }
 
 }//class TreeNode
