@@ -5,18 +5,26 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="27b18e86-aeea-4463-b6a3-6a0d984c98fc" name="Default Changelist" comment="Unit Tests Working&#10;&#10;I fixed the broken unit tests and revised the unit test code to remove a lot of the copy/paste that was going on.  I also observed unit tests need more work and more of them.  I'll keep gnawing on it.&#10;&#10;To support the unit tests and debugging I improved the TreeNode.printTree() method family.&#10;&#10;Some other comments and minor restructuring is in this revision as well.">
+      <change beforePath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/agents/phujus/PhuJusAgent.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/agents/phujus/PhuJusAgent.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/agents/phujus/Rule.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/agents/phujus/Rule.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/environments/fsm/FSMEnvironment.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/environments/fsm/FSMEnvironment.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/environments/fsm/FSMTransitionTable.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/environments/fsm/FSMTransitionTable.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/experiments/Runner.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/experiments/Runner.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/framework/TestRun.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/framework/TestRun.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/framework/TestSuiteConfiguration.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/framework/TestSuiteConfiguration.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/resultcompilers/file/FileResultCompiler.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/resultcompilers/file/FileResultCompiler.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Class" />
+      </list>
+    </option>
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -28,6 +36,9 @@
       <filtered-out-file-type name="TAG" />
       <filtered-out-file-type name="COMMIT_BY_MESSAGE" />
     </file-type-list>
+  </component>
+  <component name="HighlightingSettingsPerFile">
+    <setting file="file://$PROJECT_DIR$/src/agents/phujus/PhuJusAgent.java" root0="FORCE_HIGHLIGHTING" />
   </component>
   <component name="ProjectId" id="1ulUGaN0uiRa0NT1XjLfYYVcSgw" />
   <component name="ProjectViewState">
@@ -49,6 +60,7 @@
   </component>
   <component name="RunManager" selected="Application.experiment">
     <configuration name="experiment" type="Application" factoryName="Application">
+      <output_file path="output.txt" is_save="true" />
       <option name="MAIN_CLASS_NAME" value="experiments.Runner" />
       <module name="EpSem" />
       <method v="2">
@@ -112,25 +124,11 @@
     <option name="LAST_COMMIT_MESSAGE" value="Unit Tests Working&#10;&#10;I fixed the broken unit tests and revised the unit test code to remove a lot of the copy/paste that was going on.  I also observed unit tests need more work and more of them.  I'll keep gnawing on it.&#10;&#10;To support the unit tests and debugging I improved the TreeNode.printTree() method family.&#10;&#10;Some other comments and minor restructuring is in this revision as well." />
   </component>
   <component name="XDebuggerManager">
-    <breakpoint-manager>
-      <breakpoints>
-        <line-breakpoint enabled="true" type="java-line">
-          <url>file://$PROJECT_DIR$/src/tests/agents/phujus/PhuJusAgentTest.java</url>
-          <line>296</line>
-          <option name="timeStamp" value="114" />
-        </line-breakpoint>
-      </breakpoints>
-    </breakpoint-manager>
     <pin-to-top-manager>
       <pinned-members>
         <PinnedItemInfo parentTag="framework.SensorData" memberName="data" />
       </pinned-members>
     </pin-to-top-manager>
-    <watches-manager>
-      <configuration name="Application">
-        <watch expression="agent.now" language="JAVA" />
-      </configuration>
-    </watches-manager>
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />

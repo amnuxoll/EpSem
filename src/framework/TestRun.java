@@ -119,7 +119,10 @@ public class TestRun implements IIntrospector, Runnable {
                 //DEBUG
                 if (this.environment instanceof FSMEnvironment) {
                     FSMEnvironment env = (FSMEnvironment)this.environment;
-                    System.out.println("new state: " + env.getCurrentState());
+                    Integer currState = env.getCurrentState();
+                    System.out.print("new state: " + currState);
+                    System.out.print("\t(shortest path: " + env.getShortestSequenceString(currState));
+                    System.out.println(", blind path: " + env.getBlindPathString(currState) + ")");
                 }
 
                 if (sensorData.isGoal()) {

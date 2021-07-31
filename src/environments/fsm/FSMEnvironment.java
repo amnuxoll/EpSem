@@ -58,7 +58,8 @@ public class FSMEnvironment implements IEnvironment {
         //System.err.println(this.transitionTable);
 
         //DEBUG: print the universal sequence
-        System.err.println("Universal sequence: " + this.transitionTable.getUniversalSequence());
+        Sequence uSeq = this.transitionTable.getUniversalSequence();
+        System.err.println("Universal sequence: " + uSeq + " (" + uSeq.getLength() + " steps)");
     }
 
     private FSMEnvironment(FSMEnvironment toCopy) {
@@ -208,6 +209,34 @@ public class FSMEnvironment implements IEnvironment {
 //            }
 //        }
     }
+
+    /** @return a string showing the shortest path to the goal from a given state */
+    public String getShortestSequenceString(Integer currState) {
+        ArrayList<Action> shortSeq = this.transitionTable.getShortestSequences().get(currState);
+        StringBuilder result = new StringBuilder();
+        for(Action act : shortSeq) {
+            result.append(act.toString());
+        }
+        return result.toString();
+    }
+
+    /** @return a string showing the shortest blind path to the goal from a given state */
+    public String getBlindPathString(Integer startState) {
+        StringBuilder result = new StringBuilder("");
+        Sequence uSeq = this.transitionTable.getUniversalSequence();
+        int here = startState;
+        for(Action act : uSeq.getActions()) {
+            if (here == this.transitionTable.getNumberOfStates() - 1) {
+                break;
+            }
+
+            result.append(act.toString());
+            here = this.transitionTable.getTransitions()[here].get(act);
+        }
+
+        return result.toString();
+    }//getBlindPathString
+
     //endregion
 
     //region Enums

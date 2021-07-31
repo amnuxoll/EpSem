@@ -217,6 +217,15 @@ public class FileResultCompiler implements IResultCompiler {
 
             writer.write("=average(" + leftColumn + row + ":" + rightColumn + row + "),");
         }
+        writer.write("\n");
+
+        //Write out the optimal steps
+        writer.write("Optimal,");
+        for (int i = 2; i <= this.numberOfGoals + 1; i++) {
+            writer.write("4.44,"); //for now, hard-coded for 6,2 FSM
+        }
+        writer.write("\n");
+
         writer.write(",,,");
     }
 

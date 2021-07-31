@@ -16,6 +16,7 @@ public class FSMTransitionTable {
     private HashMap<Integer, ArrayList<Action>> shortestSequences;
     private Sequence universalSequence;
     private Action[] actions;
+    private String shortestBlindPath = null;
     //endregion
 
     //region Constructors
@@ -37,6 +38,101 @@ public class FSMTransitionTable {
     }
     //endregion
 
+    /**
+     * class PathNode
+     *
+     * used to contain info for the shortest path search.  Each node contains a
+     * path and the current position the agent would be in having followed that
+     * path from each state as well as 'h' and 'g' values to support A*
+     * searching
+     */
+    public class PathNode implements Comparable<PathNode> {
+        public ArrayList<Action> path = new ArrayList<>();
+        public final int NUM_STATES = getNumberOfStates();
+        public final int GOAL_STATE = NUM_STATES - 1;
+        public int[] currStates = new int[NUM_STATES];
+        public int g = 0;
+        public int h;
+
+        /** default ctor */
+        public PathNode() {
+            for(int i = 0; i < NUM_STATES; ++i) {
+                currStates[i] = i;
+            }
+            updateH();
+        }
+
+        /** copy ctor */
+        public PathNode(PathNode parent) {
+            path = new ArrayList<>(parent.path);
+            for(int i = 0; i < NUM_STATES; ++i) {
+                currStates[i] = parent.currStates[i];
+            }
+            g = parent.g;
+            h = parent.h;
+        }
+
+        /** calculate the 'h' (heuristic) value for A* search.  In this case
+         * it's the length of the longest remaining shortest path */
+        public void updateH() {
+            this.h = 0;
+            for(int i = 0; i < NUM_STATES; ++i) {
+                if (currStates[i] != GOAL_STATE) {
+                    this.h += shortestSequences.get(i).size();
+                }
+            }
+        }//updateH
+
+        /** the 'f' value for A* search */
+        public int getF() { return h + g; }
+
+        /** this method is for the Comparable interface so that we can use this
+         * node in a sorted collection */
+        public int compareTo(PathNode other) {
+            int result = (this.getF() - other.getF());
+
+            //tie breaker with g-value
+            if (result == 0) {
+                result = (this.g - other.g);
+            }
+
+            //tie breaker with lowest numbered curr state (arbitrary)
+            if (result == 0) {
+                for (int i = 0; i < NUM_STATES; ++i) {
+                    result = this.currStates[i] - other.currStates[i];
+                    if (result != 0) break;
+                }
+            }
+
+
+            return result;
+        }
+
+        /** appends a new action to the path and adjusts the states accordingly */
+        public void advance(Action act) {
+            for(int i = 0; i < NUM_STATES; ++i) {
+                if (currStates[i] != GOAL_STATE) {
+                    currStates[i] = transitions[currStates[i]].get(act);
+                }
+            }
+            path.add(act);
+            this.g++;
+            updateH();
+        }//advance
+
+        /** @return true if the agent would reach the goal from all states with
+         * this node's path
+         */
+        public boolean allGoal() {
+            for(int i = 0; i < NUM_STATES; ++i) {
+                if (currStates[i] != GOAL_STATE) return false;
+            }
+
+            return true;
+        }//allGoal
+
+    }//PathNode
+
     //region Public Methods
     public HashMap<Action, Integer>[] getTransitions() {
         return this.transitions;
@@ -50,34 +146,42 @@ public class FSMTransitionTable {
      * CAVEAT: This method is solving an NP-hard probelm and can take a really
      * long time to execute on larger FSMs.
      *
-     * TODO: reimplement this method for this class (stolen from a prev FSM generator)
      */
-    public String shortestBlindPathToGoal() {
-//        //An ordered set containing this initial node
-//        PathNode pn = new PathNode();
-//        TreeSet<PathNode> queue = new TreeSet<PathNode>();
-//        queue.add(pn);
-//
-//        //Main search loop
-//        while(! queue.isEmpty()) {
-//            PathNode parent = queue.first();
-//            queue.remove(parent);
-//            for(char c : alphabet) {
-//
-//                //Create a child node with this action
-//                PathNode node = new PathNode(parent);
-//                node.advance(c);
-//
-//                //Did we find the shortest path?
-//                if (node.allGoal()) return node.path;
-//
-//                //Use this node as parent for future searching
-//                queue.add(node);
-//            }//for
-//        }//while
-//
-        return "OOPS!"; //should not be reached
+    public Sequence getUniversalSequence() {
+        if (this.universalSequence != null) return this.universalSequence;
+        getShortestSequences();
+
+        //An ordered set containing this initial node
+        PathNode pn = new PathNode();
+        TreeSet<PathNode> queue = new TreeSet<PathNode>();
+        queue.add(pn);
+
+        //Main search loop
+        while(! queue.isEmpty()) {
+            PathNode parent = queue.first();
+            queue.remove(parent);
+            for(Action act : this.actions) {
+
+                //Create a child node with this action
+                PathNode node = new PathNode(parent);
+                node.advance(act);
+
+                //Did we find the shortest path?
+                if (node.allGoal()) {
+                    Action[] seqArray = node.path.toArray(new Action[0]);
+                    this.universalSequence = new Sequence(seqArray);
+                    return this.universalSequence;
+                }
+
+                //Use this node as parent for future searching
+                queue.add(node);
+            }//for
+        }//while
+
+        return null; //should not be reached
     }//shortestBlindPathToGoal
+
+
 
     public HashMap<Integer, ArrayList<Action>> getShortestSequences() {
         if (this.shortestSequences == null)
@@ -123,7 +227,7 @@ public class FSMTransitionTable {
     }
 
     /** this doesn't necessarily calculate the shortest universal sequence but it will be at least close */
-    public Sequence getUniversalSequence() {
+    public Sequence old_getUniversalSequence() {
         getShortestSequences();
         if (this.universalSequence == null)
         {

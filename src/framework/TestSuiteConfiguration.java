@@ -12,6 +12,9 @@ public class TestSuiteConfiguration {
     /** Defines a one-FSM (very short) debug configuration. */
     public static final TestSuiteConfiguration ONCE = new TestSuiteConfiguration(1, 50);
 
+    /** Defines a two-FSM (rather short) debug configuration. */
+    public static final TestSuiteConfiguration TWICE = new TestSuiteConfiguration(2, 50);
+
     /** Defines a short debug configuration. */
     public static final TestSuiteConfiguration QUICK = new TestSuiteConfiguration(10, 100);
     public static final TestSuiteConfiguration QUICK_MULTI = new TestSuiteConfiguration(10, 100, 3);
