@@ -153,7 +153,9 @@ public class FSMEnvironment implements IEnvironment {
      */
     private void applySensors(int currentState, SensorData sensorData) {
         if (this.sensorsToInclude.contains(Sensor.IS_EVEN))
-            this.applyEvenOddSensor(currentState, sensorData);
+            this.applyEvenSensor(currentState, sensorData);
+        if (this.sensorsToInclude.contains(Sensor.IS_ODD))
+            this.applyOddSensor(currentState, sensorData);
         if (this.sensorsToInclude.contains(Sensor.MOD_3)){
             this.applyMod3Sensor(currentState, sensorData);
         }
@@ -162,8 +164,12 @@ public class FSMEnvironment implements IEnvironment {
         this.applyCactiSensors(currentState, sensorData);
     }
 
-    private void applyEvenOddSensor(int state, SensorData sensorData) {
+    private void applyEvenSensor(int state, SensorData sensorData) {
         sensorData.setSensor(Sensor.IS_EVEN.toString(), state % 2 == 0);
+    }
+
+    private void applyOddSensor(int state, SensorData sensorData) {
+        sensorData.setSensor(Sensor.IS_ODD.toString(), state % 2 == 1);
     }
 
     private void applyMod3Sensor(int state, SensorData sensorData){
@@ -248,6 +254,7 @@ public class FSMEnvironment implements IEnvironment {
          * Identifies the sensor that determines if the current state is even or odd.
          */
         IS_EVEN,
+        IS_ODD,
         MOD_3,
 
         /** Identifies the sensor that turns on for exactly one state in the FSM */

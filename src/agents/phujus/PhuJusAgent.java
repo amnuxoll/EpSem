@@ -91,8 +91,6 @@ public class PhuJusAgent implements IAgent {
     //random numbers are useful sometimes (use a hardcoded seed for debugging)
     public static Random rand = new Random(2);
 
-    public int stepsSinceLastGoal = 0;
-
     /**
      * This method is called each time a new FSM is created and a new agent is
      * created.  As such, it also performs the duties of a ctor.
@@ -117,13 +115,7 @@ public class PhuJusAgent implements IAgent {
     @Override
     public Action getNextAction(SensorData sensorData) throws Exception {
         this.now++;
-        this.stepsSinceLastGoal++;
         this.currExternal = sensorData;
-
-        //DEBUG if hit, we did not fix the loop bug... YET
-        if(this.stepsSinceLastGoal > 100) {
-            System.out.println();
-        }
 
         //DEBUG
         if (PhuJusAgent.DEBUGPRINTSWITCH) {
@@ -135,10 +127,12 @@ public class PhuJusAgent implements IAgent {
         //see which rules correctly predicted these sensor values
         Vector<EpRule> effectiveRules = updateRuleConfidences();
 
+        //New rule may be added, old rule may be removed
+        updateRuleSet();
+
         //Reset path when goal is reached
         if (sensorData.isGoal()) {
             System.out.println("Found GOAL");
-            this.stepsSinceLastGoal = 0;
             rewardRulesForGoal();
             buildNewPath();
 
@@ -159,9 +153,6 @@ public class PhuJusAgent implements IAgent {
                 buildNewPath();
             }
         }
-
-        //New rule may be added, old rule may be removed
-        updateRuleSet();
 
         //extract next action
         char action;
@@ -285,10 +276,31 @@ public class PhuJusAgent implements IAgent {
      * @param sensorData sensors to print
      */
     public void printExternalSensors(SensorData sensorData) {
-        System.out.println("External Sensors: ");
-        for (String s : sensorData.getSensorNames()) {
-            System.out.println("\t" + s + ":" + sensorData.getSensor(s));
+        //Sort sensor names alphabetical order with GOAL last
+        Vector<String> sNames = new Vector<>(sensorData.getSensorNames());
+        Collections.sort(sNames);
+        int i = sNames.indexOf(SensorData.goalSensor);
+        if (i > -1) {
+            sNames.remove(i);
+            sNames.add(SensorData.goalSensor);
         }
+
+        //print sensor values as bit string
+        System.out.print("External Sensors: ");
+        for (String sName : sNames) {
+            int val = ((Boolean)sensorData.getSensor(sName)) ? 1 : 0;
+            System.out.print(val);
+        }
+
+        //print sensor names after
+        System.out.print("  (");
+        boolean comma = false;
+        for (String sName : sNames) {
+            if (comma) System.out.print(", ");
+            comma = true;
+            System.out.print(sName);
+        }
+        System.out.println(")");
     }//printExternalSensors
 
     /**
@@ -468,7 +480,7 @@ public class PhuJusAgent implements IAgent {
         //TODO:  consider merging cand with the bestRule?
         double mergeScore = cand.compareTo(bestMatch);
         if (mergeScore > 0.75) {
-            //TODO: merge would happen here if revScore is high enough.  Need something less arbitrary than 0.75
+            //TODO: merge would happen here if mergeScore is high enough.  Need something less arbitrary than 0.75
         }
 
         //Find the rule with lowest activation & accuracy
