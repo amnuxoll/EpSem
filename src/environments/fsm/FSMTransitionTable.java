@@ -82,8 +82,33 @@ public class FSMTransitionTable {
     public HashMap<Integer, ArrayList<Action>> getShortestSequences() {
         if (this.shortestSequences == null)
         {
-            // TODO for real
+            int numStates = transitions.length;
             this.shortestSequences = new HashMap<>();
+            //Goal node is presumed to be the highest numbered state.
+            //  So put a zero-step path (empty ArrayList) for its sequence
+            this.shortestSequences.put(numStates - 1, new ArrayList<>());
+            boolean tryAgain = true;
+            int currLen = 0;  //at each iteration we are looking for states that are this far from the goal
+            while(tryAgain) {
+                tryAgain = false;  //assume we're done until we find out otherwise
+
+                for(int state = 0; state < numStates - 1; ++state) {
+                    if (shortestSequences.get(state) == null) {
+                        tryAgain = true;  //if there are any unset sequences, we need loop again
+                        for(Action act : this.actions) {
+                            Integer destState = this.transitions[state].get(act);
+                            ArrayList<Action> destSS = this.shortestSequences.get(destState);
+                            if ((destSS != null) && (destSS.size() <= currLen)) {
+                                ArrayList<Action> newSS = new ArrayList<>(destSS);
+                                newSS.add(0, act);
+                                this.shortestSequences.put(state, newSS);
+                                break;
+                            }
+                        }//for each action
+                    }//if SS isn't set
+                }//for each state
+                currLen++;  //next time, look for SS that are +1 longer than this time
+            }//while(tryAgain)
         }
         return this.shortestSequences;
     }
@@ -97,6 +122,7 @@ public class FSMTransitionTable {
         return state == (this.transitions.length - 1);
     }
 
+    /** this doesn't necessarily calculate the shortest universal sequence but it will be at least close */
     public Sequence getUniversalSequence() {
         getShortestSequences();
         if (this.universalSequence == null)
