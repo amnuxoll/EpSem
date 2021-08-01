@@ -80,6 +80,34 @@ public class TreeNode {
     }
 
     /**
+     * isBetter
+     *
+     * compares two matching rules to determine which is better.  The base
+     * response is based on match score but there are some tie breakers.
+     * This method is a helper for {@link #calcBestMatchingRule(char)}.
+     *
+     * @param r1  first rule
+     * @param score1 first rule's matchs score
+     * @param r2 second rule
+     * @param score2 second rule's match score
+     * @return 'true' if r1 is better than r2
+     */
+    private boolean isBetter(EpRule r1, double score1, EpRule r2, double score2) {
+        //first test:  match scores
+        if (score1 > score2) { return true; }
+        if (score2 > score1) { return false; }
+
+        //First tie breaker:  activation
+        double r1Act = r1.calculateActivation(agent.getNow());
+        double r2Act = r2.calculateActivation(agent.getNow());
+        if (r1Act > r2Act) return true;
+        if (r2Act > r1Act) return false;
+
+        //Second tie breaker: random chance
+        return (PhuJusAgent.rand.nextDouble() > 0.5);
+    }//isBetter
+
+    /**
      * calcBestMatchingRule
      *
      * calculates which rule best matches this node with a given action
@@ -93,7 +121,7 @@ public class TreeNode {
         //TODO:  should it consider other top rules that are almost as good?
         for (EpRule r : this.rules) {
             double score = r.lhsMatchScore(action, this.currInternal, this.currExternal);
-            if (score > bestScore) {
+            if (isBetter(r, score, bestRule, bestScore)) {
                 bestScore = score;
                 bestRule = r;
             }
@@ -315,44 +343,6 @@ public class TreeNode {
                 && (this.currExternal.isGoal())  //goal sensor is true
                 && (this.rule != null) );   //this isn't the root
     }
-
-    //TODO: get this working with EpRules.  Mothballed for now
-//    /**
-//     * isValidPath
-//     *
-//     * checks to see if a previous path is still valid after an action from it is taken
-//     *
-//     * @return true is the previous path is still valid, false if new path is needed
-//     */
-//    public boolean isValidPath(String prevPath) {
-//        // Check to make sure there is a path
-//        if(prevPath.equals("")) {
-//            return false;
-//        }
-//
-//        // Path-to-take and Path-to-Nodes are reversed
-//        // So compare first char to in Path-to-take to last char in Path-to-Node
-//        char nextStep = prevPath.charAt(0);
-//        for(TreeNode child : this.children) {
-//            if(child.path.charAt(child.path.length()-1) == nextStep) {
-//                if(child.isGoalNode()) {
-//                    return true;
-//                } else if(child.isLeaf) {
-//                    //this likely happens because the tree was truncated by
-//                    // genSuccessors() when it found a shorter path.  We don't
-//                    //want to switch to a shorter path mid-stream (causes loops)
-//                    //so stick with this one and assume it's okay
-//                    return true;
-//                } else {
-//                    child.isValidPath(prevPath.substring(1));
-//                }
-//            }
-//        }
-//
-//        // If we don't find children, return false
-//        return false;
-//
-//    }//isValidPath
 
     /**
      * equals
