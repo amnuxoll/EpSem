@@ -146,6 +146,7 @@ public class PhuJusAgent implements IAgent {
             EpRule stepRule = misstep.getRule();
             if (!effectiveRules.contains(stepRule)) {
                 stepRule.updateConfidencesForBadPath(misstep.getParent());
+                debugPrintln("Current path failed on node: " + misstep);
 
                 //build a path without it
                 buildNewPath();
@@ -228,7 +229,7 @@ public class PhuJusAgent implements IAgent {
         double threshold = avgScore + ((bestScore - avgScore) / 2);
         index = 0;
         for(EpRule r : this.rules) {
-            boolean val = scores[index] > threshold;
+            boolean val = scores[index] >= threshold;
             result.put(r.getId(), val);
             index++;
         }//for
