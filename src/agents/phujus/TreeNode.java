@@ -296,7 +296,7 @@ public class TreeNode {
             if (child == null) {
                 char action = agent.getActionList()[i].getName().charAt(0);
 
-                EpRule bestRule = calcBestMatchingRule(action);
+                EpRule bestRule = calcBestRuleForAction(action);
                 if (bestRule != null) {
                     child = new TreeNode(this, bestRule);
                     this.children[i] = child;

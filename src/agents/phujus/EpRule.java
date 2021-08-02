@@ -568,6 +568,55 @@ public class EpRule {
         }
     }//updateConfidencesForBadPath
 
+    /**
+     * updateConfidencesForGoodPath
+     *
+     * adjust the confidences of rules that were used to create a path
+     * that eventually arrived at a goal
+     * @param step rule that we want to adjust confidence
+     */
+    public void updateConfidencesForGoodPath(TreeNode step) {
+        HashMap<Integer, Boolean> lhsInt = step.getParent().getCurrInternal();
+        SensorData lhsExt = step.getParent().getCurrExternal();
+        SensorData rhsExt = step.getCurrExternal();
+
+        //Compare LHS internal values
+        for (IntCond iCond : this.lhsInternal) {
+            Integer sIdVal = iCond.sId;
+            if ( lhsInt.containsKey(sIdVal) && lhsInt.get(sIdVal) ) {
+                iCond.increaseConfidence();
+            } else {
+                iCond.decreaseConfidence();
+            }
+        }
+
+        //Compare LHS external values
+        for (ExtCond eCond : this.lhsExternal) {
+            if (lhsExt.hasSensor(eCond.sName)) {
+                Boolean sVal = (Boolean) lhsExt.getSensor(eCond.sName);
+                if (sVal == eCond.val) {
+                    eCond.increaseConfidence();
+                } else {
+                    eCond.decreaseConfidence();
+                }
+            }
+        }
+
+        //Compare RHS external values
+        for (ExtCond eCond : this.rhsExternal) {
+            if (rhsExt.hasSensor(eCond.sName)) {
+                Boolean sVal = (Boolean) rhsExt.getSensor(eCond.sName);
+                if (sVal == eCond.val) {
+                    eCond.increaseConfidence();
+                } else {
+                    eCond.decreaseConfidence();
+                }
+            }
+        }
+    }//updateConfidencesForGoodPath
+
+
+
 //region Getters and Setters
 
     public int getId() { return this.ruleId; }

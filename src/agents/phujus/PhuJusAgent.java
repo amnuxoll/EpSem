@@ -134,6 +134,7 @@ public class PhuJusAgent implements IAgent {
         if (sensorData.isGoal()) {
             System.out.println("Found GOAL");
             rewardRulesForGoal();
+            updateConfidencesForGoal();
             buildNewPath();
 
         //reset path once expended with no goal
@@ -571,6 +572,22 @@ public class PhuJusAgent implements IAgent {
             reward *= EpRule.DECAY_RATE;
         }
     }//rewardRulesForGoal
+
+    /**
+     * updateConfidencesForGoal
+     *
+     * iterates through each TreeNode in a path used to get to a goal, and calls
+     * a helper method to adjust confidences of each condition accordingly
+     */
+    private void updateConfidencesForGoal() {
+        for(TreeNode node : this.pathTraversedSoFar) {
+            //Skip the first node, since root doesn't have a rule attached to it
+            if(node.getRule() == null) {
+                continue;
+            }
+            node.getRule().updateConfidencesForGoodPath(node);
+        }
+    }//updateConfidencesForGoal
 
     /**
      * debugPrintln
