@@ -4,6 +4,7 @@ import framework.SensorData;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.TreeSet;
 import java.util.Vector;
 
 /**
@@ -15,6 +16,30 @@ import java.util.Vector;
  */
 
 public class TreeNode {
+
+    /** pairs an EpRule with a numerical value so it can be sorted by that value */
+    private class RatedRule implements Comparable<RatedRule> {
+        public EpRule rule;
+        public double rating;
+
+        public RatedRule(EpRule initRule, double initRating) {
+            this.rule = initRule;
+            this.rating = initRating;
+        }
+
+        @Override
+        public int compareTo(RatedRule other) {
+            //Special case: tie
+            if (this.rating == other.rating) {
+                //break ties arbitrarily with rule number
+                return this.rule.getId() - other.rule.getId();
+            }
+
+            //regular case
+            return (this.rating > other.rating) ? -1 : 1;
+        }
+    }//class RatedRule
+
     //Agent
     private final PhuJusAgent agent;
 
@@ -106,6 +131,93 @@ public class TreeNode {
         //Second tie breaker: random chance
         return (PhuJusAgent.rand.nextDouble() > 0.5);
     }//isBetter
+
+    /**
+     * rankRulesByMatchScore
+     *
+     * @param action the action the agent intends to take
+     * @return a TreeSet of the agent's rules ordered from highest to lowest match score
+     */
+    private TreeSet<RatedRule> rankRulesByMatchScore(char action) {
+        TreeSet<RatedRule> treeResult = new TreeSet<>();
+        for(EpRule r : this.rules) {
+            double score = r.lhsMatchScore(action, this.currInternal, this.currExternal);
+            treeResult.add(new RatedRule(r, score));
+        }
+
+        return treeResult;
+    }//rankRulesByMatchScore
+
+    /**
+     * rankRulesByActivation
+     *
+     * same as {@link #rankRulesByMatchScore(char)} but for activation
+     */
+    private TreeSet<RatedRule> rankRulesByActivation() {
+        TreeSet<RatedRule> treeResult = new TreeSet<>();
+        for(EpRule r : this.rules) {
+            double activation = r.calculateActivation(agent.getNow());
+            treeResult.add(new RatedRule(r, activation));
+        }
+
+        return treeResult;
+    }//rankRulesByActivation
+
+    /**
+     * calcBestRuleForAction
+     *
+     * calculates which rule has the best combination of match score and
+     * activation to be used to expand this TreeNode with a given action.
+     *
+     * //TODO:  should rule accuracy also be a factor here?
+     * //TODO:  Do we need hyper-parameter weights on the factors? :(  Better if it was a self-tuning value.
+     *
+     * @return the best EpRule or null if there is no acceptable rule
+     */
+    private EpRule calcBestRuleForAction(char action) {
+        //First get the rules listed in rank order by each criteria
+        TreeSet<RatedRule> matchRanked = rankRulesByMatchScore(action);
+        TreeSet<RatedRule> actRanked = rankRulesByActivation();
+
+        //Each ranking yields a score from [0.0..1.0].
+        //The best product of these scores determines the overall best
+        double bestScore = 0.00001; //set to slightly above zero so the method will return null when the "best" match isn't a null
+        EpRule bestRule = null;
+        int matchCount = 0;
+        int actCount = 0;
+
+        //Find the best rule
+        //TODO:  should we consider other top rules that are almost as good?  I'm thinking no since activation is a factor in this ranking
+        for (RatedRule rMatch : matchRanked) {
+            if (rMatch.rating == 0.0) break;
+            double matchScore = ((double)(matchRanked.size() - matchCount)) / ((double)matchRanked.size());
+            actCount = 0;
+            for(RatedRule rAct : actRanked) {  //TODO: how to take advantage of TreeSet's nlogn search time?
+                if (rAct.rating == 0.0) break;
+                if (rAct.rule != rMatch.rule) {  //ok to use '==' here b/c same object
+                    actCount++;
+                    continue;
+                }
+                double actScore = ((double)(actRanked.size() - actCount)) / ((double)actRanked.size());
+
+                //Is this the best so far?
+                double overallScore = matchScore * actScore;
+                if (overallScore > bestScore) {
+                    bestScore = overallScore;
+                    bestRule = rAct.rule;
+                }
+                break;  //exit once rule is found
+            }//for actRanked
+            matchCount++;
+        }//for matchRanked
+
+        //Special case:  no matching rules activated yet
+        if ((bestRule == null) && (matchRanked.size() > 0) && (matchRanked.first().rating > 0.0)){
+            bestRule = matchRanked.first().rule;
+        }
+
+        return bestRule;
+    }//calcBestRuleForAction
 
     /**
      * calcBestMatchingRule
