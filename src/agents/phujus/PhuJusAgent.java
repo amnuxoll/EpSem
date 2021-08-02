@@ -458,6 +458,12 @@ public class PhuJusAgent implements IAgent {
         //Create a candidate new rule based on agent's current state
         EpRule cand = new EpRule(this);
 
+        //If the candidate is a GOAL rule give it an appropriate activation for that
+        if ( (cand.getRHSExternal().hasSensor(SensorData.goalSensor))
+            && ((Boolean)(cand.getRHSExternal().getSensor(SensorData.goalSensor))) ) {
+            cand.addActivation(this.now, EpRule.FOUND_GOAL_REWARD);
+        }
+
         //Find the existing rule that is most similar
         EpRule bestMatch = null;
         double bestScore = -1.0;
