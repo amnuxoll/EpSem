@@ -128,6 +128,7 @@ public class EpRule {
     private final double[] lastActAmount = new double[ACTHISTLEN]; // amount of activation last N times
     private int nextActPos = 0;
     private double activationLevel;  //CAVEAT:  this value may not be correct!  Call calculateActivation() to update it.
+    private int lastActCalcTime = -1;  //the last timestep when activation for which activation was calculated
     public static final double DECAY_RATE = 0.95;  //activation decays exponentially over time
 
     // Track the accuracy of this rule.  numMatches is how often it has matched (fired).
@@ -446,6 +447,9 @@ public class EpRule {
      * @see #addActivation(int, double)
      */
     public double calculateActivation(int now) {
+        //If we've already updated the activation level used that value
+        if (lastActCalcTime == now) return this.activationLevel;
+
         double result = 0.0;
         for(int j=0; j < lastActTimes.length; ++j) {
             if(lastActTimes[j] != 0) {
