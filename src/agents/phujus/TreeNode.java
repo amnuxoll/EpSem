@@ -379,10 +379,18 @@ public class TreeNode {
         result.append("->");
 
         //internal sensors
+        result.append("(");
+        int count = 0;
         for (Integer i : sortedKeys(this.currInternal)) {
-            result.append((this.currInternal.get(i)) ? "1" : "0");
+            if (((Boolean)this.currInternal.get(i))) {
+                if (count > 0) {
+                    result.append(", ");
+                }
+                count++;
+                result.append(i);
+            }
         }
-        result.append("|");
+        result.append(")|");
 
         //external sensors
         for (String s : sortedKeys(this.currExternal)) {
