@@ -252,14 +252,21 @@ public class TreeNode {
      * //TODO:  A*Search instead?
      */
     public Vector<TreeNode> findBestGoalPath() {
+        double bestScore = 0.0;
+        Vector<TreeNode> bestPath = null;
         for(int max = 1; max <= PhuJusAgent.MAXDEPTH; ++max) {
             Vector<TreeNode> visited = new Vector<>();
             Vector<TreeNode> path = fbgpHelper(0, max, visited);
-            if ( (path != null) && (path.size() <= max) )
-                return path;
+            if (path != null) {
+                double foundScore = calcPathConfidence(path);
+                if(foundScore > bestScore) {
+                    bestPath = path;
+                    bestScore = foundScore;
+                }
+            }
         }
 
-        return null;  //failed to find a path to goal
+        return bestPath;  //null if failed to find a path to goal
     }//findBestGoalPath
 
 
@@ -288,7 +295,10 @@ public class TreeNode {
         }
 
         //Recursive case: examine child nodes
-        Vector<TreeNode> bestPath = null;  //used to store best path found
+
+        //Keeps track of the best path we've seen so far
+        Vector<TreeNode> bestPath = null;
+        double bestScore = 0.0;
 
         for(int i = 0; i < agent.getActionList().length; ++i) {
             //Create the child node for this action if it doesn't exist yet
@@ -321,8 +331,10 @@ public class TreeNode {
             visited.add(child);
             Vector<TreeNode> foundPath = child.fbgpHelper(depth + 1, maxDepth, visited);
             if ( foundPath != null) {
-                if ((bestPath == null) || (foundPath.size() < bestPath.size())) {
+                double foundScore = (1.0 / (foundPath.size())) * (calcPathConfidence(foundPath));
+                if (foundScore > bestScore) {
                     bestPath = foundPath;
+                    bestScore = foundScore;
                 }
             }
         }//for
@@ -330,6 +342,16 @@ public class TreeNode {
         return bestPath;
 
     }//fbgpHelper
+
+    private double calcPathConfidence(Vector<TreeNode> path) {
+        double result = 1.0;
+        for(TreeNode node : path) {
+            if(node.rule != null) {
+                result *= node.rule.lhsMatchScore(node.rule.getAction(), node.getParent().currInternal, node.getParent().currExternal);
+            }
+        }
+        return result;
+    }//calcPathConfidence
 
     /**
      * sortedKeys

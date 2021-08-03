@@ -36,7 +36,8 @@ import java.util.Random;
  * > Change currInternal to be a HashSet of rules that fired?  I'm not sure if
  *    logging that a rule didn't fire is useful?
  * > Curiosity: when selecting a random action the agent prefers an action that
- *   does not match any known rule.
+ *   does not match any known rule. Also, when searching a tree, consider paths
+ *   that have never been tried before. (Potential hyper-parameters here unfortunately)
  */
 public class PhuJusAgent implements IAgent {
     public static final int MAXNUMRULES = 50;
@@ -88,6 +89,9 @@ public class PhuJusAgent implements IAgent {
     private Vector<TreeNode> pathToDo = null;
     private final Vector<TreeNode> pathTraversedSoFar = new Vector<>();
 
+    // Counter that tracks time steps since hitting a goal
+    private int stepsSinceGoal = 0;
+
     //random numbers are useful sometimes (use a hardcoded seed for debugging)
     public static Random rand = new Random(2);
 
@@ -116,12 +120,18 @@ public class PhuJusAgent implements IAgent {
     public Action getNextAction(SensorData sensorData) throws Exception {
         this.now++;
         this.currExternal = sensorData;
+        this.stepsSinceGoal++;
 
         //DEBUG
         if (PhuJusAgent.DEBUGPRINTSWITCH) {
             debugPrintln("TIME STEP: " + this.now);
             printInternalSensors(this.currInternal);
             printExternalSensors(this.currExternal);
+        }
+
+        //DEBUG
+        if(this.stepsSinceGoal >= 20) {
+            debugPrintln("");
         }
 
         //see which rules correctly predicted these sensor values
@@ -133,6 +143,7 @@ public class PhuJusAgent implements IAgent {
         //Reset path when goal is reached
         if (sensorData.isGoal()) {
             System.out.println("Found GOAL");
+            this.stepsSinceGoal = 0;
             rewardRulesForGoal();
             updateConfidencesForGoal();
             buildNewPath();
@@ -319,7 +330,7 @@ public class PhuJusAgent implements IAgent {
 
         for (EpRule r : this.rules) {
             //Print a match score first
-            double score = r.matchScore(action);
+            double score = r.lhsMatchScore(action);
             if ((action != '\0') && (score > 0.0)){
                 debugPrint(String.format("%.3f", score));
                 debugPrint(" ");

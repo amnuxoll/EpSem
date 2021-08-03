@@ -129,7 +129,7 @@ public class PhuJusAgentTest {
 
         //The first rule should be a perfect match
         EpRule er1 = new EpRule(agent);
-        Assertions.assertTrue(er1.matchScore(er1.getAction()) == 1.0);
+        Assertions.assertTrue(er1.lhsMatchScore(er1.getAction()) == 1.0);
 
         //Take another step
         try {
@@ -140,7 +140,7 @@ public class PhuJusAgentTest {
         }
 
         //Now it shouldn't be a perfect match
-        double score = er1.matchScore(er1.getAction());
+        double score = er1.lhsMatchScore(er1.getAction());
         Assertions.assertTrue(score < 1.0);
         Assertions.assertTrue(score >= 0.0);
 

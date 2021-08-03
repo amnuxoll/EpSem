@@ -270,6 +270,14 @@ public class EpRule {
             result.append('$');
             result.append(String.format("%.2f", iCond.getConfidence()));
         }
+        for(IntCond iCond : this.lhsNotInternal){
+            if (count > 0) result.append(", ");
+            count++;
+            result.append('!');
+            result.append(iCond.sId);
+            result.append('$');
+            result.append(String.format("%.2f", iCond.getConfidence()));
+        }
         result.append(")|");
 
         //LHS external sensors
@@ -339,8 +347,9 @@ public class EpRule {
         for (IntCond iCond: this.lhsNotInternal) {
             Integer sIdVal = iCond.sId;
             if( lhsInt.containsKey(sIdVal) && lhsInt.get(sIdVal) ) {
-                sum -= iCond.getConfidence();
-            }
+                sum -= iCond.getConfidence();  //penalize for match
+            } // Don't reward for non-match! This can cause a partial match based solely
+              // on the absence of these conditions which leads to loops
         }
 
         //Compare LHS external values
@@ -382,7 +391,7 @@ public class EpRule {
     }//rhsMatchScore
 
     /** convenience function that uses the sensors in the current agent */
-    public double matchScore(char action) {
+    public double lhsMatchScore(char action) {
         return lhsMatchScore(action, this.agent.getCurrInternal(), this.agent.getCurrExternal());
     }
 
