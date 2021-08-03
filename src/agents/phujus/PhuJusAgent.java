@@ -147,7 +147,9 @@ public class PhuJusAgent implements IAgent {
             EpRule stepRule = misstep.getRule();
             if (!effectiveRules.contains(stepRule)) {
                 stepRule.updateConfidencesForBadPath(misstep.getParent());
+                misstep.reevaluateInternalSensors(prevInternal);
                 debugPrintln("Current path failed on node: " + misstep);
+
 
                 //build a path without it
                 buildNewPath();
@@ -255,7 +257,7 @@ public class PhuJusAgent implements IAgent {
         debugPrint("Internal Sensors: ");
         int count = 0;
         for (Integer i : printMe.keySet()) {
-           boolean val = printMe.get(i);
+            boolean val = printMe.get(i);
             if (val) {
                 if (count > 0) debugPrint(", ");
                 debugPrint("" + i.toString());

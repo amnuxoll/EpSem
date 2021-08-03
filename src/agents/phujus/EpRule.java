@@ -113,6 +113,7 @@ public class EpRule {
     //Initially, all sensor values are present but, over time, they may get culled if they
     //prove inconsistent with the agent's experiences
     private final HashSet<IntCond> lhsInternal;
+    private final HashSet<IntCond> lhsNotInternal;
     private final HashSet<ExtCond> lhsExternal;
     private final char action;
 
@@ -152,6 +153,7 @@ public class EpRule {
         this.ruleId = EpRule.nextRuleId++;
         this.action = agent.getPrevAction();
         this.lhsExternal = initExternal(agent.getPrevExternal());
+        this.lhsNotInternal = new HashSet<>();
         this.lhsInternal = initInternal(agent.getPrevInternal());
         this.rhsExternal = initExternal(agent.getCurrExternal());
     }
@@ -330,6 +332,14 @@ public class EpRule {
                 sum += iCond.getConfidence();  //reward for match
             } else {
                 sum -= iCond.getConfidence();  //penalize for non-match
+            }
+        }
+
+        //Compare LHS *not* internal values (subtract confidence from sum if present)
+        for (IntCond iCond: this.lhsNotInternal) {
+            Integer sIdVal = iCond.sId;
+            if( lhsInt.containsKey(sIdVal) && lhsInt.get(sIdVal) ) {
+                sum -= iCond.getConfidence();
             }
         }
 
@@ -631,6 +641,15 @@ public class EpRule {
         return result;
     }
 
+    /** convert this.lhsNotInternal back to to a HashMap */
+    public HashMap<Integer, Boolean> getLHSNotInternal() {
+        HashMap<Integer, Boolean> result = new HashMap<>();
+        for(IntCond iCond : this.lhsNotInternal) {
+            result.put(iCond.sId, true);
+        }
+        return result;
+    }
+
     /** convert this.lhsExternal back to to a SensorData */
     public SensorData getLHSExternal() {
         SensorData result = SensorData.createEmpty();
@@ -647,6 +666,10 @@ public class EpRule {
             result.setSensor(eCond.sName, eCond.val);
         }
         return result;
+    }
+
+    public void addNotInternal(Integer i) {
+        this.lhsNotInternal.add(new IntCond(i));
     }
 
     public void incrMatches() {

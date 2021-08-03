@@ -361,6 +361,20 @@ public class TreeNode {
         return result;
     }//sortedKeys
 
+    /**
+     * reevaluateInternalSensors
+     *
+     * adds *not* internal sensors that will also be used in conditions when checking
+     * for a match score in lhsMatchScore
+     * @param prevInternal Internal sensors from previous time step
+     */
+    public void reevaluateInternalSensors(HashMap<Integer, Boolean> prevInternal) {
+        for(Integer i : prevInternal.keySet()) {
+            if(prevInternal.get(i) == true && !(rule.getLHSInternal().containsKey(i))) {
+                this.rule.addNotInternal(i);
+            }
+        }
+    }//reevaluateInternalSensors
 
     /**
      * toString
