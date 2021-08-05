@@ -64,6 +64,9 @@ public class EpRule {
 
         @Override
         public int compareTo(ExtCond o) { return this.sName.compareTo(o.sName); }
+
+        @Override
+        public int hashCode() { return Objects.hash(sName, val); }
     }//class ExtCond
 
     /**
@@ -89,7 +92,8 @@ public class EpRule {
         @Override
         public String toString() { return "" + sId; }
 
-
+        @Override
+        public int hashCode() { return Objects.hash(sId); }
     }//class IntCond
 
 //endregion
@@ -310,8 +314,9 @@ public class EpRule {
         }
         result.append(") ^ ");
 
-        //Activation
-        result.append(String.format("%.5f", calculateActivation(agent.getNow())));
+        //Activation & Accuracy
+        result.append(String.format("act=%.5f", calculateActivation(agent.getNow())));
+        result.append(String.format("  acc=%.5f", getAccuracy()));
 
         return "#" + this.ruleId + ": " + toShortString() + "    " + result;
     }//toString
@@ -403,6 +408,9 @@ public class EpRule {
      */
     public double compareTo(EpRule other) {
         double sum = 0.0;
+
+        //actions must match
+        if (this.action != other.action) return 0.0;
 
         //Compare LHS internal values
         HashSet<IntCond> largerLHSInt = this.lhsInternal;
@@ -518,6 +526,10 @@ public class EpRule {
      * CAVEAT:  This rule should be called when the rule correctly predicted
      *          the future.  Not when it didn't.
      * CAVEAT:  Do not call this method with sensors it didn't match with!
+     *
+     * @param lhsInt  the internal sensors that the rule matched
+     * @param lhsExt  the external sensors that the rule matched
+     * @param rhsExt  the external sensors that appeared on the next timestep
      */
     public void updateConfidencesForPrediction(HashMap<Integer, Boolean> lhsInt, SensorData lhsExt, SensorData rhsExt) {
         //Compare LHS internal values
@@ -560,86 +572,35 @@ public class EpRule {
     }//updateConfidencesForPrediction
 
     /**
-     * when a rule is used to build a path that fails, I want to decrease my
-     * confidence in conditions that matched and caused the rule to be
-     * selected to build that path.
-     */
-    public void updateConfidencesForBadPath(TreeNode misstep) {
-        HashMap<Integer, Boolean> lhsInt = misstep.getCurrInternal();
-        SensorData lhsExt = misstep.getCurrExternal();
-
-        //Compare LHS internal values
-        for (IntCond iCond : this.lhsInternal) {
-            Integer sIdVal = iCond.sId;
-            if ( lhsInt.containsKey(sIdVal) && lhsInt.get(sIdVal) ) {
-                iCond.decreaseConfidence();
-            }
-        }
-
-        //Compare LHS external values
-        for (ExtCond eCond : this.lhsExternal) {
-            if (lhsExt.hasSensor(eCond.sName)) {
-                Boolean sVal = (Boolean) lhsExt.getSensor(eCond.sName);
-                if (sVal == eCond.val) {
-                    eCond.decreaseConfidence();
-                }
-            }
-        }
-    }//updateConfidencesForBadPath
-
-    /**
-     * updateConfidencesForGoodPath
+     * reevaluateInternalSensors
      *
-     * adjust the confidences of rules that were used to create a path
-     * that eventually arrived at a goal
-     * @param step rule that we want to adjust confidence
+     * adds *not* internal sensors that will also be used in conditions when checking
+     * for a match score in lhsMatchScore
+     * @param prevInternal Internal sensors from previous time step
      */
-    public void updateConfidencesForGoodPath(TreeNode step) {
-        HashMap<Integer, Boolean> lhsInt = step.getParent().getCurrInternal();
-        SensorData lhsExt = step.getParent().getCurrExternal();
-        SensorData rhsExt = step.getCurrExternal();
+    public void reevaluateInternalSensors(HashMap<Integer, Boolean> prevInternal) {
+        for(Integer i : prevInternal.keySet()) {
+            if(prevInternal.get(i) == true) {
+                boolean found = false;
 
-        //Compare LHS internal values
-        for (IntCond iCond : this.lhsInternal) {
-            Integer sIdVal = iCond.sId;
-            if ( lhsInt.containsKey(sIdVal) && lhsInt.get(sIdVal) ) {
-                iCond.increaseConfidence();
-            } else {
-                iCond.decreaseConfidence();
-            }
-        }
-
-        //Compare LHS external values
-        for (ExtCond eCond : this.lhsExternal) {
-            if (lhsExt.hasSensor(eCond.sName)) {
-                Boolean sVal = (Boolean) lhsExt.getSensor(eCond.sName);
-                if (sVal == eCond.val) {
-                    eCond.increaseConfidence();
-                } else {
-                    eCond.decreaseConfidence();
+                //check to see if it's already present as a positive condition
+                for(IntCond iCond : this.lhsInternal) {
+                    if (iCond.sId == i) {
+                        found = true;
+                        break;
+                    }
                 }
+                if (!found) this.addNotInternal(i);
             }
-        }
-
-        //Compare RHS external values
-        for (ExtCond eCond : this.rhsExternal) {
-            if (rhsExt.hasSensor(eCond.sName)) {
-                Boolean sVal = (Boolean) rhsExt.getSensor(eCond.sName);
-                if (sVal == eCond.val) {
-                    eCond.increaseConfidence();
-                } else {
-                    eCond.decreaseConfidence();
-                }
-            }
-        }
-    }//updateConfidencesForGoodPath
-
+        }//for
+    }//reevaluateInternalSensors
 
 
 //region Getters and Setters
 
     public int getId() { return this.ruleId; }
     public char getAction() { return this.action; }
+    public HashSet<ExtCond> getRHSConds() { return this.rhsExternal; }
 
     /** convert this.lhsInternal back to to a HashMap */
     public HashMap<Integer, Boolean> getLHSInternal() {
@@ -711,6 +672,7 @@ public class EpRule {
         }
         if (removeMe != null) this.lhsInternal.remove(removeMe);
     }
+
 
 
 //endregion

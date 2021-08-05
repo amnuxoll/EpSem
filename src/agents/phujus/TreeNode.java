@@ -2,10 +2,7 @@ package agents.phujus;
 
 import framework.SensorData;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.TreeSet;
-import java.util.Vector;
+import java.util.*;
 
 /**
  * class TreeNode
@@ -63,10 +60,16 @@ public class TreeNode {
     private boolean isLeaf = false;
 
     //This is the rule used to reach this node (use null for the root)
-    private final EpRule rule;
+    private EpRule rule;
 
-    //This is the path used to reach this node (the root should be an empty list)
+    //This is the path used to reach this node
     private final Vector<TreeNode> path;
+
+    //The same path expressed as a String of actions
+    private final String pathStr;
+
+    //A measure from 0.0 to 1.0 of how confident the agent is that this path is correct
+    private double confidence;
 
     /**
      * This root node constructor is built from the agent.
@@ -83,26 +86,158 @@ public class TreeNode {
         this.currInternal = agent.getCurrInternal();
         this.currExternal = agent.getCurrExternal();
         this.path = new Vector<>();
-
+        this.pathStr = "";
+        //full confidence because drawn directly from agent's present sensing
+        this.confidence = 1.0;
     }
 
     /**
-     * This child node constructor is built from a parent node and a rule
+     * This child node constructor is built from a parent node and a selected action
      *
      */
-    public TreeNode(TreeNode parent, EpRule rule) {
+    public TreeNode(TreeNode parent, char action) {
         //initializing agent and its children
         this.agent = parent.agent;
         this.rules = parent.rules;
         this.parent = parent;
         this.children = new TreeNode[agent.getNumActions()]; // actionSize
         this.episodeIndex = parent.episodeIndex + 1;
-        this.rule = rule;
-        this.currInternal = agent.genNextInternal(rule.getAction(), parent.currInternal, parent.currExternal);
-        this.currExternal = rule.getRHSExternal();
+        this.rule = null;  //not used
+        this.currInternal = agent.genNextInternal(action, parent.currInternal, parent.currExternal);
+        this.currExternal = softmaxSelect(action);
         this.path = new Vector<>(parent.path);
         this.path.add(this);
+        this.pathStr = parent.pathStr + action;
+        //Note: this.confidence is set by voteRHSExternal()
     }
+
+    /**
+     * softmaxSelect
+     *
+     * randomly selects one rule to predict the currExternal for this node.
+     * The selection is weighted by the product of:
+     *  - the rule's match score to the parent's sensors
+     *  - the rule's accuracy
+     *  - TODO: should we also use confidence in RHS values?
+     *
+     * Algorithm:  https://en.wikipedia.org/wiki/Softmax_function
+     * Side effect:  this.rule and this.confidence are also set by this method
+     *
+     * @param action the selected action for this node
+     * @return the selected rule's SensorData
+     */
+    private SensorData softmaxSelect(char action) {
+        double sum = 0.0;
+
+        //Calculate the weight of each rule
+        double[] weights = new double[this.rules.size()];
+        int index = 0;
+        for(EpRule rule : this.rules) {
+            double score = rule.lhsMatchScore(action, parent.currInternal, parent.currExternal);
+            double acc = rule.getAccuracy();
+            double weight = score * acc * 10;
+            if (weight > 0.0) weight = Math.pow(Math.E, weight);
+            weights[index] = weight;
+            sum += weight;
+            index++;
+        }//for
+
+        //Special case:  no helpful rules
+        if (sum == 0.0) {
+            this.rule = null;
+            this.confidence *= 0.01; //TODO: calc this value based baseline goal probability
+            SensorData result = SensorData.createEmpty();
+            result.setSensor(SensorData.goalSensor, true);
+            return result;
+        }
+
+        //Weighted, random selection
+        double random = PhuJusAgent.rand.nextDouble();
+        for(int i = 0; i < weights.length; ++i) {
+            random -= weights[i]/sum;
+            if (random <= 0.0) {
+                this.rule = this.rules.get(i);
+                this.confidence = Math.log(weights[i]) / 10;
+                return this.rule.getRHSExternal();
+            }
+        }
+
+        return null; //should never be reached
+    }//softmaxSelect
+
+
+
+    /**
+     * Calculates the best guess expected RHS values if a given action is
+     * selected when the agent reaches a state corresponding to this node.
+     * The calculation is done via a voting process:  every rule votes
+     * for particular sensor values and each vote is weighted by the
+     * product of:
+     *  - the rule's match score to the parent's sensors
+     *  - the rule's confidence of the RHS value
+     *  - the rule's accuracy
+     *
+     * Side effect:  this.confidence is also set by this method
+     *
+     * @param action the selected action for this node
+     * @return SensorData that is the agent's
+     */
+    //TODO:  this is currently unused but I want to replace softmaxSelect() with this.  It's creating infinite loops atm.
+    private SensorData voteRHSExternal(char action) {
+        //Tally the votes from each rule
+        HashMap<String, Double> rhsTrue = new HashMap<>();  //votes for 'true'
+        HashMap<String, Double> rhsFalse = new HashMap<>(); //votes for 'false'
+        for(EpRule r : this.rules) {
+            double score = r.lhsMatchScore(action, parent.currInternal, parent.currExternal);
+            if (score == 0.0) continue; //no vote
+            for(EpRule.ExtCond eCond : r.getRHSConds()) {
+                //calculate the 'weight' of this rule's vote
+                double adj = score * eCond.getConfidence() * r.getAccuracy();
+
+                //Is this a 'true' vote or a 'false' vote
+                HashMap<String, Double> target = rhsTrue;
+                if (!eCond.val) {
+                    target = rhsFalse;
+                }
+
+                //record the vote
+                if (!target.containsKey(eCond.sName)) {
+                    target.put(eCond.sName, adj);
+                } else {
+                    double currVal = target.get(eCond.sName);
+                    target.put(eCond.sName, currVal + adj);
+                }
+            }//for each cond
+        }//for each rule
+
+        //Set confidence and build a SensorData based on the tallied votes
+        this.confidence = parent.confidence;
+        SensorData result = SensorData.createEmpty();
+        TreeSet<String> allKeys = new TreeSet<>(rhsTrue.keySet());
+        allKeys.addAll(rhsFalse.keySet());
+        for(String sName : allKeys) {
+            double trueVotes = (rhsTrue.containsKey(sName)) ? rhsTrue.get(sName) : 0.0;
+            double falseVotes = (rhsFalse.containsKey(sName)) ? rhsFalse.get(sName) : 0.0;
+
+            if (trueVotes != falseVotes) {  //tie means sensor is excluded
+                //set SensorData value
+                result.setSensor(sName, trueVotes > falseVotes);
+
+                //confidence based on vote totals
+                this.confidence *= Math.max(trueVotes, falseVotes) / (trueVotes + falseVotes);
+            }
+
+        }//for
+
+        //Special case:  empty SensorData
+        //   assume goal at nominal probability
+        if (result.getSensorNames().size() == 0) {
+            result.setSensor(SensorData.goalSensor, true);
+            this.confidence *= 0.01; //TODO: calc this value based baseline goal probability
+        }
+
+        return result;
+    }//voteRHSExternal
 
     /**
      * isBetter
@@ -255,10 +390,13 @@ public class TreeNode {
         double bestScore = 0.0;
         Vector<TreeNode> bestPath = null;
         for(int max = 1; max <= PhuJusAgent.MAXDEPTH; ++max) {
-            Vector<TreeNode> visited = new Vector<>();
-            Vector<TreeNode> path = fbgpHelper(0, max, visited);
+            Vector<TreeNode> path = fbgpHelper(0, max);
             if (path != null) {
-                double foundScore = calcPathConfidence(path);
+                double foundScore = path.lastElement().confidence;
+
+                //Adjust confidence based upon the PathRules eval
+                foundScore *= agent.metaScorePath(path);
+
                 if(foundScore > bestScore) {
                     bestPath = path;
                     bestScore = foundScore;
@@ -277,11 +415,10 @@ public class TreeNode {
      *
      * @param depth  depth of this node
      * @param maxDepth maximum depth allowed
-     * @param visited nodes we've visited so far
      *
      * @return a path to the goal (or null if not found)
      */
-    private Vector<TreeNode> fbgpHelper(int depth, int maxDepth, Vector<TreeNode> visited) {
+    private Vector<TreeNode> fbgpHelper(int depth, int maxDepth) {
         //base case:  found goal
         if (isGoalNode()) {
             this.isLeaf = true;
@@ -305,33 +442,19 @@ public class TreeNode {
             TreeNode child = this.children[i];
             if (child == null) {
                 char action = agent.getActionList()[i].getName().charAt(0);
-
-                EpRule bestRule = calcBestRuleForAction(action);
-                if (bestRule != null) {
-                    child = new TreeNode(this, bestRule);
-                    this.children[i] = child;
-                } else {
-                    this.children[i] = null;
-                    continue;
-                }
+                this.children[i] = new TreeNode(this, action);
+                child = this.children[i];
             } //if create new child node
             else {
                 child.isLeaf = false; //reset from any prev use of this child
             }
 
-            //don't expand this child node if we've seen it before
-            //TODO:  I don't think we can do this.  It's preventing us from finding goals
-//            if (visited.contains(child)) {
-//                child.isLeaf = true;
-//                continue;
-//            }
-
             //Recursive case: test all children and return shortest path
             // TODO: path confidence should play a role not just path length
-            visited.add(child);
-            Vector<TreeNode> foundPath = child.fbgpHelper(depth + 1, maxDepth, visited);
+            Vector<TreeNode> foundPath = child.fbgpHelper(depth + 1, maxDepth);
             if ( foundPath != null) {
-                double foundScore = (1.0 / (foundPath.size())) * (calcPathConfidence(foundPath));
+                double confidence = foundPath.lastElement().confidence;
+                double foundScore = (1.0 / (foundPath.size())) * confidence;
                 if (foundScore > bestScore) {
                     bestPath = foundPath;
                     bestScore = foundScore;
@@ -343,15 +466,39 @@ public class TreeNode {
 
     }//fbgpHelper
 
-    private double calcPathConfidence(Vector<TreeNode> path) {
-        double result = 1.0;
-        for(TreeNode node : path) {
-            if(node.rule != null) {
-                result *= node.rule.lhsMatchScore(node.rule.getAction(), node.getParent().currInternal, node.getParent().currExternal);
+    /**
+     * findMostUncertainPath
+     *
+     * is called on a completed tree in which no path to GOAL was found.
+     * It selects a relatively short path with a high degree of
+     * uncertainty about the outcome.
+     *
+     * @return the path found
+     */
+    public Vector<TreeNode> findMostUncertainPath() {
+        Vector<TreeNode> toSearch = new Vector<>();
+        toSearch.add(this);
+
+        double bestScore = 0.0;
+        Vector<TreeNode> bestPath = null;
+        while(toSearch.size() > 0) {
+            TreeNode curr = toSearch.remove(0);
+            double invConf = 1.0 - curr.confidence;
+            double score = (1.0/((double)curr.path.size())) * invConf;
+            if (score > bestScore) {
+                bestScore = score;
+                bestPath = curr.path;
             }
-        }
-        return result;
-    }//calcPathConfidence
+
+            //queue children to be searched
+            for(TreeNode child : curr.children) {
+                if (child != null) toSearch.add(child);
+            }
+        }//while
+
+        return bestPath;
+    }//findMostUncertainPath
+
 
     /**
      * sortedKeys
@@ -370,7 +517,7 @@ public class TreeNode {
      * @return a sorted Vector of the Integer keys in an external sensor SensorData.
      * The GOAL sensor is always put at the end, however.
      */
-    private Vector<String> sortedKeys(SensorData external) {
+    private static Vector<String> sortedKeys(SensorData external) {
         Vector<String> result = new Vector<>(external.getSensorNames());
         Collections.sort(result);
 
@@ -384,19 +531,18 @@ public class TreeNode {
     }//sortedKeys
 
     /**
-     * reevaluateInternalSensors
+     * extToString
      *
-     * adds *not* internal sensors that will also be used in conditions when checking
-     * for a match score in lhsMatchScore
-     * @param prevInternal Internal sensors from previous time step
+     * a shortened bit-based toString() method for SensorData
      */
-    public void reevaluateInternalSensors(HashMap<Integer, Boolean> prevInternal) {
-        for(Integer i : prevInternal.keySet()) {
-            if(prevInternal.get(i) == true && !(rule.getLHSInternal().containsKey(i))) {
-                this.rule.addNotInternal(i);
-            }
+    public static String extToString(SensorData stringMe) {
+        StringBuilder result = new StringBuilder();
+        for (String s : sortedKeys(stringMe)) {
+            Boolean val = (Boolean) stringMe.getSensor(s);
+            result.append(val ? "1" : "0");
         }
-    }//reevaluateInternalSensors
+        return result.toString();
+    }//extToString
 
     /**
      * toString
@@ -407,11 +553,8 @@ public class TreeNode {
     public String toString() {
         StringBuilder result = new StringBuilder();
 
-        //create a path string of actions that led to this node
-        for (TreeNode node : this.path) {
-            result.append(node.getAction());
-        }
-
+        //the actions that led to this node
+        result.append(this.pathStr);
         result.append("->");
 
         //internal sensors
@@ -429,10 +572,7 @@ public class TreeNode {
         result.append(")|");
 
         //external sensors
-        for (String s : sortedKeys(this.currExternal)) {
-            Boolean val = (Boolean) this.currExternal.getSensor(s);
-            result.append(val ? "1" : "0");
-        }
+        result.append(TreeNode.extToString(this.currExternal));
 
         //Rule # and match score
         if (this.rule != null) {
@@ -443,6 +583,14 @@ public class TreeNode {
                                                    this.parent.currInternal,
                                                    this.parent.currExternal);
             result.append(String.format("%.2f", score));
+        }
+
+        //Confidence
+        result.append(" c");
+        if ((this.confidence == 1.0) || (this.confidence == 0.0) || (this.confidence == 0.1)){
+            result.append(this.confidence);
+        } else {
+            result.append(String.format("%.6f", this.confidence));
         }
 
         return result.toString();
@@ -497,13 +645,13 @@ public class TreeNode {
     public boolean isGoalNode() {
         return ( (this.currExternal.getSensor(SensorData.goalSensor) != null)  //goal sensor is present
                 && (this.currExternal.isGoal())  //goal sensor is true
-                && (this.rule != null) );   //this isn't the root
+                && (this.parent != null) );   //this isn't the root
     }
 
     /**
      * equals
      *
-     * method is overridden to only compare sensors and action
+     * method is overridden to only compare sensors and actions
      */
     @Override
     public boolean equals(Object obj) {
@@ -511,7 +659,7 @@ public class TreeNode {
         TreeNode other = (TreeNode)obj;
 
         //compare actions
-        if (this.getAction() != other.getAction()) return false;
+        if (! this.pathStr.equals(other.pathStr)) return false;
 
         //compare sensors
         if (! other.currExternal.equals(this.currExternal)) return false;
@@ -522,7 +670,8 @@ public class TreeNode {
 
     }//equals
 
-    public char getAction() { return this.rule.getAction(); }
+    public char getAction() { return this.pathStr.charAt(this.pathStr.length() - 1); }
+    public String getPathStr() { return this.pathStr; }
     public EpRule getRule() { return this.rule; }
     public HashMap<Integer, Boolean> getCurrInternal() { return this.currInternal; }
     public SensorData getCurrExternal() { return this.currExternal; }

@@ -88,9 +88,15 @@ public class PhuJusAgent implements IAgent {
     //The agent's current selected path to goal (a sequence of nodes in the search tree)
     private Vector<TreeNode> pathToDo = null;
     private final Vector<TreeNode> pathTraversedSoFar = new Vector<>();
+    private Vector<TreeNode> prevPath = null;
 
     // Counter that tracks time steps since hitting a goal
     private int stepsSinceGoal = 0;
+
+    //PathRules are stored here
+    private PathRule pendingPR = null;
+    private Vector<PathRule> pathRules = new Vector<>();
+
 
     //random numbers are useful sometimes (use a hardcoded seed for debugging)
     public static Random rand = new Random(2);
@@ -143,37 +149,38 @@ public class PhuJusAgent implements IAgent {
         //Reset path when goal is reached
         if (sensorData.isGoal()) {
             System.out.println("Found GOAL");
-            this.stepsSinceGoal = 0;
             rewardRulesForGoal();
-            updateConfidencesForGoal();
+            this.stepsSinceGoal = 0;
             buildNewPath();
-
         //reset path once expended with no goal
         } else if ((this.pathToDo == null)) {
             buildNewPath();
-        } else {
-            //reset path if it's no longer valid
-            //TODO:  are we holding the rules to too high a standard here?
-            TreeNode misstep = this.pathTraversedSoFar.get(this.pathTraversedSoFar.size() - 1);
-            EpRule stepRule = misstep.getRule();
-            if (!effectiveRules.contains(stepRule)) {
-                stepRule.updateConfidencesForBadPath(misstep.getParent());
-                misstep.reevaluateInternalSensors(prevInternal);
-                debugPrintln("Current path failed on node: " + misstep);
+        //reached end of path without finding goal
+        } else if ((this.pathToDo.size() == 0)) {
+            //DEBUG
+            debugPrintln("Current path failed.");
 
+            //TODO: adjust rules in path?
 
-                //build a path without it
-                buildNewPath();
-            } else if ((this.pathToDo.size() == 0)) {
-                buildNewPath();
-            }
+            buildNewPath();
         }
 
         //extract next action
         char action;
         if (pathToDo != null) {
             action = this.pathToDo.get(0).getAction();
-            debugPrintln("Selected action: " + action + " from path: " + pathToString(this.pathToDo));
+
+            //DEBUG
+            debugPrint("Selecting next action: " + action + " from path: ");
+            if (this.pathTraversedSoFar.size() > 0) {
+                debugPrint(this.pathTraversedSoFar.lastElement().getPathStr());
+                debugPrint(".");
+            }
+            for(TreeNode node : this.pathToDo) {
+                debugPrint("" + node.getAction());
+            }
+            debugPrintln("");
+
             this.pathTraversedSoFar.add(this.pathToDo.remove(0));
         } else {
             //random action
@@ -353,6 +360,7 @@ public class PhuJusAgent implements IAgent {
         return sbResult.toString();
     }//pathToString
 
+
     /**
      * buildNewPath
      *
@@ -362,6 +370,17 @@ public class PhuJusAgent implements IAgent {
      *
      */
     private void buildNewPath() {
+        //If the last path was completed, save it
+        if ((this.pathTraversedSoFar.size() > 0)
+                && (this.pathToDo != null)
+                && (this.pathToDo.size() == 0)) {
+            this.prevPath = new Vector<>(this.pathTraversedSoFar);
+        } else {
+            //if path was aborted early, also abort any pending PathRule data
+            this.prevPath = null;
+            this.pendingPR = null;
+        }
+
         this.pathTraversedSoFar.clear();
 
         //Find a new path to the goal
@@ -372,11 +391,19 @@ public class PhuJusAgent implements IAgent {
         if (PhuJusAgent.DEBUGPRINTSWITCH) {
             root.printTree();
             if (this.pathToDo != null) {
-                debugPrintln("found path: " + pathToString(this.pathToDo));
+                debugPrintln("found path: " + this.pathToDo.lastElement().getPathStr());
             } else {
-                debugPrintln("no path found");
+                this.pathToDo = root.findMostUncertainPath();
+                if (this.pathToDo != null) {
+                    debugPrintln("found uncertain path: " + this.pathToDo.lastElement().getPathStr());
+                } else {
+                    debugPrintln("no path found");
+                }
             }
         }
+
+        //Update the PathRule set as well
+        addPathRule();
 
     }//buildNewPath
 
@@ -434,8 +461,9 @@ public class PhuJusAgent implements IAgent {
      * The list of effective rules is returned to the caller.
      *
      * TODO:  Do we need this method?  If trees built on all matches
-     * rather than just best matches then we could validate using the tree.
-     * OTOH, the deeper you go in the tree the less you should be penalziing rules, yes?
+     *        rather than just best matches then we could validate using
+     *        the tree.  OTOH, the deeper you go in the tree the less you
+     *        should be penalizing rules, yes?
      */
     private Vector<EpRule> updateRuleConfidences() {
         Vector<EpRule> effectiveRules = new Vector<EpRule>();
@@ -444,19 +472,91 @@ public class PhuJusAgent implements IAgent {
         Vector<EpRule> rhsMatches = getRHSMatches();
         for(EpRule r : this.rules) {
             if (this.currInternal.get(r.getId())) {  //did the rule match last timestep?
+                r.incrMatches();
                 if (rhsMatches.contains(r)) {
+                    r.incrPredicts();
                     effectiveRules.add(r);
                     //effective prediction means we can adjust confidences
                     r.updateConfidencesForPrediction(this.prevInternal, this.prevExternal, this.currExternal);
                 } else {
-                    //TODO:  should we tinker with anything when the rule was wrong?
-                    //Answer:  I think no.  This will happen in the path validation
+                    r.reevaluateInternalSensors(prevInternal);
                 }
             }
         }
 
         return effectiveRules;
     }//updateRuleConfidences
+
+    /**
+     * metaScorePath
+     *
+     * provides an opinion about a given path based on the PathRule set
+     *
+     * @return a double 0.0..1.0 scoring the agent's opinion
+     */
+    public double metaScorePath(Vector<TreeNode> path) {
+        //If there is no previous path then nothing can match
+        if (this.prevPath == null) return 0.5;  //neutral response
+
+        double score = 0.0;
+        int count = 0;
+        for(PathRule pr : this.pathRules) {
+            if (pr.matches(this.prevPath, path)) {
+                if (path.lastElement().getCurrExternal().isGoal()) {
+                    score++;
+                }
+                count++;
+            }
+        }
+
+        //If no PathRules match, then be neutral
+        if (count == 0) return 0.5;
+
+        return score / (double)count;
+
+    }//metaScorePath
+
+    /**
+     * addPathRule
+     *
+     * creates a new PathRule if the stars are right.
+     *
+     * Call this method immediately after building a new path
+     */
+    public void addPathRule() {
+        //TODO:  limit number of path rules ala MAXNUMRULES
+
+        //Need two completed paths to build a PathRule
+        if (this.prevPath == null) return;
+        if (this.prevPath.size() == 0) return;
+        if (this.pathTraversedSoFar.size() != 0) return;
+        if (this.pathToDo == null) return;
+        if (this.pathToDo.size() == 0) return;
+
+        //If there is a pending PathRule, complete it
+        if (this.pendingPR != null) {
+            this.pendingPR.setRHS(this.currExternal);
+            if (! this.pathRules.contains(this.pendingPR)) {
+                this.pathRules.add(this.pendingPR);
+
+                //DEBUG
+                debugPrintln("Completed PathRule: " + this.pendingPR);
+            }
+        }
+        this.pendingPR = null;
+
+        //If last path was completed, complete pending PathRule and save data for building a new PathRule
+        SensorData firstExt = this.prevPath.firstElement().getCurrExternal();
+        TreeNode firstPath = this.prevPath.lastElement();
+        SensorData secondExt = this.pathToDo.firstElement().getCurrExternal();
+        TreeNode secondPath = this.pathToDo.lastElement();
+        this.pendingPR = new PathRule(firstExt, firstPath, secondExt, secondPath);
+
+        //DEBUG
+        debugPrintln("Pending PathRule: " + this.pendingPR);
+
+
+    }//addPathRule
 
     /**
      * updateRuleSet
@@ -505,7 +605,6 @@ public class PhuJusAgent implements IAgent {
         }
 
         //Find the rule with lowest activation & accuracy
-        //TODO:  right now accuracy is always 1.0 (TBI)
         EpRule worstRule = this.rules.get(0);
         double worstScore = worstRule.calculateActivation(this.now) * worstRule.getAccuracy();
         for (EpRule r : this.rules) {
@@ -537,6 +636,9 @@ public class PhuJusAgent implements IAgent {
             return;
         }
         rules.add(newRule);
+
+        //DEBUG
+        debugPrintln("added: " + newRule);
     }
 
     /**
@@ -585,22 +687,6 @@ public class PhuJusAgent implements IAgent {
             reward *= EpRule.DECAY_RATE;
         }
     }//rewardRulesForGoal
-
-    /**
-     * updateConfidencesForGoal
-     *
-     * iterates through each TreeNode in a path used to get to a goal, and calls
-     * a helper method to adjust confidences of each condition accordingly
-     */
-    private void updateConfidencesForGoal() {
-        for(TreeNode node : this.pathTraversedSoFar) {
-            //Skip the first node, since root doesn't have a rule attached to it
-            if(node.getRule() == null) {
-                continue;
-            }
-            node.getRule().updateConfidencesForGoodPath(node);
-        }
-    }//updateConfidencesForGoal
 
     /**
      * debugPrintln
