@@ -143,11 +143,6 @@ public class EpRule {
     private double numMatches = 1;
     private double numPredicts = 1;
 
-    //A rule can briefly enter a refractory state where it can't fire
-    //TODO:  to be more robust this would work like activation with repeated misuses making the rule unusable for longer and longer periods
-    private int refractory = 0;  //how many timesteps until this rule recovers
-    private int nextRefractPeriod = 1;  //how long next period will be
-
 //region Ctors and Init
     /**
      * this ctor initializes the rule from the agent's current and previous episodes
@@ -325,17 +320,14 @@ public class EpRule {
      * calculates how closely this rule matches a given action and lhs sensors
      *
      * TODO:  I think this method should ignore zero-confidence conditions.
+     *  - Already sort of ignores them, however it still increments count, so test if it shouldn't
      *
      * @return  a match score from 0.0 to 1.0
      */
     public double lhsMatchScore(char action, HashMap<Integer, Boolean> lhsInt, SensorData lhsExt) {
         double sum = 0.0;
 
-        //If this rule is in a refractory state it can't match
-        if (this.refractory > 0) return 0.0;
-
         //If the action doesn't match this rule can't match at all
-        //TODO:  should we do partial matching for actions? Seems like no but leaving this thought in here for now.
         if (action != this.action) return 0.0;
 
         //Compare LHS internal values
@@ -594,6 +586,27 @@ public class EpRule {
             }
         }//for
     }//reevaluateInternalSensors
+
+    public void resetMetaInfo() {
+        // reset trackers
+        this.numMatches = 1.0;
+        this.numPredicts = 1.0;
+
+        //reset activation
+        for(int i = 0; i < ACTHISTLEN; ++i) {
+            lastActTimes[i] = 0;
+            lastActAmount[i] = 0.0;
+        }
+        nextActPos = 0;
+        activationLevel = 0.0;
+        lastActCalcTime = agent.getNow();
+
+        //TODO: tentatively keeping this, but could be worth testing again later
+        if(this.getRHSExternal().isGoal()) {
+            addActivation(this.agent.getNow(), EpRule.FOUND_GOAL_REWARD);
+            calculateActivation(this.agent.getNow());
+        }
+    }//resetMetaInfo
 
 
 //region Getters and Setters

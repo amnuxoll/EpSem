@@ -15,29 +15,20 @@ import java.util.Random;
  * A rule based episodic memory learner
  * <p>
  * TODO code maint items
+ * > Figure out why the results are non-repeatable with a seeded random
+ * > Profiling (timing the code)
  * > Implement .dot format print-to-file for the current FSM
  * > add a toString() to PJA
- * > remove "new state" message spam and put new state number with TIME STEP message
  * > increase code coverage and thoroughness of unit tests
  * > implement a debug logging system with levels so we can turn on/off various
  *   types of debug info on the console
- * > Figure out why the results are non-repeatable with a seeded random
- * > Profiling (timing the code)
  *
  * TODO research items
- * > Rule overhaul idea:
- *    - track tf-idf value for all sensor-value pairs
- *    - an initial rule's LHS is the entire episode weighted by tf-idf
- *    - use a partial match algorithm with vote-by-weight
- *    - raise/lower weights based on rule performance
  * > Rules refine/generalize themselves based on experience.  Rules should be able to:
  *    - merge when they become very similar
  *    - split when it will improve the activation of both progeny
  * > Change currInternal to be a HashSet of rules that fired?  I'm not sure if
  *    logging that a rule didn't fire is useful?
- * > Curiosity: when selecting a random action the agent prefers an action that
- *   does not match any known rule. Also, when searching a tree, consider paths
- *   that have never been tried before. (Potential hyper-parameters here unfortunately)
  */
 public class PhuJusAgent implements IAgent {
     public static final int MAXNUMRULES = 50;
@@ -58,19 +49,8 @@ public class PhuJusAgent implements IAgent {
     // DEBUG variable to toggle println statements (on/off = true/false)
     public static final boolean DEBUGPRINTSWITCH = true;
 
-    //recent rule matches are tracked using a rolling array.  When the end of
-    // the array is reached, the data rolls over to zero again.  Use
-    // nextMatchIdx() and prevMatchIndex() on the matchIdx variable rather
-    // than the '++' and '--' operators
-    private final EpRule[] matchArray = new EpRule[RULEMATCHHISTORYLEN]; //stores last N rules that fired TODO: and were correct?
-    private final int[] matchTimes = new int[RULEMATCHHISTORYLEN]; //mirrors matchArray, but tracks each rule's timestep when fired
-    private int matchIdx = 0;
-
     //a list of all the rules in the system (can't exceed some maximum)
     private Vector<EpRule> rules = new Vector<>();
-
-    //keeps track of which rules are currently in a refractory state
-    private Vector<EpRule> refractory = new Vector<>();
 
     private int now = 0; //current timestep 't'
 
@@ -160,10 +140,8 @@ public class PhuJusAgent implements IAgent {
             //DEBUG
             debugPrintln("Current path failed.");
 
-            //TODO: adjust rules in path?
-
             buildNewPath();
-        }
+        } //TODO: reimplement path validation (be careful since partial matching now)
 
         //extract next action
         char action;
@@ -663,6 +641,7 @@ public class PhuJusAgent implements IAgent {
                 r.removeIntSensor(removeMe.getId());
                 //TODO: reset rule activation, matches and predicts?
                 //TODO: reset internal trackers?
+                r.resetMetaInfo();
                 break;
             }
         }
@@ -714,22 +693,6 @@ public class PhuJusAgent implements IAgent {
 
 
     //region Getters and Setters
-
-    public EpRule[] getMatchArray() {
-        return this.matchArray;
-    }
-
-    public int nextMatchIdx() {
-        return (this.matchIdx + 1) % RULEMATCHHISTORYLEN;
-    }
-
-    public int prevMatchIndex() {
-        int result = this.matchIdx - 1;
-        if (result < 0) {
-            result = RULEMATCHHISTORYLEN - 1;
-        }
-        return result;
-    }
 
     public Vector<EpRule> getRules() {
         return this.rules;
