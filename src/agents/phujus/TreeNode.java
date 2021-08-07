@@ -47,7 +47,7 @@ public class TreeNode {
     private final int episodeIndex;
 
     //sensor values for this node
-    private final HashMap<Integer, Boolean> currInternal;
+    private final HashSet<Integer> currInternal;
     private final SensorData currExternal;
 
     //This is the parent node
@@ -365,8 +365,8 @@ public class TreeNode {
      *
      * @return a sorted Vector of the Integer keys in an internal sensor HashMap
      */
-    private Vector<Integer> sortedKeys(HashMap<Integer, Boolean> internal) {
-        Vector<Integer> result = new Vector<>(internal.keySet());
+    private Vector<Integer> sortedKeys(HashSet<Integer> internal) {
+        Vector<Integer> result = new Vector<>(internal);
         Collections.sort(result);
         return result;
     }
@@ -421,13 +421,11 @@ public class TreeNode {
         result.append("(");
         int count = 0;
         for (Integer i : sortedKeys(this.currInternal)) {
-            if (((Boolean)this.currInternal.get(i))) {
-                if (count > 0) {
-                    result.append(", ");
-                }
-                count++;
-                result.append(i);
+            if (count > 0) {
+                result.append(", ");
             }
+            count++;
+            result.append(i);
         }
         result.append(")|");
 
@@ -446,7 +444,7 @@ public class TreeNode {
         }
 
         //Confidence
-        result.append(" c");
+        result.append("\tc");
         if ((this.confidence == 1.0) || (this.confidence == 0.0) || (this.confidence == 0.1)){
             result.append(this.confidence);
         } else {
@@ -533,7 +531,7 @@ public class TreeNode {
     public char getAction() { return this.pathStr.charAt(this.pathStr.length() - 1); }
     public String getPathStr() { return this.pathStr; }
     public EpRule getRule() { return this.rule; }
-    public HashMap<Integer, Boolean> getCurrInternal() { return this.currInternal; }
+    public HashSet<Integer> getCurrInternal() { return this.currInternal; }
     public SensorData getCurrExternal() { return this.currExternal; }
     public TreeNode getParent() { return this.parent; }
 

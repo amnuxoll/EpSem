@@ -172,12 +172,10 @@ public class EpRule {
      * initializes this.lhsInternal from a given set of values
      *
      */
-    private HashSet<IntCond> initInternal(HashMap<Integer, Boolean> map) {
+    private HashSet<IntCond> initInternal(HashSet<Integer> map) {
         HashSet<IntCond> result = new HashSet<>();
-        for(Integer key : map.keySet()) {
-            if (map.get(key)) {  //only care about true's
-                result.add(new IntCond(key));
-            }
+        for(Integer sId : map) {
+            result.add(new IntCond(sId));
         }
         return result;
     }//initInternal
@@ -211,8 +209,9 @@ public class EpRule {
 
 
     /**
-     * like toString() but much less verbose.  Each condition is represented by a single '1' or '0'
-     * Example:   0100111|010a->100
+     * like toString() but much less verbose.  Each external condition is
+     * represented by a single '1' or '0'
+     * Example:   (33, 99)|010a->100
      *
      */
     public String toShortString() {
@@ -225,6 +224,13 @@ public class EpRule {
             if (count > 0) result.append(", ");
             count++;
             result.append(iCond.sId);
+        }
+
+        //LHS _not_ internal sensors
+        if (this.lhsNotInternal.size() > 0) {
+            if (count > 0) result.append(", ");
+            result.append("!x");
+            result.append(lhsNotInternal.size());
         }
         result.append(")|");
 
@@ -324,16 +330,15 @@ public class EpRule {
      *
      * @return  a match score from 0.0 to 1.0
      */
-    public double lhsMatchScore(char action, HashMap<Integer, Boolean> lhsInt, SensorData lhsExt) {
-        double sum = 0.0;
-
+    public double lhsMatchScore(char action, HashSet<Integer> lhsInt, SensorData lhsExt) {
         //If the action doesn't match this rule can't match at all
         if (action != this.action) return 0.0;
 
         //Compare LHS internal values
+        double sum = 0.0;
         for (IntCond iCond : this.lhsInternal) {
             Integer sIdVal = iCond.sId;
-            if ( lhsInt.containsKey(sIdVal) && lhsInt.get(sIdVal) ) {
+            if (lhsInt.contains(sIdVal)) {
                 sum += iCond.getConfidence();  //reward for match
             } else {
                 sum -= iCond.getConfidence();  //penalize for non-match
@@ -341,15 +346,21 @@ public class EpRule {
         }
 
         //Compare LHS *not* internal values (subtract confidence from sum if present)
-        for (IntCond iCond: this.lhsNotInternal) {
+        for (IntCond iCond : this.lhsNotInternal) {
             Integer sIdVal = iCond.sId;
-            if( lhsInt.containsKey(sIdVal) && lhsInt.get(sIdVal) ) {
+            if (lhsInt.contains(sIdVal)) {
                 sum -= iCond.getConfidence();  //penalize for match
             } // Don't reward for non-match! This can cause a partial match based solely
-              // on the absence of these conditions which leads to loops
+            // on the absence of these conditions which leads to loops
         }
+        double lhsIntScore = 1.0;
+        if (lhsInternal.size() > 0) {
+            lhsIntScore = sum / this.lhsInternal.size();
+        }
+        if (lhsIntScore <= 0.0) return 0.0;
 
         //Compare LHS external values
+        sum = 0.0;
         for (ExtCond eCond : this.lhsExternal) {
             if (lhsExt.hasSensor(eCond.sName)) {
                 Boolean sVal = (Boolean) lhsExt.getSensor(eCond.sName);
@@ -360,11 +371,22 @@ public class EpRule {
                 }
             }
         }
+        double lhsExtScore = 1.0;
+        if (this.lhsExternal.size() > 0) {
+            lhsExtScore = sum / this.lhsExternal.size();
+        }
+        if (lhsExtScore <= 0.0) return 0.0;
 
-        if (sum < 0.0) return 0.0;
-        double count = this.lhsInternal.size() + this.lhsExternal.size();
-        return sum / count;
+
+        return lhsIntScore * lhsExtScore;
+
     }//lhsMatchScore
+
+    /** convenience function that uses the sensors in the current agent */
+    public double lhsMatchScore(char action) {
+        return lhsMatchScore(action, this.agent.getCurrInternal(), this.agent.getCurrExternal());
+    }
+
 
     /**
      * calculates how closely this rule matches a given rhs sensors
@@ -386,11 +408,6 @@ public class EpRule {
 
         return sum / this.rhsExternal.size();
     }//rhsMatchScore
-
-    /** convenience function that uses the sensors in the current agent */
-    public double lhsMatchScore(char action) {
-        return lhsMatchScore(action, this.agent.getCurrInternal(), this.agent.getCurrExternal());
-    }
 
     /**
      * calculates how closely this rule matches another given rule
@@ -523,11 +540,11 @@ public class EpRule {
      * @param lhsExt  the external sensors that the rule matched
      * @param rhsExt  the external sensors that appeared on the next timestep
      */
-    public void updateConfidencesForPrediction(HashMap<Integer, Boolean> lhsInt, SensorData lhsExt, SensorData rhsExt) {
+    public void updateConfidencesForPrediction(HashSet<Integer> lhsInt, SensorData lhsExt, SensorData rhsExt) {
         //Compare LHS internal values
         for (IntCond iCond : this.lhsInternal) {
             Integer sIdVal = iCond.sId;
-            if ( lhsInt.containsKey(sIdVal) && lhsInt.get(sIdVal) ) {
+            if (lhsInt.contains(sIdVal)) {
                 iCond.increaseConfidence();
             } else {
                 iCond.decreaseConfidence();
@@ -570,20 +587,18 @@ public class EpRule {
      * for a match score in lhsMatchScore
      * @param prevInternal Internal sensors from previous time step
      */
-    public void reevaluateInternalSensors(HashMap<Integer, Boolean> prevInternal) {
-        for(Integer i : prevInternal.keySet()) {
-            if(prevInternal.get(i) == true) {
-                boolean found = false;
-
-                //check to see if it's already present as a positive condition
-                for(IntCond iCond : this.lhsInternal) {
-                    if (iCond.sId == i) {
-                        found = true;
-                        break;
-                    }
+    public void reevaluateInternalSensors(HashSet<Integer> prevInternal) {
+        for(Integer i : prevInternal) {
+            //check to see if it's already present as a positive condition
+            boolean found = false;
+            for(IntCond iCond : this.lhsInternal) {
+                if (iCond.sId == i) {
+                    found = true;
+                    break;
                 }
-                if (!found) this.addNotInternal(i);
             }
+            if (!found) this.addNotInternal(i);
+
         }//for
     }//reevaluateInternalSensors
 

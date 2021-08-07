@@ -22,6 +22,7 @@ import java.util.Random;
  * > increase code coverage and thoroughness of unit tests
  * > implement a debug logging system with levels so we can turn on/off various
  *   types of debug info on the console
+ * > fix all warnings
  *
  * TODO research items
  * > Rules refine/generalize themselves based on experience.  Rules should be able to:
@@ -35,6 +36,7 @@ public class PhuJusAgent implements IAgent {
     public static final int INITIAL_ACTIVATION = 15;  //initial activation for first set of rules
     public static final int RULEMATCHHISTORYLEN = MAXNUMRULES * 5;
     public static final int MAXDEPTH = 5; //TODO: get the search to self prune again
+    public static final int SHORT_TERM_SIZE = 7;  //size of short term memory
 
     // These variables are used to track sensor longevity and rarity of sensor values
     //TODO: implement this
@@ -56,12 +58,14 @@ public class PhuJusAgent implements IAgent {
 
     private Action[] actionList;  //list of available actions in current FSM
 
-    //current sensor values (TODO: change to HashSet of trues only?)
-    private HashMap<Integer, Boolean> currInternal = new HashMap<>();
+    //internal sensors are rule ids of rules that fired in the prev time step
+    private HashSet<Integer> currInternal = new HashSet<>();
+
+    //external sensors come from the environment
     private SensorData currExternal;
 
-    //sensor values from the previous timestep
-    private HashMap<Integer, Boolean> prevInternal = new HashMap<>();
+    //sensor values from the previous timesteps
+    private Vector<HashSet<Integer>> prevInternal = new Vector<>();
     private SensorData prevExternal = null;
     private char prevAction = '\0';
 
@@ -76,7 +80,6 @@ public class PhuJusAgent implements IAgent {
     //PathRules are stored here
     private PathRule pendingPR = null;
     private Vector<PathRule> pathRules = new Vector<>();
-
 
     //random numbers are useful sometimes (use a hardcoded seed for debugging)
     public static Random rand = new Random(2);
@@ -173,7 +176,10 @@ public class PhuJusAgent implements IAgent {
 
         //Now that we know what action the agent will take, setup the sensor
         // values for the next iteration
-        this.prevInternal = this.currInternal;
+        this.prevInternal.add(this.currInternal);
+        while (prevInternal.size() > SHORT_TERM_SIZE) {
+            prevInternal.remove(0);
+        }
         this.prevExternal = this.currExternal;
         this.prevAction = action;
         if (this.rules.size() > 0) {  //can't update if no rules yet
@@ -199,47 +205,23 @@ public class PhuJusAgent implements IAgent {
      * @param currInt internal sensors to generate from
      * @param currExt external sensors to generate from
      */
-    public HashMap<Integer, Boolean> genNextInternal(char action,
-                                                     HashMap<Integer, Boolean> currInt,
-                                                     SensorData currExt) {
-        HashMap<Integer, Boolean> result = new HashMap<>();
-        double bestScore = 0.0;
-        double scoreSum = 0.0;
-        double matchCount = 0.0;
-        int index = 0;
-        double[] scores = new double[this.rules.size()];
-
-        //Get a match score for every rule
-        //  also calc the average and best
+    public HashSet<Integer> genNextInternal(char action,
+                                            HashSet<Integer> currInt,
+                                            SensorData currExt) {
+        HashSet<Integer> result = new HashSet<>();
         for (EpRule r : this.rules) {
-            scores[index] = r.lhsMatchScore(action, currInt, currExt);
-            if (scores[index] > 0.0) {
-                scoreSum += scores[index];
-                matchCount++;
+            double score = r.lhsMatchScore(action, currInt, currExt);
+            if (score > 0.0) {
+                result.add(r.getId());
             }
-            if (scores[index] > bestScore) {
-                bestScore = scores[index];
-            }
-            index++;
         }
-        double avgScore = scoreSum / matchCount;
-
-        //set the sensor values for matching rules
-        double threshold = avgScore + ((bestScore - avgScore) / 2);
-        index = 0;
-        for(EpRule r : this.rules) {
-            boolean val = scores[index] >= threshold;
-            result.put(r.getId(), val);
-            index++;
-        }//for
-
         return result;
     }//genNextInternal
 
     /**
      * convenience overload that uses the this.currInternal and this.currExternal
      */
-    public HashMap<Integer, Boolean> genNextInternal(char action) {
+    public HashSet<Integer> genNextInternal(char action) {
         return genNextInternal(action, this.currInternal, this.currExternal);
     }//genNextInternal
 
@@ -249,16 +231,13 @@ public class PhuJusAgent implements IAgent {
      *
      * @param printMe sensors to print
      */
-    private void printInternalSensors(HashMap<Integer, Boolean> printMe) {
+    private void printInternalSensors(HashSet<Integer> printMe) {
         debugPrint("Internal Sensors: ");
         int count = 0;
-        for (Integer i : printMe.keySet()) {
-            boolean val = printMe.get(i);
-            if (val) {
-                if (count > 0) debugPrint(", ");
-                debugPrint("" + i.toString());
-                count++;
-            }
+        for (Integer i : printMe) {
+            if (count > 0) debugPrint(", ");
+            debugPrint("" + i);
+            count++;
         }
 
         if (count == 0) {
@@ -391,9 +370,7 @@ public class PhuJusAgent implements IAgent {
      * calculates which rules have a RHS that best match the agent's sensors.
      * This, in effect, tells you which rules *should* have matched last timestep.
      *
-     * Note:  this method uses the same iffy statistics as
-     * {@link #genNextInternal(char, HashMap, SensorData)} and thus is subject
-     * to the same skepticism.
+     * TODO:  this method uses the some iffy statistics.  Allow any non-zero match instead?
      */
     public Vector<EpRule> getRHSMatches() {
         Vector<EpRule> result = new Vector<>();
@@ -449,15 +426,15 @@ public class PhuJusAgent implements IAgent {
         //Compare all the rules that matched RHS to the ones that matched LHS last timestep
         Vector<EpRule> rhsMatches = getRHSMatches();
         for(EpRule r : this.rules) {
-            if (this.currInternal.get(r.getId())) {  //did the rule match last timestep?
+            if (this.currInternal.contains(r.getId())) {  //did the rule match last timestep?
                 r.incrMatches();
                 if (rhsMatches.contains(r)) {
                     r.incrPredicts();
                     effectiveRules.add(r);
                     //effective prediction means we can adjust confidences
-                    r.updateConfidencesForPrediction(this.prevInternal, this.prevExternal, this.currExternal);
+                    r.updateConfidencesForPrediction(getPrevInternal(), this.prevExternal, this.currExternal);
                 } else {
-                    r.reevaluateInternalSensors(prevInternal);
+                    r.reevaluateInternalSensors(getPrevInternal());
                 }
             }
         }
@@ -702,30 +679,12 @@ public class PhuJusAgent implements IAgent {
         return now;
     }
 
-    public Integer[] getPrevInternalKeys() {
-        return this.prevInternal.keySet().toArray(new Integer[0]);
-    }
-
-    public boolean getPrevInternalValue(int id) {
-        if (this.prevInternal == null) {
-            System.err.println("Null!");
-        }
-        if (this.prevInternal.get(id) == null) {
-            System.err.println("Null!");
-        }
-        return this.prevInternal.get(id);
-    }
-
-    public HashMap<Integer, Boolean> getCurrInternal() {
+    public HashSet<Integer> getCurrInternal() {
         return this.currInternal;
     }
 
-    public HashMap<Integer, Boolean> getPrevInternal() {
-        return this.prevInternal;
-    }
-
-    public void setCurrInternal(HashMap<Integer, Boolean> curIntern) {
-        this.currInternal = curIntern;
+    public HashSet<Integer> getPrevInternal() {
+        return this.prevInternal.lastElement();
     }
 
     public SensorData getCurrExternal() {
