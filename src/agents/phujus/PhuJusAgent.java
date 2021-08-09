@@ -82,7 +82,7 @@ public class PhuJusAgent implements IAgent {
     private Vector<PathRule> pathRules = new Vector<>();
 
     //random numbers are useful sometimes (use a hardcoded seed for debugging)
-    public static Random rand = new Random(2);
+    public static Random rand = new Random(4);
 
     /**
      * This method is called each time a new FSM is created and a new agent is
@@ -119,7 +119,7 @@ public class PhuJusAgent implements IAgent {
         }
 
         //DEBUG
-        if(this.stepsSinceGoal >= 20) {
+        if(this.stepsSinceGoal >= 40) {
             debugPrintln("");
         }
 
@@ -425,6 +425,7 @@ public class PhuJusAgent implements IAgent {
 
         //Compare all the rules that matched RHS to the ones that matched LHS last timestep
         Vector<EpRule> rhsMatches = getRHSMatches();
+        Vector<EpRule> rulesToRemove = new Vector<>();
         for(EpRule r : this.rules) {
             if (this.currInternal.contains(r.getId())) {  //did the rule match last timestep?
                 r.incrMatches();
@@ -432,11 +433,19 @@ public class PhuJusAgent implements IAgent {
                     r.incrPredicts();
                     effectiveRules.add(r);
                     //effective prediction means we can adjust confidences
-                    r.updateConfidencesForPrediction(getPrevInternal(), this.prevExternal, this.currExternal);
+                    r.updateConfidencesForPrediction(getAllPrevInternal(), this.prevExternal, this.currExternal);
                 } else {
-                    r.reevaluateInternalSensors(getPrevInternal());
+//                    r.reevaluateInternalSensors(getPrevInternal());
+                    int newDepth = r.extendRuleDepth();
+                    if(newDepth == -1) {
+                        rulesToRemove.add(r);
+                    }
                 }
             }
+        }
+
+        for(EpRule r : rulesToRemove) {
+            removeRule(r);
         }
 
         return effectiveRules;
