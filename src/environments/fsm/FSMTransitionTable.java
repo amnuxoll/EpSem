@@ -217,6 +217,40 @@ public class FSMTransitionTable {
         return this.shortestSequences;
     }
 
+    /**
+     * dotFormOutput
+     *
+     * produces a String that can be printed to the console and copied to a .dot graph tool
+     * @return .dot format String to view an FSM
+     */
+    public String dotFormOutput() {
+        StringBuilder builder = new StringBuilder();
+
+        builder.append("digraph G {\n");
+        //
+        builder.append("\t{\n");
+        builder.append("\t\tnode [shape=circle]\n");
+        for(int i = 0; i < this.transitions.length - 1; ++i) {
+            builder.append("\t\ts" + i + "\n");
+        }
+        builder.append("\t}\n\n");
+
+        builder.append("\t{\n");
+        builder.append("\t\tnode [shape=doublecircle]\n");
+        builder.append("\t\ts" + (this.transitions.length-1) + "\n");
+        builder.append("\t}\n\n");
+
+        for(int i = 0; i < this.transitions.length-1; ++i) {
+            for(Action a : this.actions) {
+                builder.append("\ts" + i + " -> s" + this.transitions[i].get(a) + " [label=" + a + "];\n");
+            }
+        }
+
+        builder.append("}\n");
+
+        return builder.toString();
+    }//dotFormOutput
+
     public int getNumberOfStates()
     {
         return this.transitions.length;

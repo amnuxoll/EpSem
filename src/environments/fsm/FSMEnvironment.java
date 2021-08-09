@@ -60,6 +60,7 @@ public class FSMEnvironment implements IEnvironment {
         //DEBUG: print the universal sequence
         Sequence uSeq = this.transitionTable.getUniversalSequence();
         System.err.println("Universal sequence: " + uSeq + " (" + uSeq.getLength() + " steps)");
+        System.out.println(this.transitionTable.dotFormOutput());
     }
 
     private FSMEnvironment(FSMEnvironment toCopy) {
