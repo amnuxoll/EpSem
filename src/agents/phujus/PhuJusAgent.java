@@ -683,8 +683,14 @@ public class PhuJusAgent implements IAgent {
         return this.currInternal;
     }
 
+    /** returns the most recent */
     public HashSet<Integer> getPrevInternal() {
         return this.prevInternal.lastElement();
+    }
+
+    /** return all prev internal in short term memory */
+    public Vector<HashSet<Integer>> getAllPrevInternal() {
+        return this.prevInternal;
     }
 
     public SensorData getCurrExternal() {

@@ -116,8 +116,8 @@ public class EpRule {
     // - the action that the agent took just before this rule was created
     //Initially, all sensor values are present but, over time, they may get culled if they
     //prove inconsistent with the agent's experiences
-    private final HashSet<IntCond> lhsInternal;
-    private final HashSet<IntCond> lhsNotInternal;
+    private final Vector<HashSet<IntCond>> lhsInternal;
+    private final HashSet<IntCond> removed_lhsNotInternal = null;
     private final HashSet<ExtCond> lhsExternal;
     private final char action;
 
@@ -143,6 +143,9 @@ public class EpRule {
     private double numMatches = 1;
     private double numPredicts = 1;
 
+    //How many timesteps of internal sensors are required for a match with this rule
+    private int timeDepth = 0;
+
 //region Ctors and Init
     /**
      * this ctor initializes the rule from the agent's current and previous episodes
@@ -152,8 +155,8 @@ public class EpRule {
         this.ruleId = EpRule.nextRuleId++;
         this.action = agent.getPrevAction();
         this.lhsExternal = initExternal(agent.getPrevExternal());
-        this.lhsNotInternal = new HashSet<>();
-        this.lhsInternal = initInternal(agent.getPrevInternal());
+        //REMOVE: this.lhsNotInternal = new HashSet<>();
+        this.lhsInternal = initInternal(agent.getAllPrevInternal());
         this.rhsExternal = initExternal(agent.getCurrExternal());
     }
 
@@ -172,10 +175,14 @@ public class EpRule {
      * initializes this.lhsInternal from a given set of values
      *
      */
-    private HashSet<IntCond> initInternal(HashSet<Integer> map) {
-        HashSet<IntCond> result = new HashSet<>();
-        for(Integer sId : map) {
-            result.add(new IntCond(sId));
+    private Vector<HashSet<IntCond>> initInternal(Vector<HashSet<Integer>> initLHS) {
+        Vector<HashSet<IntCond>> result = new Vector<>();
+        for(HashSet<Integer> initLevel : initLHS) {
+            HashSet<IntCond> level = new HashSet<>();
+            for (Integer sId : initLevel) {
+                level.add(new IntCond(sId));
+            }
+            result.add(level);
         }
         return result;
     }//initInternal
@@ -218,21 +225,26 @@ public class EpRule {
         StringBuilder result = new StringBuilder();
 
         //LHS internal sensors
-        result.append('(');
-        int count = 0;
-        for(IntCond iCond : this.lhsInternal){
-            if (count > 0) result.append(", ");
-            count++;
-            result.append(iCond.sId);
+        for(int i = 1; i <= this.timeDepth; ++i) {
+            result.append('(');
+            int count = 0;
+            for (IntCond iCond : getInternalLevel(i)) {
+                if (count > 0) result.append(", ");
+                count++;
+                result.append(iCond.sId);
+            }
+            result.append(')');
         }
+        result.append('|');
 
         //LHS _not_ internal sensors
-        if (this.lhsNotInternal.size() > 0) {
-            if (count > 0) result.append(", ");
-            result.append("!x");
-            result.append(lhsNotInternal.size());
-        }
-        result.append(")|");
+        //REMOVE this code if time expansion works
+//        if (this.lhsNotInternal.size() > 0) {
+//            if (count > 0) result.append(", ");
+//            result.append("!x");
+//            result.append(lhsNotInternal.size());
+//        }
+//        result.append(")|");
 
         //LHS external sensors
         for (ExtCond eCond : sortedConds(this.lhsExternal)) {
@@ -266,28 +278,34 @@ public class EpRule {
         StringBuilder result = new StringBuilder();
 
         //LHS internal sensors
-        result.append('(');
-        int count = 0;
-        for(IntCond iCond : this.lhsInternal){
-            if (count > 0) result.append(", ");
-            count++;
-            result.append(iCond.sId);
-            result.append('$');
-            result.append(String.format("%.2f", iCond.getConfidence()));
+        for(int i = 1; i <= this.timeDepth; ++i) {
+            result.append('(');
+            int count = 0;
+            for (IntCond iCond : getInternalLevel(i)) {
+                if (count > 0) result.append(", ");
+                count++;
+                result.append(iCond.sId);
+                result.append('$');
+                result.append(String.format("%.2f", iCond.getConfidence()));
+            }
+            result.append(')');
         }
-        for(IntCond iCond : this.lhsNotInternal){
-            if (count > 0) result.append(", ");
-            count++;
-            result.append('!');
-            result.append(iCond.sId);
-            result.append('$');
-            result.append(String.format("%.2f", iCond.getConfidence()));
-        }
-        result.append(")|");
+        result.append('|');
+
+        //REMOVE this code if time expansion works
+//        for(IntCond iCond : this.lhsNotInternal){
+//            if (count > 0) result.append(", ");
+//            count++;
+//            result.append('!');
+//            result.append(iCond.sId);
+//            result.append('$');
+//            result.append(String.format("%.2f", iCond.getConfidence()));
+//        }
+//        result.append(")|");
 
         //LHS external sensors
         result.append('(');
-        count = 0;
+        int count = 0;
         for (ExtCond eCond : sortedConds(this.lhsExternal)) {
             if (count > 0) result.append(", ");
             count++;
@@ -324,6 +342,8 @@ public class EpRule {
 
     /**
      * calculates how closely this rule matches a given action and lhs sensors
+     * A total match score [0.0..1.0] is calculated as the product of the
+     * match score for each level (this.timeDepth) of the rule.
      *
      * TODO:  I think this method should ignore zero-confidence conditions.
      *  - Already sort of ignores them, however it still increments count, so test if it shouldn't
@@ -334,33 +354,40 @@ public class EpRule {
         //If the action doesn't match this rule can't match at all
         if (action != this.action) return 0.0;
 
-        //Compare LHS internal values
-        double sum = 0.0;
-        for (IntCond iCond : this.lhsInternal) {
-            Integer sIdVal = iCond.sId;
-            if (lhsInt.contains(sIdVal)) {
-                sum += iCond.getConfidence();  //reward for match
-            } else {
-                sum -= iCond.getConfidence();  //penalize for non-match
-            }
-        }
+        double score = 1.0;  //this will be the final match score
 
-        //Compare LHS *not* internal values (subtract confidence from sum if present)
-        for (IntCond iCond : this.lhsNotInternal) {
-            Integer sIdVal = iCond.sId;
-            if (lhsInt.contains(sIdVal)) {
-                sum -= iCond.getConfidence();  //penalize for match
-            } // Don't reward for non-match! This can cause a partial match based solely
-            // on the absence of these conditions which leads to loops
-        }
-        double lhsIntScore = 1.0;
-        if (lhsInternal.size() > 0) {
-            lhsIntScore = sum / this.lhsInternal.size();
-        }
-        if (lhsIntScore <= 0.0) return 0.0;
+        //Compare LHS internal values
+        for(int i = 1; i <= timeDepth; ++i) {
+            HashSet<IntCond> level = getInternalLevel(i);
+            double sum = 0.0;
+            for (IntCond iCond : level) {
+                Integer sIdVal = iCond.sId;
+                if (lhsInt.contains(sIdVal)) {
+                    sum += iCond.getConfidence();  //reward for match
+                } else {
+                    sum -= iCond.getConfidence();  //penalize for non-match
+                }
+            }
+            if (level.size() > 0) {
+                score *= sum / level.size();
+            }
+            if (score <= 0.0) return 0.0;
+        }//for timedepth
+
+        //REMOVE this code if time expansion works
+//        //Compare LHS *not* internal values (subtract confidence from sum if present)
+//        for (IntCond iCond : this.lhsNotInternal) {
+//            Integer sIdVal = iCond.sId;
+//            if (lhsInt.contains(sIdVal)) {
+//                sum -= iCond.getConfidence();  //penalize for match
+//            } // Don't reward for non-match! This can cause a partial match based solely
+//            // on the absence of these conditions which leads to loops
+//        }
+
+
 
         //Compare LHS external values
-        sum = 0.0;
+        double sum = 0.0;
         for (ExtCond eCond : this.lhsExternal) {
             if (lhsExt.hasSensor(eCond.sName)) {
                 Boolean sVal = (Boolean) lhsExt.getSensor(eCond.sName);
@@ -371,14 +398,12 @@ public class EpRule {
                 }
             }
         }
-        double lhsExtScore = 1.0;
         if (this.lhsExternal.size() > 0) {
-            lhsExtScore = sum / this.lhsExternal.size();
+            score *= sum / this.lhsExternal.size();
         }
-        if (lhsExtScore <= 0.0) return 0.0;
+        if (score <= 0.0) return 0.0;
 
-
-        return lhsIntScore * lhsExtScore;
+        return score;
 
     }//lhsMatchScore
 
@@ -699,6 +724,15 @@ public class EpRule {
             }
         }
         if (removeMe != null) this.lhsInternal.remove(removeMe);
+    }
+
+    //Retrieve's the nth level of internal sensors from the end of this.lhsInternal
+    private HashSet<IntCond> getInternalLevel(int depth) {
+        if (depth > this.lhsInternal.size()) return null; //bad input
+        if (depth <= 0) return null; //also bad input
+
+        int index = this.lhsInternal.size() - depth;
+        return this.lhsInternal.get(index);
     }
 
 
