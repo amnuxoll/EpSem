@@ -168,7 +168,7 @@ public class PhuJusAgentTest {
          //Create two EpRules from the agent and they should match
          EpRule er1 = new EpRule(agent);
          EpRule er2 = new EpRule(agent);
-         Assertions.assertTrue(er1.compareTo(er2) == 1.0);
+         Assertions.assertTrue(er1.compareLHS(er2) == 1.0);
 
          //Take another step
          try {
@@ -180,9 +180,9 @@ public class PhuJusAgentTest {
 
          //Create a new rule.  It should be different but first two should be unchanged
          EpRule er3 = new EpRule(agent);
-         Assertions.assertTrue(er3.compareTo(er2) < 1.0);
-         Assertions.assertTrue(er3.compareTo(er2) >= 0.0);
-         Assertions.assertTrue(er1.compareTo(er2) == 1.0);
+         Assertions.assertTrue(er3.compareLHS(er2) < 1.0);
+         Assertions.assertTrue(er3.compareLHS(er2) >= 0.0);
+         Assertions.assertTrue(er1.compareLHS(er2) == 1.0);
 
      }//testEpRuleCompare
 

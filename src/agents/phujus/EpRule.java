@@ -449,7 +449,7 @@ public class EpRule {
      * @param other  the other rule to compare it to
      * @return  a match score from 0.0 to 1.0
      */
-    public double compareTo(EpRule other, int depth) {
+    public double compareLHS(EpRule other, int depth) {
 
         //actions must match
         if (this.action != other.action) return 0.0;
@@ -516,31 +516,12 @@ public class EpRule {
 
         sum = 0.0;
 
-        //Compare RHS external values
-        HashSet<ExtCond> largerRHSExt = this.rhsExternal;
-        HashSet<ExtCond> smallerRHSExt = other.rhsExternal;
-        if (largerRHSExt.size() > smallerRHSExt.size()) {
-            largerRHSExt = other.rhsExternal;
-            smallerRHSExt = this.rhsExternal;
-        }
-        for (ExtCond thisECond : largerRHSExt) {
-            for (ExtCond otherECond : smallerRHSExt) {
-                if (thisECond.equals(otherECond)) {
-                    sum += (thisECond.getConfidence() + otherECond.getConfidence()) / 2;
-                    break;
-                }
-            }
-        }
-
-        double rhsScore = sum / ((double) largerRHSExt.size());
-
-        sum = rhsScore;
         for(double score : lhsScores) {
             sum += score;
         }
 
-        return (sum / (depth + 2)); // +2 accounts for lhsExt and rhsExt
-    }//compareTo
+        return (sum / (depth + 1)); // +1 accounts for lhsExt
+    }//compareLHS
 
 
     /**
@@ -549,10 +530,10 @@ public class EpRule {
      * @param other the other rule to compare it to
      * @return a match score from 0.0 to 1.0
      */
-    public double compareTo(EpRule other) {
+    public double compareLHS(EpRule other) {
         int maxLevelDepth = Math.max(this.timeDepth, other.timeDepth);
-        return compareTo(other, maxLevelDepth);
-    }//compareTo
+        return compareLHS(other, maxLevelDepth);
+    }//compareLHS
 
     /**
      * calculateActivation

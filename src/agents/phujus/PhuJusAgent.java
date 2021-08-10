@@ -527,7 +527,7 @@ public class PhuJusAgent implements IAgent {
             bestMatch = null;
             bestScore = -1.0;
             for (EpRule r : this.rules) {
-                double score = r.compareTo(cand, cand.getTimeDepth());
+                double score = r.compareLHS(cand, cand.getTimeDepth());
                 if (score > bestScore) {
                     bestMatch = r;
                     bestScore = score;
@@ -548,7 +548,7 @@ public class PhuJusAgent implements IAgent {
         }
 
         //TODO:  consider merging cand with the bestRule?
-        double mergeScore = cand.compareTo(bestMatch);
+        double mergeScore = cand.compareLHS(bestMatch);
         if (mergeScore > 0.75) {
             //TODO: merge would happen here if mergeScore is high enough.  Need something less arbitrary than 0.75
         }
