@@ -82,7 +82,7 @@ public class PhuJusAgent implements IAgent {
     private Vector<PathRule> pathRules = new Vector<>();
 
     //random numbers are useful sometimes (use a hardcoded seed for debugging)
-    public static Random rand = new Random(4);
+    public static Random rand = new Random(2);
 
     /**
      * This method is called each time a new FSM is created and a new agent is
@@ -370,40 +370,18 @@ public class PhuJusAgent implements IAgent {
      * calculates which rules have a RHS that best match the agent's sensors.
      * This, in effect, tells you which rules *should* have matched last timestep.
      *
-     * TODO:  this method uses the some iffy statistics.  Allow any non-zero match instead?
      */
     public Vector<EpRule> getRHSMatches() {
         Vector<EpRule> result = new Vector<>();
-        double bestScore = 0.0;
-        double scoreSum = 0.0;
-        double matchCount = 0.0;
-        int index = 0;
-        double[] scores = new double[this.rules.size()];
 
         //Get a RHS match score for every rule
         //  also calc the average and best
         for (EpRule r : this.rules) {
-            scores[index] = r.rhsMatchScore(this.currExternal);
-            if (scores[index] > 0.0) {
-                scoreSum += scores[index];
-                matchCount++;
-            }
-            if (scores[index] > bestScore) {
-                bestScore = scores[index];
-            }
-            index++;
-        }
-        double avgScore = scoreSum / matchCount;
-
-        //Decide which rules match using an iffy threshold
-        double threshold = avgScore + ((bestScore - avgScore) / 2);
-        index = 0;
-        for(EpRule r : this.rules) {
-            if (scores[index] > threshold) {
+            double score = r.rhsMatchScore(this.currExternal);
+            if (score == 1.0) {
                 result.add(r);
             }
-            index++;
-        }//for
+        }
 
         return result;
     }//getRHSMatches
@@ -611,6 +589,8 @@ public class PhuJusAgent implements IAgent {
      * removes a rule from the agent's repertoire.  If the rule has an internal
      * sensor on its RHS then any rules that test it must also be removed.
      *
+     * TODO:  try merging rule with most similar instead?
+     *
      * CAVEAT: recursive
      */
     public void removeRule(EpRule removeMe) {
@@ -622,14 +602,25 @@ public class PhuJusAgent implements IAgent {
 
         // If any rule has a condition that test for 'removeMe' then that
         // condition must be removed
+        Vector<EpRule> toRemove = new Vector<>();
         for (EpRule r : this.rules) {
             if (r.testsIntSensor(removeMe.getId())) {
-                r.removeIntSensor(removeMe.getId());
-                //TODO: reset rule activation, matches and predicts?
-                //TODO: reset internal trackers?
-                r.resetMetaInfo();
-                break;
+                int result = r.removeIntSensor(removeMe.getId());
+
+                //If the removal has rendered this rule invalid, it has to be
+                //removed as well (TODO:  This seems too heavy handed. We are losing knowledge.)
+                if (result < 0) {
+                    toRemove.add(r);
+                } else {
+                    //reset rule meta info
+                    r.resetMetaInfo();
+                    break;
+                }
             }
+        }
+
+        for(EpRule r : toRemove) {
+            removeRule(r);
         }
     }//removeRule
 

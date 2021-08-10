@@ -225,7 +225,7 @@ public class EpRule {
         StringBuilder result = new StringBuilder();
 
         //LHS internal sensors
-        for(int i = 1; i <= this.timeDepth; ++i) {
+        for(int i = timeDepth; i >= 1; --i) {
             result.append('(');
             int count = 0;
             HashSet<IntCond> level = getInternalLevel(i);
@@ -281,7 +281,7 @@ public class EpRule {
         StringBuilder result = new StringBuilder();
 
         //LHS internal sensors
-        for(int i = 1; i <= this.timeDepth; ++i) {
+        for(int i = timeDepth; i >= 1; --i) {
             result.append('(');
             int count = 0;
             HashSet<IntCond> level = getInternalLevel(i);
@@ -778,8 +778,22 @@ public class EpRule {
         return false;
     }
 
-    /** called when the associated rule is deleted */
-    public void removeIntSensor(int sId) {
+    /**
+     * removeIntSensor
+     *
+     * is called to remove an internal sensor from any levels of this rule.
+     * It is generally called when the rule associated with the sensor
+     * is being removed.
+     *
+     * @return a success/fail code
+     *         0 - sensor not found (no change made)
+     *         n - a positive number indicates the sensor was removed from n levels
+     *        -n - a negative number indicates the sensor was removed from n levels
+     *             and the rule was made invalid (one or more empty levels) as a result.
+     * */
+    public int removeIntSensor(int sId) {
+        int result = 0;
+        boolean invalid = false;
         IntCond removeMe = null;
         for(HashSet<IntCond> level : this.lhsInternal) {
             for (IntCond iCond : level) {
@@ -788,8 +802,16 @@ public class EpRule {
                     break;
                 }
             }
-            if (removeMe != null) level.remove(removeMe);
+            if (removeMe != null) {
+                level.remove(removeMe);
+                result++;
+            }
+
+            //If this level is now empty then this rule is now invalid
+            if (level.size() == 0) invalid = true;
         }
+
+        return invalid ? -result : result;
     }
 
     //Retrieve's the nth level of internal sensors from the end of this.lhsInternal
