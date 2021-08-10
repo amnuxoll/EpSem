@@ -523,16 +523,23 @@ public class PhuJusAgent implements IAgent {
         //Find the existing rule that is most similar
         EpRule bestMatch = null;
         double bestScore = -1.0;
-        for(EpRule r : this.rules) {
-            double score = r.compareTo(cand);
-            if (score > bestScore) {
-                bestMatch = r;
-                bestScore = score;
+        do{
+            bestMatch = null;
+            bestScore = -1.0;
+            for (EpRule r : this.rules) {
+                double score = r.compareTo(cand, cand.getTimeDepth());
+                if (score > bestScore) {
+                    bestMatch = r;
+                    bestScore = score;
+                }
             }
-        }
-
-        //If the two rules are equal there is nothing to gain by adding this
-        if (bestScore == 1.0) return;
+            if(bestScore == 1.0) {
+                int ret = cand.extendRuleDepth();
+                if(ret < 0) {
+                    return; // This candidate is redundant with existing rules
+                }
+            }
+        }while(bestScore == 1.0);
 
         //If we haven't reached max just add it
         if (this.rules.size() < MAXNUMRULES) {

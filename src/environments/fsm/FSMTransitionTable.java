@@ -227,7 +227,8 @@ public class FSMTransitionTable {
         StringBuilder builder = new StringBuilder();
 
         builder.append("digraph G {\n");
-        //
+
+        // State definition region
         builder.append("\t{\n");
         builder.append("\t\tnode [shape=circle]\n");
         for(int i = 0; i < this.transitions.length - 1; ++i) {
@@ -235,11 +236,14 @@ public class FSMTransitionTable {
         }
         builder.append("\t}\n\n");
 
+        // Goal State definition region
         builder.append("\t{\n");
         builder.append("\t\tnode [shape=doublecircle]\n");
         builder.append("\t\ts" + (this.transitions.length-1) + "\n");
         builder.append("\t}\n\n");
 
+        // Loop and define the transitions between states using labels
+        // Note, the last state is not included since the Goal State always loops to itself
         for(int i = 0; i < this.transitions.length-1; ++i) {
             for(Action a : this.actions) {
                 builder.append("\ts" + i + " -> s" + this.transitions[i].get(a) + " [label=" + a + "];\n");

@@ -449,18 +449,23 @@ public class EpRule {
      * @param other  the other rule to compare it to
      * @return  a match score from 0.0 to 1.0
      */
-    public double compareTo(EpRule other) {
+    public double compareTo(EpRule other, int depth) {
 
         //actions must match
         if (this.action != other.action) return 0.0;
 
         //Independent score for each of the levels of internal sensors + 1 for external sensors
-        int maxLevelDepth = Math.max(this.timeDepth, other.timeDepth);
-        double[] lhsScores = new double[maxLevelDepth + 1];
+        double[] lhsScores = new double[depth + 1];
 
-        for(int i = 1; i <= maxLevelDepth; ++i) {
+        for(int i = 1; i <= depth; ++i) {
             HashSet<IntCond> thisLevel = this.getInternalLevel(i);
             HashSet<IntCond> otherLevel = other.getInternalLevel(i);
+
+            // If they are both null, they match
+            if(thisLevel == null && otherLevel == null) {
+                lhsScores[i] = 1.0;
+                continue;
+            }
 
             if(thisLevel == null || otherLevel == null) {
                 lhsScores[i] = 0.0;
@@ -534,7 +539,19 @@ public class EpRule {
             sum += score;
         }
 
-        return (sum / (maxLevelDepth + 2)); // +2 accounts for lhsExt and rhsExt
+        return (sum / (depth + 2)); // +2 accounts for lhsExt and rhsExt
+    }//compareTo
+
+
+    /**
+     * convenience function that compares levels at the depth of the deeper rule
+     *
+     * @param other the other rule to compare it to
+     * @return a match score from 0.0 to 1.0
+     */
+    public double compareTo(EpRule other) {
+        int maxLevelDepth = Math.max(this.timeDepth, other.timeDepth);
+        return compareTo(other, maxLevelDepth);
     }//compareTo
 
     /**
@@ -723,6 +740,7 @@ public class EpRule {
     public int getId() { return this.ruleId; }
     public char getAction() { return this.action; }
     public HashSet<ExtCond> getRHSConds() { return this.rhsExternal; }
+    public int getTimeDepth() { return this.timeDepth; }
 
     //REMOVE if time extensions works
 //    /** convert this.lhsNotInternal back to a HashMap */
