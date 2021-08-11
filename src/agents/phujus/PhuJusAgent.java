@@ -23,6 +23,7 @@ import java.util.Random;
  * > implement a debug logging system with levels so we can turn on/off various
  *   types of debug info on the console
  * > fix all warnings
+ * > review long methods and break into main + helper methods
  *
  * TODO research items
  * > Rules refine/generalize themselves based on experience.  Rules should be able to:
@@ -536,17 +537,13 @@ public class PhuJusAgent implements IAgent {
 
             // Code to expand a candidate until it is unique to other rules already present
             if(bestScore == 1.0) {
+                //First try expanding the rule(s) to make them different
                 int ret = cand.matchingLHSExpansion(bestMatch);
                 if(ret < 0) {
                     return; // This candidate is redundant and can't be expanded to be different
                 }
             }
-//            if(bestScore == 1.0) {
-//                int ret = cand.extendRuleDepth();
-//                if(ret < 0) {
-//                    return; // This candidate is redundant with existing rules
-//                }
-//            }
+
         }while(bestScore == 1.0);
 
         //If we haven't reached max just add it

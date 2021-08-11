@@ -523,44 +523,6 @@ public class EpRule {
         return (sum / (depth + 1)); // +1 accounts for lhsExt
     }//compareLHS
 
-    public int matchingLHSExpansion(EpRule other) {
-        int countRHS = 0;
-        //Compare RHS external values, if they match, return error code since they are the same rule
-        HashSet<ExtCond> thisRHSExt = this.rhsExternal;
-        HashSet<ExtCond> otherRHSExt = other.rhsExternal;
-        for (ExtCond thisECond : thisRHSExt) {
-            for (ExtCond otherECond : otherRHSExt) {
-                if (thisECond.equals(otherECond)) {
-                    countRHS++;
-                }
-            }
-        }
-
-        if(countRHS == this.rhsExternal.size()) {
-            return -1; // The rules have matching RHS
-        }
-
-        double matchScore = this.compareLHS(other);
-
-        // Flags to know if max level depth has been reached
-        int thisRuleDepthFlag = -2;
-        int otherRuleDepthFlag = -2;
-
-        // Run until the rules are different on the LHS and can still be expanded
-        while(matchScore == 1.0 && thisRuleDepthFlag != -1 && otherRuleDepthFlag != -1) {
-            thisRuleDepthFlag = this.extendRuleDepth();
-            otherRuleDepthFlag = other.extendRuleDepth();
-            matchScore = this.compareLHS(other);
-        }
-
-        if(matchScore == 1.0) {
-            return -1; // Failed to differentiate through expansion
-        }
-
-        return 1; // Successful differentiation
-    }
-
-
     /**
      * convenience function that compares levels at the depth of the deeper rule
      *
@@ -571,6 +533,58 @@ public class EpRule {
         int maxLevelDepth = Math.max(this.timeDepth, other.timeDepth);
         return compareLHS(other, maxLevelDepth);
     }//compareLHS
+
+    /**
+     * matchingLHSExpansion
+     *
+     * makes this rule's LHS different from a given rule's by expanding one or
+     * both rules
+     *
+     * Example input:
+     *   #14: (8)|00a -> 00
+     *   #8: (5)(8)|00a -> 01
+     * Resulting output:
+     *   #14: (7)(8)|00a -> 00
+     *   #8: (5)(8)|00a -> 01
+     *
+     * @param other
+     * @return
+     */
+    public int matchingLHSExpansion(EpRule other) {
+        //We always want 'other' to be the rule with more time levels
+        if (other.timeDepth < this.timeDepth) return other.matchingLHSExpansion(this);
+
+        //Compare RHS external values, if they match, return error code since they are the same rule
+        double rhsMatch = rhsMatchScore(other.getRHSExternal());
+        if(rhsMatch == 1.0) {
+            return -1;
+        }
+
+        //while 'this' is shorter, expand it until they are different
+        double matchScore = this.compareLHS(other, this.timeDepth);
+        int thisRuleDepthFlag = 0;
+        while((this.timeDepth < other.timeDepth) && (matchScore == 1.0) && (thisRuleDepthFlag >= 0)) {
+            thisRuleDepthFlag = this.extendRuleDepth();
+            matchScore = this.compareLHS(other, this.timeDepth);
+        }
+
+        // Run until the rules are different on the LHS and can still be expanded
+        int otherRuleDepthFlag = 0;
+        while( (matchScore == 1.0) && (thisRuleDepthFlag >= 0) && (otherRuleDepthFlag >= 0) ) {
+            thisRuleDepthFlag = this.extendRuleDepth();
+            otherRuleDepthFlag = other.extendRuleDepth();
+            matchScore = this.compareLHS(other);
+        }
+
+        //Check for empty levels
+        if ( (this.getInternalLevel(this.timeDepth).size() == 0)
+            || (other.getInternalLevel(other.timeDepth).size() == 0) ) {
+            return -2;
+        }
+
+        return (matchScore == 1.0) ? -1 : 1;
+    }//matchingLHSExpansion
+
 
     /**
      * calculateActivation
