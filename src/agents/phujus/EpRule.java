@@ -523,6 +523,43 @@ public class EpRule {
         return (sum / (depth + 1)); // +1 accounts for lhsExt
     }//compareLHS
 
+    public int matchingLHSExpansion(EpRule other) {
+        int countRHS = 0;
+        //Compare RHS external values, if they match, return error code since they are the same rule
+        HashSet<ExtCond> thisRHSExt = this.rhsExternal;
+        HashSet<ExtCond> otherRHSExt = other.rhsExternal;
+        for (ExtCond thisECond : thisRHSExt) {
+            for (ExtCond otherECond : otherRHSExt) {
+                if (thisECond.equals(otherECond)) {
+                    countRHS++;
+                }
+            }
+        }
+
+        if(countRHS == this.rhsExternal.size()) {
+            return -1; // The rules have matching RHS
+        }
+
+        double matchScore = this.compareLHS(other);
+
+        // Flags to know if max level depth has been reached
+        int thisRuleDepthFlag = -2;
+        int otherRuleDepthFlag = -2;
+
+        // Run until the rules are different on the LHS and can still be expanded
+        while(matchScore == 1.0 && thisRuleDepthFlag != -1 && otherRuleDepthFlag != -1) {
+            thisRuleDepthFlag = this.extendRuleDepth();
+            otherRuleDepthFlag = other.extendRuleDepth();
+            matchScore = this.compareLHS(other);
+        }
+
+        if(matchScore == 1.0) {
+            return -1; // Failed to differentiate through expansion
+        }
+
+        return 1; // Successful differentiation
+    }
+
 
     /**
      * convenience function that compares levels at the depth of the deeper rule

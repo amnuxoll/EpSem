@@ -533,12 +533,20 @@ public class PhuJusAgent implements IAgent {
                     bestScore = score;
                 }
             }
+
+            // Code to expand a candidate until it is unique to other rules already present
             if(bestScore == 1.0) {
-                int ret = cand.extendRuleDepth();
+                int ret = cand.matchingLHSExpansion(bestMatch);
                 if(ret < 0) {
-                    return; // This candidate is redundant with existing rules
+                    return; // This candidate is redundant and can't be expanded to be different
                 }
             }
+//            if(bestScore == 1.0) {
+//                int ret = cand.extendRuleDepth();
+//                if(ret < 0) {
+//                    return; // This candidate is redundant with existing rules
+//                }
+//            }
         }while(bestScore == 1.0);
 
         //If we haven't reached max just add it
