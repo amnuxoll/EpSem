@@ -547,7 +547,9 @@ public class PhuJusAgent implements IAgent {
                     //Third, try adding a "not" sensor to the candidate
                     ret = cand.matchingLHSNotFix(bestMatch);
                     if (ret < 0) {
-                        return; // This candidate is redundant and can't be expanded to be different
+                        //Finally, give up and create a sister rule
+                        bestMatch.addSister(cand);
+                        break;
                     }
                 }
             }

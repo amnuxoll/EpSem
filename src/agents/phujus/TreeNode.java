@@ -54,7 +54,7 @@ public class TreeNode {
     private final TreeNode parent;
 
     //child nodes
-    private final TreeNode[] children;
+    private final Vector<TreeNode> children = new Vector<>();;
 
     //bool for if tree has children or not
     private boolean isLeaf = false;
@@ -80,7 +80,6 @@ public class TreeNode {
         this.agent = initAgent;
         this.rules = agent.getRules();
         this.parent = null;
-        this.children = new TreeNode[agent.getNumActions()]; // actionSize
         this.episodeIndex = agent.getNow();
         this.rule = null;
         this.currInternal = agent.getCurrInternal();
@@ -92,6 +91,26 @@ public class TreeNode {
     }
 
     /**
+     * This child node constructor is built from a parent node and a matching rule
+     *
+     * Note:  caller is responsible for verifying the rule matches
+     *
+     */
+    public TreeNode(TreeNode parent, EpRule rule) {
+        //initializing agent and its children
+        this.agent = parent.agent;
+        this.rules = parent.rules;
+        this.parent = parent;
+        this.episodeIndex = parent.episodeIndex + 1;
+        this.rule = rule;
+        this.currInternal = agent.genNextInternal(rule.getAction(), parent.currInternal, parent.currExternal);
+        this.currExternal = rule.getRHSExternal();
+        this.path = new Vector<>(parent.path);
+        this.path.add(this);
+        this.pathStr = parent.pathStr + rule.getAction();
+        //Note: this.confidence is set by voteRHSExternal()
+    }
+    /**
      * This child node constructor is built from a parent node and a selected action
      *
      */
@@ -100,7 +119,6 @@ public class TreeNode {
         this.agent = parent.agent;
         this.rules = parent.rules;
         this.parent = parent;
-        this.children = new TreeNode[agent.getNumActions()]; // actionSize
         this.episodeIndex = parent.episodeIndex + 1;
         this.rule = null;  //not used
         this.currInternal = agent.genNextInternal(action, parent.currInternal, parent.currExternal);
@@ -108,7 +126,8 @@ public class TreeNode {
         this.path = new Vector<>(parent.path);
         this.path.add(this);
         this.pathStr = parent.pathStr + action;
-        //Note: this.confidence is set by voteRHSExternal()
+        this.confidence = rule.lhsMatchScore(action, this.currInternal, this.currExternal);
+        this.confidence *= rule.getAccuracy();
     }
 
     /**
@@ -240,6 +259,44 @@ public class TreeNode {
     }//voteRHSExternal
 
     /**
+     * expand
+     *
+     * populates this.children
+     */
+    private void expand() {
+        //check:  already expanded
+        if (this.children.size() != 0) return;
+
+        //for each possible action
+        for(int i = 0; i < agent.getActionList().length; ++i) {
+            char action = agent.getActionList()[i].getName().charAt(0);
+            //find the best matching rule
+            double bestScore = 0.01;  //avoid "best" being 0.0 match
+            EpRule bestRule = null;
+            for (EpRule r : this.rules) {
+                double score = r.lhsMatchScore(action, this.currInternal, this.currExternal);
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestRule = r;
+                }
+            }
+
+            //Create a child node for this rule
+            TreeNode child = new TreeNode(this, bestRule);
+            this.children.add(child);
+
+            //If the rule has sisters, create nodes with them as well
+            for(EpRule r : bestRule.getSisters()) {
+                if (r.equals(bestRule)) continue;
+                child = new TreeNode(this, r);
+                this.children.add(child);
+            }
+
+        }//for each action
+
+    }//expand
+
+    /**
      * findBestGoalPath
      * <p>
      * uses an iterative deepening search tree to find a path to the goal
@@ -297,20 +354,19 @@ public class TreeNode {
         Vector<TreeNode> bestPath = null;
         double bestScore = 0.0;
 
-        for(int i = 0; i < agent.getActionList().length; ++i) {
-            //Create the child node for this action if it doesn't exist yet
-            TreeNode child = this.children[i];
-            if (child == null) {
-                char action = agent.getActionList()[i].getName().charAt(0);
-                this.children[i] = new TreeNode(this, action);
-                child = this.children[i];
-            } //if create new child node
-            else {
+        //Create the child nodes if they don't exist yet
+        if (this.children.size() == 0) {
+            expand();
+        } else {
+            for (TreeNode child : this.children) {
                 child.isLeaf = false; //reset from any prev use of this child
             }
+        }
 
+        for(TreeNode child : this.children) {
             //Recursive case: test all children and return shortest path
             Vector<TreeNode> foundPath = child.fbgpHelper(depth + 1, maxDepth);
+
             if ( foundPath != null) {
                 double confidence = foundPath.lastElement().confidence;
                 //TODO: Braeden is unsatisfied with the 1/length , think about another metric?
@@ -488,10 +544,8 @@ public class TreeNode {
         System.out.println();
 
         //recursive case: print child nodes
-        for (int i = 0; i < this.agent.getNumActions(); i++) {
-            if (this.children[i] != null) {
-                this.children[i].printTreeHelper(indent + "   ");
-            }
+        for(TreeNode child : this.children) {
+            child.printTreeHelper(indent + "   ");
         }
     }//printTreeHelper
 

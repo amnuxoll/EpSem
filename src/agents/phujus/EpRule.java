@@ -125,6 +125,12 @@ public class EpRule {
     // present when the rule was created
     private final HashSet<ExtCond> rhsExternal;
 
+    //In some cases, a rule becomes indeterminate:  multiple RHS have been
+    //seen but the agent doesn't know how to predict which will occur.
+    //When this happens, this rule acquires multiple "sister" rules that
+    //each predict a different RHS
+    private HashSet<EpRule> sisters = new HashSet<>();
+
     // Each rule has an activation level that tracks the frequency and
     // recency with which it fired and correctly predicted an external
     // sensor value
@@ -160,10 +166,11 @@ public class EpRule {
         this.rhsExternal = initExternal(agent.getCurrExternal());
     }
 
-    private HashSet<ExtCond> initExternal(SensorData lhs) {
+    /** converts from SensorData to HashSet<ExtCond> */
+    private HashSet<ExtCond> initExternal(SensorData sData) {
         HashSet<ExtCond> result = new HashSet<>();
-        for(String sName : lhs.getSensorNames()) {
-            result.add(new ExtCond(sName, (Boolean)lhs.getSensor(sName)));
+        for(String sName : sData.getSensorNames()) {
+            result.add(new ExtCond(sName, (Boolean)sData.getSensor(sName)));
         }
 
         return result;
@@ -253,7 +260,6 @@ public class EpRule {
         StringBuilder result = new StringBuilder();
         for(int i = timeDepth; i >= 1; --i) {
             result.append('(');
-            int count = 0;
             //positive conditions
             HashSet<IntCond> level = getInternalLevel(i);
             String intStr = toStringIntConds(level, false, includeConf);
@@ -271,6 +277,19 @@ public class EpRule {
 
         return result.toString();
     }//toStringInternalLHS
+
+    /** toStringShortRHS
+     *
+     * is a helper method for {@link #toStringShort()} to convert a RHS to a bit string
+     */
+    private String toStringShortRHS(HashSet<ExtCond> rhs) {
+        StringBuilder result = new StringBuilder();
+        for (ExtCond eCond : sortedConds(rhs)) {
+            char bit = (eCond.val) ? '1' : '0';
+            result.append(bit);
+        }
+        return result.toString();
+    }//toStringShortRHS
 
     /**
      * like toString() but much less verbose.  Each external condition is
@@ -296,9 +315,18 @@ public class EpRule {
         result.append(" -> ");
 
         //RHS external sensors
-        for (ExtCond eCond : sortedConds(this.rhsExternal)) {
-            char bit = (eCond.val) ? '1' : '0';
-            result.append(bit);
+        if (this.sisters.size() == 0) {
+            result.append(toStringShortRHS(this.rhsExternal));
+        } else {
+            //Handle sister rules
+            result.append('[');
+            int count = 0;
+            for(EpRule r : this.sisters) {
+                if (count > 0) result.append('|');
+                count++;
+                result.append(toStringShortRHS(r.rhsExternal));
+            }
+            result.append(']');
         }
 
         return result.toString();
@@ -348,9 +376,21 @@ public class EpRule {
             result.append('$');
             result.append(String.format("%.2f", eCond.getConfidence()));
         }
-        result.append(") ^ ");
+        result.append(')');
+
+        //sister rules
+        if (this.sisters.size() > 0) {
+            result.append(" sisters: ");
+            count = 0;
+            for(EpRule r : this.sisters) {
+                if (count > 0) result.append("/");
+                count++;
+                result.append(r.getId());
+            }
+        }
 
         //Activation & Accuracy
+        result.append(" ^ ");
         result.append(String.format("act=%.5f", calculateActivation(agent.getNow())));
         result.append(String.format("  acc=%.5f", getAccuracy()));
 
@@ -464,7 +504,6 @@ public class EpRule {
         return lhsMatchScore(action, this.agent.getCurrInternal(), this.agent.getCurrExternal());
     }
 
-
     /**
      * calculates how closely this rule matches a given rhs sensors
      *
@@ -483,7 +522,10 @@ public class EpRule {
             }
         }
 
-        return sum / this.rhsExternal.size();
+        double result = sum / this.rhsExternal.size();
+        result *= getAccuracy();
+        return result;
+
     }//rhsMatchScore
 
     /**
@@ -677,6 +719,7 @@ public class EpRule {
         }
 
         //Compare RHS external values
+        //TODO: no longer relevant with sister rules in place?
         for (ExtCond eCond : this.rhsExternal) {
             if (rhsExt.hasSensor(eCond.sName)) {
                 Boolean sVal = (Boolean) rhsExt.getSensor(eCond.sName);
@@ -788,7 +831,7 @@ public class EpRule {
     }//matchingLHSExpansion
 
     /**
-     * matchingLHSExpansion
+     * matchingLHSNotFix
      *
      * makes this rule's LHS different from a given rule's by adding a "NOT"
      * condition to the shorter rule.  The expected input should be a rule
@@ -821,12 +864,12 @@ public class EpRule {
         HashSet<IntCond> otherConds = other.getInternalLevel(this.timeDepth);
         if (otherConds.size() == 0) return -3;
 
-        //Add the "not" sensor to 'this'
+        //Add a "not" sensor to 'this'
         HashSet<IntCond> notConds = getNotInternalLevel(this.timeDepth);
         notConds.add(otherConds.iterator().next());  //just take one
 
         return 0; //success
-    }//matchingLHSExpansion
+    }//matchingLHSNotFix
 
 
 
@@ -837,15 +880,6 @@ public class EpRule {
     public char getAction() { return this.action; }
     public HashSet<ExtCond> getRHSConds() { return this.rhsExternal; }
     public int getTimeDepth() { return this.timeDepth; }
-
-    /** convert this.lhsExternal back to a SensorData */
-    public SensorData getLHSExternal() {
-        SensorData result = SensorData.createEmpty();
-        for(ExtCond eCond : this.lhsExternal) {
-            result.setSensor(eCond.sName, eCond.val);
-        }
-        return result;
-    }
 
     /** convert this.rhsExternal back to to a SensorData */
     public SensorData getRHSExternal() {
@@ -923,15 +957,28 @@ public class EpRule {
     }
 
     //Retrieve's the nth level of internal sensors from the end of this.lhsInternal
-    private HashSet<IntCond> getInternalLevel(int depth) {
+    public HashSet<IntCond> getInternalLevel(int depth) {
         return getLevelHelper(depth, this.lhsInternal);
     }
 
     //Retrieve's the nth level of _not_ internal sensors from the end of this.lhsInternal
-    private HashSet<IntCond> getNotInternalLevel(int depth) {
+    public HashSet<IntCond> getNotInternalLevel(int depth) {
         return getLevelHelper(depth, this.lhsNotInternal);
     }
 
+    /**
+     * Add a new sister rule.
+     *
+     * Important: this new sister rule should not already have sisters
+     */
+
+    public void addSister(EpRule sis) {
+        sis.sisters = this.sisters; //share the HashSet
+        sis.sisters.add(sis);
+        if (sis.sisters.size() == 1) sis.sisters.add(this);
+    }
+
+    public HashSet<EpRule> getSisters() { return this.sisters; }
 
 
 //endregion
