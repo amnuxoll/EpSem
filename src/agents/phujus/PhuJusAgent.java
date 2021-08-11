@@ -537,10 +537,18 @@ public class PhuJusAgent implements IAgent {
 
             // Code to expand a candidate until it is unique to other rules already present
             if(bestScore == 1.0) {
-                //First try expanding the rule(s) to make them different
+                //First, Compare RHS external values.  If they match then the candidate has no new knowledge
+                double rhsMatch = cand.rhsMatchScore(bestMatch.getRHSExternal());
+                if(rhsMatch == 1.0) return;
+
+                //Second, try expanding the rule(s) to make them different
                 int ret = cand.matchingLHSExpansion(bestMatch);
                 if(ret < 0) {
-                    return; // This candidate is redundant and can't be expanded to be different
+                    //Third, try adding a "not" sensor to the candidate
+                    ret = cand.matchingLHSNotFix(bestMatch);
+                    if (ret < 0) {
+                        return; // This candidate is redundant and can't be expanded to be different
+                    }
                 }
             }
 
