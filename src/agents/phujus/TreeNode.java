@@ -108,7 +108,8 @@ public class TreeNode {
         this.path = new Vector<>(parent.path);
         this.path.add(this);
         this.pathStr = parent.pathStr + rule.getAction();
-        //Note: this.confidence is set by voteRHSExternal()
+        this.confidence = rule.lhsMatchScore(rule.getAction(), parent.currInternal, parent.currExternal);
+        this.confidence *= rule.getAccuracy();
     }
     /**
      * This child node constructor is built from a parent node and a selected action
@@ -126,8 +127,7 @@ public class TreeNode {
         this.path = new Vector<>(parent.path);
         this.path.add(this);
         this.pathStr = parent.pathStr + action;
-        this.confidence = rule.lhsMatchScore(action, this.currInternal, this.currExternal);
-        this.confidence *= rule.getAccuracy();
+        //this.confidence gets set as a side effect of softmaxSelect() or voteRHSExternal()
     }
 
     /**
@@ -279,6 +279,10 @@ public class TreeNode {
                     bestScore = score;
                     bestRule = r;
                 }
+            }
+
+            if(bestRule == null) {
+                return; // we can't expand using this action
             }
 
             //Create a child node for this rule

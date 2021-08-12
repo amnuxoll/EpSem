@@ -416,7 +416,7 @@ public class PhuJusAgent implements IAgent {
                 } else {
 //                    r.reevaluateInternalSensors(getPrevInternal());
                     int newDepth = r.extendRuleDepth();
-                    if(newDepth == -1) {
+                    if(newDepth < 0) {
                         rulesToRemove.add(r);
                     }
                 }
@@ -529,6 +529,9 @@ public class PhuJusAgent implements IAgent {
             bestScore = -1.0;
             for (EpRule r : this.rules) {
                 double score = r.compareLHS(cand, cand.getTimeDepth());
+                if(score == 1.0 && (cand.rhsMatchScore(r.getRHSExternal()) == 1.0)) {
+                    score = 1.01; // This is a flag for a perfect match
+                }
                 if (score > bestScore) {
                     bestMatch = r;
                     bestScore = score;
@@ -536,14 +539,24 @@ public class PhuJusAgent implements IAgent {
             }
 
             // Code to expand a candidate until it is unique to other rules already present
-            if(bestScore == 1.0) {
-                //First, Compare RHS external values.  If they match then the candidate has no new knowledge
-                double rhsMatch = cand.rhsMatchScore(bestMatch.getRHSExternal());
-                if(rhsMatch == 1.0) return;
+            if(bestScore >= 1.0) {
+
+                // First, check if we have an exact match for both LHS and RHS
+                if(bestScore == 1.01) {
+                    if(bestMatch.getSisters().size() > 0) {
+                        cand.adjustSisterhood(bestMatch);
+                    }
+                    return;
+                }
 
                 //Second, try expanding the rule(s) to make them different
                 int ret = cand.matchingLHSExpansion(bestMatch);
                 if(ret < 0) {
+                    // Check to see if candidate had no additional information
+                    if(cand.getTimeDepth() <= bestMatch.getTimeDepth()) {
+                        return;
+                    }
+
                     //Third, try adding a "not" sensor to the candidate
                     ret = cand.matchingLHSNotFix(bestMatch);
                     if (ret < 0) {

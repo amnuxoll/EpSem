@@ -776,7 +776,7 @@ public class EpRule {
         //Check to see if this new level is empty
         HashSet<IntCond> level = getInternalLevel(this.timeDepth);
         if(level.size() == 0) {
-            return -1; // code failed
+            return -2; // code failed
         }
 
         return this.timeDepth;
@@ -798,8 +798,8 @@ public class EpRule {
      *   #14: (7)(8)|00a -> 00
      *   #8: (5)(8)|00a -> 01
      *
-     * @param other
-     * @return
+     * @param other the other rule
+     * @return 0 for success, negative for failure
      */
     public int matchingLHSExpansion(EpRule other) {
         //We always want 'other' to be the rule with more time levels
@@ -821,13 +821,22 @@ public class EpRule {
             matchScore = this.compareLHS(other);
         }
 
-        //Check for empty levels
-        if ( (this.getInternalLevel(this.timeDepth).size() == 0)
-                || (other.getInternalLevel(other.timeDepth).size() == 0) ) {
+        //Check for and remove empty levels
+        boolean foundEmptyLevels = false;
+        while ((this.timeDepth > 0) && (this.getInternalLevel(this.timeDepth).size() == 0)) {
+            foundEmptyLevels = true;
+            this.timeDepth--;
+        }
+        while ((other.timeDepth > 0) && (other.getInternalLevel(other.timeDepth).size() == 0)) {
+            foundEmptyLevels = true;
+            other.timeDepth--;
+        }
+
+        if(foundEmptyLevels) {
             return -2;
         }
 
-        return (matchScore == 1.0) ? -1 : 1;
+        return (matchScore == 1.0) ? -1 : 0;
     }//matchingLHSExpansion
 
     /**
@@ -843,6 +852,7 @@ public class EpRule {
      * Note that if there are multiple internal conditions in the deeper rule
      * that only one of these is used (e.g., there is no !11 in rule #14 below).
      *
+     * //TODO: should we be less arbitrary about which sensor to negate?
      * Example input:
      *   #14: ()(8)|00a -> 00
      *   #8: (5,11)(8)|00a -> 01
@@ -850,8 +860,8 @@ public class EpRule {
      *   #14: (!5)(8)|00a -> 00
      *   #8: (5,11)(8)|00a -> 01
      *
-     * @param other
-     * @return
+     * @param other the other rule
+     * @return 0 for success, negative number for failure
      */
     public int matchingLHSNotFix(EpRule other) {
         //Invalid input: this rule has on internal sensors
@@ -870,6 +880,57 @@ public class EpRule {
 
         return 0; //success
     }//matchingLHSNotFix
+
+    /**
+     * adjustSisterhood
+     *
+     * when a new candidate rule is discovered that matches an existing
+     * rule sisterhood, this method resolves the outcome
+     * @param theHood the EpRule in the sisterhood that has the same RHS as this
+     * @return
+     */
+    public int adjustSisterhood(EpRule theHood) {
+
+        // See if the rule can be expanded past the size of theHood
+        while(this.timeDepth < theHood.timeDepth+1) {
+            if (this.extendRuleDepth() < 0) {
+                return -1; // candidate rule is too general
+            }
+        }
+
+        // Just copy all internal conditions from cand to theHood
+        theHood.extendRuleDepth();
+        HashSet<IntCond> thisLevel = this.getInternalLevel(this.timeDepth);
+        HashSet<IntCond> theHoodLevel = theHood.getInternalLevel((theHood.timeDepth));
+        for(IntCond iCond : thisLevel) {
+            theHoodLevel.add(iCond);
+        }
+
+        // Add _not_ conditions to the other members of the sisterhood
+        for(EpRule r : theHood.sisters) {
+            if(r.equals(theHood)) {
+                continue; // we want to skip ourselves
+            }
+
+            r.matchingLHSNotFix(theHood);
+        }
+
+        // Extract theHood from the sisterhood
+        if(theHood.sisters.size() == 2) {
+            for(EpRule r : theHood.sisters) {
+                if (r.equals(theHood)) {
+                    continue; // we want to skip ourselves
+                }
+                r.sisters = new HashSet<>();
+            }
+        } else {
+            theHood.sisters.remove(theHood);
+        }
+
+        theHood.sisters = new HashSet<>();
+
+        return 0;
+    }//adjustSisterhood
 
 
 
