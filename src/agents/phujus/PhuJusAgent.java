@@ -414,11 +414,12 @@ public class PhuJusAgent implements IAgent {
                     //effective prediction means we can adjust confidences
                     r.updateConfidencesForPrediction(getAllPrevInternal(), this.prevExternal, this.currExternal);
                 } else {
-//                    r.reevaluateInternalSensors(getPrevInternal());
-                    int newDepth = r.extendRuleDepth();
-                    if(newDepth < 0) {
-                        rulesToRemove.add(r);
-                    }
+                    //TODO:  I don't think we need this anymore
+//                    int newDepth = r.extendRuleDepth();
+//                    if(newDepth < 0) {
+//                        rulesToRemove.add(r);
+//                    }
+                    System.out.println();
                 }
             }
         }
