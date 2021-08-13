@@ -6,7 +6,6 @@ import framework.IIntrospector;
 import framework.SensorData;
 
 import java.util.*;
-import java.util.HashMap;
 import java.util.Random;
 
 /**
@@ -34,10 +33,9 @@ import java.util.Random;
  */
 public class PhuJusAgent implements IAgent {
     public static final int MAXNUMRULES = 50;
-    public static final int INITIAL_ACTIVATION = 15;  //initial activation for first set of rules
     public static final int RULEMATCHHISTORYLEN = MAXNUMRULES * 5;
-    public static final int MAXDEPTH = 5; //TODO: get the search to self prune again
-    public static final int SHORT_TERM_SIZE = 7;  //size of short term memory
+    public static final int MAX_SEARCH_DEPTH = 5; //TODO: get the search to self prune again
+    public static final int MAX_TIME_DEPTH = 7;  //size of short term memory
 
     // These variables are used to track sensor longevity and rarity of sensor values
     //TODO: implement this
@@ -178,7 +176,7 @@ public class PhuJusAgent implements IAgent {
         //Now that we know what action the agent will take, setup the sensor
         // values for the next iteration
         this.prevInternal.add(this.currInternal);
-        while (prevInternal.size() > SHORT_TERM_SIZE) {
+        while (prevInternal.size() > MAX_TIME_DEPTH) {
             prevInternal.remove(0);
         }
         this.prevExternal = this.currExternal;
@@ -404,7 +402,6 @@ public class PhuJusAgent implements IAgent {
 
         //Compare all the rules that matched RHS to the ones that matched LHS last timestep
         Vector<EpRule> rhsMatches = getRHSMatches();
-        Vector<EpRule> rulesToRemove = new Vector<>();
         for(EpRule r : this.rules) {
             if (this.currInternal.contains(r.getId())) {  //did the rule match last timestep?
                 r.incrMatches();
@@ -414,18 +411,10 @@ public class PhuJusAgent implements IAgent {
                     //effective prediction means we can adjust confidences
                     r.updateConfidencesForPrediction(getAllPrevInternal(), this.prevExternal, this.currExternal);
                 } else {
-                    //TODO:  I don't think we need this anymore
-//                    int newDepth = r.extendRuleDepth();
-//                    if(newDepth < 0) {
-//                        rulesToRemove.add(r);
-//                    }
-                    System.out.println();
+                    //TODO:  I don't think we need to do anything here as it will get resolved
+                    //       in updateRuleSet() when a new, conflicting candidate is created
                 }
             }
-        }
-
-        for(EpRule r : rulesToRemove) {
-            removeRule(r);
         }
 
         return effectiveRules;
@@ -525,50 +514,70 @@ public class PhuJusAgent implements IAgent {
         //Find the existing rule that is most similar
         EpRule bestMatch = null;
         double bestScore = -1.0;
-        do{
-            bestMatch = null;
-            bestScore = -1.0;
-            for (EpRule r : this.rules) {
-                double score = r.compareLHS(cand, cand.getTimeDepth());
+        boolean bothMatch = false;
+        for (EpRule r : this.rules) {
+            double score = r.compareLHS(cand, cand.getTimeDepth());
+            if (score >= bestScore) {
+                bestMatch = r;
+                bestScore = score;
+
+                //check for both LHS and RHS match
                 if(score == 1.0 && (cand.rhsMatchScore(r.getRHSExternal()) == 1.0)) {
-                    score = 1.01; // This is a flag for a perfect match
-                }
-                if (score > bestScore) {
-                    bestMatch = r;
-                    bestScore = score;
+                    bothMatch = true;
+                    break; //nothing will match better
                 }
             }
+        }
 
-            // Code to expand a candidate until it is unique to other rules already present
-            if(bestScore >= 1.0) {
+        //DEBUG
+        debugPrintln("cand: " + cand);
+        debugPrintln("best: " + bestMatch);
 
-                // First, check if we have an exact match for both LHS and RHS
-                if(bestScore == 1.01) {
-                    if(bestMatch.getSisters().size() > 0) {
-                        cand.adjustSisterhood(bestMatch);
+        // Resolve a perfect match using a variety of methods
+        if(bestScore == 1.0) {
+
+            // First, do we have an exact match for both LHS and RHS?
+            if(bothMatch) {
+                //If there is a sisterhood, it can be adjusted with no info in cand
+                if(bestMatch.getSisters().size() > 0) {
+                    int ret = cand.adjustSisterhood(bestMatch);
+                    //on success, candidate replaces bestMatch
+                    if (ret == 0) {
+                        removeRule(bestMatch, cand);
+                        addRule(cand);
                     }
-                    return;
+                //without a sisterhood, all we care about is which rule can go deeper
+                } else if (cand.maxTimeDepth() > bestMatch.maxTimeDepth()){
+                    //candidate has more to offer
+                    while(cand.getTimeDepth() < bestMatch.getTimeDepth()) {
+                        cand.extendTimeDepth();
+                    }
+                    removeRule(bestMatch, cand);
+                    addRule(cand);
                 }
 
-                //Second, try expanding the rule(s) to make them different
-                int ret = cand.matchingLHSExpansion(bestMatch);
-                if(ret < 0) {
-                    // Check to see if candidate had no additional information
-                    if(cand.getTimeDepth() <= bestMatch.getTimeDepth()) {
-                        return;
-                    }
+                //DEBUG
+                else
+                    debugPrintln("\tcand rejected: redundant");
 
-                    //Third, try adding a "not" sensor to the candidate
+                return;  //regardless, we are finished now
+            }//if both match
+
+            //Second, try expanding the rule(s) to make them different
+            int ret = cand.matchingLHSExpansion(bestMatch);
+            if(ret < 0) {
+                // If the rules can't be expanded, perhaps we can add a
+                // "not" sensor to one of the rules to distringuish them
+                if (cand.maxTimeDepth() != bestMatch.maxTimeDepth()) {
                     ret = cand.matchingLHSNotFix(bestMatch);
-                    if (ret < 0) {
-                        //Finally, give up and create a sister rule
-                        bestMatch.addSister(cand);
-                        break;
-                    }
+                }
+                //If nothing works, give up and create a sister rule
+                if (ret < 0) {
+                    bestMatch.addSister(cand);
                 }
             }
+        }
 
-        }while(bestScore == 1.0);
 
         //If we haven't reached max just add it
         if (this.rules.size() < MAXNUMRULES) {
@@ -594,8 +603,8 @@ public class PhuJusAgent implements IAgent {
             }
         }
 
-        //remove and replace
-        removeRule(worstRule);
+        //remove and add
+        removeRule(worstRule, null);
         addRule(cand);
 
     }//updateRuleSet
@@ -628,36 +637,34 @@ public class PhuJusAgent implements IAgent {
      * TODO:  try merging rule with most similar instead?
      *
      * CAVEAT: recursive
+     *
+     * @param removeMe  the rule to remove
+     * @param replacement (can be null) the rule that will be replacing this one
      */
-    public void removeRule(EpRule removeMe) {
+    public void removeRule(EpRule removeMe, EpRule replacement) {
         rules.remove(removeMe);
 
         //DEBUGGING
-        debugPrint("Removed rule: ");
+        debugPrint("removed: ");
         debugPrintln(removeMe.toString());
 
         // If any rule has a condition that test for 'removeMe' then that
-        // condition must be removed
-        Vector<EpRule> toRemove = new Vector<>();
+        // condition must also be removed or replaced
         for (EpRule r : this.rules) {
             if (r.testsIntSensor(removeMe.getId())) {
-                int result = r.removeIntSensor(removeMe.getId());
-
-                //If the removal has rendered this rule invalid, it has to be
-                //removed as well (TODO:  This seems too heavy handed. We are losing knowledge.)
-                if (result < 0) {
-                    toRemove.add(r);
-                } else {
-                    //reset rule meta info
-                    r.resetMetaInfo();
-                    break;
-                }
+                int replId = (replacement == null) ? -1 : replacement.getId();
+                r.removeIntSensor(removeMe.getId(), replId);
             }
         }
 
-        for(EpRule r : toRemove) {
-            removeRule(r);
+        //If the removed rule was in the internal sensor set, it has to be fixed as well
+        if (this.currInternal.contains(removeMe.getId())) {
+            this.currInternal.remove(removeMe.getId());
+            if (replacement != null) {
+                this.currInternal.add(replacement.getId());
+            }
         }
+
     }//removeRule
 
     /**

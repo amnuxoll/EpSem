@@ -116,8 +116,8 @@ public class EpRule {
     // - the action that the agent took just before this rule was created
     //Initially, all sensor values are present but, over time, they may get culled if they
     //prove inconsistent with the agent's experiences
-    private final Vector<HashSet<IntCond>> lhsInternal;
-    private final Vector<HashSet<IntCond>> lhsNotInternal;
+    private Vector<HashSet<IntCond>> lhsInternal;
+    private Vector<HashSet<IntCond>> lhsNotInternal;
     private final HashSet<ExtCond> lhsExternal;
     private final char action;
 
@@ -339,6 +339,7 @@ public class EpRule {
                 if (count > 0) result.append('|');
                 count++;
                 result.append(toStringShortRHS(r.rhsExternal));
+                if (r.equals(this)) result.append('*');
             }
             result.append(']');
         }
@@ -857,13 +858,13 @@ public class EpRule {
     }//resetMetaInfo
 
     /**
-     * extendRuleDepth
+     * extendTimeDepth
      *
      * adds another depth to a rule assuming it has not reached the max depth
      */
     //TODO: this will need to be expanded to handle NDFA's
-    public int extendRuleDepth() {
-        if(this.timeDepth < PhuJusAgent.SHORT_TERM_SIZE) {
+    public int extendTimeDepth() {
+        if(this.timeDepth < PhuJusAgent.MAX_TIME_DEPTH) {
             this.timeDepth++;
         } else {
             return -1; // code failed
@@ -881,7 +882,7 @@ public class EpRule {
         }
 
         return this.timeDepth;
-    }//extendRuleDepth
+    }//extendTimeDepth
 
     /**
      * matchingLHSExpansion
@@ -910,15 +911,15 @@ public class EpRule {
         double matchScore = this.compareLHS(other, this.timeDepth);
         int thisRuleDepthFlag = 0;
         while((this.timeDepth < other.timeDepth) && (matchScore == 1.0) && (thisRuleDepthFlag >= 0)) {
-            thisRuleDepthFlag = this.extendRuleDepth();
+            thisRuleDepthFlag = this.extendTimeDepth();
             matchScore = this.compareLHS(other, this.timeDepth);
         }
 
         // Run until the rules are different on the LHS and can still be expanded
         int otherRuleDepthFlag = 0;
         while( (matchScore == 1.0) && (thisRuleDepthFlag >= 0) && (otherRuleDepthFlag >= 0) ) {
-            thisRuleDepthFlag = this.extendRuleDepth();
-            otherRuleDepthFlag = other.extendRuleDepth();
+            thisRuleDepthFlag = this.extendTimeDepth();
+            otherRuleDepthFlag = other.extendTimeDepth();
             matchScore = this.compareLHS(other);
         }
 
@@ -971,75 +972,128 @@ public class EpRule {
         //Invalid input: one rule should have more depth than the other
         if (other.timeDepth == this.timeDepth) return -1;
 
-        //Expand the shorter rule one level and verify that it is empty
+        //Add a "not" sensor to the shorter rule at the new level
+        HashSet<IntCond> otherConds = other.getInternalLevel(this.timeDepth + 1);
         this.timeDepth++;
-        HashSet<IntCond> thisConds = this.getInternalLevel(this.timeDepth);
-        if (thisConds.size() > 0) return -2;
+        HashSet<IntCond> thisNotConds = getNotInternalLevel(this.timeDepth);
+        IntCond negateMe = otherConds.iterator().next();
+        thisNotConds.add(negateMe);  //just take one
 
-        //Verify that the corresponding level in the other has at least one condition
-        HashSet<IntCond> otherConds = other.getInternalLevel(this.timeDepth);
-        if (otherConds.size() == 0) return -3;
+        //If the shorter rule has sisters, they need to be adjusted too
+        if (!this.sisters.isEmpty()) {
+            for(EpRule sis : this.sisters) {
+                if (sis.equals(this)) continue;  //skip myself
+                sis.timeDepth++;
+                HashSet<IntCond> sisNotConds = sis.getNotInternalLevel(sis.timeDepth);
+                sisNotConds.add(negateMe);
+            }
+        }
 
-        //Add a "not" sensor to 'this'
-        HashSet<IntCond> notConds = getNotInternalLevel(this.timeDepth);
-        notConds.add(otherConds.iterator().next());  //just take one
 
         return 0; //success
     }//matchingLHSNotFix
 
     /**
+     * stealInternalSensors
+     *
+     * copies all the
+     */
+
+    /**
      * adjustSisterhood
      *
      * when a new candidate rule is discovered that matches an existing
-     * rule sisterhood, this method resolves the outcome
-     * @param theHood the EpRule in the sisterhood that has the same RHS as this
-     * @return
+     * rule sisterhood, this method resolves the outcome.  If this method
+     * is successful, the new rule should replace the old one in the
+     * agent's rule set
+     *
+     * @param equiv the EpRule in the sisterhood that has the same RHS as this
+     * @return 0 if success, negative otherwise
      */
-    public int adjustSisterhood(EpRule theHood) {
+    public int adjustSisterhood(EpRule equiv) {
 
-        // See if the rule can be expanded past the size of theHood
-        while(this.timeDepth < theHood.timeDepth+1) {
-            if (this.extendRuleDepth() < 0) {
+        // See if this rule can be expanded past the size of equiv
+        while(this.timeDepth < equiv.timeDepth+1) {
+            if (this.extendTimeDepth() < 0) {
                 return -1; // candidate rule is too general
             }
         }
 
-        // Just copy all internal conditions from cand to theHood
-        theHood.extendRuleDepth();
-        HashSet<IntCond> thisLevel = this.getInternalLevel(this.timeDepth);
-        HashSet<IntCond> theHoodLevel = theHood.getInternalLevel((theHood.timeDepth));
-        for(IntCond iCond : thisLevel) {
-            theHoodLevel.add(iCond);
-        }
-
         // Add _not_ conditions to the other members of the sisterhood
-        for(EpRule r : theHood.sisters) {
-            if(r.equals(theHood)) {
-                continue; // we want to skip ourselves
-            }
-
-            r.matchingLHSNotFix(theHood);
+        for(EpRule r : this.sisters) {
+            if(r.equals(this)) continue;  //not me!
+            r.matchingLHSNotFix(this);
         }
 
-        // Extract theHood from the sisterhood
-        if(theHood.sisters.size() == 2) {
-            for(EpRule r : theHood.sisters) {
-                if (r.equals(theHood)) {
-                    continue; // we want to skip ourselves
-                }
+        // Extract ourself from the sisterhood
+        if(equiv.sisters.size() == 2) {
+            for(EpRule r : equiv.sisters) {
                 r.sisters = new HashSet<>();
             }
         } else {
-            theHood.sisters.remove(theHood);
+            //since all sisters share the sisters list just remove myself from it
+            equiv.sisters.remove(equiv);
+            equiv.sisters = new HashSet<>();
         }
-
-        theHood.sisters = new HashSet<>();
 
         return 0;
     }//adjustSisterhood
 
 
+    /**
+     * removeIntSensor
+     *
+     * is called to remove an internal sensor from any levels of this rule.
+     * It is generally called when the rule associated with the sensor
+     * is being removed.
+     *
+     * @param oldId   the sensor id being removed
+     * @param newId   the sensor to replace it with (or -1 if none)
+     *
+     * @return a success/fail code
+     *         0 - sensor not found (no change made)
+     *         n - a positive number indicates the sensor was removed from n levels
+     *        -n - a negative number indicates the sensor was removed from n levels
+     *             and the rule was truncated as a result.
+     * */
+    public int removeIntSensor(int oldId, int newId) {
+        int result = 0;
+        boolean invalid = false;
+        for(HashSet<IntCond> level : this.lhsInternal) {
+            IntCond removeMe = null;
+            for (IntCond iCond : level) {
+                if (iCond.sId == oldId) {
+                    result++;
+                    if (newId >= 1) {
+                        iCond.sId = newId;  //replace
+                    } else {
+                        removeMe = iCond;  //mark for removal
+                    }
+                    break;
+                }
+            }
+            //remove the offending condition from this level
+            if (removeMe != null) {
+                level.remove(removeMe);
+            }
 
+            //If this level is now empty then this rule is now invalid
+            if (level.size() == 0) invalid = true;
+        }
+
+        //If the rule was rendered invalid, it needs to be truncated
+        for(int i = 1; i < PhuJusAgent.MAX_TIME_DEPTH; ++i) {
+            if ((this.lhsInternal.get(i).size() == 0)
+                && ((lhsNotInternal.size() <= i) || (this.lhsNotInternal.get(i).size() == 0))) {
+                this.timeDepth = i - 1;
+                //we need reset meta stats since the rule has changed
+                resetMetaInfo();
+                break;
+            }
+        }
+
+        return invalid ? -result : result;
+    }//removeIntSensor
 
 //region Getters and Setters
 
@@ -1069,6 +1123,7 @@ public class EpRule {
         return numPredicts / numMatches;
     }//getAccuracy
 
+    /** @return true if the given sensor is one of the conditions of this rule */
     public boolean testsIntSensor(int sId) {
         for(HashSet<IntCond> level : this.lhsInternal) {
             for (IntCond iCond : level) {
@@ -1078,41 +1133,6 @@ public class EpRule {
         return false;
     }
 
-    /**
-     * removeIntSensor
-     *
-     * is called to remove an internal sensor from any levels of this rule.
-     * It is generally called when the rule associated with the sensor
-     * is being removed.
-     *
-     * @return a success/fail code
-     *         0 - sensor not found (no change made)
-     *         n - a positive number indicates the sensor was removed from n levels
-     *        -n - a negative number indicates the sensor was removed from n levels
-     *             and the rule was made invalid (one or more empty levels) as a result.
-     * */
-    public int removeIntSensor(int sId) {
-        int result = 0;
-        boolean invalid = false;
-        IntCond removeMe = null;
-        for(HashSet<IntCond> level : this.lhsInternal) {
-            for (IntCond iCond : level) {
-                if (iCond.sId == sId) {
-                    removeMe = iCond;
-                    break;
-                }
-            }
-            if (removeMe != null) {
-                level.remove(removeMe);
-                result++;
-            }
-
-            //If this level is now empty then this rule is now invalid
-            if (level.size() == 0) invalid = true;
-        }
-
-        return invalid ? -result : result;
-    }
 
     //helper method for getInternalLevel and getNotInternalLevel
     private HashSet<IntCond> getLevelHelper(int depth, Vector<HashSet<IntCond>> vec) {
@@ -1147,7 +1167,18 @@ public class EpRule {
 
     public HashSet<EpRule> getSisters() { return this.sisters; }
 
+    /** @return the max depth for which this rule has non-empty LHS internal data */
+    public int maxTimeDepth() {
+        int max = timeDepth + 1;
+        while (max <= PhuJusAgent.MAX_TIME_DEPTH) {
+            if (getInternalLevel(max).size() == 0) break;
+            max++;
+        }
+        return max - 1;
+    }
+
 
 //endregion
 
 }//class EpRule
+

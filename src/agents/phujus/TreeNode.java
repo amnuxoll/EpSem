@@ -310,7 +310,7 @@ public class TreeNode {
     public Vector<TreeNode> findBestGoalPath() {
         double bestScore = 0.0;
         Vector<TreeNode> bestPath = null;
-        for(int max = 1; max <= PhuJusAgent.MAXDEPTH; ++max) {
+        for(int max = 1; max <= PhuJusAgent.MAX_SEARCH_DEPTH; ++max) {
             Vector<TreeNode> path = fbgpHelper(0, max);
             if (path != null) {
                 double foundScore = path.lastElement().confidence;
