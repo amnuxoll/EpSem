@@ -854,7 +854,7 @@ public class EpRule {
      *
      * //TODO: should we be less arbitrary about which sensor to negate?
      * Example input:
-     *   #14: ()(8)|00a -> 00
+     *   #14: (8)|00a -> 00
      *   #8: (5,11)(8)|00a -> 01
      * Resulting output:
      *   #14: (!5)(8)|00a -> 00
@@ -864,13 +864,18 @@ public class EpRule {
      * @return 0 for success, negative number for failure
      */
     public int matchingLHSNotFix(EpRule other) {
-        //Invalid input: this rule has on internal sensors
-        if (this.timeDepth == 0) return -1;
-        //Invalid input:  other rule has no sensors at this level to negate
-        if (this.timeDepth > other.timeDepth) return -2;
+        //We always want 'other' to be the rule with more time levels
+        if (other.timeDepth < this.timeDepth) return other.matchingLHSNotFix(this);
 
-        //Check that this rule has an empty level at the top and other does not
-        if (this.getInternalLevel(this.timeDepth).size() > 0) return -1;
+        //Invalid input: one rule should have more depth than the other
+        if (other.timeDepth == this.timeDepth) return -1;
+
+        //Expand the shorter rule one level and verify that it is empty
+        this.timeDepth++;
+        HashSet<IntCond> thisConds = this.getInternalLevel(this.timeDepth);
+        if (thisConds.size() > 0) return -2;
+
+        //Verify that the corresponding level in the other has at least one condition
         HashSet<IntCond> otherConds = other.getInternalLevel(this.timeDepth);
         if (otherConds.size() == 0) return -3;
 
