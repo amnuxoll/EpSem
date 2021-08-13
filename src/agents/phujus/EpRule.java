@@ -166,6 +166,20 @@ public class EpRule {
         this.rhsExternal = initExternal(agent.getCurrExternal());
     }
 
+    /**
+     * this ctor initializes the rule from a specified merging of two rules
+     */
+    public EpRule(PhuJusAgent agent, char action, HashSet<ExtCond> lhsExternal,
+                  Vector<HashSet<IntCond>> lhsInternal, HashSet<ExtCond> rhsExternal){
+        this.agent = agent;
+        this.ruleId = EpRule.nextRuleId++;
+        this.action = action;
+        this.lhsExternal = lhsExternal;
+        this.lhsNotInternal = new Vector<>();
+        this.lhsInternal = lhsInternal;
+        this.rhsExternal = rhsExternal;
+    }
+
     /** converts from SensorData to HashSet<ExtCond> */
     private HashSet<ExtCond> initExternal(SensorData sData) {
         HashSet<ExtCond> result = new HashSet<>();
@@ -618,6 +632,93 @@ public class EpRule {
         int maxLevelDepth = Math.max(this.timeDepth, other.timeDepth);
         return compareLHS(other, maxLevelDepth);
     }//compareLHS
+
+    public EpRule intersectRules(EpRule other) {
+        EpRule ret = intersectRulesHelper(other);
+
+        // Remove time depths if there are any empty internal levels
+        int depth = ret.timeDepth;
+        for(int i = depth; i >= 1; --i) {
+            if(ret.getInternalLevel(i).size() == 0) {
+                ret.timeDepth = i-1;
+            }
+        }
+
+        return ret;
+    }
+
+    private EpRule intersectRulesHelper(EpRule other) {
+
+        // Used in the constructor
+        HashSet<ExtCond> lhsExt = new HashSet<>();
+        Vector<HashSet<IntCond>> lhsInt = new Vector<>();
+        HashSet<ExtCond> rhsExt = new HashSet<>();
+
+        int depth = Math.max(this.timeDepth, other.timeDepth);
+
+        for(int i = 1; i <= depth; ++i) {
+            HashSet<IntCond> thisLevel = this.getInternalLevel(i);
+            HashSet<IntCond> otherLevel = other.getInternalLevel(i);
+
+            HashSet<IntCond> lhsIntToAdd = new HashSet<>();
+
+            if(thisLevel == null && otherLevel == null) {
+                continue;
+            }
+
+            //Compare LHS internal values
+            HashSet<IntCond> largerLHSInt = thisLevel;
+            HashSet<IntCond> smallerLHSInt = otherLevel;
+            if (largerLHSInt.size() < smallerLHSInt.size()) {
+                largerLHSInt = otherLevel;
+                smallerLHSInt = thisLevel;
+            }
+            for (IntCond iCond1 : largerLHSInt) {
+                for (IntCond iCond2 : smallerLHSInt) {
+                    if (iCond1.equals(iCond2)) {
+                        lhsIntToAdd.add(iCond1);
+                        break;
+                    }
+                }
+            }
+            lhsInt.add(lhsIntToAdd);
+        }
+
+        //Compare LHS external values
+        HashSet<ExtCond> largerLHSExt = this.lhsExternal;
+        HashSet<ExtCond> smallerLHSExt = other.lhsExternal;
+        if (largerLHSExt.size() < smallerLHSExt.size()) {
+            largerLHSExt = other.lhsExternal;
+            smallerLHSExt = this.lhsExternal;
+        }
+        for (ExtCond thisECond : largerLHSExt) {
+            for (ExtCond otherECond : smallerLHSExt) {
+                if (thisECond.equals(otherECond)) {
+                    lhsExt.add(thisECond);
+                    break;
+                }
+            }
+        }
+
+        //Compare RHS external values
+        HashSet<ExtCond> largerRHSExt = this.rhsExternal;
+        HashSet<ExtCond> smallerRHSExt = other.rhsExternal;
+        if (largerRHSExt.size() < smallerRHSExt.size()) {
+            largerRHSExt = other.rhsExternal;
+            smallerRHSExt = this.rhsExternal;
+        }
+        for (ExtCond thisECond : largerRHSExt) {
+            for (ExtCond otherECond : smallerRHSExt) {
+                if (thisECond.equals(otherECond)) {
+                    rhsExt.add(thisECond);
+                    break;
+                }
+            }
+        }
+
+        EpRule ret = new EpRule(this.agent, this.action, lhsExt, lhsInt, rhsExt);
+        return ret;
+    }
 
     /**
      * calculateActivation
