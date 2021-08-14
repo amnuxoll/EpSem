@@ -162,7 +162,12 @@ public class EpRule {
         this.action = agent.getPrevAction();
         this.lhsExternal = initExternal(agent.getPrevExternal());
         this.lhsNotInternal = new Vector<>();
-        this.lhsInternal = initInternal(agent.getAllPrevInternal());
+
+        //The internal sensors consist of currInternal + prevInternal
+        Vector<HashSet<Integer>> initInt = new Vector(agent.getAllPrevInternal());
+        initInt.add(agent.getCurrInternal());
+        if (initInt.size() > PhuJusAgent.MAX_TIME_DEPTH) initInt.remove(0);
+        this.lhsInternal = initInternal(initInt);
         this.rhsExternal = initExternal(agent.getCurrExternal());
     }
 
@@ -907,6 +912,10 @@ public class EpRule {
         //We always want 'other' to be the rule with more time levels
         if (other.timeDepth < this.timeDepth) return other.matchingLHSExpansion(this);
 
+        //save their original depths to restore later if things go wrong
+        int thisOrigDepth = this.timeDepth;
+        int otherOrigDepth = other.timeDepth;
+
         //while 'this' is shorter, expand it until they are different
         double matchScore = this.compareLHS(other, this.timeDepth);
         int thisRuleDepthFlag = 0;
@@ -923,7 +932,7 @@ public class EpRule {
             matchScore = this.compareLHS(other);
         }
 
-        //Check for and remove empty levels
+        //Check for empty levels
         boolean foundEmptyLevels = false;
         while ((this.timeDepth > 0) && (this.getInternalLevel(this.timeDepth).size() == 0)) {
             foundEmptyLevels = true;
@@ -934,11 +943,14 @@ public class EpRule {
             other.timeDepth--;
         }
 
-        if(foundEmptyLevels) {
-            return -2;
+        //Two ways to fail:  couldn't expand or rules were identical
+        if((foundEmptyLevels) || (matchScore == 1.0)){
+            this.timeDepth = thisOrigDepth;
+            other.timeDepth = otherOrigDepth;
+            return -1;
         }
 
-        return (matchScore == 1.0) ? -1 : 0;
+        return 0;
     }//matchingLHSExpansion
 
     /**
@@ -966,16 +978,25 @@ public class EpRule {
      * @return 0 for success, negative number for failure
      */
     public int matchingLHSNotFix(EpRule other) {
-        //We always want 'other' to be the rule with more time levels
-        if (other.timeDepth < this.timeDepth) return other.matchingLHSNotFix(this);
+        //Find the highest level where each rule as a positive condition
+        //(This is not necessarily timeDepth because of not-conditions)
+        int thisPosDepth = this.timeDepth;
+        while ((thisPosDepth > 0) && (this.getInternalLevel(thisPosDepth).size() == 0)) {
+            thisPosDepth--;}
+        int otherPosDepth = this.timeDepth;
+        while ((otherPosDepth > 0) && (other.getInternalLevel(otherPosDepth).size() == 0)) {
+            otherPosDepth--;}
+
+        //We always want 'other' to be the rule with more positive time levels
+        if (otherPosDepth < thisPosDepth) return other.matchingLHSNotFix(this);
 
         //Invalid input: one rule should have more depth than the other
-        if (other.timeDepth == this.timeDepth) return -1;
+        if (otherPosDepth == thisPosDepth) return -2;
 
         //Add a "not" sensor to the shorter rule at the new level
-        HashSet<IntCond> otherConds = other.getInternalLevel(this.timeDepth + 1);
-        this.timeDepth++;
-        HashSet<IntCond> thisNotConds = getNotInternalLevel(this.timeDepth);
+        while (this.timeDepth < otherPosDepth) this.timeDepth++;
+        HashSet<IntCond> otherConds = other.getInternalLevel(otherPosDepth);
+        HashSet<IntCond> thisNotConds = getNotInternalLevel(otherPosDepth);
         IntCond negateMe = otherConds.iterator().next();
         thisNotConds.add(negateMe);  //just take one
 
@@ -983,8 +1004,8 @@ public class EpRule {
         if (!this.sisters.isEmpty()) {
             for(EpRule sis : this.sisters) {
                 if (sis.equals(this)) continue;  //skip myself
-                sis.timeDepth++;
-                HashSet<IntCond> sisNotConds = sis.getNotInternalLevel(sis.timeDepth);
+                while (sis.timeDepth < otherPosDepth) sis.timeDepth++;
+                HashSet<IntCond> sisNotConds = sis.getNotInternalLevel(otherPosDepth);
                 sisNotConds.add(negateMe);
             }
         }
@@ -1179,6 +1200,21 @@ public class EpRule {
 
 
 //endregion
+
+    //DEBUG
+    public String toStringAllLHS() {
+        StringBuilder result = new StringBuilder();
+        for (int i = this.lhsInternal.size(); i >= 1; --i) {
+            result.append('(');
+            HashSet<IntCond> level = this.lhsInternal.get(this.lhsInternal.size() - i);
+            String intStr = toStringIntConds(level, false, false);
+            result.append(intStr);
+            result.append(')');
+        }
+
+        return result.toString();
+    }
+
 
 }//class EpRule
 

@@ -28,8 +28,6 @@ import java.util.Random;
  * > Rules refine/generalize themselves based on experience.  Rules should be able to:
  *    - merge when they become very similar
  *    - split when it will improve the activation of both progeny
- * > Change currInternal to be a HashSet of rules that fired?  I'm not sure if
- *    logging that a rule didn't fire is useful?
  */
 public class PhuJusAgent implements IAgent {
     public static final int MAXNUMRULES = 50;
@@ -197,8 +195,7 @@ public class PhuJusAgent implements IAgent {
      * calculates what the internal sensors will be for the next timestep
      * by seeing which rules have a sufficient match score.
      *
-     * At the moment, "sufficient" is more than halfway between the average and
-     * best score.  TODO:  something more statistically sound?
+     * At the moment, "sufficient" is any non-zero match score
      * <p>
      * @param action  selected action to generate from
      * @param currInt internal sensors to generate from
@@ -513,70 +510,87 @@ public class PhuJusAgent implements IAgent {
 
         //Find the existing rule that is most similar
         EpRule bestMatch = null;
-        double bestScore = -1.0;
-        boolean bothMatch = false;
+        double bestShortScore = -1.0;  //best match comparing at depth of shorter rule
+        double bestTotalScore = -1.0;  //best sum of short score + long socre
+        boolean bothMatch = false;  //did cand's RHS match bestMatch's RHS?
         for (EpRule r : this.rules) {
-            double score = r.compareLHS(cand, cand.getTimeDepth());
-            if (score >= bestScore) {
+            int shorterDepth = Math.min(cand.getTimeDepth(), r.getTimeDepth());
+            double score = r.compareLHS(cand, shorterDepth);
+
+            //If they match at short depth, break the potential with with RHS
+            double rhsScore = 0.0;
+            if (score == 1.0) {
+                rhsScore = cand.rhsMatchScore(r.getRHSExternal());
+            }
+
+            //if they also match at RHS score, break the tie with long depth
+            double longScore = 0.0;
+            if (rhsScore == 1.0) {
+                int longerDepth = Math.max(cand.getTimeDepth(), r.getTimeDepth());
+                longScore = r.compareLHS(cand, longerDepth);
+            }
+
+            double totalScore = score + rhsScore + longScore;
+            if ( totalScore  >= bestTotalScore) {
                 bestMatch = r;
-                bestScore = score;
+                bestShortScore = score;
+                bestTotalScore = totalScore;
 
                 //check for both LHS and RHS match
-                if(score == 1.0 && (cand.rhsMatchScore(r.getRHSExternal()) == 1.0)) {
-                    bothMatch = true;
-                    break; //nothing will match better
-                }
+                bothMatch = (cand.rhsMatchScore(r.getRHSExternal()) == 1.0);
             }
-        }
+        }//for each rule
 
         //DEBUG
-        debugPrintln("cand: " + cand);
-        debugPrintln("best: " + bestMatch);
+        debugPrintln("cand: #" + cand.getId() + ": " + cand.toStringShort() + " ||| " + cand.toStringAllLHS());
+        if (bestMatch != null) debugPrintln("best: #" + bestMatch.getId() + ": " + bestMatch.toStringShort() + " ||| " + bestMatch.toStringAllLHS());
 
         // Resolve a perfect match using a variety of methods
-        if(bestScore == 1.0) {
+        if(bestShortScore == 1.0) {
 
-            // First, do we have an exact match for both LHS and RHS?
-            if(bothMatch) {
-                //If there is a sisterhood, it can be adjusted with no info in cand
-                if(bestMatch.getSisters().size() > 0) {
-                    int ret = cand.adjustSisterhood(bestMatch);
-                    //on success, candidate replaces bestMatch
-                    if (ret == 0) {
-                        removeRule(bestMatch, cand);
-                        addRule(cand);
-                    }
-                //without a sisterhood, all we care about is which rule can go deeper
-                } else if (cand.maxTimeDepth() > bestMatch.maxTimeDepth()){
-                    //candidate has more to offer
-                    while(cand.getTimeDepth() < bestMatch.getTimeDepth()) {
-                        cand.extendTimeDepth();
-                    }
+            // Did we find a rule that affects a sisterhood?
+            if ( (bothMatch) && (bestMatch.getSisters().size() > 0) ) {
+                int ret = cand.adjustSisterhood(bestMatch);
+                //on success, candidate replaces bestMatch
+                if (ret == 0) {
                     removeRule(bestMatch, cand);
                     addRule(cand);
+                    return;  //conflict resolved
                 }
-
-                //DEBUG
-                else
-                    debugPrintln("\tcand rejected: redundant");
-
-                return;  //regardless, we are finished now
-            }//if both match
+            }//if sisterhood
 
             //Second, try expanding the rule(s) to make them different
             int ret = cand.matchingLHSExpansion(bestMatch);
             if(ret < 0) {
+
                 // If the rules can't be expanded, perhaps we can add a
                 // "not" sensor to one of the rules to distringuish them
-                if (cand.maxTimeDepth() != bestMatch.maxTimeDepth()) {
-                    ret = cand.matchingLHSNotFix(bestMatch);
-                }
-                //If nothing works, give up and create a sister rule
+                ret = cand.matchingLHSNotFix(bestMatch);
+
                 if (ret < 0) {
-                    bestMatch.addSister(cand);
-                }
-            }
-        }
+                    if (!bothMatch) {
+                        //If the RHS differ, then create a new sisterhood
+                        bestMatch.addSister(cand);
+                    } else {
+                        //everything matches and no resolution is possible
+                        //ditch the rule with the least info
+                        if (cand.maxTimeDepth() > bestMatch.maxTimeDepth()) {
+                            //candidate has more to offer
+                            while(cand.getTimeDepth() < bestMatch.getTimeDepth()) {
+                                cand.extendTimeDepth();
+                            }
+                            removeRule(bestMatch, cand);
+                            addRule(cand);
+                        }
+                        else {
+                            //DEBUG
+                            debugPrintln("\tcand rejected: redundant");
+                        }
+                        return;
+                    }//else no resolution
+                }//if can't resolve with not-sensors
+            }//if resolve with expand
+        }//if exact LHS match
 
 
         //If we haven't reached max just add it
@@ -645,7 +659,8 @@ public class PhuJusAgent implements IAgent {
         rules.remove(removeMe);
 
         //DEBUGGING
-        debugPrint("removed: ");
+        if (replacement == null) debugPrint("removed: ");
+        else debugPrint("replaced: ");
         debugPrintln(removeMe.toString());
 
         // If any rule has a condition that test for 'removeMe' then that
