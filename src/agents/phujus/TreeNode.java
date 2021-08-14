@@ -282,7 +282,7 @@ public class TreeNode {
             }
 
             if(bestRule == null) {
-                return; // we can't expand using this action
+                continue; // we can't expand using this action
             }
 
             //Create a child node for this rule

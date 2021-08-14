@@ -545,10 +545,10 @@ public class PhuJusAgent implements IAgent {
         debugPrintln("cand: #" + cand.getId() + ": " + cand.toStringShort() + " ||| " + cand.toStringAllLHS());
         if (bestMatch != null) debugPrintln("best: #" + bestMatch.getId() + ": " + bestMatch.toStringShort() + " ||| " + bestMatch.toStringAllLHS());
 
-        // Resolve a perfect match using a variety of methods
+        // If the LHS is an exact match, try to resolve it
         if(bestShortScore == 1.0) {
 
-            // Did we find a rule that affects a sisterhood?
+            // Special handling is needed if bestMatch is in a sisterhood
             if ( (bothMatch) && (bestMatch.getSisters().size() > 0) ) {
                 int ret = cand.adjustSisterhood(bestMatch);
                 //on success, candidate replaces bestMatch
@@ -559,36 +559,29 @@ public class PhuJusAgent implements IAgent {
                 }
             }//if sisterhood
 
-            //Second, try expanding the rule(s) to make them different
-            int ret = cand.matchingLHSExpansion(bestMatch);
+            //Try to resolve the match
+            int ret = cand.resolveMatchingLHS(bestMatch);
             if(ret < 0) {
-
-                // If the rules can't be expanded, perhaps we can add a
-                // "not" sensor to one of the rules to distringuish them
-                ret = cand.matchingLHSNotFix(bestMatch);
-
-                if (ret < 0) {
-                    if (!bothMatch) {
-                        //If the RHS differ, then create a new sisterhood
-                        bestMatch.addSister(cand);
-                    } else {
-                        //everything matches and no resolution is possible
-                        //ditch the rule with the least info
-                        if (cand.maxTimeDepth() > bestMatch.maxTimeDepth()) {
-                            //candidate has more to offer
-                            while(cand.getTimeDepth() < bestMatch.getTimeDepth()) {
-                                cand.extendTimeDepth();
-                            }
-                            removeRule(bestMatch, cand);
-                            addRule(cand);
+                if (!bothMatch) {
+                    //If the RHS differ, then create a new sisterhood
+                    bestMatch.addSister(cand);
+                } else {
+                    //Since LHS and RHS both match, these rules are too redundant.
+                    //Ditch the rule with the least info
+                    if (cand.maxTimeDepth() > bestMatch.maxTimeDepth()) {
+                        //candidate has more to offer
+                        while(cand.getTimeDepth() < bestMatch.getTimeDepth()) {
+                            cand.extendTimeDepth();
                         }
-                        else {
-                            //DEBUG
-                            debugPrintln("\tcand rejected: redundant");
-                        }
-                        return;
-                    }//else no resolution
-                }//if can't resolve with not-sensors
+                        removeRule(bestMatch, cand);
+                        addRule(cand);
+                    }
+                    else {
+                        //DEBUG
+                        debugPrintln("\tcand rejected: redundant");
+                    }
+                    return;
+                }//else no resolution
             }//if resolve with expand
         }//if exact LHS match
 
@@ -672,6 +665,13 @@ public class PhuJusAgent implements IAgent {
             }
         }
 
+        //the replacement may also have to-be-removed rule in its sensor set
+        if (replacement != null) {
+            if (replacement.testsIntSensor(removeMe.getId())) {
+                replacement.removeIntSensor(removeMe.getId(), replacement.getId());
+            }
+        }
+
         //If the removed rule was in the internal sensor set, it has to be fixed as well
         if (this.currInternal.contains(removeMe.getId())) {
             this.currInternal.remove(removeMe.getId());
@@ -679,6 +679,8 @@ public class PhuJusAgent implements IAgent {
                 this.currInternal.add(replacement.getId());
             }
         }
+
+        //TODO:  remove from all levels in this.prevInternal as well?
 
     }//removeRule
 

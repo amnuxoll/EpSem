@@ -549,59 +549,101 @@ public class EpRule {
     }//rhsMatchScore
 
     /**
-     * calculates how closely this rule matches another given rule
+     * compareLHSCondSets
      *
-     * @param other  the other rule to compare it to
-     * @return  a match score from 0.0 to 1.0
+     * is a helper for {@link #compareLHSIntLevel} that compares two HashSet<IntCond>
+     *
+     * @param level1  level to compare
+     * @param level2  level to compare
+     * @param useConf factor confidences into match score?
+     * @return a two-cell array containing:  the size of the union and
+     *         intersection of these sets.  If useConf is set, the union
+     *         size is counted by confidence rather than 1.0 for each.
      */
-    public double compareLHS(EpRule other, int depth) {
+    private double[] compareLHSCondSets(HashSet<IntCond> level1, HashSet<IntCond> level2, boolean useConf) {
+        double[] result = new double[2];
+        result[0] = 0.0;
+        result[1] = 0.0;
 
-        //actions must match
-        if (this.action != other.action) return 0.0;
-
-        //Independent score for each of the levels of internal sensors + 1 for external sensors
-        double[] lhsScores = new double[depth + 1];
-
-        for(int i = 1; i <= depth; ++i) {
-            HashSet<IntCond> thisLevel = this.getInternalLevel(i);
-            HashSet<IntCond> otherLevel = other.getInternalLevel(i);
-
-            // If they are both null, they match
-            if(thisLevel == null && otherLevel == null) {
-                lhsScores[i] = 1.0;
-                continue;
-            }
-
-            if(thisLevel == null || otherLevel == null) {
-                lhsScores[i] = 0.0;
-                continue;
-            }
-
-            double sum = 0.0;
-
-            //Compare LHS internal values
-            HashSet<IntCond> largerLHSInt = thisLevel;
-            HashSet<IntCond> smallerLHSInt = otherLevel;
-            if (largerLHSInt.size() < smallerLHSInt.size()) {
-                largerLHSInt = otherLevel;
-                smallerLHSInt = thisLevel;
-            }
-            for (IntCond iCond1 : largerLHSInt) {
-                for (IntCond iCond2 : smallerLHSInt) {
-                    if (iCond1.equals(iCond2)) {
-                        sum += (iCond1.getConfidence() + iCond2.getConfidence()) / 2;
-                        break;
-                    }
-                }
-            }
-
-            lhsScores[i] = sum / ((double) largerLHSInt.size());
-
+        // Special Case: both null
+        if(level1 == null && level2 == null) {
+            return result;
         }
 
-        double sum = 0.0;
+        //Special Case:  one is null
+        if(level1 == null) {
+            result[1] = level2.size();
+            return result;
+        }
+        if(level2 == null) {
+            result[1] = level1.size();
+            return result;
+        }
 
+        //See how many conditions in 'this' are in 'other'
+        for (IntCond thisCond : level1) {
+            result[1]++;
+            for (IntCond otherCond : level2) {
+                if (thisCond.equals(otherCond)) {
+                    if (useConf) {
+                        result[0] += (thisCond.getConfidence() + otherCond.getConfidence()) / 2;
+                    } else {
+                        result[0]++;
+                    }
+                    break;
+                }
+            }
+        }
+
+        //See if there are any additional conditions in 'other' that are not in 'this'
+        //We only need to count these since intersecting values were found above.
+        for(IntCond otherCond : level2) {
+            boolean found = false;
+            for(IntCond thisCond : level1) {
+                if (thisCond.equals(otherCond)) found = true;
+            }
+            if (!found) result[1]++;
+        }
+
+        return result;
+    }//compareLHSCondSets
+
+
+    /**
+     * compareLHSIntLevel
+     *
+     * compares the LHSInternal sensors at a particular depth in this rule
+     * those of another rule at the same depth
+     *
+     * @param other  other rule to compare to
+     * @param depth  depth to compare at
+     * @param useConf  should the confidences of the conditions be factored
+     *                 into the match score?
+     * @return a match score from 0.0 to 1.0
+     */
+    private double compareLHSIntLevel(EpRule other, int depth, boolean useConf) {
+        //start with the positive conditions
+        HashSet<IntCond> thisLevel = this.getInternalLevel(depth);
+        HashSet<IntCond> otherLevel = other.getInternalLevel(depth);
+        double[] ret = compareLHSCondSets(thisLevel, otherLevel, useConf);
+        double sum = ret[0];
+        double count = ret[1];
+
+        //now do the "not" conditions
+        thisLevel = this.getNotInternalLevel(depth);
+        otherLevel = other.getNotInternalLevel(depth);
+        ret = compareLHSCondSets(thisLevel, otherLevel, useConf);
+        sum += ret[0];
+        count += ret[1];
+
+        if (count == 0.0) return 1.0; //both empty, count as match
+        return sum / count;
+    }//compareLHSIntLevel
+
+    /** @return a match score for the LHS external of this rule and a given rule */
+    private double compareLHSExternal(EpRule other) {
         //Compare LHS external values
+        double sum = 0.0;
         HashSet<ExtCond> largerLHSExt = this.lhsExternal;
         HashSet<ExtCond> smallerLHSExt = other.lhsExternal;
         if (largerLHSExt.size() < smallerLHSExt.size()) {
@@ -616,17 +658,39 @@ public class EpRule {
                 }
             }
         }
+        return sum / ((double) largerLHSExt.size());
+    }//compareLHSExternal
 
-        lhsScores[0] = sum / ((double) largerLHSExt.size());
+    /**
+     * calculates how closely this rule matches another given rule
+     *
+     * @param other  the other rule to compare it to
+     * @param depth compare up to this depth
+     * @return  a match score from 0.0 to 1.0
+     */
+    public double compareLHS(EpRule other, int depth) {
 
-        sum = 0.0;
+        //actions must match
+        if (this.action != other.action) return 0.0;
 
+        //Independent score for each of the levels of internal sensors + 1 for external sensors
+        double[] lhsScores = new double[depth + 1];
+        for(int i = 1; i <= depth; ++i) {
+            lhsScores[i] = compareLHSIntLevel(other, i, true);
+        }
+
+        lhsScores[0] = compareLHSExternal(other);
+
+        //Final score is average of the score for each level
+        //TODO:  why not product?
+        double sum = 0.0;
         for(double score : lhsScores) {
             sum += score;
         }
-
         return (sum / (depth + 1)); // +1 accounts for lhsExt
     }//compareLHS
+
+
 
     /**
      * convenience function that compares levels at the depth of the deeper rule
@@ -890,13 +954,10 @@ public class EpRule {
     }//extendTimeDepth
 
     /**
-     * matchingLHSExpansion
+     * resolveMatchingLHS
      *
-     * makes this rule's LHS different from a given rule's by expanding one or
-     * both rules
-     *
-     * Note:  Caller is responsible for making sure the given rules have
-     *        different RHS.
+     * makes this rule's LHS different from a given rule's by increasing
+     * the time depth of one or both rules
      *
      * Example input:
      *   #14: (8)|00a -> 00
@@ -906,119 +967,108 @@ public class EpRule {
      *   #8: (5)(8)|00a -> 01
      *
      * @param other the other rule
-     * @return 0 for success, negative for failure
+     * @return 0 for success, negative for failure on error, 1 for failure due to exact match
      */
-    public int matchingLHSExpansion(EpRule other) {
+    public int resolveMatchingLHS(EpRule other) {
         //We always want 'other' to be the rule with more time levels
-        if (other.timeDepth < this.timeDepth) return other.matchingLHSExpansion(this);
+        if (other.timeDepth < this.timeDepth) return other.resolveMatchingLHS(this);
 
         //save their original depths to restore later if things go wrong
         int thisOrigDepth = this.timeDepth;
         int otherOrigDepth = other.timeDepth;
 
+        //get the initial match score
+        double matchScore = compareLHSIntLevel(other, this.timeDepth, false);
+        if (this.timeDepth == 0) {
+            matchScore = compareLHSExternal(other);
+        }
+
+        //Sanity check:  should match else why did you call this method?!
+        if (matchScore != 1.0) return -3;
+
         //while 'this' is shorter, expand it until they are different
-        double matchScore = this.compareLHS(other, this.timeDepth);
-        int thisRuleDepthFlag = 0;
-        while((this.timeDepth < other.timeDepth) && (matchScore == 1.0) && (thisRuleDepthFlag >= 0)) {
-            thisRuleDepthFlag = this.extendTimeDepth();
-            matchScore = this.compareLHS(other, this.timeDepth);
+        while((this.timeDepth < other.timeDepth) && (matchScore == 1.0)) {
+            extendTimeDepth();  //Note:  -2 error code is ok here.  other errors shouldn't occur.
+            matchScore = compareLHSIntLevel(other, this.timeDepth, false);
+        }//while
+
+        //If rules are equal depth and still no diff, we need to keep expanding both
+        while ((this.timeDepth == other.timeDepth) && (matchScore == 1.0)) {
+            //check for max depth
+            if (this.timeDepth == PhuJusAgent.MAX_TIME_DEPTH) break;
+
+            //extend both rules
+            int thisRuleDepthFlag = this.extendTimeDepth();
+            int otherRuleDepthFlag = other.extendTimeDepth();
+            //On error, revert and return
+            if ((thisRuleDepthFlag < 0) || (otherRuleDepthFlag < 0)){
+                this.timeDepth = thisOrigDepth;
+                other.timeDepth = otherOrigDepth;
+                return -2;
+            }
+
+            matchScore = compareLHSIntLevel(other, this.timeDepth, false);
+        }//while
+
+        //Still a complete match?
+        if (matchScore == 1.0) return 1;
+
+        //If we reach this point the rules now mismatch in some way at this depth
+        //Extract the mis-matching levels
+        HashSet<IntCond> thisLevel = this.getInternalLevel(this.timeDepth);
+        HashSet<IntCond> otherLevel = other.getInternalLevel(this.timeDepth);
+        HashSet<IntCond> thisNotLevel = this.getNotInternalLevel(this.timeDepth);
+        HashSet<IntCond> otherNotLevel = other.getNotInternalLevel(this.timeDepth);
+
+        //DEBUG
+        if ((thisLevel == null)  || (otherLevel == null)) {
+            agent.debugPrintln("HELP!!");
+            //resolveMatchingLHS(other);
         }
 
-        // Run until the rules are different on the LHS and can still be expanded
-        int otherRuleDepthFlag = 0;
-        while( (matchScore == 1.0) && (thisRuleDepthFlag >= 0) && (otherRuleDepthFlag >= 0) ) {
-            thisRuleDepthFlag = this.extendTimeDepth();
-            otherRuleDepthFlag = other.extendTimeDepth();
-            matchScore = this.compareLHS(other);
-        }
-
-        //Check for empty levels
-        boolean foundEmptyLevels = false;
-        while ((this.timeDepth > 0) && (this.getInternalLevel(this.timeDepth).size() == 0)) {
-            foundEmptyLevels = true;
-            this.timeDepth--;
-        }
-        while ((other.timeDepth > 0) && (other.getInternalLevel(other.timeDepth).size() == 0)) {
-            foundEmptyLevels = true;
-            other.timeDepth--;
-        }
-
-        //Two ways to fail:  couldn't expand or rules were identical
-        if((foundEmptyLevels) || (matchScore == 1.0)){
-            this.timeDepth = thisOrigDepth;
-            other.timeDepth = otherOrigDepth;
-            return -1;
+        //Handle all cases where one or both rules lack positive sensors
+        if ((thisLevel.size() > 0) && (otherLevel.size() == 0)){
+            //Example:  (3)(4)00a->01  --  ()(4)00a->01 ==> (!3)(4)00a->01
+            //Example:  (3)(4)00a->01  --  (!6)(4)00a->01 ==> (!3,!6)(4)00a->01
+            otherNotLevel.add(thisLevel.iterator().next());
+        } else if ((thisLevel.size() == 0) && (otherLevel.size() > 0)){
+            //Example: as above but reversed
+            thisNotLevel.add(otherLevel.iterator().next());
+        } else if ((thisLevel.size() == 0) && (otherLevel.size() == 0)){
+            //Example:  (!3)(4)00a->01  --  ()(4)00a->01 ==> (3)(4)00a->01
+            //Example:  (!3)(4)00a->01  --  (!5)(4)00a->01 ==> (3,!5)(4)00a->01
+            if (thisNotLevel.size() > 0) {
+                otherLevel.add(thisNotLevel.iterator().next());
+            }
+            //This can't be an else-if because both could be true (see 2nd Example)
+            if (otherNotLevel.size() > 0) {
+                thisLevel.add(otherNotLevel.iterator().next());
+            }
         }
 
         return 0;
     }//matchingLHSExpansion
 
-    /**
-     * matchingLHSNotFix
-     *
-     * makes this rule's LHS different from a given rule's by adding a "NOT"
-     * condition to the shorter rule.  The expected input should be a rule
-     * that matches this one up to a particular level in which this rule
-     * has an empty level and the given rule does not.  Note: a failed call
-     * to {@link #matchingLHSExpansion(EpRule)} will often yield a pair of
-     * rules like this.
-     *
-     * Note that if there are multiple internal conditions in the deeper rule
-     * that only one of these is used (e.g., there is no !11 in rule #14 below).
-     *
-     * //TODO: should we be less arbitrary about which sensor to negate?
-     * Example input:
-     *   #14: (8)|00a -> 00
-     *   #8: (5,11)(8)|00a -> 01
-     * Resulting output:
-     *   #14: (!5)(8)|00a -> 00
-     *   #8: (5,11)(8)|00a -> 01
-     *
-     * @param other the other rule
-     * @return 0 for success, negative number for failure
-     */
-    public int matchingLHSNotFix(EpRule other) {
-        //Find the highest level where each rule as a positive condition
-        //(This is not necessarily timeDepth because of not-conditions)
-        int thisPosDepth = this.timeDepth;
-        while ((thisPosDepth > 0) && (this.getInternalLevel(thisPosDepth).size() == 0)) {
-            thisPosDepth--;}
-        int otherPosDepth = this.timeDepth;
-        while ((otherPosDepth > 0) && (other.getInternalLevel(otherPosDepth).size() == 0)) {
-            otherPosDepth--;}
 
-        //We always want 'other' to be the rule with more positive time levels
-        if (otherPosDepth < thisPosDepth) return other.matchingLHSNotFix(this);
-
-        //Invalid input: one rule should have more depth than the other
-        if (otherPosDepth == thisPosDepth) return -2;
-
-        //Add a "not" sensor to the shorter rule at the new level
-        while (this.timeDepth < otherPosDepth) this.timeDepth++;
-        HashSet<IntCond> otherConds = other.getInternalLevel(otherPosDepth);
-        HashSet<IntCond> thisNotConds = getNotInternalLevel(otherPosDepth);
-        IntCond negateMe = otherConds.iterator().next();
-        thisNotConds.add(negateMe);  //just take one
-
-        //If the shorter rule has sisters, they need to be adjusted too
-        if (!this.sisters.isEmpty()) {
-            for(EpRule sis : this.sisters) {
-                if (sis.equals(this)) continue;  //skip myself
-                while (sis.timeDepth < otherPosDepth) sis.timeDepth++;
-                HashSet<IntCond> sisNotConds = sis.getNotInternalLevel(otherPosDepth);
-                sisNotConds.add(negateMe);
-            }
+    /** remove myself from my sisterhood (which may cause the sisterhood to be dissolved) */
+    private void removeFromSisterhood() {
+        // Extract ourself from the sisterhood
+        if (this.sisters.size() == 0) {
+            return;  //no sisterhood to remove from
         }
-
-
-        return 0; //success
-    }//matchingLHSNotFix
-
-    /**
-     * stealInternalSensors
-     *
-     * copies all the
-     */
+        else if (this.sisters.size() == 1) {
+            this.sisters = new HashSet<>(); //this should never happen...
+        }
+        else if(this.sisters.size() == 2) {
+            for(EpRule r : this.sisters) {
+                r.sisters = new HashSet<>();
+            }
+        } else {  //size 3+
+            //since all sisters share the sisters list just remove myself from it
+            this.sisters.remove(this);
+            this.sisters = new HashSet<>();
+        }
+    }
 
     /**
      * adjustSisterhood
@@ -1028,37 +1078,31 @@ public class EpRule {
      * is successful, the new rule should replace the old one in the
      * agent's rule set
      *
-     * @param equiv the EpRule in the sisterhood that has the same RHS as this
+     * @param equiv the EpRule in the sisterhood that has the same RHS as 'this'
      * @return 0 if success, negative otherwise
      */
     public int adjustSisterhood(EpRule equiv) {
 
-        // See if this rule can be expanded past the size of equiv
-        while(this.timeDepth < equiv.timeDepth+1) {
-            if (this.extendTimeDepth() < 0) {
-                return -1; // candidate rule is too general
-            }
-        }
+        //We can't adjust anything if there is no resolution
+        int ret = resolveMatchingLHS(equiv);
+        if (ret < 0) return ret;
 
-        // Add _not_ conditions to the other members of the sisterhood
-        for(EpRule r : this.sisters) {
-            if(r.equals(this)) continue;  //not me!
-            r.matchingLHSNotFix(this);
+        //Since that worked, try to remove other sisters
+        //if they can be made different
+        Vector<EpRule> toRemove = new Vector<>();
+        toRemove.add(equiv);
+        for(EpRule sis : equiv.sisters) {
+            if (sis.equals(equiv)) continue; //did this one already
+            ret = resolveMatchingLHS(sis);
+            if (ret == 0) toRemove.add(sis);
         }
-
-        // Extract ourself from the sisterhood
-        if(equiv.sisters.size() == 2) {
-            for(EpRule r : equiv.sisters) {
-                r.sisters = new HashSet<>();
-            }
-        } else {
-            //since all sisters share the sisters list just remove myself from it
-            equiv.sisters.remove(equiv);
-            equiv.sisters = new HashSet<>();
+        for(EpRule sis : toRemove) {
+            sis.removeFromSisterhood();
         }
 
         return 0;
     }//adjustSisterhood
+
 
 
     /**
