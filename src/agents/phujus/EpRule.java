@@ -162,12 +162,7 @@ public class EpRule {
         this.action = agent.getPrevAction();
         this.lhsExternal = initExternal(agent.getPrevExternal());
         this.lhsNotInternal = new Vector<>();
-
-        //The internal sensors consist of currInternal + prevInternal
-        Vector<HashSet<Integer>> initInt = new Vector(agent.getAllPrevInternal());
-        initInt.add(agent.getCurrInternal());
-        if (initInt.size() > PhuJusAgent.MAX_TIME_DEPTH) initInt.remove(0);
-        this.lhsInternal = initInternal(initInt);
+        this.lhsInternal = initInternal(agent.getAllPrevInternal());
         this.rhsExternal = initExternal(agent.getCurrExternal());
     }
 
@@ -930,6 +925,8 @@ public class EpRule {
      * extendTimeDepth
      *
      * adds another depth to a rule assuming it has not reached the max depth
+     *
+     * @return 0 on success, negative on fail
      */
     //TODO: this will need to be expanded to handle NDFA's
     public int extendTimeDepth() {
@@ -946,7 +943,7 @@ public class EpRule {
 
         //Check to see if this new level is empty
         HashSet<IntCond> level = getInternalLevel(this.timeDepth);
-        if(level.size() == 0) {
+        if(level == null) {
             return -2; // code failed
         }
 
@@ -998,15 +995,22 @@ public class EpRule {
             if (this.timeDepth == PhuJusAgent.MAX_TIME_DEPTH) break;
 
             //extend both rules
-            int thisRuleDepthFlag = this.extendTimeDepth();
-            int otherRuleDepthFlag = other.extendTimeDepth();
-            //On error, revert and return
-            if ((thisRuleDepthFlag < 0) || (otherRuleDepthFlag < 0)){
+            // (Note: can't use extendTimeDepth() for this because we need less err checking)
+            this.timeDepth++;
+            other.timeDepth++;
+            this.lhsNotInternal.add(new HashSet<>());
+            other.lhsNotInternal.add(new HashSet<>());
+
+
+            //check for both empty (unresolveable match)
+            if ( (this.getInternalLevel(this.timeDepth).size() == 0)
+                    && (this.getInternalLevel(this.timeDepth).size() == 0) ) {
                 this.timeDepth = thisOrigDepth;
                 other.timeDepth = otherOrigDepth;
                 return -2;
             }
 
+            //Now compare again
             matchScore = compareLHSIntLevel(other, this.timeDepth, false);
         }//while
 
@@ -1132,20 +1136,13 @@ public class EpRule {
      * @param oldId   the sensor id being removed
      * @param newId   the sensor to replace it with (or -1 if none)
      *
-     * @return a success/fail code
-     *         0 - sensor not found (no change made)
-     *         n - a positive number indicates the sensor was removed from n levels
-     *        -n - a negative number indicates the sensor was removed from n levels
-     *             and the rule was truncated as a result.
-     * */
-    public int removeIntSensor(int oldId, int newId) {
-        int result = 0;
-        boolean invalid = false;
-        for(HashSet<IntCond> level : this.lhsInternal) {
+     */
+    public void removeIntSensor(int oldId, int newId) {
+        for(int depth=1; depth <= PhuJusAgent.MAX_TIME_DEPTH; ++depth) {
+            HashSet<IntCond> level = getInternalLevel(depth);
             IntCond removeMe = null;
             for (IntCond iCond : level) {
                 if (iCond.sId == oldId) {
-                    result++;
                     if (newId >= 1) {
                         iCond.sId = newId;  //replace
                     } else {
@@ -1159,22 +1156,17 @@ public class EpRule {
                 level.remove(removeMe);
             }
 
-            //If this level is now empty then this rule is now invalid
-            if (level.size() == 0) invalid = true;
-        }
-
-        //If the rule was rendered invalid, it needs to be truncated
-        for(int i = 1; i < PhuJusAgent.MAX_TIME_DEPTH; ++i) {
-            if ((this.lhsInternal.get(i).size() == 0)
-                && ((lhsNotInternal.size() <= i) || (this.lhsNotInternal.get(i).size() == 0))) {
-                this.timeDepth = i - 1;
-                //we need reset meta stats since the rule has changed
-                resetMetaInfo();
-                break;
+            //If this level is now empty then this rule may need to be truncated
+            if ((level.size() == 0) && (getNotInternalLevel(depth).size() == 0)) {
+                //only need to truncate if this level is part of the rule right now
+                if (this.timeDepth >= depth) {
+                    this.timeDepth = depth - 1;
+                    //TODO:  truncated rule needs to be resolved as a new candidate as it may conflict with other rules now
+                }
             }
+
         }
 
-        return invalid ? -result : result;
     }//removeIntSensor
 
 //region Getters and Setters
@@ -1193,17 +1185,10 @@ public class EpRule {
         return result;
     }
 
-    public void incrMatches() {
-        numMatches++;
-    }
-
-    public void incrPredicts() {
-        numPredicts++;
-    }
-
-    public double getAccuracy() {
-        return numPredicts / numMatches;
-    }//getAccuracy
+    public void incrMatches() { numMatches++; }
+    public void decrMatches() { numMatches--; }
+    public void incrPredicts() { numPredicts++; }
+    public double getAccuracy() { return numPredicts / numMatches; }
 
     /** @return true if the given sensor is one of the conditions of this rule */
     public boolean testsIntSensor(int sId) {
@@ -1271,7 +1256,10 @@ public class EpRule {
             String intStr = toStringIntConds(level, false, false);
             result.append(intStr);
             result.append(')');
+            if (i == this.timeDepth) result.append(" // "); //time depth divider
         }
+
+        if (this.timeDepth == 0) result.append(" // ");
 
         return result.toString();
     }

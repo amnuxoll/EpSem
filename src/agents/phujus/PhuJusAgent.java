@@ -28,6 +28,8 @@ import java.util.Random;
  * > Rules refine/generalize themselves based on experience.  Rules should be able to:
  *    - merge when they become very similar
  *    - split when it will improve the activation of both progeny
+ * > Rule accurancy should be tracked using the same mechanism as confidence
+ *   (frequency and recency of correctness)
  */
 public class PhuJusAgent implements IAgent {
     public static final int MAXNUMRULES = 50;
@@ -115,16 +117,22 @@ public class PhuJusAgent implements IAgent {
             printExternalSensors(this.currExternal);
         }
 
-        //DEBUG
+        //DEBUG: break here to debug
         if(this.stepsSinceGoal >= 40) {
             debugPrintln("");
         }
 
         //see which rules correctly predicted these sensor values
-        Vector<EpRule> effectiveRules = updateRuleConfidences();
+        updateRuleConfidences();
 
         //New rule may be added, old rule may be removed
-        updateRuleSet();
+        EpRule newRule = updateRuleSet();
+
+        //If a new rule was added, retroactively put it in currInternal
+        //for use by future rules
+        if (newRule != null) {
+            this.currInternal.add(newRule.getId());
+        }
 
         //Reset path when goal is reached
         if (sensorData.isGoal()) {
@@ -389,14 +397,10 @@ public class PhuJusAgent implements IAgent {
      * the confidence of those that made an effective prediction.
      * The list of effective rules is returned to the caller.
      *
-     * TODO:  Do we need this method?  If trees built on all matches
-     *        rather than just best matches then we could validate using
-     *        the tree.  OTOH, the deeper you go in the tree the less you
-     *        should be penalizing rules, yes?
+     * Side Effect:  incorrect rules are removed from this.currInternal
+     *
      */
-    private Vector<EpRule> updateRuleConfidences() {
-        Vector<EpRule> effectiveRules = new Vector<EpRule>();
-
+    private void updateRuleConfidences() {
         //Compare all the rules that matched RHS to the ones that matched LHS last timestep
         Vector<EpRule> rhsMatches = getRHSMatches();
         for(EpRule r : this.rules) {
@@ -404,17 +408,20 @@ public class PhuJusAgent implements IAgent {
                 r.incrMatches();
                 if (rhsMatches.contains(r)) {
                     r.incrPredicts();
-                    effectiveRules.add(r);
                     //effective prediction means we can adjust confidences
                     r.updateConfidencesForPrediction(getAllPrevInternal(), this.prevExternal, this.currExternal);
                 } else {
-                    //TODO:  I don't think we need to do anything here as it will get resolved
-                    //       in updateRuleSet() when a new, conflicting candidate is created
+                    //try to extend the incorrect rule in hopes of increasing its future accuracy
+                    int ret = r.extendTimeDepth();
+                    if (ret == 0) r.decrMatches(); //retroactively un-match this rule
+
+                    //Since the rule made an incorrect prediction, remove it from currInternal
+                    //to prevent future rules from having incorrect LHS
+                    this.currInternal.remove(r.getId());
                 }
             }
         }
 
-        return effectiveRules;
     }//updateRuleConfidences
 
     /**
@@ -494,10 +501,11 @@ public class PhuJusAgent implements IAgent {
      * replaces current rules with low activation with new rules that might
      * be more useful.
      *
+     * @return the new EpRule added to this.rules (or null if none added)
      */
-    public void updateRuleSet() {
+    public EpRule updateRuleSet() {
         //Can't create a rule if there is not a previous timestep
-        if (this.now == 1) return;
+        if (this.now == 1) return null;
 
         //Create a candidate new rule based on agent's current state
         EpRule cand = new EpRule(this);
@@ -542,8 +550,8 @@ public class PhuJusAgent implements IAgent {
         }//for each rule
 
         //DEBUG
-        debugPrintln("cand: #" + cand.getId() + ": " + cand.toStringShort() + " ||| " + cand.toStringAllLHS());
-        if (bestMatch != null) debugPrintln("best: #" + bestMatch.getId() + ": " + bestMatch.toStringShort() + " ||| " + bestMatch.toStringAllLHS());
+        debugPrintln("cand: #" + cand.getId() + ": " + cand.toStringAllLHS() + cand.toStringShort());
+        if (bestMatch != null) debugPrintln("best: #" + bestMatch.getId() + ": " + bestMatch.toStringAllLHS() + bestMatch.toStringShort());
 
         // If the LHS is an exact match, try to resolve it
         if(bestShortScore == 1.0) {
@@ -555,7 +563,7 @@ public class PhuJusAgent implements IAgent {
                 if (ret == 0) {
                     removeRule(bestMatch, cand);
                     addRule(cand);
-                    return;  //conflict resolved
+                    return cand;  //conflict resolved
                 }
             }//if sisterhood
 
@@ -580,7 +588,7 @@ public class PhuJusAgent implements IAgent {
                         //DEBUG
                         debugPrintln("\tcand rejected: redundant");
                     }
-                    return;
+                    return null;
                 }//else no resolution
             }//if resolve with expand
         }//if exact LHS match
@@ -589,7 +597,7 @@ public class PhuJusAgent implements IAgent {
         //If we haven't reached max just add it
         if (this.rules.size() < MAXNUMRULES) {
             addRule(cand);
-            return;
+            return cand;
         }
 
         //TODO:  consider merging cand with the bestRule?
@@ -613,6 +621,7 @@ public class PhuJusAgent implements IAgent {
         //remove and add
         removeRule(worstRule, null);
         addRule(cand);
+        return cand;
 
     }//updateRuleSet
 
