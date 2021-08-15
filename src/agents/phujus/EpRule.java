@@ -1087,15 +1087,32 @@ public class EpRule {
         int ret = resolveMatchingLHS(equiv);
         if (ret < 0) return ret;
 
-        //Since that worked, try to remove other sisters
-        //if they can be made different
+        //Since that worked, replace equiv with 'this' in the sisterhood
+        equiv.addSister(this);
+        equiv.removeFromSisterhood();
+
+        //Remove any rules that can now be differentiated from their sisters
+        //Future:  if there is a speed bottleneck here you can adjust this nested
+        //         loop to iterate through a vector using indexes and, thus, the
+        //         inner loop can start with "for(int j = i+1" to speed this up.
         Vector<EpRule> toRemove = new Vector<>();
-        toRemove.add(equiv);
-        for(EpRule sis : equiv.sisters) {
-            if (sis.equals(equiv)) continue; //did this one already
-            ret = resolveMatchingLHS(sis);
-            if (ret == 0) toRemove.add(sis);
+        for(EpRule sis1 : this.sisters) {
+            boolean remove = true;
+            for(EpRule sis2 : this.sisters) {
+                if (sis1.equals(sis2)) continue; //don't compare to self
+                //Are they already different?
+                double diff = sis1.compareLHS(sis2, Math.min(sis1.timeDepth, sis2.timeDepth));
+                if (diff < 1.0) continue;
+
+                //Can they be made different
+                ret = sis1.resolveMatchingLHS(sis2);
+                if (ret != 0) remove = false;
+            }
+
+            if (remove) toRemove.add(sis1);
         }
+
+        //remove everything else
         for(EpRule sis : toRemove) {
             sis.removeFromSisterhood();
         }
