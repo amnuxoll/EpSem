@@ -32,10 +32,26 @@ import java.util.Random;
  *   (frequency and recency of correctness)
  */
 public class PhuJusAgent implements IAgent {
-    public static final int MAXNUMRULES = 50;
-    public static final int RULEMATCHHISTORYLEN = MAXNUMRULES * 5;
+    public static final int MAXNUMRULES = 5000;
     public static final int MAX_SEARCH_DEPTH = 5; //TODO: get the search to self prune again
     public static final int MAX_TIME_DEPTH = 7;  //size of short term memory
+
+//region InnerClasses
+
+    /**
+     * class RuleMatchProfile describes how well two EpRule objects match each other
+     */
+    public class RuleMatchProfile {
+        public EpRule given = null;
+        public EpRule match = null;
+        public double shortScore = -1.0;  //LHS match score at depth of shorter rule
+        public double longScore = -1.0;  //LHS match score at depth of shorter rule
+        public double rhsScore = -1.0;  //RHS matchs score
+
+        public RuleMatchProfile(EpRule initGiven) { this.given = initGiven; }
+    }//class RuleMatchProfile
+
+//endregion
 
     // These variables are used to track sensor longevity and rarity of sensor values
     //TODO: implement this
@@ -496,6 +512,103 @@ public class PhuJusAgent implements IAgent {
     }//addPathRule
 
     /**
+     * findBestMatchingRule
+     *
+     * finds the rule in the ruleset that most closely matches a given one.
+     * The match is first scored at the timedepth at the shorter rule.
+     * Ties are broken by RHS match and then long depth.
+     *
+     * @return a RuleMatchProfile object describing the best match
+     */
+    public RuleMatchProfile findBestMatchingRule(EpRule given) {
+        //Find the existing rule that is most similar
+        RuleMatchProfile result = new RuleMatchProfile(given);
+        for (EpRule r : this.rules) {
+            if (r.equals(given)) continue;  //Rule may not match itself
+
+            int shorterDepth = Math.min(given.getTimeDepth(), r.getTimeDepth());
+            double score = r.compareLHS(given, shorterDepth);
+
+            //If they match at short depth, break the potential with with RHS
+            double rhsScore = 0.0;
+            if (score == 1.0) {
+                rhsScore = given.rhsMatchScore(r.getRHSExternal());
+            }
+
+            //if they also match at RHS score, break the tie with long depth
+            double longScore = 0.0;
+            if (rhsScore == 1.0) {
+                int longerDepth = Math.max(given.getTimeDepth(), r.getTimeDepth());
+                longScore = r.compareLHS(given, longerDepth);
+            }
+
+            double totalScore = score + rhsScore + longScore;
+            double bestTotal = result.shortScore + result.rhsScore + result.longScore;
+            if ( totalScore  >= bestTotal) {
+                result.match = r;
+                result.shortScore = score;
+                result.longScore = longScore;
+                result.rhsScore = rhsScore;
+            }
+        }//for each rule
+
+        return result;
+    }//findBestMatchingRule
+
+    /**
+     * resolveRuleConflict
+     *
+     * is called when a rule has a short match on the LHS with an existing
+     * rule.  The method attempts to resolve the conflict as best it can
+     * so that both rules can be used.
+     *
+     * @param prof  a description of how well the rules match.
+     *              prof.given is presumed to be the shorter rule
+     * @return  null for success.  Otherwise the method results the rule to
+     *          discard (conflict not resolved)
+     */
+    public EpRule resolveRuleConflict(RuleMatchProfile prof) {
+
+        //sanity check:  nothing to resolve?
+        if(prof.shortScore != 1.0) {
+            return null;
+        }
+
+        // Special handling is needed if match is in a sisterhood
+        if ( (prof.rhsScore == 1.0) && (prof.match.getSisters().size() > 0) ) {
+            int ret = prof.given.adjustSisterhood(prof.match);
+            //on success, given replaces match
+            if (ret == 0) {
+                return prof.match;
+            }
+        }//if sisterhood
+
+        //Try to resolve the match
+        int ret = prof.given.resolveMatchingLHS(prof.match);
+        if(ret < 0) {
+            if (prof.rhsScore < 1.0) {
+                //If the RHS differ, then create a new sisterhood (resolved...ish)
+                prof.match.addSister(prof.given);
+            } else {
+                //Since LHS and RHS both match, these rules are too redundant.
+                //Ditch the rule with the least info
+                if (prof.given.maxTimeDepth() > prof.match.maxTimeDepth()) {
+                    //candidate has more to offer
+                    while(prof.given.getTimeDepth() < prof.match.getTimeDepth()) {
+                        prof.given.extendTimeDepth();
+                    }
+                    return prof.match;
+                }
+                else {
+                    return prof.given;
+                }
+            }//else no resolution
+        }//if resolve with expand
+
+        return null;  //success
+    }//resolveRuleConflict
+
+    /**
      * updateRuleSet
      *
      * replaces current rules with low activation with new rules that might
@@ -510,100 +623,34 @@ public class PhuJusAgent implements IAgent {
         //Create a candidate new rule based on agent's current state
         EpRule cand = new EpRule(this);
 
-        //If the candidate is a GOAL rule give it an appropriate activation for that
-        if ( (cand.getRHSExternal().hasSensor(SensorData.goalSensor))
-            && ((Boolean)(cand.getRHSExternal().getSensor(SensorData.goalSensor))) ) {
-            cand.addActivation(this.now, EpRule.FOUND_GOAL_REWARD);
-        }
+        //TODO: This is handled elsewhere now?
+//        //If the candidate is a GOAL rule give it an appropriate activation for that
+//        if ( (cand.getRHSExternal().hasSensor(SensorData.goalSensor))
+//            && ((Boolean)(cand.getRHSExternal().getSensor(SensorData.goalSensor))) ) {
+//            cand.addActivation(this.now, EpRule.FOUND_GOAL_REWARD);
+//        }
 
-        //Find the existing rule that is most similar
-        EpRule bestMatch = null;
-        double bestShortScore = -1.0;  //best match comparing at depth of shorter rule
-        double bestTotalScore = -1.0;  //best sum of short score + long socre
-        boolean bothMatch = false;  //did cand's RHS match bestMatch's RHS?
-        for (EpRule r : this.rules) {
-            int shorterDepth = Math.min(cand.getTimeDepth(), r.getTimeDepth());
-            double score = r.compareLHS(cand, shorterDepth);
-
-            //If they match at short depth, break the potential with with RHS
-            double rhsScore = 0.0;
-            if (score == 1.0) {
-                rhsScore = cand.rhsMatchScore(r.getRHSExternal());
-            }
-
-            //if they also match at RHS score, break the tie with long depth
-            double longScore = 0.0;
-            if (rhsScore == 1.0) {
-                int longerDepth = Math.max(cand.getTimeDepth(), r.getTimeDepth());
-                longScore = r.compareLHS(cand, longerDepth);
-            }
-
-            double totalScore = score + rhsScore + longScore;
-            if ( totalScore  >= bestTotalScore) {
-                bestMatch = r;
-                bestShortScore = score;
-                bestTotalScore = totalScore;
-
-                //check for both LHS and RHS match
-                bothMatch = (cand.rhsMatchScore(r.getRHSExternal()) == 1.0);
-            }
-        }//for each rule
+        //Find the extant rule most similar to cand
+        RuleMatchProfile prof = findBestMatchingRule(cand);
 
         //DEBUG
         debugPrintln("cand: #" + cand.getId() + ": " + cand.toStringAllLHS() + cand.toStringShort());
-        if (bestMatch != null) debugPrintln("best: #" + bestMatch.getId() + ": " + bestMatch.toStringAllLHS() + bestMatch.toStringShort());
+        if (prof.match != null) debugPrintln("best: #" + prof.match.getId() + ": " + prof.match.toStringAllLHS() + prof.match.toStringShort());
 
         // If the LHS is an exact match, try to resolve it
-        if(bestShortScore == 1.0) {
+        EpRule discardme = resolveRuleConflict(prof);
+        if (discardme != null) {//null is success here
+            if (discardme == prof.match) {
+                removeRule(prof.match, prof.given);
+            } else {
+                return null;  //discard candidate rule
+            }
+        }
 
-            // Special handling is needed if bestMatch is in a sisterhood
-            if ( (bothMatch) && (bestMatch.getSisters().size() > 0) ) {
-                int ret = cand.adjustSisterhood(bestMatch);
-                //on success, candidate replaces bestMatch
-                if (ret == 0) {
-                    removeRule(bestMatch, cand);
-                    addRule(cand);
-                    return cand;  //conflict resolved
-                }
-            }//if sisterhood
-
-            //Try to resolve the match
-            int ret = cand.resolveMatchingLHS(bestMatch);
-            if(ret < 0) {
-                if (!bothMatch) {
-                    //If the RHS differ, then create a new sisterhood
-                    bestMatch.addSister(cand);
-                } else {
-                    //Since LHS and RHS both match, these rules are too redundant.
-                    //Ditch the rule with the least info
-                    if (cand.maxTimeDepth() > bestMatch.maxTimeDepth()) {
-                        //candidate has more to offer
-                        while(cand.getTimeDepth() < bestMatch.getTimeDepth()) {
-                            cand.extendTimeDepth();
-                        }
-                        removeRule(bestMatch, cand);
-                        addRule(cand);
-                    }
-                    else {
-                        //DEBUG
-                        debugPrintln("\tcand rejected: redundant");
-                    }
-                    return null;
-                }//else no resolution
-            }//if resolve with expand
-        }//if exact LHS match
-
-
-        //If we haven't reached max just add it
+        //If we haven't reached max just add the candidate
         if (this.rules.size() < MAXNUMRULES) {
             addRule(cand);
             return cand;
-        }
-
-        //TODO:  consider merging cand with the bestRule?
-        double mergeScore = cand.compareLHS(bestMatch);
-        if (mergeScore > 0.75) {
-            //TODO: merge would happen here if mergeScore is high enough.  Need something less arbitrary than 0.75
         }
 
         //Find the rule with lowest activation & accuracy
@@ -618,7 +665,7 @@ public class PhuJusAgent implements IAgent {
             }
         }
 
-        //remove and add
+        //out with the old, in with the new...was there a baby in that bath water?
         removeRule(worstRule, null);
         addRule(cand);
         return cand;
@@ -667,12 +714,33 @@ public class PhuJusAgent implements IAgent {
 
         // If any rule has a condition that test for 'removeMe' then that
         // condition must also be removed or replaced
+        Vector<EpRule> truncated = new Vector<>(); //stores rules that were truncated by this process
         for (EpRule r : this.rules) {
             if (r.testsIntSensor(removeMe.getId())) {
                 int replId = (replacement == null) ? -1 : replacement.getId();
-                r.removeIntSensor(removeMe.getId(), replId);
+                int ret = r.removeIntSensor(removeMe.getId(), replId);
+
+                //if the rule was truncated we have to resolve that
+                if (ret < 0) {
+                    truncated.add(r);
+                }
             }
         }
+
+        //Truncated rules are extra nasty to resolve well.  For now we're just going
+        // to remove them if they conflict with other rules in the ruleset.
+        // I'm sure this will come back and bite us later...
+        Vector<EpRule> removeThese = new Vector<>();
+        for(EpRule r : truncated) {
+            RuleMatchProfile prof = findBestMatchingRule(r);
+            if (prof.shortScore == 1.0) {
+                removeThese.add(r);
+            }
+        }
+        for(EpRule r : removeThese) {
+            removeRule(r, null);  //recursion here
+        }
+
 
         //the replacement may also have to-be-removed rule in its sensor set
         if (replacement != null) {
@@ -693,13 +761,26 @@ public class PhuJusAgent implements IAgent {
 
     }//removeRule
 
+
+
     /**
      * rewardRulesForGoal
      *
      * is called when the agent reaches a goal to reward all the rules
-     * that predicted that would happen.  Rewards passed back decay
+     * that predicted that would happen.  Rewards passed back with decay
      * ala reinforcement learning.
      */
+    private void LHSVERSION_rewardRulesForGoal() {
+        double reward = EpRule.FOUND_GOAL_REWARD;
+        for(int i : this.currInternal) {
+            for (EpRule r : this.rules) {
+                if (r.getId() == i) {
+                    r.rewardRuleForGoal(this.now, reward);
+                }
+            }
+        }
+    }//rewardRulesForGoal
+
     private void rewardRulesForGoal() {
         //reward the rules in reverse order
         double reward = EpRule.FOUND_GOAL_REWARD;

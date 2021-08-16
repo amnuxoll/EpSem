@@ -414,54 +414,72 @@ public class EpRule {
 
 
     /**
-     * lhsInternalMatchSum
+     * lhsInternalLevelMatch
      *
      * is a helper method for {@link #lhsInternalMatchScore(HashSet)} it
-     * compares all the sensors in a given set with its conditions and
-     * calculates a sum of confidence level for each matching cond in this rule.
-     * Mismatches are penalized by the same amount.
+     * compares all the sensors in a given set with its conditions.  The
+     * sensors in one level of a rule's lhsInternal are treated as a
+     * disjunction:  only one needs to match to get a score.  Therefore
+     * this rule returns the highest confidence match it has for
+     * any one condition with a sensor.
      *
-     * @param lhsInt
-     * @param level
-     * @return sum of matching confidences
+     * @return highest matching confidence
      */
-    private double lhsInternalMatchSum(HashSet<Integer> lhsInt, HashSet<IntCond> level) {
+    private double lhsInternalLevelMatch(HashSet<Integer> lhsInt, HashSet<IntCond> level) {
         if (level == null) return 0.0;
-        double sum = 0.0;
+        double best = 0.0;
         for (IntCond iCond : level) {
             Integer sIdVal = iCond.sId;
             if (lhsInt.contains(sIdVal)) {
-                sum += iCond.getConfidence();  //reward for match
-            } else {
-                sum -= iCond.getConfidence();  //penalize for non-match
+                if (best < iCond.getConfidence()) {
+                    best = iCond.getConfidence();
+                    if (best == 1.0) return 1.0; //can't do better than 1.0
+                }
             }
         }
-        return sum;
-    }//lhsInternalMatchSum
+        return best;
+    }//lhsInternalLevelMatch
+
+    /**
+     * lhsNotInternalLevelMatch
+     *
+     * is a helper method for {@link #lhsInternalMatchScore(HashSet)} it
+     * compares all the sensors in a given set with its not-conditions.  The
+     * not-sensors in one level of a rule's lhsInternal are treated as a
+     * conjunction:  all the not-sensors must be satisfied to get a score.
+     *
+     * @return highest confidence condition (or 0.0 if any condition is violated)
+     */
+    private double lhsNotInternalLevelMatch(HashSet<Integer> lhsInt, HashSet<IntCond> level) {
+        if (level == null) return 1.0;  //no not-condition to violate
+        double best = 0.0;
+        for (IntCond iCond : level) {
+            Integer sIdVal = iCond.sId;
+            if (lhsInt.contains(sIdVal) && (iCond.getConfidence() > 0.0)) {
+                return 0.0; //fail
+            }
+            if (best < iCond.getConfidence()) {
+                best = iCond.getConfidence();
+            }
+        }
+        return best;  //Note: this can still be 0.0 if getConfidence() returns 0.0
+                      //      on all satisfied conditions
+    }//lhsNotInternalLevelMatch
 
     /**
      * lhsInternalMatchScore
      *
      * is a helper method for {@link #lhsMatchScore(char, HashSet, SensorData)}
-     * that creates a score for all levels of internal sensors
+     * that creates a score for all levels of internal sensors.  Each
      */
     private double lhsInternalMatchScore(HashSet<Integer> lhsInt) {
         double score = 1.0;
         //Compare LHS internal values
         for(int i = 1; i <= timeDepth; ++i) {
             HashSet<IntCond> level = getInternalLevel(i);
-            double sum = lhsInternalMatchSum(lhsInt, level);
+            score = lhsInternalLevelMatch(lhsInt, level);
             HashSet<IntCond> notLevel = getNotInternalLevel(i);
-            sum += (-1.0 * lhsInternalMatchSum(lhsInt, notLevel));
-
-            //Calculate the divisor for the average
-            double count = 0.0;
-            if (level != null) count += level.size();
-            if (notLevel != null) count += notLevel.size();
-
-            //the score is the average confidence for this level
-            if (sum <= 0.0) return 0.0;
-            if (count > 0) score *= sum / count;
+            score *= lhsNotInternalLevelMatch(lhsInt, notLevel);
         }//for timedepth
 
         return score;
@@ -838,6 +856,33 @@ public class EpRule {
         return true;
     }
 
+    /** gives a reward to this rule and a discounted reward to those that supported it. */
+    public void rewardRuleForGoal(int time, double reward) {
+        //base case //TODO: don't hardcode this
+        if (reward < 0.05) return;
+
+        //reward the rule as asked
+        boolean ret = addActivation(time, reward);
+        if (!ret) return;  //already rewarded
+        calculateActivation(agent.getNow());
+
+        //recursive case: discounted reward for all rules that support this one
+        for(int i = 1; i <= this.timeDepth; ++i) {
+            reward *= EpRule.DECAY_RATE;
+            if (!isEmptyLevel(i)) {
+                HashSet<IntCond> level = getInternalLevel(i);
+                for (IntCond iCond : level) {
+                    for(EpRule r : agent.getRules()) {
+                        if (r.getId() == iCond.sId) {
+                            r.rewardRuleForGoal(time, reward);
+                        }
+                    }
+                }
+            }
+        }
+
+    }//rewardRuleForGoal
+
     /**
      * updateConfidencesForPrediction
      *
@@ -936,15 +981,15 @@ public class EpRule {
             return -1; // code failed
         }
 
+        //Check to see if this new level is empty
+        if(isEmptyLevel(this.timeDepth)) {
+            timeDepth--;
+            return -2; // code failed
+        }
+
         //Add "not" conditions for this level
         while(this.lhsNotInternal.size() < this.timeDepth) {  //should only iterate once...
             this.lhsNotInternal.add(new HashSet<>());
-        }
-
-        //Check to see if this new level is empty
-        HashSet<IntCond> level = getInternalLevel(this.timeDepth);
-        if(level == null) {
-            return -2; // code failed
         }
 
         return this.timeDepth;
@@ -985,7 +1030,11 @@ public class EpRule {
 
         //while 'this' is shorter, expand it until they are different
         while((this.timeDepth < other.timeDepth) && (matchScore == 1.0)) {
-            extendTimeDepth();  //Note:  -2 error code is ok here.  other errors shouldn't occur.
+            // (Note: can't use extendTimeDepth() for this because we need less err checking)
+            this.timeDepth++;
+            while(this.lhsNotInternal.size() < this.timeDepth) {
+                this.lhsNotInternal.add(new HashSet<>());
+            }
             matchScore = compareLHSIntLevel(other, this.timeDepth, false);
         }//while
 
@@ -1024,11 +1073,21 @@ public class EpRule {
         HashSet<IntCond> thisNotLevel = this.getNotInternalLevel(this.timeDepth);
         HashSet<IntCond> otherNotLevel = other.getNotInternalLevel(this.timeDepth);
 
-        //DEBUG
-        if ((thisLevel == null)  || (otherLevel == null)) {
+        //DEBUG:  this if statement should never be true
+        if ((thisLevel == null)  || (otherLevel == null)
+                || (thisNotLevel == null) || (otherNotLevel == null)) {
             agent.debugPrintln("HELP!!");
-            //resolveMatchingLHS(other);
+            return -3;
         }
+
+        //Special Case:  if the RHS match then we can't resolve by negating a condition
+        //               because we get silly rules like this:  (-3)|00a -> 10 and (3)|00a -> 10
+        if ((thisLevel.size() == 0) || (otherLevel.size() == 0)) {
+            if (this.rhsMatchScore(other.getRHSExternal()) == 1.0) {
+                return 1;
+            }
+        }
+
 
         //Handle all cases where one or both rules lack positive sensors
         if ((thisLevel.size() > 0) && (otherLevel.size() == 0)){
@@ -1133,16 +1192,26 @@ public class EpRule {
      * It is generally called when the rule associated with the sensor
      * is being removed.
      *
+     * Warning:  if removing a sensor creates an empty level, the rule
+     *           is truncated to remove that level!
+     *
      * @param oldId   the sensor id being removed
      * @param newId   the sensor to replace it with (or -1 if none)
      *
+     * @return 0 = no changes made
+     *         n = this many replacements were performed
+     *        -n = this many replacements were performed and the rule was truncated
      */
-    public void removeIntSensor(int oldId, int newId) {
+    public int removeIntSensor(int oldId, int newId) {
+        int removeCount = 0;
+        int truncateFlag = 1;
         for(int depth=1; depth <= PhuJusAgent.MAX_TIME_DEPTH; ++depth) {
             HashSet<IntCond> level = getInternalLevel(depth);
+            if (level == null) continue;
             IntCond removeMe = null;
             for (IntCond iCond : level) {
                 if (iCond.sId == oldId) {
+                    removeCount++;
                     if (newId >= 1) {
                         iCond.sId = newId;  //replace
                     } else {
@@ -1154,18 +1223,20 @@ public class EpRule {
             //remove the offending condition from this level
             if (removeMe != null) {
                 level.remove(removeMe);
-            }
 
-            //If this level is now empty then this rule may need to be truncated
-            if ((level.size() == 0) && (getNotInternalLevel(depth).size() == 0)) {
-                //only need to truncate if this level is part of the rule right now
-                if (this.timeDepth >= depth) {
-                    this.timeDepth = depth - 1;
-                    //TODO:  truncated rule needs to be resolved as a new candidate as it may conflict with other rules now
-                }
-            }
+                //If this level is now empty then this rule may need to be truncated
+                if (isEmptyLevel(depth)) {
+                    //only need to truncate if this level is part of the rule right now
+                    if (this.timeDepth >= depth) {
+                        this.timeDepth = depth - 1;
+                        truncateFlag = -1;
+                    }
+                }//if empty
+            }//if remove
 
-        }
+        }//for each depth
+
+        return removeCount * truncateFlag;
 
     }//removeIntSensor
 
@@ -1218,6 +1289,15 @@ public class EpRule {
     //Retrieve's the nth level of _not_ internal sensors from the end of this.lhsInternal
     public HashSet<IntCond> getNotInternalLevel(int depth) {
         return getLevelHelper(depth, this.lhsNotInternal);
+    }
+
+    /** @return true if both the sensors and not-sensors at this level are null or zero-length */
+    public boolean isEmptyLevel(int depth) {
+        HashSet<IntCond> level = getInternalLevel(depth);
+        if ((level != null) && (level.size() > 0)) return false;
+        level = getNotInternalLevel(depth);
+        if ((level != null) && (level.size() > 0)) return false;
+        return true;
     }
 
     /**
