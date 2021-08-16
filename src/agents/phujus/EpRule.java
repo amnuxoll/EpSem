@@ -9,39 +9,9 @@ import java.util.*;
  *
  * This is a rule that is based upon an episode in the agent's experience.
  */
-public class EpRule extends Rule {
+public class EpRule extends BaseRule {
 //region Inner Classes
-    /**
-     * class ExtCond
-     *
-     * Tracks external conditions (LHS or RHS)
-     */
-    public static class ExtCond extends Confidence implements Comparable<ExtCond> {
-        public String sName;  //sensor name
-        public boolean val;   //sensor value
 
-        public ExtCond(String initSName, boolean initVal) {
-            this.sName = initSName;
-            this.val = initVal;
-        }
-
-        /** ExtConds are equal if they have the same sName and val */
-        @Override
-        public boolean equals(Object o) {
-            if (! (o instanceof ExtCond)) return false;
-            ExtCond other = (ExtCond) o;
-            return (this.sName.equals(other.sName)) && (this.val == other.val);
-        }
-
-        @Override
-        public String toString() { return sName + "=" + val; }
-
-        @Override
-        public int compareTo(ExtCond o) { return this.sName.compareTo(o.sName); }
-
-        @Override
-        public int hashCode() { return Objects.hash(sName, val); }
-    }//class ExtCond
 
     /**
      * class IntCond
@@ -78,17 +48,12 @@ public class EpRule extends Rule {
     //define the LHS of the rule.  This consists of:
     // - a set of internal sensor values indicating what other rules fired two timesteps ago
     // - a set of external sensor values that were present in the previous timestep
-    // - the action that the agent took just before this rule was created
+    // - the action that the agent took just before this rule was created (See BaseRule)
     //Initially, all sensor values are present but, over time, they may get culled if they
     //prove inconsistent with the agent's experiences
     private Vector<HashSet<IntCond>> lhsInternal;
     private Vector<HashSet<IntCond>> lhsNotInternal;
     private final HashSet<ExtCond> lhsExternal;
-    private final char action;
-
-    //The RHS of the rule consists of a set of external sensor values that were
-    // present when the rule was created
-    private final HashSet<ExtCond> rhsExternal;
 
     //In some cases, a rule becomes indeterminate:  multiple RHS have been
     //seen but the agent doesn't know how to predict which will occur.
@@ -116,11 +81,9 @@ public class EpRule extends Rule {
      */
     public EpRule(PhuJusAgent agent){
         super(agent);
-        this.action = agent.getPrevAction();
         this.lhsExternal = initExternal(agent.getPrevExternal());
         this.lhsNotInternal = new Vector<>();
         this.lhsInternal = initInternal(agent.getAllPrevInternal());
-        this.rhsExternal = initExternal(agent.getCurrExternal());
     }
 
     /**
@@ -129,22 +92,10 @@ public class EpRule extends Rule {
     public EpRule(PhuJusAgent agent, char action, HashSet<ExtCond> lhsExternal,
                   Vector<HashSet<IntCond>> lhsInternal, HashSet<ExtCond> rhsExternal){
         super(agent);
-        this.action = action;
         this.lhsExternal = lhsExternal;
         this.lhsNotInternal = new Vector<>();
         this.lhsInternal = lhsInternal;
-        this.rhsExternal = rhsExternal;
     }
-
-    /** converts from SensorData to HashSet<ExtCond> */
-    private HashSet<ExtCond> initExternal(SensorData sData) {
-        HashSet<ExtCond> result = new HashSet<>();
-        for(String sName : sData.getSensorNames()) {
-            result.add(new ExtCond(sName, (Boolean)sData.getSensor(sName)));
-        }
-
-        return result;
-    }//initExternal
 
     /**
      * initInternal

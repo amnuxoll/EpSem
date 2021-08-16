@@ -3,6 +3,7 @@ package agents.phujus;
 import framework.SensorData;
 import java.util.HashMap;
 import java.util.Random;
+import java.util.Vector;
 
 /**
  * class Rule
@@ -52,7 +53,10 @@ public class Rule {
     protected final int ruleId;
 
     //the rule's historical accuracy is tracked with a Confidence object
-    Confidence accuracy = new Confidence();
+    protected Confidence accuracy = new Confidence();
+
+    //All of the children
+    protected Vector<Rule> children = new Vector<>();
 
     public Rule(PhuJusAgent agent) {
         this.agent = agent;
