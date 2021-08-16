@@ -854,34 +854,7 @@ public class EpRule {
         this.lastActAmount[this.nextActPos] = reward;
         this.nextActPos = (this.nextActPos + 1) % ACTHISTLEN;
         return true;
-    }
-
-    /** gives a reward to this rule and a discounted reward to those that supported it. */
-    public void rewardRuleForGoal(int time, double reward) {
-        //base case //TODO: don't hardcode this
-        if (reward < 0.05) return;
-
-        //reward the rule as asked
-        boolean ret = addActivation(time, reward);
-        if (!ret) return;  //already rewarded
-        calculateActivation(agent.getNow());
-
-        //recursive case: discounted reward for all rules that support this one
-        for(int i = 1; i <= this.timeDepth; ++i) {
-            reward *= EpRule.DECAY_RATE;
-            if (!isEmptyLevel(i)) {
-                HashSet<IntCond> level = getInternalLevel(i);
-                for (IntCond iCond : level) {
-                    for(EpRule r : agent.getRules()) {
-                        if (r.getId() == iCond.sId) {
-                            r.rewardRuleForGoal(time, reward);
-                        }
-                    }
-                }
-            }
-        }
-
-    }//rewardRuleForGoal
+    }//addActivation
 
     /**
      * updateConfidencesForPrediction

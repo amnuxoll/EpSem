@@ -770,17 +770,6 @@ public class PhuJusAgent implements IAgent {
      * that predicted that would happen.  Rewards passed back with decay
      * ala reinforcement learning.
      */
-    private void LHSVERSION_rewardRulesForGoal() {
-        double reward = EpRule.FOUND_GOAL_REWARD;
-        for(int i : this.currInternal) {
-            for (EpRule r : this.rules) {
-                if (r.getId() == i) {
-                    r.rewardRuleForGoal(this.now, reward);
-                }
-            }
-        }
-    }//rewardRulesForGoal
-
     private void rewardRulesForGoal() {
         //reward the rules in reverse order
         double reward = EpRule.FOUND_GOAL_REWARD;
