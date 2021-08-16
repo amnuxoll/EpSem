@@ -7,42 +7,16 @@ import java.util.*;
 /**
  * class EpRule
  *
- * This is a replacement for Rule that is similar to a weighted episode.
+ * This is a rule that is based upon an episode in the agent's experience.
  */
-public class EpRule {
+public class EpRule extends Rule {
 //region Inner Classes
-    /**
-     * class Condition
-     *
-     * tracks a LHS or RHS value and the rule's confidence in it
-     */
-    public abstract static class Condition {
-        public static final int TRUEMASK  = 0b00010000;
-        public static final int MAXVAL = 0b00011111;
-        //TODO:  generate the value of MAXVAL and TRUEMASK from a size parameter
-
-        private int conf = MAXVAL; //start will full confidence (optimistic)
-
-        public void increaseConfidence() {
-            this.conf = this.conf >>> 1;
-            this.conf |= TRUEMASK;
-        }
-
-        public void decreaseConfidence() {
-            this.conf = this.conf >>> 1;
-        }
-
-        public double getConfidence() {
-            return ((double)conf) / ((double)MAXVAL);
-        }
-    }//class Condition
-
     /**
      * class ExtCond
      *
      * Tracks external conditions (LHS or RHS)
      */
-    public static class ExtCond extends Condition implements Comparable<ExtCond> {
+    public static class ExtCond extends Confidence implements Comparable<ExtCond> {
         public String sName;  //sensor name
         public boolean val;   //sensor value
 
@@ -74,7 +48,7 @@ public class EpRule {
      *
      * Tracks internal conditions (LHS or RHS)
      */
-    public static class IntCond extends Condition {
+    public static class IntCond extends Confidence {
         public int sId;
 
         public IntCond(int initSId) {
@@ -100,15 +74,6 @@ public class EpRule {
 
     /** base reward for a rule that correctly predicts finding the goal. */
     public static final double FOUND_GOAL_REWARD = 20.0;
-
-    //to assign a unique id to each rule this shared variable is incremented by the ctor
-    private static int nextRuleId = 1;
-
-    //The agent using this rule
-    private final PhuJusAgent agent;
-
-    //each rule has a unique integer id
-    private final int ruleId;
 
     //define the LHS of the rule.  This consists of:
     // - a set of internal sensor values indicating what other rules fired two timesteps ago
@@ -142,13 +107,6 @@ public class EpRule {
     private int lastActCalcTime = -1;  //the last timestep when activation for which activation was calculated
     public static final double DECAY_RATE = 0.95;  //activation decays exponentially over time
 
-    // Track the accuracy of this rule.  numMatches is how often it has matched (fired).
-    // numPredicts is how many times it matched and correctly predicted the next step.
-    // These values are init'd to 1 to account for the episodes the rule is created from
-    // (also prevents divide-by-zero errors).
-    private double numMatches = 1;
-    private double numPredicts = 1;
-
     //How many timesteps of internal sensors are required for a match with this rule
     private int timeDepth = 0;
 
@@ -157,8 +115,7 @@ public class EpRule {
      * this ctor initializes the rule from the agent's current and previous episodes
      */
     public EpRule(PhuJusAgent agent){
-        this.agent = agent;
-        this.ruleId = EpRule.nextRuleId++;
+        super(agent);
         this.action = agent.getPrevAction();
         this.lhsExternal = initExternal(agent.getPrevExternal());
         this.lhsNotInternal = new Vector<>();
@@ -171,8 +128,7 @@ public class EpRule {
      */
     public EpRule(PhuJusAgent agent, char action, HashSet<ExtCond> lhsExternal,
                   Vector<HashSet<IntCond>> lhsInternal, HashSet<ExtCond> rhsExternal){
-        this.agent = agent;
-        this.ruleId = EpRule.nextRuleId++;
+        super(agent);
         this.action = action;
         this.lhsExternal = lhsExternal;
         this.lhsNotInternal = new Vector<>();
@@ -871,6 +827,9 @@ public class EpRule {
      * @param rhsExt  the external sensors that appeared on the next timestep
      */
     public void updateConfidencesForPrediction(Vector<HashSet<Integer>> lhsInt, SensorData lhsExt, SensorData rhsExt) {
+        //Update overall confidence
+        this.accuracy.increaseConfidence();
+
         //Compare LHS internal values
         for(int i = 1; i <= timeDepth; ++i) {
             HashSet<IntCond> level = this.getInternalLevel(i);
@@ -917,27 +876,6 @@ public class EpRule {
             }
         }
     }//updateConfidencesForPrediction
-
-    public void resetMetaInfo() {
-        // reset trackers
-        this.numMatches = 1.0;
-        this.numPredicts = 1.0;
-
-        //reset activation
-        for(int i = 0; i < ACTHISTLEN; ++i) {
-            lastActTimes[i] = 0;
-            lastActAmount[i] = 0.0;
-        }
-        nextActPos = 0;
-        activationLevel = 0.0;
-        lastActCalcTime = agent.getNow();
-
-        //TODO: tentatively keeping this, but could be worth testing again later
-        if(this.getRHSExternal().isGoal()) {
-            addActivation(this.agent.getNow(), EpRule.FOUND_GOAL_REWARD);
-            calculateActivation(this.agent.getNow());
-        }
-    }//resetMetaInfo
 
     /**
      * extendTimeDepth
@@ -1229,10 +1167,6 @@ public class EpRule {
         return result;
     }
 
-    public void incrMatches() { numMatches++; }
-    public void decrMatches() { numMatches--; }
-    public void incrPredicts() { numPredicts++; }
-    public double getAccuracy() { return numPredicts / numMatches; }
 
     /** @return true if the given sensor is one of the conditions of this rule */
     public boolean testsIntSensor(int sId) {

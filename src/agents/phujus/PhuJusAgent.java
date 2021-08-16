@@ -421,15 +421,16 @@ public class PhuJusAgent implements IAgent {
         Vector<EpRule> rhsMatches = getRHSMatches();
         for(EpRule r : this.rules) {
             if (this.currInternal.contains(r.getId())) {  //did the rule match last timestep?
-                r.incrMatches();
                 if (rhsMatches.contains(r)) {
-                    r.incrPredicts();
                     //effective prediction means we can adjust confidences
                     r.updateConfidencesForPrediction(getAllPrevInternal(), this.prevExternal, this.currExternal);
                 } else {
                     //try to extend the incorrect rule in hopes of increasing its future accuracy
                     int ret = r.extendTimeDepth();
-                    if (ret == 0) r.decrMatches(); //retroactively un-match this rule
+
+                    //extension failed, decrease accuracy measure
+                    if (ret != 0)
+                        r.accuracy.decreaseConfidence();
 
                     //Since the rule made an incorrect prediction, remove it from currInternal
                     //to prevent future rules from having incorrect LHS
