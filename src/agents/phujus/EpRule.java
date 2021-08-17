@@ -118,31 +118,6 @@ public class EpRule extends BaseRule {
 //endregion
 
     /**
-     * sortedConds
-     *
-     * creates a Vector from a HashSet of ExtCond where the conditions are in sorted order
-     * but with the GOAL at the end.
-     * */
-    public Vector<ExtCond> sortedConds(HashSet<ExtCond> conds) {
-        //Sort the vector
-        Vector<ExtCond> result = new Vector<>(conds);
-        Collections.sort(result);
-
-        //Move the GOAL to the end
-        int goalIndex = 0;
-        for(int i = 0; i < result.size(); ++i) {
-            if (result.get(i).sName.equals(SensorData.goalSensor)) {
-                goalIndex = i;
-                break;
-            }
-        }
-        ExtCond goalCond = result.remove(goalIndex);
-        result.add(goalCond);
-
-        return result;
-    }//sortedConds
-
-    /**
      * toStringIntConds
      *
      * converts a given HashSet<IntCond> to a string containing comma-separated
@@ -198,19 +173,6 @@ public class EpRule extends BaseRule {
 
         return result.toString();
     }//toStringInternalLHS
-
-    /** toStringShortRHS
-     *
-     * is a helper method for {@link #toStringShort()} to convert a RHS to a bit string
-     */
-    private String toStringShortRHS(HashSet<ExtCond> rhs) {
-        StringBuilder result = new StringBuilder();
-        for (ExtCond eCond : sortedConds(rhs)) {
-            char bit = (eCond.val) ? '1' : '0';
-            result.append(bit);
-        }
-        return result.toString();
-    }//toStringShortRHS
 
     /**
      * like toString() but much less verbose.  Each external condition is

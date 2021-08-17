@@ -69,6 +69,9 @@ public class PhuJusAgent implements IAgent {
     //a list of all the rules in the system (can't exceed some maximum)
     private Vector<Rule> rules = new Vector<>();
 
+    //a list of all the BaseRules in the system
+    private Vector<BaseRule> baseRules = new Vector<>();
+
     private int now = 0; //current timestep 't'
 
     private Action[] actionList;  //list of available actions in current FSM
@@ -617,6 +620,39 @@ public class PhuJusAgent implements IAgent {
     }//resolveRuleConflict
 
     /**
+     * updateBaseRuleSet
+     *
+     * updates the accuracy of all BaseRules whose LHS matches the most recent action.
+     * If no BaseRule exists that matches the agent's current experience,
+     * a new BaseRule is created and added to the baseRules list
+     *
+     * @return the new BaseRule that was created; null if none.
+     */
+    public BaseRule updateBaseRuleSet() {
+        char recentAction = this.prevAction;
+        boolean matchFlag = false;
+
+        for(BaseRule r : this.baseRules) {
+            if(r.lhsMatchScore(recentAction) == 1.0) {
+                if(r.rhsMatchScore(this.currExternal) == 1.0) {
+                    r.increaseConfidence();
+                    matchFlag = true;
+                } else {
+                    r.decreaseConfidence();
+                }
+            }
+        }
+
+        if(!matchFlag) {
+            BaseRule ret = new BaseRule(this);
+            this.baseRules.add(ret);
+            return ret;
+        }
+
+        return null; //new rule not created
+    }//updateBaseRuleSet
+
+    /**
      * updateRuleSet
      *
      * replaces current rules with low activation with new rules that might
@@ -627,6 +663,8 @@ public class PhuJusAgent implements IAgent {
     public EpRule updateRuleSet() {
         //Can't create a rule if there is not a previous timestep
         if (this.now == 1) return null;
+
+        updateBaseRuleSet();
 
         //Create a candidate new rule based on agent's current state
         EpRule cand = new EpRule(this);
@@ -777,8 +815,6 @@ public class PhuJusAgent implements IAgent {
 
     }//removeRule
 
-
-
     /**
      * rewardRulesForGoal
      *
@@ -798,6 +834,8 @@ public class PhuJusAgent implements IAgent {
             reward *= EpRule.DECAY_RATE;
         }
     }//rewardRulesForGoal
+
+
 
     /**
      * debugPrintln

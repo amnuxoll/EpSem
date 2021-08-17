@@ -2,6 +2,7 @@ package agents.phujus;
 
 import framework.SensorData;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Vector;
@@ -69,7 +70,49 @@ public class BaseRule extends Rule {
         this.rhsExternal = initExternal(agent.getCurrExternal());
     }
 
+    /**
+     * sortedConds
+     *
+     * creates a Vector from a HashSet of ExtCond where the conditions are in sorted order
+     * but with the GOAL at the end.
+     * */
+    protected Vector<ExtCond> sortedConds(HashSet<ExtCond> conds) {
+        //Sort the vector
+        Vector<ExtCond> result = new Vector<>(conds);
+        Collections.sort(result);
 
+        //Move the GOAL to the end
+        int goalIndex = 0;
+        for(int i = 0; i < result.size(); ++i) {
+            if (result.get(i).sName.equals(SensorData.goalSensor)) {
+                goalIndex = i;
+                break;
+            }
+        }
+        ExtCond goalCond = result.remove(goalIndex);
+        result.add(goalCond);
+
+        return result;
+    }//sortedConds
+
+    /** toStringShortRHS
+     *
+     * is a helper method for {@link #toString()} & {@link EpRule#toStringShort()} to
+     * convert a RHS to a bit string
+     */
+    protected String toStringShortRHS(HashSet<ExtCond> rhs) {
+        StringBuilder result = new StringBuilder();
+        for (ExtCond eCond : sortedConds(rhs)) {
+            char bit = (eCond.val) ? '1' : '0';
+            result.append(bit);
+        }
+        return result.toString();
+    }//toStringShortRHS
+
+    @Override
+    public String toString() {
+        return this.action + "->" + toStringShortRHS(this.rhsExternal);
+    }
 
     /** converts from SensorData to HashSet<ExtCond> */
     protected HashSet<ExtCond> initExternal(SensorData sData) {
@@ -99,9 +142,7 @@ public class BaseRule extends Rule {
             }
         }
 
-        double result = sum / this.rhsExternal.size();
-        result *= getAccuracy();
-        return result;
+        return (sum / this.rhsExternal.size());
 
     }//rhsMatchScore
 
