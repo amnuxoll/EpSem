@@ -41,7 +41,7 @@ public class TreeNode {
     private final PhuJusAgent agent;
 
     // all rules in the system
-    Vector<EpRule> rules;
+    Vector<Rule> rules;
 
     //associated timestep for this node
     private final int episodeIndex;
@@ -111,152 +111,6 @@ public class TreeNode {
         this.confidence = rule.lhsMatchScore(rule.getAction(), parent.currInternal, parent.currExternal);
         this.confidence *= rule.getAccuracy();
     }
-    /**
-     * This child node constructor is built from a parent node and a selected action
-     *
-     */
-    public TreeNode(TreeNode parent, char action) {
-        //initializing agent and its children
-        this.agent = parent.agent;
-        this.rules = parent.rules;
-        this.parent = parent;
-        this.episodeIndex = parent.episodeIndex + 1;
-        this.rule = null;  //not used
-        this.currInternal = agent.genNextInternal(action, parent.currInternal, parent.currExternal);
-        this.currExternal = softmaxSelect(action);
-        this.path = new Vector<>(parent.path);
-        this.path.add(this);
-        this.pathStr = parent.pathStr + action;
-        //this.confidence gets set as a side effect of softmaxSelect() or voteRHSExternal()
-    }
-
-    /**
-     * softmaxSelect
-     *
-     * randomly selects one rule to predict the currExternal for this node.
-     * The selection is weighted by the product of:
-     *  - the rule's match score to the parent's sensors
-     *  - the rule's accuracy
-     *  - TODO: should we also use confidence in RHS values?
-     *
-     * Algorithm:  https://en.wikipedia.org/wiki/Softmax_function
-     * Side effect:  this.rule and this.confidence are also set by this method
-     *
-     * @param action the selected action for this node
-     * @return the selected rule's SensorData
-     */
-    private SensorData softmaxSelect(char action) {
-        double sum = 0.0;
-
-        //Calculate the weight of each rule
-        double[] weights = new double[this.rules.size()];
-        int index = 0;
-        for(EpRule rule : this.rules) {
-            double score = rule.lhsMatchScore(action, parent.currInternal, parent.currExternal);
-            double acc = rule.getAccuracy();
-            double weight = score * acc * 10;
-            if (weight > 0.0) weight = Math.pow(Math.E, weight);
-            weights[index] = weight;
-            sum += weight;
-            index++;
-        }//for
-
-        //Special case:  no helpful rules
-        if (sum == 0.0) {
-            this.rule = null;
-            this.confidence *= 0.01; //TODO: calc this value based baseline goal probability
-            SensorData result = SensorData.createEmpty();
-            result.setSensor(SensorData.goalSensor, true);
-            return result;
-        }
-
-        //Weighted, random selection
-        double random = PhuJusAgent.rand.nextDouble();
-        for(int i = 0; i < weights.length; ++i) {
-            random -= weights[i]/sum;
-            if (random <= 0.0) {
-                this.rule = this.rules.get(i);
-                this.confidence = Math.log(weights[i]) / 10;
-                return this.rule.getRHSExternal();
-            }
-        }
-
-        return null; //should never be reached
-    }//softmaxSelect
-
-
-
-    /**
-     * Calculates the best guess expected RHS values if a given action is
-     * selected when the agent reaches a state corresponding to this node.
-     * The calculation is done via a voting process:  every rule votes
-     * for particular sensor values and each vote is weighted by the
-     * product of:
-     *  - the rule's match score to the parent's sensors
-     *  - the rule's confidence of the RHS value
-     *  - the rule's accuracy
-     *
-     * Side effect:  this.confidence is also set by this method
-     *
-     * @param action the selected action for this node
-     * @return SensorData that is the agent's
-     */
-    //TODO:  this is currently unused but I want to replace softmaxSelect() with this.  It's creating infinite loops atm.
-    private SensorData voteRHSExternal(char action) {
-        //Tally the votes from each rule
-        HashMap<String, Double> rhsTrue = new HashMap<>();  //votes for 'true'
-        HashMap<String, Double> rhsFalse = new HashMap<>(); //votes for 'false'
-        for(EpRule r : this.rules) {
-            double score = r.lhsMatchScore(action, parent.currInternal, parent.currExternal);
-            if (score == 0.0) continue; //no vote
-            for(EpRule.ExtCond eCond : r.getRHSConds()) {
-                //calculate the 'weight' of this rule's vote
-                double adj = score * eCond.getConfidence() * r.getAccuracy();
-
-                //Is this a 'true' vote or a 'false' vote
-                HashMap<String, Double> target = rhsTrue;
-                if (!eCond.val) {
-                    target = rhsFalse;
-                }
-
-                //record the vote
-                if (!target.containsKey(eCond.sName)) {
-                    target.put(eCond.sName, adj);
-                } else {
-                    double currVal = target.get(eCond.sName);
-                    target.put(eCond.sName, currVal + adj);
-                }
-            }//for each cond
-        }//for each rule
-
-        //Set confidence and build a SensorData based on the tallied votes
-        this.confidence = parent.confidence;
-        SensorData result = SensorData.createEmpty();
-        TreeSet<String> allKeys = new TreeSet<>(rhsTrue.keySet());
-        allKeys.addAll(rhsFalse.keySet());
-        for(String sName : allKeys) {
-            double trueVotes = (rhsTrue.containsKey(sName)) ? rhsTrue.get(sName) : 0.0;
-            double falseVotes = (rhsFalse.containsKey(sName)) ? rhsFalse.get(sName) : 0.0;
-
-            if (trueVotes != falseVotes) {  //tie means sensor is excluded
-                //set SensorData value
-                result.setSensor(sName, trueVotes > falseVotes);
-
-                //confidence based on vote totals
-                this.confidence *= Math.max(trueVotes, falseVotes) / (trueVotes + falseVotes);
-            }
-
-        }//for
-
-        //Special case:  empty SensorData
-        //   assume goal at nominal probability
-        if (result.getSensorNames().size() == 0) {
-            result.setSensor(SensorData.goalSensor, true);
-            this.confidence *= 0.01; //TODO: calc this value based baseline goal probability
-        }
-
-        return result;
-    }//voteRHSExternal
 
     /**
      * expand
@@ -273,11 +127,14 @@ public class TreeNode {
             //find the best matching rule
             double bestScore = 0.01;  //avoid "best" being 0.0 match
             EpRule bestRule = null;
-            for (EpRule r : this.rules) {
-                double score = r.lhsMatchScore(action, this.currInternal, this.currExternal);
-                if (score > bestScore) {
-                    bestScore = score;
-                    bestRule = r;
+            for (Rule rule : this.rules) {
+                if(rule instanceof EpRule) {
+                    EpRule r = (EpRule) rule;
+                    double score = r.lhsMatchScore(action, this.currInternal, this.currExternal);
+                    if (score > bestScore) {
+                        bestScore = score;
+                        bestRule = r;
+                    }
                 }
             }
 

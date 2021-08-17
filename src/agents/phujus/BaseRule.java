@@ -130,8 +130,6 @@ public class BaseRule extends Rule {
 
 //region Getters and Setters
 
-    public int getId() { return this.ruleId; }
-
     /** convert this.rhsExternal back to to a SensorData */
     public SensorData getRHSExternal() {
         SensorData result = SensorData.createEmpty();
@@ -140,14 +138,6 @@ public class BaseRule extends Rule {
         }
         return result;
     }
-
-    public void decreaseConfidence() {
-        this.accuracy.decreaseConfidence();
-    }//decreaseConfidence
-
-    public void increaseConfidence() {
-        this.accuracy.increaseConfidence();
-    }//increaseConfidence
 
     /**
      * calculates how closely this rule matches a given action and lhs sensors
@@ -196,6 +186,6 @@ public class BaseRule extends Rule {
      */
     public void updateConfidencesForPrediction(Vector<HashSet<Integer>> lhsInt, SensorData lhsExt, SensorData rhsExt) {
         //Update overall confidence
-        this.accuracy.increaseConfidence();
+        this.increaseConfidence();
     }
 }

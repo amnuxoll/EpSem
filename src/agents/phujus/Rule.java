@@ -2,6 +2,7 @@ package agents.phujus;
 
 import framework.SensorData;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Random;
 import java.util.Vector;
 
@@ -11,7 +12,7 @@ import java.util.Vector;
  * parent class of all rules used by the PhuJusAgent
  */
 
-public class Rule {
+public abstract class Rule {
 
     /**
      * class Confidence
@@ -63,7 +64,49 @@ public class Rule {
         this.ruleId = this.nextRuleId++;
     }
 
+    //region Getters and Setters
+
+    public int getId() { return this.ruleId; }
+
     public double getAccuracy() { return accuracy.getConfidence(); }
+
+    public void increaseConfidence() {this.accuracy.increaseConfidence(); }
+
+    public void decreaseConfidence() { this.accuracy.decreaseConfidence(); }
+
+    //endregion
+
+    //region Abstract Methods
+    /**
+     * calculates how closely this rule matches a given rhs sensors
+     *
+     * @return  a match score from 0.0 to 1.0
+     */
+    public abstract double rhsMatchScore(SensorData rhsExt);
+
+    /**
+     * calculates how closely this rule matches a given action and lhs sensors
+     * A total match score [0.0..1.0] is calculated as the product of the
+     * match score for each level (this.timeDepth) of the rule.
+     *
+     * @return  a match score from 0.0 to 1.0
+     */
+    public abstract double lhsMatchScore(char action, HashSet<Integer> lhsInt, SensorData lhsExt);
+
+    /** convenience function the rule is expected to use the sensors in the current agent */
+    public double lhsMatchScore(char action) {
+        return lhsMatchScore(action, this.agent.getCurrInternal(), this.agent.getCurrExternal());
+    }
+
+    /**
+     * calculateActivation
+     *
+     * calculates the activation of the rule atm. Activation is a measure of
+     * the frequency and recency with which a rule is used to reach a goal
+     */
+    public abstract double calculateActivation(int now);
+
+    //endregion
 
 
 }//class Rule

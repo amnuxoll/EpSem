@@ -102,7 +102,7 @@ public class PhuJusAgentTest {
         tempAgent.getNextAction(sd);
 
         //If result has the wrong action we have to just try again because there is no EpRule.setAction() method
-        EpRule rule = tempAgent.getRules().get(0);
+        EpRule rule = (EpRule) tempAgent.getRules().get(0);
         if (rule.getAction() != action) {
             return quickRuleGen(actStr, lhsExt, action, rhsExt);
         }

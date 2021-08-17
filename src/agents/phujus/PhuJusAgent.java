@@ -229,13 +229,10 @@ public class PhuJusAgent implements IAgent {
                                             HashSet<Integer> currInt,
                                             SensorData currExt) {
         HashSet<Integer> result = new HashSet<>();
-        for (Rule rule : this.rules) {
-            if(rule instanceof EpRule) {
-                EpRule r = (EpRule) rule;
-                double score = r.lhsMatchScore(action, currInt, currExt);
-                if (score > 0.0) {
-                    result.add(r.getId());
-                }
+        for (Rule r : this.rules) {
+            double score = r.lhsMatchScore(action, currInt, currExt);
+            if (score > 0.0) {
+                result.add(r.getId());
             }
         }
         return result;
@@ -315,21 +312,18 @@ public class PhuJusAgent implements IAgent {
     public void printRules(char action) {
         if (this.rules.size() == 0) System.out.println("(There are no rules yet.)");
 
-        for (Rule rule : this.rules) {
-            if(rule instanceof EpRule) {
-                EpRule r = (EpRule) rule;
-                //Print a match score first
-                double score = r.lhsMatchScore(action);
-                if ((action != '\0') && (score > 0.0)) {
-                    debugPrint(String.format("%.3f", score));
-                    debugPrint(" ");
-                } else {
-                    debugPrint("      ");
-                }
-
-                r.calculateActivation(now);  //update this so it's accurate
-                debugPrintln(r.toString());
+        for (Rule r : this.rules) {
+            //Print a match score first
+            double score = r.lhsMatchScore(action);
+            if ((action != '\0') && (score > 0.0)) {
+                debugPrint(String.format("%.3f", score));
+                debugPrint(" ");
+            } else {
+                debugPrint("      ");
             }
+
+            r.calculateActivation(now);  //update this so it's accurate
+            debugPrintln(r.toString());
         }
     }//printRules
 
@@ -397,18 +391,15 @@ public class PhuJusAgent implements IAgent {
      * This, in effect, tells you which rules *should* have matched last timestep.
      *
      */
-    public Vector<EpRule> getRHSMatches() {
-        Vector<EpRule> result = new Vector<>();
+    public Vector<Rule> getRHSMatches() {
+        Vector<Rule> result = new Vector<>();
 
         //Get a RHS match score for every rule
         //  also calc the average and best
-        for (Rule rule : this.rules) {
-            if(rule instanceof EpRule) {
-                EpRule r = (EpRule) rule;
-                double score = r.rhsMatchScore(this.currExternal);
-                if (score == 1.0) {
-                    result.add(r);
-                }
+        for (Rule r : this.rules) {
+            double score = r.rhsMatchScore(this.currExternal);
+            if (score == 1.0) {
+                result.add(r);
             }
         }
 
@@ -427,7 +418,7 @@ public class PhuJusAgent implements IAgent {
      */
     private void updateRuleConfidences() {
         //Compare all the rules that matched RHS to the ones that matched LHS last timestep
-        Vector<EpRule> rhsMatches = getRHSMatches();
+        Vector<Rule> rhsMatches = getRHSMatches();
         for(Rule rule : this.rules) {
             if(rule instanceof EpRule) {
                 EpRule r = (EpRule) rule;
@@ -441,7 +432,7 @@ public class PhuJusAgent implements IAgent {
 
                         //extension failed, decrease accuracy measure
                         if (ret != 0)
-                            r.accuracy.decreaseConfidence();
+                            r.decreaseConfidence();
 
                         //Since the rule made an incorrect prediction, remove it from currInternal
                         //to prevent future rules from having incorrect LHS

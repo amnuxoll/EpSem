@@ -440,11 +440,6 @@ public class EpRule extends BaseRule {
 
     }//lhsMatchScore
 
-    /** convenience function that uses the sensors in the current agent */
-    public double lhsMatchScore(char action) {
-        return lhsMatchScore(action, this.agent.getCurrInternal(), this.agent.getCurrExternal());
-    }
-
     /**
      * compareLHSCondSets
      *
