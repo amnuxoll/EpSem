@@ -424,11 +424,12 @@ public class EpRule extends BaseRule {
      *
      * @return  a match score from 0.0 to 1.0
      */
+    @Override
     public double lhsMatchScore(char action, HashSet<Integer> lhsInt, SensorData lhsExt) {
         //If the action doesn't match this rule can't match at all
-        if (action != this.action) return 0.0;
+        double score = super.lhsMatchScore(action, lhsInt, lhsExt);
 
-        double score = lhsInternalMatchScore(lhsInt);
+        score *= lhsInternalMatchScore(lhsInt);
         if (score <= 0.0) return 0.0;
 
         //Compare LHS external values
@@ -443,30 +444,6 @@ public class EpRule extends BaseRule {
     public double lhsMatchScore(char action) {
         return lhsMatchScore(action, this.agent.getCurrInternal(), this.agent.getCurrExternal());
     }
-
-    /**
-     * calculates how closely this rule matches a given rhs sensors
-     *
-     * @return  a match score from 0.0 to 1.0
-     */
-    public double rhsMatchScore(SensorData rhsExt) {
-        double sum = 0.0;
-
-        //Compare RHS external values
-        for (ExtCond eCond : this.rhsExternal) {
-            if (rhsExt.hasSensor(eCond.sName)) {
-                Boolean sVal = (Boolean) rhsExt.getSensor(eCond.sName);
-                if (sVal == eCond.val){
-                    sum += eCond.getConfidence();
-                }
-            }
-        }
-
-        double result = sum / this.rhsExternal.size();
-        result *= getAccuracy();
-        return result;
-
-    }//rhsMatchScore
 
     /**
      * compareLHSCondSets
@@ -588,10 +565,11 @@ public class EpRule extends BaseRule {
      * @param depth compare up to this depth
      * @return  a match score from 0.0 to 1.0
      */
+    @Override
     public double compareLHS(EpRule other, int depth) {
 
         //actions must match
-        if (this.action != other.action) return 0.0;
+        if (super.compareLHS(other, depth) == 0.0) return 0.0;
 
         //Independent score for each of the levels of internal sensors + 1 for external sensors
         double[] lhsScores = new double[depth + 1];
@@ -711,31 +689,6 @@ public class EpRule extends BaseRule {
     }
 
     /**
-     * calculateActivation
-     *
-     * calculates the activation of the rule atm.  Activation is increased
-     * by fixed amounts and each increase decays over time.
-     * The sum of these values is the total activation.
-     *
-     * @see #addActivation(int, double)
-     */
-    public double calculateActivation(int now) {
-        //If we've already updated the activation level used that value
-        if (lastActCalcTime == now) return this.activationLevel;
-
-        double result = 0.0;
-        for(int j=0; j < lastActTimes.length; ++j) {
-            if(lastActTimes[j] != 0) {
-                double decayAmount = Math.pow(DECAY_RATE, now-lastActTimes[j]);
-                result += lastActAmount[j]*decayAmount;
-            }
-        }
-
-        this.activationLevel = result;
-        return this.activationLevel;
-    }//calculateActivation
-
-    /**
      * addActivation
      *
      * adds a new activation event to this rule.
@@ -777,9 +730,9 @@ public class EpRule extends BaseRule {
      * @param lhsExt  the external sensors that the rule matched
      * @param rhsExt  the external sensors that appeared on the next timestep
      */
+    @Override
     public void updateConfidencesForPrediction(Vector<HashSet<Integer>> lhsInt, SensorData lhsExt, SensorData rhsExt) {
-        //Update overall confidence
-        this.accuracy.increaseConfidence();
+        super.updateConfidencesForPrediction(lhsInt, lhsExt, rhsExt);
 
         //Compare LHS internal values
         for(int i = 1; i <= timeDepth; ++i) {
@@ -1104,19 +1057,11 @@ public class EpRule extends BaseRule {
 
 //region Getters and Setters
 
-    public int getId() { return this.ruleId; }
     public char getAction() { return this.action; }
     public HashSet<ExtCond> getRHSConds() { return this.rhsExternal; }
     public int getTimeDepth() { return this.timeDepth; }
 
-    /** convert this.rhsExternal back to to a SensorData */
-    public SensorData getRHSExternal() {
-        SensorData result = SensorData.createEmpty();
-        for(ExtCond eCond : this.rhsExternal) {
-            result.setSensor(eCond.sName, eCond.val);
-        }
-        return result;
-    }
+
 
 
     /** @return true if the given sensor is one of the conditions of this rule */

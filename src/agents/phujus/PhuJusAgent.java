@@ -67,7 +67,7 @@ public class PhuJusAgent implements IAgent {
     public static final boolean DEBUGPRINTSWITCH = true;
 
     //a list of all the rules in the system (can't exceed some maximum)
-    private Vector<EpRule> rules = new Vector<>();
+    private Vector<Rule> rules = new Vector<>();
 
     private int now = 0; //current timestep 't'
 
@@ -229,10 +229,13 @@ public class PhuJusAgent implements IAgent {
                                             HashSet<Integer> currInt,
                                             SensorData currExt) {
         HashSet<Integer> result = new HashSet<>();
-        for (EpRule r : this.rules) {
-            double score = r.lhsMatchScore(action, currInt, currExt);
-            if (score > 0.0) {
-                result.add(r.getId());
+        for (Rule rule : this.rules) {
+            if(rule instanceof EpRule) {
+                EpRule r = (EpRule) rule;
+                double score = r.lhsMatchScore(action, currInt, currExt);
+                if (score > 0.0) {
+                    result.add(r.getId());
+                }
             }
         }
         return result;
@@ -312,18 +315,21 @@ public class PhuJusAgent implements IAgent {
     public void printRules(char action) {
         if (this.rules.size() == 0) System.out.println("(There are no rules yet.)");
 
-        for (EpRule r : this.rules) {
-            //Print a match score first
-            double score = r.lhsMatchScore(action);
-            if ((action != '\0') && (score > 0.0)){
-                debugPrint(String.format("%.3f", score));
-                debugPrint(" ");
-            } else {
-                debugPrint("      ");
-            }
+        for (Rule rule : this.rules) {
+            if(rule instanceof EpRule) {
+                EpRule r = (EpRule) rule;
+                //Print a match score first
+                double score = r.lhsMatchScore(action);
+                if ((action != '\0') && (score > 0.0)) {
+                    debugPrint(String.format("%.3f", score));
+                    debugPrint(" ");
+                } else {
+                    debugPrint("      ");
+                }
 
-            r.calculateActivation(now);  //update this so it's accurate
-            debugPrintln(r.toString());
+                r.calculateActivation(now);  //update this so it's accurate
+                debugPrintln(r.toString());
+            }
         }
     }//printRules
 
@@ -396,10 +402,13 @@ public class PhuJusAgent implements IAgent {
 
         //Get a RHS match score for every rule
         //  also calc the average and best
-        for (EpRule r : this.rules) {
-            double score = r.rhsMatchScore(this.currExternal);
-            if (score == 1.0) {
-                result.add(r);
+        for (Rule rule : this.rules) {
+            if(rule instanceof EpRule) {
+                EpRule r = (EpRule) rule;
+                double score = r.rhsMatchScore(this.currExternal);
+                if (score == 1.0) {
+                    result.add(r);
+                }
             }
         }
 
@@ -419,22 +428,25 @@ public class PhuJusAgent implements IAgent {
     private void updateRuleConfidences() {
         //Compare all the rules that matched RHS to the ones that matched LHS last timestep
         Vector<EpRule> rhsMatches = getRHSMatches();
-        for(EpRule r : this.rules) {
-            if (this.currInternal.contains(r.getId())) {  //did the rule match last timestep?
-                if (rhsMatches.contains(r)) {
-                    //effective prediction means we can adjust confidences
-                    r.updateConfidencesForPrediction(getAllPrevInternal(), this.prevExternal, this.currExternal);
-                } else {
-                    //try to extend the incorrect rule in hopes of increasing its future accuracy
-                    int ret = r.extendTimeDepth();
+        for(Rule rule : this.rules) {
+            if(rule instanceof EpRule) {
+                EpRule r = (EpRule) rule;
+                if (this.currInternal.contains(r.getId())) {  //did the rule match last timestep?
+                    if (rhsMatches.contains(r)) {
+                        //effective prediction means we can adjust confidences
+                        r.updateConfidencesForPrediction(getAllPrevInternal(), this.prevExternal, this.currExternal);
+                    } else {
+                        //try to extend the incorrect rule in hopes of increasing its future accuracy
+                        int ret = r.extendTimeDepth();
 
-                    //extension failed, decrease accuracy measure
-                    if (ret != 0)
-                        r.accuracy.decreaseConfidence();
+                        //extension failed, decrease accuracy measure
+                        if (ret != 0)
+                            r.accuracy.decreaseConfidence();
 
-                    //Since the rule made an incorrect prediction, remove it from currInternal
-                    //to prevent future rules from having incorrect LHS
-                    this.currInternal.remove(r.getId());
+                        //Since the rule made an incorrect prediction, remove it from currInternal
+                        //to prevent future rules from having incorrect LHS
+                        this.currInternal.remove(r.getId());
+                    }
                 }
             }
         }
@@ -524,32 +536,35 @@ public class PhuJusAgent implements IAgent {
     public RuleMatchProfile findBestMatchingRule(EpRule given) {
         //Find the existing rule that is most similar
         RuleMatchProfile result = new RuleMatchProfile(given);
-        for (EpRule r : this.rules) {
-            if (r.equals(given)) continue;  //Rule may not match itself
+        for (Rule rule : this.rules) {
+            if(rule instanceof EpRule) {
+                EpRule r = (EpRule) rule;
+                if (r.equals(given)) continue;  //Rule may not match itself
 
-            int shorterDepth = Math.min(given.getTimeDepth(), r.getTimeDepth());
-            double score = r.compareLHS(given, shorterDepth);
+                int shorterDepth = Math.min(given.getTimeDepth(), r.getTimeDepth());
+                double score = r.compareLHS(given, shorterDepth);
 
-            //If they match at short depth, break the potential with with RHS
-            double rhsScore = 0.0;
-            if (score == 1.0) {
-                rhsScore = given.rhsMatchScore(r.getRHSExternal());
-            }
+                //If they match at short depth, break the potential with with RHS
+                double rhsScore = 0.0;
+                if (score == 1.0) {
+                    rhsScore = given.rhsMatchScore(r.getRHSExternal());
+                }
 
-            //if they also match at RHS score, break the tie with long depth
-            double longScore = 0.0;
-            if (rhsScore == 1.0) {
-                int longerDepth = Math.max(given.getTimeDepth(), r.getTimeDepth());
-                longScore = r.compareLHS(given, longerDepth);
-            }
+                //if they also match at RHS score, break the tie with long depth
+                double longScore = 0.0;
+                if (rhsScore == 1.0) {
+                    int longerDepth = Math.max(given.getTimeDepth(), r.getTimeDepth());
+                    longScore = r.compareLHS(given, longerDepth);
+                }
 
-            double totalScore = score + rhsScore + longScore;
-            double bestTotal = result.shortScore + result.rhsScore + result.longScore;
-            if ( totalScore  >= bestTotal) {
-                result.match = r;
-                result.shortScore = score;
-                result.longScore = longScore;
-                result.rhsScore = rhsScore;
+                double totalScore = score + rhsScore + longScore;
+                double bestTotal = result.shortScore + result.rhsScore + result.longScore;
+                if (totalScore >= bestTotal) {
+                    result.match = r;
+                    result.shortScore = score;
+                    result.longScore = longScore;
+                    result.rhsScore = rhsScore;
+                }
             }
         }//for each rule
 
@@ -593,15 +608,16 @@ public class PhuJusAgent implements IAgent {
             } else {
                 //Since LHS and RHS both match, these rules are too redundant.
                 //Ditch the rule with the least info
-                if (prof.given.maxTimeDepth() > prof.match.maxTimeDepth()) {
-                    //candidate has more to offer
-                    while(prof.given.getTimeDepth() < prof.match.getTimeDepth()) {
-                        prof.given.extendTimeDepth();
+                if(prof.given instanceof EpRule) {
+                    if (prof.given.maxTimeDepth() > prof.match.maxTimeDepth()) {
+                        //candidate has more to offer
+                        while (prof.given.getTimeDepth() < prof.match.getTimeDepth()) {
+                            prof.given.extendTimeDepth();
+                        }
+                        return prof.match;
+                    } else {
+                        return prof.given;
                     }
-                    return prof.match;
-                }
-                else {
-                    return prof.given;
                 }
             }//else no resolution
         }//if resolve with expand
@@ -655,14 +671,17 @@ public class PhuJusAgent implements IAgent {
         }
 
         //Find the rule with lowest activation & accuracy
-        EpRule worstRule = this.rules.get(0);
+        EpRule worstRule = (EpRule) this.rules.get(0);
         double worstScore = worstRule.calculateActivation(this.now) * worstRule.getAccuracy();
-        for (EpRule r : this.rules) {
-            double activation = r.calculateActivation(this.now);
-            double score = activation * r.getAccuracy();
-            if (score < worstScore) {
-                worstScore = score;
-                worstRule = r;
+        for (Rule rule : this.rules) {
+            if(rule instanceof EpRule) {
+                EpRule r = (EpRule) rule;
+                double activation = r.calculateActivation(this.now);
+                double score = activation * r.getAccuracy();
+                if (score < worstScore) {
+                    worstScore = score;
+                    worstRule = r;
+                }
             }
         }
 
@@ -716,14 +735,17 @@ public class PhuJusAgent implements IAgent {
         // If any rule has a condition that test for 'removeMe' then that
         // condition must also be removed or replaced
         Vector<EpRule> truncated = new Vector<>(); //stores rules that were truncated by this process
-        for (EpRule r : this.rules) {
-            if (r.testsIntSensor(removeMe.getId())) {
-                int replId = (replacement == null) ? -1 : replacement.getId();
-                int ret = r.removeIntSensor(removeMe.getId(), replId);
+        for (Rule rule : this.rules) {
+            if(rule instanceof EpRule) {
+                EpRule r = (EpRule) rule;
+                if (r.testsIntSensor(removeMe.getId())) {
+                    int replId = (replacement == null) ? -1 : replacement.getId();
+                    int ret = r.removeIntSensor(removeMe.getId(), replId);
 
-                //if the rule was truncated we have to resolve that
-                if (ret < 0) {
-                    truncated.add(r);
+                    //if the rule was truncated we have to resolve that
+                    if (ret < 0) {
+                        truncated.add(r);
+                    }
                 }
             }
         }
@@ -745,8 +767,10 @@ public class PhuJusAgent implements IAgent {
 
         //the replacement may also have to-be-removed rule in its sensor set
         if (replacement != null) {
-            if (replacement.testsIntSensor(removeMe.getId())) {
-                replacement.removeIntSensor(removeMe.getId(), replacement.getId());
+            if(replacement instanceof EpRule) {
+                if (replacement.testsIntSensor(removeMe.getId())) {
+                    replacement.removeIntSensor(removeMe.getId(), replacement.getId());
+                }
             }
         }
 
@@ -811,7 +835,7 @@ public class PhuJusAgent implements IAgent {
 
     //region Getters and Setters
 
-    public Vector<EpRule> getRules() {
+    public Vector<Rule> getRules() {
         return this.rules;
     }
 
