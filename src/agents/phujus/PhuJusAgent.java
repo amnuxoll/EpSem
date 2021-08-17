@@ -423,13 +423,18 @@ public class PhuJusAgent implements IAgent {
         //Compare all the rules that matched RHS to the ones that matched LHS last timestep
         Vector<Rule> rhsMatches = getRHSMatches();
         for(Rule rule : this.rules) {
-            if(rule instanceof EpRule) {
-                EpRule r = (EpRule) rule;
-                if (this.currInternal.contains(r.getId())) {  //did the rule match last timestep?
-                    if (rhsMatches.contains(r)) {
+            if (this.currInternal.contains(rule.getId())) {  //did the rule match last timestep?
+                if (rhsMatches.contains(rule)) {
+                    if(rule instanceof EpRule) {
                         //effective prediction means we can adjust confidences
+                        EpRule r = (EpRule) rule;
                         r.updateConfidencesForPrediction(getAllPrevInternal(), this.prevExternal, this.currExternal);
-                    } else {
+                    } else {  //assume it's a BaseRule
+                        rule.increaseConfidence();
+                    }
+                } else {
+                    if(rule instanceof EpRule) {
+                        EpRule r = (EpRule) rule;
                         //try to extend the incorrect rule in hopes of increasing its future accuracy
                         int ret = r.extendTimeDepth();
 
@@ -440,11 +445,16 @@ public class PhuJusAgent implements IAgent {
                         //Since the rule made an incorrect prediction, remove it from currInternal
                         //to prevent future rules from having incorrect LHS
                         this.currInternal.remove(r.getId());
+                    } else {  //BaseRule
+                        //Create a new EpRule based on this BaseRule.
+                        // TODO: This creates problems if we are already at max rules
+                        BaseRule r = (BaseRule) rule;
+                        EpRule newb = r.spawnEpRuleFromSelf();
+                        this.rules.add(newb);
                     }
                 }
             }
         }
-
     }//updateRuleConfidences
 
     /**

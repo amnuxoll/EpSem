@@ -47,13 +47,13 @@ public class EpRule extends BaseRule {
 
     //define the LHS of the rule.  This consists of:
     // - a set of internal sensor values indicating what other rules fired two timesteps ago
+    // - a set of internal sensor values that should NOT be present for this rule to fire (initially none)
     // - a set of external sensor values that were present in the previous timestep
     // - the action that the agent took just before this rule was created (See BaseRule)
     //Initially, all sensor values are present but, over time, they may get culled if they
     //prove inconsistent with the agent's experiences
-    private Vector<HashSet<IntCond>> lhsInternal;
-    private Vector<HashSet<IntCond>> lhsNotInternal;
-    private final HashSet<ExtCond> lhsExternal;
+    //Note:  the instance variables for all but these not-sensors are inherited from BaseRule
+    protected Vector<HashSet<IntCond>> lhsNotInternal;
 
     //In some cases, a rule becomes indeterminate:  multiple RHS have been
     //seen but the agent doesn't know how to predict which will occur.
@@ -81,9 +81,7 @@ public class EpRule extends BaseRule {
      */
     public EpRule(PhuJusAgent agent){
         super(agent);
-        this.lhsExternal = initExternal(agent.getPrevExternal());
         this.lhsNotInternal = new Vector<>();
-        this.lhsInternal = initInternal(agent.getAllPrevInternal());
     }
 
     /**
@@ -92,28 +90,18 @@ public class EpRule extends BaseRule {
     public EpRule(PhuJusAgent agent, char action, HashSet<ExtCond> lhsExternal,
                   Vector<HashSet<IntCond>> lhsInternal, HashSet<ExtCond> rhsExternal){
         super(agent);
+
+        //override some of the base behavior of BaseRule's ctor
+        this.action = action;
         this.lhsExternal = lhsExternal;
-        this.lhsNotInternal = new Vector<>();
         this.lhsInternal = lhsInternal;
+        this.rhsExternal = rhsExternal;
+
+        this.lhsNotInternal = new Vector<>();
+
     }
 
-    /**
-     * initInternal
-     *
-     * initializes this.lhsInternal from a given set of values
-     *
-     */
-    private Vector<HashSet<IntCond>> initInternal(Vector<HashSet<Integer>> initLHS) {
-        Vector<HashSet<IntCond>> result = new Vector<>();
-        for(HashSet<Integer> initLevel : initLHS) {
-            HashSet<IntCond> level = new HashSet<>();
-            for (Integer sId : initLevel) {
-                level.add(new IntCond(sId));
-            }
-            result.add(level);
-        }
-        return result;
-    }//initInternal
+
 
 //endregion
 

@@ -49,9 +49,15 @@ public class BaseRule extends Rule {
 
     protected char action;
 
+    //While a base rule has only an action on the LHS, it may later spawn
+    // a child EpRule that needs to use LHS sensors based upon
+    // the sequence of episodes that led up to this base rule
+    protected Vector<HashSet<EpRule.IntCond>> lhsInternal;
+    protected HashSet<ExtCond> lhsExternal;
+
     //The RHS of the rule consists of a set of external sensor values that were
     // present when the rule was created
-    protected final HashSet<ExtCond> rhsExternal;
+    protected HashSet<ExtCond> rhsExternal;
 
     // Each rule has an activation level that tracks the frequency and
     // recency with which it fired and correctly predicted an external
@@ -67,8 +73,38 @@ public class BaseRule extends Rule {
     public BaseRule(PhuJusAgent agent) {
         super(agent);
         this.action = agent.getPrevAction();
+        this.lhsExternal = initExternal(agent.getPrevExternal());
+        this.lhsInternal = initInternal(agent.getAllPrevInternal());
         this.rhsExternal = initExternal(agent.getCurrExternal());
-    }
+    }//BaseRule ctor
+
+    /** converts from SensorData to HashSet<ExtCond> */
+    protected HashSet<ExtCond> initExternal(SensorData sData) {
+        HashSet<ExtCond> result = new HashSet<>();
+        for(String sName : sData.getSensorNames()) {
+            result.add(new ExtCond(sName, (Boolean)sData.getSensor(sName)));
+        }
+
+        return result;
+    }//initExternal
+
+    /**
+     * initInternal
+     *
+     * initializes this.lhsInternal from a given set of values
+     *
+     */
+    private Vector<HashSet<EpRule.IntCond>> initInternal(Vector<HashSet<Integer>> initLHS) {
+        Vector<HashSet<EpRule.IntCond>> result = new Vector<>();
+        for(HashSet<Integer> initLevel : initLHS) {
+            HashSet<EpRule.IntCond> level = new HashSet<>();
+            for (Integer sId : initLevel) {
+                level.add(new EpRule.IntCond(sId));
+            }
+            result.add(level);
+        }
+        return result;
+    }//initInternal
 
     /**
      * sortedConds
@@ -113,16 +149,6 @@ public class BaseRule extends Rule {
     public String toString() {
         return this.action + "->" + toStringShortRHS(this.rhsExternal);
     }
-
-    /** converts from SensorData to HashSet<ExtCond> */
-    protected HashSet<ExtCond> initExternal(SensorData sData) {
-        HashSet<ExtCond> result = new HashSet<>();
-        for(String sName : sData.getSensorNames()) {
-            result.add(new ExtCond(sName, (Boolean)sData.getSensor(sName)));
-        }
-
-        return result;
-    }//initExternal
 
     /**
      * calculates how closely this rule matches a given rhs sensors
@@ -228,5 +254,17 @@ public class BaseRule extends Rule {
     public void updateConfidencesForPrediction(Vector<HashSet<Integer>> lhsInt, SensorData lhsExt, SensorData rhsExt) {
         //Update overall confidence
         this.increaseConfidence();
-    }
+    }//updateConfidencesForPrediction
+
+    /**
+     * spawnEpRuleFromSelf
+     *
+     * uses a BaseRule to create an EpRule based on the sensors that were present when
+     * the BaseRule was originally created
+     * @return the resulting EpRule
+     */
+    public EpRule spawnEpRuleFromSelf() {
+        return new EpRule(this.agent, this.action, this.lhsExternal,
+                                this.lhsInternal, this.rhsExternal);
+    }//spawnEpRuleFromSelf
 }
