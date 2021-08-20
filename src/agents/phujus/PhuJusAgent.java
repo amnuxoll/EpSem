@@ -41,14 +41,14 @@ public class PhuJusAgent implements IAgent {
     /**
      * class RuleMatchProfile describes how well two EpRule objects match each other
      */
-    public class RuleMatchProfile {
+    public class EpRuleMatchProfile {
         public EpRule given = null;
         public EpRule match = null;
         public double shortScore = -1.0;  //LHS match score at depth of shorter rule
         public double longScore = -1.0;  //LHS match score at depth of shorter rule
         public double rhsScore = -1.0;  //RHS matchs score
 
-        public RuleMatchProfile(EpRule initGiven) { this.given = initGiven; }
+        public EpRuleMatchProfile(EpRule initGiven) { this.given = initGiven; }
     }//class RuleMatchProfile
 
 //endregion
@@ -66,11 +66,11 @@ public class PhuJusAgent implements IAgent {
     // DEBUG variable to toggle println statements (on/off = true/false)
     public static final boolean DEBUGPRINTSWITCH = true;
 
-    //a list of all the rules in the system (can't exceed some maximum)
-    private Vector<Rule> rules = new Vector<>();
-
-    //a list of all the BaseRules in the system
+    //The agent keeps lists of the rules it is using
     private Vector<BaseRule> baseRules = new Vector<>();
+    private Vector<EpRule> epRules = new Vector<>();
+    private Vector<PathRule> pathRules = new Vector<>();
+    private Vector<Rule> rules = new Vector<>();  //all rules (size may not exceed MAXNUMRULES)
 
     private int now = 0; //current timestep 't'
 
@@ -95,9 +95,8 @@ public class PhuJusAgent implements IAgent {
     // Counter that tracks time steps since hitting a goal
     private int stepsSinceGoal = 0;
 
-    //PathRules are stored here
+    //the current, partial-formed PathRule is stored here
     private PathRule pendingPR = null;
-    private Vector<PathRule> pathRules = new Vector<>();
 
     //random numbers are useful sometimes (use a hardcoded seed for debugging)
     public static Random rand = new Random(2);
@@ -145,7 +144,7 @@ public class PhuJusAgent implements IAgent {
         updateRuleConfidences();
 
         //New rule may be added, old rule may be removed
-        EpRule newRule = updateRuleSet();
+        Rule newRule = updateRuleSet();
 
         //If a new rule was added, retroactively put it in currInternal
         //for use by future rules
@@ -446,11 +445,11 @@ public class PhuJusAgent implements IAgent {
                         //to prevent future rules from having incorrect LHS
                         this.currInternal.remove(r.getId());
                     } else {  //BaseRule
-                        //Create a new EpRule based on this BaseRule.
+                        //Create a new EpRule based on this BaseRule (if it doesn't already exist).
                         // TODO: This creates problems if we are already at max rules
                         BaseRule r = (BaseRule) rule;
                         EpRule newb = r.spawnEpRuleFromSelf();
-                        this.rules.add(newb);
+                        addRule(newb);
                     }
                 }
             }
@@ -507,7 +506,7 @@ public class PhuJusAgent implements IAgent {
         if (this.pendingPR != null) {
             this.pendingPR.setRHS(this.currExternal);
             if (! this.pathRules.contains(this.pendingPR)) {
-                this.pathRules.add(this.pendingPR);
+                this.pathRules.add(pendingPR);
 
                 //DEBUG
                 debugPrintln("Completed PathRule: " + this.pendingPR);
@@ -531,15 +530,15 @@ public class PhuJusAgent implements IAgent {
     /**
      * findBestMatchingRule
      *
-     * finds the rule in the ruleset that most closely matches a given one.
+     * finds the EpRule in the ruleset that most closely matches a given one.
      * The match is first scored at the timedepth at the shorter rule.
      * Ties are broken by RHS match and then long depth.
      *
      * @return a RuleMatchProfile object describing the best match
      */
-    public RuleMatchProfile findBestMatchingRule(EpRule given) {
+    private EpRuleMatchProfile findBestMatchingRule(EpRule given) {
         //Find the existing rule that is most similar
-        RuleMatchProfile result = new RuleMatchProfile(given);
+        EpRuleMatchProfile result = new EpRuleMatchProfile(given);
         for (Rule rule : this.rules) {
             if(rule instanceof EpRule) {
                 EpRule r = (EpRule) rule;
@@ -578,7 +577,7 @@ public class PhuJusAgent implements IAgent {
     /**
      * resolveRuleConflict
      *
-     * is called when a rule has a short match on the LHS with an existing
+     * is called when an EpRule has a short match on the LHS with an existing
      * rule.  The method attempts to resolve the conflict as best it can
      * so that both rules can be used.
      *
@@ -587,7 +586,7 @@ public class PhuJusAgent implements IAgent {
      * @return  null for success.  Otherwise the method results the rule to
      *          discard (conflict not resolved)
      */
-    public EpRule resolveRuleConflict(RuleMatchProfile prof) {
+    public EpRule resolveEpRuleConflict(EpRuleMatchProfile prof) {
 
         //sanity check:  nothing to resolve?
         if(prof.shortScore != 1.0) {
@@ -630,37 +629,111 @@ public class PhuJusAgent implements IAgent {
     }//resolveRuleConflict
 
     /**
+     * getPredictingBaseRule
+     *
+     * retrieves the BaseRule that matches the agent's previous action and
+     * current RHS
+     *
+     * @return the matching rule or null if not found
+     */
+    private BaseRule getPredictingBaseRule() {
+        for(BaseRule br : this.baseRules) {
+            if(br.lhsMatchScore(this.prevAction) == 1.0) {
+                if(br.rhsMatchScore(this.currExternal) == 1.0) {
+                    return br;
+                }
+            }
+        }
+
+        return null;
+    }//getPredictingBaseRule
+
+    /**
+     * getMisPredictingBaseRules
+     *
+     * retrieves the BaseRules that matches the agent's previous action
+     * but mispredicted the current RHS
+     *
+     * @return a Vector of mispredicting BaseRules
+     */
+    private Vector<BaseRule> getMisPredictingBaseRules() {
+        Vector<BaseRule> result = new Vector<>();
+        for(BaseRule br : this.baseRules) {
+            if(br.lhsMatchScore(this.prevAction) == 1.0) {
+                if(br.rhsMatchScore(this.currExternal) < 1.0) {
+                    result.add(br);
+                }
+            }
+        }
+
+        return result;
+    }//getMisPredictingBaseRules
+
+    /**
+     * integrateNewEpRule
+     *
+     * given a new EpRule finds contradictory EpRules and resolves the conflict
+     * in some manner
+     *
+     * @param newb a new rule that may be creating a conflict
+     */
+    private void integrateNewEpRule(EpRule newb) {
+
+        //Search for a rule that has a perfect LHS match with newb
+        EpRule conflict = null;
+        for(EpRule er : this.epRules) {
+            if (er.equals(newb)) continue; //can't conflict with self
+            if (er.getTimeDepth() != newb.getTimeDepth()) continue;
+            if (er.compareLHS(newb, er.getTimeDepth()) == 1.0) {
+                conflict = er;
+                break;
+            }
+        }//for
+        if (conflict == null) return;
+
+        //Resolve the conflict
+        //TODO STOPPED HERE
+
+    }//integrateNewEpRule
+
+
+
+    /**
      * updateBaseRuleSet
      *
      * updates the accuracy of all BaseRules whose LHS matches the most recent action.
      * If no BaseRule exists that matches the agent's current experience,
      * a new BaseRule is created and added to the baseRules list
      *
-     * @return the new BaseRule that was created; null if none.
+     * @return the (possibly new) BaseRule that matches
      */
     public BaseRule updateBaseRuleSet() {
-        char recentAction = this.prevAction;
-        boolean matchFlag = false;
+        BaseRule match = getPredictingBaseRule();
+        Vector<BaseRule> mispredicts = getMisPredictingBaseRules();
+        for(BaseRule br : mispredicts) {
+            br.decreaseConfidence();
 
-        for(BaseRule r : this.baseRules) {
-            if(r.lhsMatchScore(recentAction) == 1.0) {
-                if(r.rhsMatchScore(this.currExternal) == 1.0) {
-                    r.increaseConfidence();
-                    matchFlag = true;
-                } else {
-                    r.decreaseConfidence();
-                }
+            //If this rule has never been wrong before, a new, child EpRule
+            // needs to be created and integreated into the rule set
+            if (!br.hasChildren()) {
+                //Create a new EpRule based on this BaseRule (if it doesn't already exist).
+                // TODO: This creates problems if we are already at max rules
+                EpRule newb = br.spawnEpRuleFromSelf();
+                integrateNewEpRule(newb);
+                addRule(newb);
             }
         }
 
-        if(!matchFlag) {
-            BaseRule ret = new BaseRule(this);
-            this.baseRules.add(ret);
-            return ret;
+        //If no match was found, create a new rule that matches
+        if(match == null) {
+            match = new BaseRule(this);
+            addRule(match);
         }
 
-        return null; //new rule not created
+        return match;
     }//updateBaseRuleSet
+
+
 
     /**
      * updateRuleSet
@@ -670,11 +743,17 @@ public class PhuJusAgent implements IAgent {
      *
      * @return the new EpRule added to this.rules (or null if none added)
      */
-    public EpRule updateRuleSet() {
+    public Rule updateRuleSet() {
         //Can't create a rule if there is not a previous timestep
         if (this.now == 1) return null;
 
-        updateBaseRuleSet();
+        //Find (or create) the BaseRule that matches the current situation
+        //Since Java only allows one return value from a method we detect
+        //if a new rule was added by checking this.baseRules() before and after
+        int numBR = this.baseRules.size();
+        BaseRule br = updateBaseRuleSet();
+        if (numBR < this.baseRules.size()) return br;
+
 
         //Create a candidate new rule based on agent's current state
         EpRule cand = new EpRule(this);
@@ -687,14 +766,14 @@ public class PhuJusAgent implements IAgent {
 //        }
 
         //Find the extant rule most similar to cand
-        RuleMatchProfile prof = findBestMatchingRule(cand);
+        EpRuleMatchProfile prof = findBestMatchingRule(cand);
 
         //DEBUG
         debugPrintln("cand: #" + cand.getId() + ": " + cand.toStringAllLHS() + cand.toStringShort());
         if (prof.match != null) debugPrintln("best: #" + prof.match.getId() + ": " + prof.match.toStringAllLHS() + prof.match.toStringShort());
 
         // If the LHS is an exact match, try to resolve it
-        EpRule discardme = resolveRuleConflict(prof);
+        EpRule discardme = resolveEpRuleConflict(prof);
         if (discardme != null) {//null is success here
             if (discardme == prof.match) {
                 removeRule(prof.match, prof.given);
@@ -740,11 +819,21 @@ public class PhuJusAgent implements IAgent {
      * will also assign an internal sensor to the new rule if one is
      * available.
      */
-    public void addRule(EpRule newRule) {
+    public void addRule(Rule newRule) {
         if (rules.size() >= MAXNUMRULES) {
-            return;
+            System.err.println("ERROR: Exceeded MAXNUMRULES!");
         }
         rules.add(newRule);
+        if (newRule instanceof BaseRule) {
+            this.baseRules.add((BaseRule)newRule);
+        } else if (newRule instanceof EpRule) {
+            this.epRules.add((EpRule)newRule);
+        }
+
+        //TODO
+//        else if (newRule instanceof PathRule) {
+//            this.pathRules.add((PathRule)newRule);
+//        }
 
         //DEBUG
         debugPrintln("added: " + newRule);
@@ -794,7 +883,7 @@ public class PhuJusAgent implements IAgent {
         // I'm sure this will come back and bite us later...
         Vector<EpRule> removeThese = new Vector<>();
         for(EpRule r : truncated) {
-            RuleMatchProfile prof = findBestMatchingRule(r);
+            EpRuleMatchProfile prof = findBestMatchingRule(r);
             if (prof.shortScore == 1.0) {
                 removeThese.add(r);
             }

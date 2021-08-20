@@ -56,6 +56,9 @@ public abstract class Rule {
     //the rule's historical accuracy is tracked with a Confidence object
     protected Confidence accuracy = new Confidence();
 
+    //Parent rule is null by default (for BaseRule)
+    protected Rule parent = null;
+
     //All of the children
     protected Vector<Rule> children = new Vector<>();
 
@@ -73,6 +76,8 @@ public abstract class Rule {
     public void increaseConfidence() {this.accuracy.increaseConfidence(); }
 
     public void decreaseConfidence() { this.accuracy.decreaseConfidence(); }
+
+    public boolean hasChildren() { return this.children.size() > 0; }
 
     //endregion
 

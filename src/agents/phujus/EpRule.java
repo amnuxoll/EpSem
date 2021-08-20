@@ -870,7 +870,7 @@ public class EpRule extends BaseRule {
         }
 
         return 0;
-    }//matchingLHSExpansion
+    }//resolveMatchingLHS
 
 
     /** remove myself from my sisterhood (which may cause the sisterhood to be dissolved) */
