@@ -678,8 +678,9 @@ public class PhuJusAgent implements IAgent {
      * current RHS.
      *
      * @param newb a new rule that may be creating a conflict
+     * @return 0=success, negative=fail
      */
-    private void integrateNewEpRule(EpRule newb) {
+    private int integrateNewEpRule(EpRule newb) {
 
         //Search for a rule that has a perfect LHS match with newb
         Vector<EpRule> conflicts = new Vector<>();
@@ -690,12 +691,15 @@ public class PhuJusAgent implements IAgent {
                 conflicts.add(er);
             }
         }//for
-        if (conflicts.isEmpty()) return;  //no conflict to resolve
+        if (conflicts.isEmpty()) return 0;  //no conflict to resolve
 
         //Resolve the conflicts
+        int ret = 0;
         for(EpRule er : conflicts) {
-            newb.resolveRuleConflict(er);
+            ret += newb.resolveRuleConflict(er);
         }
+
+        return ret;
 
     }//integrateNewEpRule
 
@@ -716,8 +720,8 @@ public class PhuJusAgent implements IAgent {
             //Create a new EpRule based on this BaseRule (if it doesn't already exist).
             // TODO: This creates problems if we are already at max rules
             EpRule newb = br.spawnEpRuleFromSelf();
-            integrateNewEpRule(newb);
-            addRule(newb);
+            int ret = integrateNewEpRule(newb);
+            if (ret == 0) addRule(newb);
         }
     }//adjustBaseRuleForConflict
 
@@ -789,8 +793,8 @@ public class PhuJusAgent implements IAgent {
                     int depth = ((EpRule)match).getTimeDepth() + 1;
                     newChild = new EpRule(this, depth);
                 }
-                integrateNewEpRule(newChild);
-                addRule(newChild);
+                int ret = integrateNewEpRule(newChild);
+                if (ret == 0) addRule(newChild);
                 break;
             } else {
                 match = matchingChild;  //set match for next iteration
@@ -861,7 +865,7 @@ public class PhuJusAgent implements IAgent {
             System.err.println("ERROR: Exceeded MAXNUMRULES!");
         }
         rules.add(newRule);
-        //TODO
+        //TODO add PathRule support here
 //        if (newRule instanceof PathRule) {
 //            this.pathRules.add((PathRule)newRule);
 //        } else
