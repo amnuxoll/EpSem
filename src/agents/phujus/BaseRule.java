@@ -59,6 +59,9 @@ public class BaseRule extends Rule {
     // present when the rule was created
     protected HashSet<ExtCond> rhsExternal;
 
+    //All of the children
+    protected Vector<EpRule> children = new Vector<>();
+
     // Each rule has an activation level that tracks the frequency and
     // recency with which it fired and correctly predicted an external
     // sensor value
@@ -107,6 +110,33 @@ public class BaseRule extends Rule {
     }//initInternal
 
     /**
+     * toStringIntConds
+     *
+     * converts a given HashSet<IntCond> to a string containing comma-separated
+     * list of sensor ids and, optionally, their confidence values
+     *
+     * @param level the HashSet to stringify
+     * @param nots whether each sId should be prepended with a bang (!)
+     * @param includeConf  whether the confidence values should be included in the output
+     */
+    protected String toStringIntConds(HashSet<EpRule.IntCond> level, boolean nots, boolean includeConf) {
+        if (level == null) return "";
+        StringBuilder result = new StringBuilder();
+        int count = 0;
+        for (EpRule.IntCond iCond : level) {
+            if (count > 0) result.append(", ");
+            count++;
+            if(nots) result.append('!');
+            result.append(iCond.sId);
+            if (includeConf) {
+                result.append('$');
+                result.append(String.format("%.2f", iCond.getConfidence()));
+            }
+        }
+        return result.toString();
+    }
+
+    /**
      * sortedConds
      *
      * creates a Vector from a HashSet of ExtCond where the conditions are in sorted order
@@ -147,7 +177,15 @@ public class BaseRule extends Rule {
 
     @Override
     public String toString() {
-        return this.action + "->" + toStringShortRHS(this.rhsExternal);
+        StringBuilder result = new StringBuilder();
+        result.append("#");
+        result.append(this.ruleId);
+        result.append(": ");
+        result.append(this.action);
+        result.append("->");
+        result.append(toStringShortRHS(this.rhsExternal));
+        result.append(String.format(" ^  acc=%.5f", getAccuracy()));
+        return result.toString();
     }
 
     /**
@@ -196,6 +234,9 @@ public class BaseRule extends Rule {
     }//calculateActivation
 
 //region Getters and Setters
+
+    public boolean hasChildren() { return this.children.size() > 0; }
+
 
     /** convert this.rhsExternal back to to a SensorData */
     public SensorData getRHSExternal() {
@@ -264,7 +305,26 @@ public class BaseRule extends Rule {
      * @return the resulting EpRule
      */
     public EpRule spawnEpRuleFromSelf() {
-        return new EpRule(this.agent, this.action, this.lhsExternal,
+        EpRule child = new EpRule(this.agent, this.action, this.lhsExternal,
                                 this.lhsInternal, this.rhsExternal);
+        this.children.add(child);
+
+        return child;
     }//spawnEpRuleFromSelf
-}
+
+    //DEBUG
+    public String toStringAllLHS() {
+        StringBuilder result = new StringBuilder();
+        for (int i = this.lhsInternal.size(); i >= 1; --i) {
+            result.append('(');
+            HashSet<EpRule.IntCond> level = this.lhsInternal.get(this.lhsInternal.size() - i);
+            String intStr = toStringIntConds(level, false, false);
+            result.append(intStr);
+            result.append(')');
+        }
+        result.append(" // "); //time depth divider
+
+        return result.toString();
+    }
+
+}//class BaseRule

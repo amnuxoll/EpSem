@@ -2,6 +2,7 @@ package agents.phujus;
 
 import framework.SensorData;
 
+import java.security.InvalidParameterException;
 import java.util.*;
 
 /**
@@ -79,16 +80,22 @@ public class EpRule extends BaseRule {
     /**
      * this ctor initializes the rule from the agent's current and previous episodes
      */
-    public EpRule(PhuJusAgent agent){
+    public EpRule(PhuJusAgent agent, int timeDepth){
         super(agent);
         this.lhsNotInternal = new Vector<>();
+        this.timeDepth = timeDepth;
+    }
+
+    /** convenience default for timeDepth = 0 */
+    public EpRule(PhuJusAgent agent){
+        this(agent, 0);
     }
 
     /**
      * this ctor initializes the rule from a specified merging of two rules
      */
     public EpRule(PhuJusAgent agent, char action, HashSet<ExtCond> lhsExternal,
-                  Vector<HashSet<IntCond>> lhsInternal, HashSet<ExtCond> rhsExternal){
+                  Vector<HashSet<IntCond>> lhsInternal, HashSet<ExtCond> rhsExternal) {
         super(agent);
 
         //override some of the base behavior of BaseRule's ctor
@@ -98,39 +105,11 @@ public class EpRule extends BaseRule {
         this.rhsExternal = rhsExternal;
 
         this.lhsNotInternal = new Vector<>();
-
     }
 
 
 
 //endregion
-
-    /**
-     * toStringIntConds
-     *
-     * converts a given HashSet<IntCond> to a string containing comma-separated
-     * list of sensor ids and, optionally, their confidence values
-     *
-     * @param level the HashSet to stringify
-     * @param nots whether each sId should be prepended with a bang (!)
-     * @param includeConf  whether the confidence values should be included in the output
-     */
-    private String toStringIntConds(HashSet<IntCond> level, boolean nots, boolean includeConf) {
-        if (level == null) return "";
-        StringBuilder result = new StringBuilder();
-        int count = 0;
-        for (IntCond iCond : level) {
-            if (count > 0) result.append(", ");
-            count++;
-            if(nots) result.append('!');
-            result.append(iCond.sId);
-            if (includeConf) {
-                result.append('$');
-                result.append(String.format("%.2f", iCond.getConfidence()));
-            }
-        }
-        return result.toString();
-    }
 
     /**
      * toStringInternalLHS
@@ -755,6 +734,7 @@ public class EpRule extends BaseRule {
         return this.timeDepth;
     }//extendTimeDepth
 
+
     /**
      * resolveMatchingLHS
      *
@@ -871,6 +851,64 @@ public class EpRule extends BaseRule {
 
         return 0;
     }//resolveMatchingLHS
+
+    /**
+     * resolveRuleConflict
+     *
+     * is called when a new EpRule has the same LHS but different RHS from an
+     * existing rule and this conflict needs to be resolved.  This is done with
+     * two steps:
+     *  a) the extant rule's confidence level is decreased
+     *  b) if possible, the extant rule is expanded to create a child (or more
+     *     distant descendant) that differentiates it from 'this'
+     *
+     * Note:  The caller is responsible for guaranteeing the following:
+     *  - that 'this' is a new rule not yet added to the agent's ruleset
+     *  - that 'this' and 'extant' have the same time depth
+     *  - that 'this' and 'extant' having matching LHS
+     *  - that 'this' also matches the agent's current RHS but 'extant' does not
+     *
+     *  Warning:  This method is recursive.
+     *
+     * @param extant the existing rule
+     * @return 0 for success, negative for failure on error, 1 for failure due to exact match
+     */
+    public void resolveRuleConflict(EpRule extant) {
+        extant.decreaseConfidence();
+
+        //can both rules be expanded?
+        boolean expandThis = !this.isEmptyLevel(this.timeDepth + 1);
+        boolean expandExtant = !extant.isEmptyLevel(this.timeDepth + 1);
+        if (!expandExtant) return; // no expansion possible, nothing further to do
+
+        //Expand 'this'
+        EpRule thisChild = null;
+        if (expandThis) {
+            thisChild = new EpRule(this.agent, this.action, this.lhsExternal,
+                                   this.lhsInternal, this.rhsExternal);
+            thisChild.timeDepth = this.timeDepth + 1;
+            //Note:  the child is not added to this.children in this situation
+            //        since 'this' has 100% confidence atm
+        }
+
+        //Expand 'extant'
+        EpRule extantChild = null;
+        if (expandExtant) {
+            extantChild = new EpRule(extant.agent, extant.action, extant.lhsExternal,
+                                     extant.lhsInternal, extant.rhsExternal);
+            extantChild.timeDepth = this.timeDepth + 1;
+            extant.children.add(extantChild);
+        }
+
+        //If the new children also match we need to recurse to resolve them
+        if (expandThis && expandExtant) {
+            if (thisChild.compareLHS(extantChild, thisChild.timeDepth) == 1.0) {
+                thisChild.resolveRuleConflict(extantChild);
+            }
+        }
+
+    }//resolveRuleConflict
+
 
 
     /** remove myself from my sisterhood (which may cause the sisterhood to be dissolved) */
@@ -1048,6 +1086,9 @@ public class EpRule extends BaseRule {
         return true;
     }
 
+
+
+
     /**
      * Add a new sister rule.
      *
@@ -1075,12 +1116,14 @@ public class EpRule extends BaseRule {
 
 //endregion
 
+
     //DEBUG
+    @Override
     public String toStringAllLHS() {
         StringBuilder result = new StringBuilder();
         for (int i = this.lhsInternal.size(); i >= 1; --i) {
             result.append('(');
-            HashSet<IntCond> level = this.lhsInternal.get(this.lhsInternal.size() - i);
+            HashSet<EpRule.IntCond> level = this.lhsInternal.get(this.lhsInternal.size() - i);
             String intStr = toStringIntConds(level, false, false);
             result.append(intStr);
             result.append(')');

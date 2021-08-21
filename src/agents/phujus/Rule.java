@@ -59,9 +59,6 @@ public abstract class Rule {
     //Parent rule is null by default (for BaseRule)
     protected Rule parent = null;
 
-    //All of the children
-    protected Vector<Rule> children = new Vector<>();
-
     public Rule(PhuJusAgent agent) {
         this.agent = agent;
         this.ruleId = this.nextRuleId++;
@@ -76,8 +73,6 @@ public abstract class Rule {
     public void increaseConfidence() {this.accuracy.increaseConfidence(); }
 
     public void decreaseConfidence() { this.accuracy.decreaseConfidence(); }
-
-    public boolean hasChildren() { return this.children.size() > 0; }
 
     //endregion
 
