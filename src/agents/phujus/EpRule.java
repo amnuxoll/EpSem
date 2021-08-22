@@ -817,7 +817,7 @@ public class EpRule extends BaseRule {
      * TODO
      * @param epRule
      */
-    private void mergeWith(EpRule epRule) {
+    public void mergeWith(EpRule epRule) {
     }
 
     /**
@@ -826,7 +826,7 @@ public class EpRule extends BaseRule {
      * creates a child node from this one that has the same content but +1 depth
      * @return the new rule or null if the next level was empty
      */
-    private EpRule spawn() {
+    public EpRule spawn() {
         if (isEmptyLevel(this.timeDepth + 1)) return null;
         EpRule child = new EpRule(this.agent, this.action, this.lhsExternal,
                 this.lhsInternal, this.rhsExternal);
@@ -835,53 +835,6 @@ public class EpRule extends BaseRule {
         return child;
     }
 
-
-    /**
-     * resolveRuleConflict
-     *
-     * is called when a new EpRule has the same LHS but different RHS from an
-     * existing rule and this conflict needs to be resolved.  This is done with
-     * two steps:
-     *  a) the extant rule's confidence level is decreased
-     *  b) if possible, the extant rule is expanded to create a child (or more
-     *     distant descendant) that differentiates it from 'this'
-     *
-     * Note:  The caller is responsible for guaranteeing the following:
-     *  - that 'this' is a new rule not yet added to the agent's ruleset
-     *  - that 'this' and 'extant' have the same time depth
-     *  - that 'this' and 'extant' having matching LHS
-     *  - that 'this' also matches the agent's current RHS but 'extant' does not
-     *
-     *  Warning:  This method is recursive.
-     *
-     * @param extant the existing rule
-     * @return 0 for success, negative for failure (duplicate rule)
-     */
-    public int resolveRuleConflict(EpRule extant) {
-        //due to conflict we can't be confident in either rule
-        this.decreaseConfidence();
-        extant.decreaseConfidence();
-
-        //If they also have a RHS match, merge the rules
-        double rhsMatchScore = this.rhsMatchScore(extant.getRHSExternal());
-        if (rhsMatchScore == 1.0) {
-            extant.mergeWith(this);
-            return -1;
-        }
-
-        //Expand the rules
-        EpRule thisChild = this.spawn();
-        EpRule extantChild = extant.spawn();
-
-        //If the new children also match we need to recurse to resolve them
-        if ((thisChild != null) && (extantChild != null)) {
-            if (thisChild.compareLHS(extantChild, thisChild.timeDepth) == 1.0) {
-                thisChild.resolveRuleConflict(extantChild);  //Note:  this should always return 0
-            }
-        }
-
-        return 0;
-    }//resolveRuleConflict
 
 
     /** remove myself from my sisterhood (which may cause the sisterhood to be dissolved) */

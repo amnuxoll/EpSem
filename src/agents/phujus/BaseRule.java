@@ -180,7 +180,7 @@ public class BaseRule extends Rule {
         StringBuilder result = new StringBuilder();
         result.append("#");
         result.append(this.ruleId);
-        result.append(": ");
+        result.append(":    ");  //extra space so it will line up with 0-depth EpRule
         result.append(this.action);
         result.append("->");
         result.append(toStringShortRHS(this.rhsExternal));

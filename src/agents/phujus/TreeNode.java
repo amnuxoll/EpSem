@@ -113,6 +113,60 @@ public class TreeNode {
     }
 
     /**
+     * findBestMatchingEpRule
+     *
+     * finds the EpRule that best matches this TreeNode
+     *
+     * @param action the action to use for the match
+     * @return the best match or null if no match found
+     */
+    private EpRule findBestMatchingEpRule(char action) {
+        double bestScore = 0.01;  //avoid "best" being 0.0 match
+        double bestDepth = -1;
+        EpRule bestRule = null;
+        for (EpRule er : this.agent.getEpRules()) {
+            if (er.getTimeDepth() < bestDepth) continue;
+            double score = er.lhsMatchScore(action, this.currInternal, this.currExternal);
+            if (score <= 0.0) continue;  //no match
+
+            //A deeper match is always better, otherwise break ties with score
+            if ( (er.getTimeDepth() > bestDepth) || (score > bestScore) ){
+                bestScore = score;
+                bestRule = er;
+            }
+        }//for each rule
+
+        return bestRule;
+    }//findBestMatchingEpRule
+
+    /**
+     * findBestMatchingBaseRule
+     *
+     * finds the EpRule that best matches this TreeNode
+     *
+     * @param action the action to use for the match
+     * @return the best match or null if no match found
+     */
+    private BaseRule findBestMatchingBaseRule(char action) {
+        double bestScore = 0.01;  //avoid "best" being 0.0 match
+        double bestDepth = -1;
+        BaseRule bestRule = null;
+        for (BaseRule br : this.agent.getBaseRules()) {
+            double score = br.lhsMatchScore(action, this.currInternal, this.currExternal);
+            score *= br.getAccuracy();
+            if (score > bestScore){
+                if (score == 1.0) return br;
+                bestScore = score;
+                bestRule = br;
+            }
+        }//for each rule
+
+        return bestRule;
+    }//findBestMatchingBaseRule
+
+
+
+    /**
      * expand
      *
      * populates this.children
@@ -121,24 +175,17 @@ public class TreeNode {
         //check:  already expanded
         if (this.children.size() != 0) return;
 
-        //for each possible action
+        //Find the best matching Rule
         for(int i = 0; i < agent.getActionList().length; ++i) {
             char action = agent.getActionList()[i].getName().charAt(0);
-            //find the best matching rule
-            double bestScore = 0.01;  //avoid "best" being 0.0 match
-            BaseRule bestRule = null;
-            for (Rule r : this.rules) {
-                if (!(r instanceof BaseRule)) continue;
-                BaseRule br = (BaseRule)r;
-                double score = r.lhsMatchScore(action, this.currInternal, this.currExternal);
-                if (score > bestScore) {
-                    bestScore = score;
-                    bestRule = br;
-                }
-            }
 
+            //Prefer a matching EpRule over any BaseRule
+            BaseRule bestRule = findBestMatchingEpRule(action);
             if(bestRule == null) {
-                continue; // we can't expand using this action
+                bestRule = findBestMatchingBaseRule(action);
+                if(bestRule == null) {
+                    continue; //we can't expand with this action
+                }
             }
 
             //Create a child node for this rule

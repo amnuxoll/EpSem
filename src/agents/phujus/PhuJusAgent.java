@@ -36,6 +36,8 @@ public class PhuJusAgent implements IAgent {
     public static final int MAX_SEARCH_DEPTH = 5; //TODO: get the search to self prune again
     public static final int MAX_TIME_DEPTH = 7;  //size of short term memory
 
+
+
 //region InnerClasses
 
     /**
@@ -668,6 +670,62 @@ public class PhuJusAgent implements IAgent {
         return result;
     }//getMisPredictingBaseRules
 
+
+    /**
+     * resolveRuleConflict
+     *
+     * is called when a new EpRule has the same LHS but different RHS from an
+     * existing rule and this conflict needs to be resolved.  This is done with
+     * two steps:
+     *  a) both rules' confidence level is decreased
+     *  b) if possible, the rules are expanded to create a child (or more
+     *     distant descendant) that differentiates them
+     *
+     * Note:  The caller is responsible for guaranteeing the following:
+     *  - that 'newb' is a new rule not yet added to the agent's ruleset
+     *  - that 'newb' and 'extant' have the same time depth
+     *  - that 'newb' and 'extant' having matching LHS
+     *  - that 'newb' also matches the agent's current RHS but 'extant' does not
+     *
+     *  Side Effect:  new rules will be added to the agent
+     *
+     *  Warning:  This method is recursive.
+     *
+     * @param newb the new rule
+     * @param extant the existing rule
+     * @return 0 for success, negative for failure (duplicate rule)
+     */
+    public int resolveRuleConflict(EpRule newb, EpRule extant) {
+        //due to conflict we can't be confident in either rule
+        newb.decreaseConfidence();
+        extant.decreaseConfidence();
+
+        //If they also have a RHS match, merge the rules
+        double rhsMatchScore = newb.rhsMatchScore(extant.getRHSExternal());
+        if (rhsMatchScore == 1.0) {
+            extant.mergeWith(newb);
+            return -1;
+        }
+
+        //Expand the rules
+        EpRule newbChild = newb.spawn();
+        EpRule extantChild = extant.spawn();
+
+        //If the new children also match we need to recurse to resolve them
+        if ((newbChild != null) && (extantChild != null)) {
+            if (newbChild.compareLHS(extantChild, newbChild.getTimeDepth()) == 1.0) {
+                resolveRuleConflict(newbChild, extantChild);  //Note:  this should always return 0
+            }
+        }
+        
+        //Resolution complete.  Add the new rules to the agent
+        if (newbChild != null) addRule(newbChild);
+        if (extantChild != null) addRule(extantChild);
+
+        return 0;
+    }//resolveRuleConflict
+
+
     /**
      * integrateNewEpRule
      *
@@ -696,7 +754,7 @@ public class PhuJusAgent implements IAgent {
         //Resolve the conflicts
         int ret = 0;
         for(EpRule er : conflicts) {
-            ret += newb.resolveRuleConflict(er);
+            ret += resolveRuleConflict(newb, er);
         }
 
         return ret;
@@ -1004,55 +1062,20 @@ public class PhuJusAgent implements IAgent {
 
     //region Getters and Setters
 
-    public Vector<Rule> getRules() {
-        return this.rules;
-    }
-
-    public int getNow() {
-        return now;
-    }
-
-    public HashSet<Integer> getCurrInternal() {
-        return this.currInternal;
-    }
-
+    public Vector<Rule> getRules() { return this.rules; }
+    public Vector<BaseRule> getBaseRules() { return this.baseRules; }
+    public Vector<EpRule> getEpRules() { return this.epRules; }
+    public int getNow() { return now; }
+    public HashSet<Integer> getCurrInternal() { return this.currInternal; }
     /** returns the most recent */
-    public HashSet<Integer> getPrevInternal() {
-        return this.prevInternal.lastElement();
-    }
-
+    public HashSet<Integer> getPrevInternal() { return this.prevInternal.lastElement(); }
     /** return all prev internal in short term memory */
-    public Vector<HashSet<Integer>> getAllPrevInternal() {
-        return this.prevInternal;
-    }
-
-    public SensorData getCurrExternal() {
-        return this.currExternal;
-    }
-
-    public void setCurrExternal(SensorData curExtern) {
-        this.currExternal = curExtern;
-    }
-
-    public SensorData getPrevExternal() {
-        return this.prevExternal;
-    }
-
-    public void setPrevExternal(SensorData prevExtern) {
-        this.prevExternal = prevExtern;
-    }
-
-    public int getNumActions() {
-        return actionList.length;
-    }
-
-    public Action[] getActionList() {
-        return actionList;
-    }
-
-    public char getPrevAction() {
-        return prevAction;
-    }
+    public Vector<HashSet<Integer>> getAllPrevInternal() { return this.prevInternal; }
+    public SensorData getCurrExternal() { return this.currExternal; }
+    public void setCurrExternal(SensorData curExtern) { this.currExternal = curExtern; }
+    public SensorData getPrevExternal() { return this.prevExternal; }
+    public Action[] getActionList() { return actionList; }
+    public char getPrevAction() { return prevAction; }
 
     //endregion
 
