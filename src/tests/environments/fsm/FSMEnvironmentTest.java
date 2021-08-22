@@ -21,12 +21,12 @@ public class FSMEnvironmentTest {
     //region constructor Tests
     @EpSemTest
     public void constructorNullTransitionTableThrowsException() {
-        assertThrows(IllegalArgumentException.class, () -> new FSMEnvironment(13, null));
+        assertThrows(IllegalArgumentException.class, () -> new FSMEnvironment(null));
     }
 
     @EpSemTest
     public void constructorNullEnumSetThrowsException() {
-        assertThrows(IllegalArgumentException.class, () -> new FSMEnvironment(13, this.getFsmTransitionTable(), null));
+        assertThrows(IllegalArgumentException.class, () -> new FSMEnvironment(this.getFsmTransitionTable(), null));
     }
     //endregion
 
@@ -46,7 +46,7 @@ public class FSMEnvironmentTest {
                         transitionSet1,
                         transitionSet2
                 };
-        FSMEnvironment description = new FSMEnvironment(13, new FSMTransitionTable(transitionTable));
+        FSMEnvironment description = new FSMEnvironment(new FSMTransitionTable(transitionTable));
         Action[] expectedActions = new Action[] {
                         new Action("a"),
                         new Action("b"),

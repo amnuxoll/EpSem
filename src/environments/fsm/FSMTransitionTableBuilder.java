@@ -23,7 +23,7 @@ public class FSMTransitionTableBuilder {
     private int alphabetSize;
     private int numStates;
     private Action[] actions;
-    private Random random;
+    private static Random random;
     //endregion
 
     //region Constructors
