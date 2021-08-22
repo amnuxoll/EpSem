@@ -59,6 +59,9 @@ public class BaseRule extends Rule {
     // present when the rule was created
     protected HashSet<ExtCond> rhsExternal;
 
+    //Parent rule this was spawned from (this is null for BaseRule objects)
+    protected BaseRule parent = null;
+
     //All of the children
     protected Vector<EpRule> children = new Vector<>();
 
@@ -182,7 +185,7 @@ public class BaseRule extends Rule {
         result.append(this.ruleId);
         result.append(":    ");  //extra space so it will line up with 0-depth EpRule
         result.append(this.action);
-        result.append("->");
+        result.append(" -> ");
         result.append(toStringShortRHS(this.rhsExternal));
         result.append(String.format(" ^  acc=%.5f", getAccuracy()));
         return result.toString();
@@ -210,22 +213,6 @@ public class BaseRule extends Rule {
 
     }//rhsMatchScore
 
-
-
-//region Getters and Setters
-
-    public char getAction() { return this.action; }
-    public boolean hasChildren() { return this.children.size() > 0; }
-
-
-    /** convert this.rhsExternal back to to a SensorData */
-    public SensorData getRHSExternal() {
-        SensorData result = SensorData.createEmpty();
-        for(ExtCond eCond : this.rhsExternal) {
-            result.setSensor(eCond.sName, eCond.val);
-        }
-        return result;
-    }
 
     /**
      * calculates how closely this rule matches a given action and lhs sensors
@@ -278,19 +265,37 @@ public class BaseRule extends Rule {
     }//updateConfidencesForPrediction
 
     /**
-     * spawnEpRuleFromSelf
+     * spawn
      *
-     * uses a BaseRule to create an EpRule based on the sensors that were present when
+     * create an EpRule from this BaseRule based on the sensors that were present when
      * the BaseRule was originally created
      * @return the resulting EpRule
      */
-    public EpRule spawnEpRuleFromSelf() {
+    public EpRule spawn() {
         EpRule child = new EpRule(this.agent, this.action, this.lhsExternal,
-                                this.lhsInternal, this.rhsExternal);
+                this.lhsInternal, this.rhsExternal);
         this.children.add(child);
-
+        child.parent = this;
         return child;
-    }//spawnEpRuleFromSelf
+    }//spawn
+
+
+
+//region Getters and Setters
+
+    public char getAction() { return this.action; }
+    public boolean hasChildren() { return this.children.size() > 0; }
+
+
+    /** convert this.rhsExternal back to to a SensorData */
+    public SensorData getRHSExternal() {
+        SensorData result = SensorData.createEmpty();
+        for(ExtCond eCond : this.rhsExternal) {
+            result.setSensor(eCond.sName, eCond.val);
+        }
+        return result;
+    }
+//endregion
 
     //DEBUG
     public String toStringAllLHS() {

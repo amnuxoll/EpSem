@@ -307,29 +307,63 @@ public class PhuJusAgent implements IAgent {
     }//printExternalSensors
 
     /**
+     * printBaseRule
+     *
+     * prints a given BaseRule to the console
+     *
+     * @param action the action the agent was selected.  This can be set to '\0' if the action is not yet known
+     */
+    private void printBaseRule(BaseRule br, char action) {
+        //Print a match score first
+        double score = br.lhsMatchScore(action);
+        if ((action != '\0') && (score > 0.0)) {
+            debugPrint(String.format("%.3f", score));
+            debugPrint(" ");
+        } else {
+            debugPrint("      ");
+        }
+
+        //Print an '@' in front of leaf rules
+        if (!br.hasChildren()) debugPrint("@");
+        else debugPrint(" ");
+
+        br.calculateActivation(now);  //update this so it's accurate
+        debugPrintln(br.toString());
+    }//printBaseRule
+
+
+    /**
      * printRules
      * <p>
      * prints all the rules in a verbose ASCII format
      *
-     * @param action the action the agent has selected.  This can be set to '\0' if the action is not yet known
+     * @param action the action the agent was selected.  This can be set to '\0' if the action is not yet known
      */
     public void printRules(char action) {
         if (this.rules.size() == 0) System.out.println("(There are no rules yet.)");
 
-        for (Rule r : this.rules) {
-            //Print a match score first
-            double score = r.lhsMatchScore(action);
-            if ((action != '\0') && (score > 0.0)) {
-                debugPrint(String.format("%.3f", score));
-                debugPrint(" ");
-            } else {
-                debugPrint("      ");
-            }
-
-            r.calculateActivation(now);  //update this so it's accurate
-            debugPrintln(r.toString());
+        //print all BaseRules first
+        for (BaseRule br : this.baseRules) {
+            printBaseRule(br, action);
         }
+
+        //then print EpRules in order of increasing depth
+        for(int depth = 0; depth <= MAX_TIME_DEPTH; ++depth) {
+            boolean found = false;
+            for (EpRule er : this.epRules) {
+                if (er.getTimeDepth() == depth) {
+                    printBaseRule(er, action);
+                    found = true;
+                }
+            }
+            if (!found) break;
+        }//for
+
+        //TODO:  add PathRules here
+
     }//printRules
+
+
 
     /** prints the sequence of actions discovered by a path */
     public String pathToString(Vector<TreeNode> path) {
@@ -450,8 +484,8 @@ public class PhuJusAgent implements IAgent {
                     } else {  //BaseRule
                         //Create a new EpRule based on this BaseRule (if it doesn't already exist).
                         // TODO: This creates problems if we are already at max rules
-                        BaseRule r = (BaseRule) rule;
-                        EpRule newb = r.spawnEpRuleFromSelf();
+                        BaseRule br = (BaseRule) rule;
+                        EpRule newb = br.spawn();
                         addRule(newb);
                     }
                 }
@@ -685,7 +719,6 @@ public class PhuJusAgent implements IAgent {
      *  - that 'newb' is a new rule not yet added to the agent's ruleset
      *  - that 'newb' and 'extant' have the same time depth
      *  - that 'newb' and 'extant' having matching LHS
-     *  - that 'newb' also matches the agent's current RHS but 'extant' does not
      *
      *  Side Effect:  new rules will be added to the agent
      *
@@ -693,23 +726,53 @@ public class PhuJusAgent implements IAgent {
      *
      * @param newb the new rule
      * @param extant the existing rule
-     * @return 0 for success, negative for failure (duplicate rule)
+     * @return 'true' if new should be added to the agent's rule set (false otherwise)
      */
-    public int resolveRuleConflict(EpRule newb, EpRule extant) {
+    public boolean resolveRuleConflict(EpRule newb, EpRule extant) {
         //due to conflict we can't be confident in either rule
         newb.decreaseConfidence();
         extant.decreaseConfidence();
 
-        //If they also have a RHS match, merge the rules
+        //If they also have a RHS match, they are siblings
         double rhsMatchScore = newb.rhsMatchScore(extant.getRHSExternal());
         if (rhsMatchScore == 1.0) {
-            extant.mergeWith(newb);
-            return -1;
+            //first, try to merge newb and extant together
+            if (extant.mergeWith(newb)) return false;
+
+            //DEBUG
+            if (extant.parent == null) {
+                System.out.println();
+            }
+
+            extant.parent.children.add(newb);
+            return true;
         }
 
-        //Expand the rules
-        EpRule newbChild = newb.spawn();
-        EpRule extantChild = extant.spawn();
+        //Since newb is new it can only have one child
+        EpRule newbChild = null;
+        if (newb.hasChildren()) {
+            newbChild = newb.children.get(0);
+        } else {
+            newbChild = newb.spawn();
+            addRule(newbChild);
+        }
+
+        //Find the best matching extant child
+        EpRule extantChild = null;
+        if (extant.hasChildren()) {
+            double bestScore = 0.0;
+            for(EpRule child : extant.children) {
+                double score = child.compareLHSIntLevel(newbChild, newbChild.getTimeDepth(), false);
+                if (score > bestScore) {
+                    bestScore = score;
+                    extantChild = child;
+                }
+            }
+        } else {
+            extantChild = extant.spawn();
+            addRule(extantChild);
+        }
+
 
         //If the new children also match we need to recurse to resolve them
         if ((newbChild != null) && (extantChild != null)) {
@@ -717,12 +780,8 @@ public class PhuJusAgent implements IAgent {
                 resolveRuleConflict(newbChild, extantChild);  //Note:  this should always return 0
             }
         }
-        
-        //Resolution complete.  Add the new rules to the agent
-        if (newbChild != null) addRule(newbChild);
-        if (extantChild != null) addRule(extantChild);
 
-        return 0;
+        return true;
     }//resolveRuleConflict
 
 
@@ -730,15 +789,15 @@ public class PhuJusAgent implements IAgent {
      * integrateNewEpRule
      *
      * given a new EpRule finds contradictory EpRules and resolves the conflict
-     * in some manner
+     * in some manner if it can.
      *
      * Important:  This method assumes that newb's RHS matches the agent's
      * current RHS.
      *
      * @param newb a new rule that may be creating a conflict
-     * @return 0=success, negative=fail
+     * @return true if the rule should be added to the agent's ruleset
      */
-    private int integrateNewEpRule(EpRule newb) {
+    private boolean integrateNewEpRule(EpRule newb) {
 
         //Search for a rule that has a perfect LHS match with newb
         Vector<EpRule> conflicts = new Vector<>();
@@ -749,12 +808,13 @@ public class PhuJusAgent implements IAgent {
                 conflicts.add(er);
             }
         }//for
-        if (conflicts.isEmpty()) return 0;  //no conflict to resolve
+        if (conflicts.isEmpty()) return true;  //no conflict to resolve
 
-        //Resolve the conflicts
-        int ret = 0;
+        //Resolve the conflicts (all conflicts must be resolved to add newb)
+        boolean ret = true;
         for(EpRule er : conflicts) {
-            ret += resolveRuleConflict(newb, er);
+            ret = resolveRuleConflict(newb, er);
+            if (!ret) break;
         }
 
         return ret;
@@ -777,9 +837,8 @@ public class PhuJusAgent implements IAgent {
         if (!br.hasChildren()) {
             //Create a new EpRule based on this BaseRule (if it doesn't already exist).
             // TODO: This creates problems if we are already at max rules
-            EpRule newb = br.spawnEpRuleFromSelf();
-            int ret = integrateNewEpRule(newb);
-            if (ret == 0) addRule(newb);
+            EpRule newb = br.spawn();
+            if(integrateNewEpRule(newb)) addRule(newb);
         }
     }//adjustBaseRuleForConflict
 
@@ -842,6 +901,7 @@ public class PhuJusAgent implements IAgent {
                 }
             }
 
+            //In some cases the BaseRule won't have a child that matches
             if (matchingChild == null) {
                 //Make a new child to reflect the current experience
                 EpRule newChild = null;
@@ -851,8 +911,8 @@ public class PhuJusAgent implements IAgent {
                     int depth = ((EpRule)match).getTimeDepth() + 1;
                     newChild = new EpRule(this, depth);
                 }
-                int ret = integrateNewEpRule(newChild);
-                if (ret == 0) addRule(newChild);
+                newChild.parent = match;  //who's your daddy?
+                if (integrateNewEpRule(newChild)) addRule(newChild);
                 break;
             } else {
                 match = matchingChild;  //set match for next iteration

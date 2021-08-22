@@ -431,7 +431,7 @@ public class EpRule extends BaseRule {
      *                 into the match score?
      * @return a match score from 0.0 to 1.0
      */
-    private double compareLHSIntLevel(EpRule other, int depth, boolean useConf) {
+    public double compareLHSIntLevel(EpRule other, int depth, boolean useConf) {
         //start with the positive conditions
         HashSet<IntCond> thisLevel = this.getInternalLevel(depth);
         HashSet<IntCond> otherLevel = other.getInternalLevel(depth);
@@ -814,24 +814,64 @@ public class EpRule extends BaseRule {
     }//resolveMatchingLHS
 
     /**
-     * TODO
-     * @param epRule
+     * mergeWith
+     *
+     * attempts to merge two rules together that are identical at their current depth.
+     *
+     * @param shadow will be cannibalized to merge its parts into this EpRule
+     *
+     * @return true if shadow was absorbed by this
      */
-    public void mergeWith(EpRule epRule) {
-    }
+    public boolean mergeWith(EpRule shadow) {
+        //See if one rule is a superset of the other
+        boolean thisSuper = true;
+        boolean shadSuper = true;
+        int maxDepth = Math.max(this.maxTimeDepth(), shadow.maxTimeDepth());
+        for(int i = this.timeDepth + 1; i < maxDepth; ++i) {
+            HashSet<IntCond> thisLevel = getInternalLevel(i);
+            HashSet<IntCond> shadLevel = shadow.getInternalLevel(i);
+            if (!thisLevel.containsAll(shadLevel)) {
+                thisSuper = false;
+                if (!shadSuper) break;
+            }
+
+            if (!shadLevel.containsAll(thisLevel)) {
+                shadSuper = false;
+                if (!thisSuper) break;
+            }
+        }
+
+        //Easy case:  shadow has nothing to add
+        if (thisSuper) return true;
+
+        //Easy case:  they can't be merged
+        if (!shadSuper) return false;
+
+        //Tricky Case:  do the merge
+        for(int i = this.timeDepth + 1; i < maxTimeDepth(); ++i) {
+            HashSet<IntCond> thisLevel = getInternalLevel(i);
+            HashSet<IntCond> shadLevel = shadow.getInternalLevel(i);
+            for (IntCond iCond : shadLevel) {
+                if (!thisLevel.contains(iCond)) {
+                    thisLevel.add(iCond);
+                }
+            }
+        }
+
+        return true;
+    }//mergeWith
 
     /**
      * spawn
      *
-     * creates a child node from this one that has the same content but +1 depth
-     * @return the new rule or null if the next level was empty
+     * When spawning from an EpRule you must also increase the child's depth.
+     * Caller is responsible for ensuring that the next level in lhsInternal
+     * is not empty.
      */
+    @Override
     public EpRule spawn() {
-        if (isEmptyLevel(this.timeDepth + 1)) return null;
-        EpRule child = new EpRule(this.agent, this.action, this.lhsExternal,
-                this.lhsInternal, this.rhsExternal);
+        EpRule child = super.spawn();
         child.timeDepth = this.timeDepth + 1;
-        this.children.add(child);
         return child;
     }
 
@@ -1032,7 +1072,8 @@ public class EpRule extends BaseRule {
     public int maxTimeDepth() {
         int max = timeDepth + 1;
         while (max <= PhuJusAgent.MAX_TIME_DEPTH) {
-            if (getInternalLevel(max).size() == 0) break;
+            HashSet<IntCond> level = getInternalLevel(max);
+            if ((level == null) || (level.size() == 0)) break;
             max++;
         }
         return max - 1;

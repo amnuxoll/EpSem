@@ -56,9 +56,6 @@ public abstract class Rule {
     //the rule's historical accuracy is tracked with a Confidence object
     protected Confidence accuracy = new Confidence();
 
-    //Parent rule is null by default (for BaseRule)
-    protected Rule parent = null;
-
     // Each rule has an activation level that tracks the frequency and
     // recency with which it has helped the agent reach a goal.  The
     // following instance variables track this activation level.
