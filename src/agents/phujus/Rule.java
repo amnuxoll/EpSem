@@ -59,6 +59,19 @@ public abstract class Rule {
     //Parent rule is null by default (for BaseRule)
     protected Rule parent = null;
 
+    // Each rule has an activation level that tracks the frequency and
+    // recency with which it has helped the agent reach a goal.  The
+    // following instance variables track this activation level.
+    public static final int ACTHISTLEN = 10;
+    private final int[] lastActTimes = new int[ACTHISTLEN];  // last N times the rule was activated
+    protected final double[] lastActAmount = new double[ACTHISTLEN]; // amount of activation last N times
+    protected int nextActPos = 0;
+    protected double activationLevel;  //CAVEAT:  this value may not be correct!  Call calculateActivation() to update it.
+    protected int lastActCalcTime = -1;  //the last timestep when activation for which activation was calculated
+    public static final double DECAY_RATE = 0.95;  //activation decays exponentially over time
+
+
+
     public Rule(PhuJusAgent agent) {
         this.agent = agent;
         this.ruleId = this.nextRuleId++;
@@ -75,6 +88,57 @@ public abstract class Rule {
     public void decreaseConfidence() { this.accuracy.decreaseConfidence(); }
 
     //endregion
+
+    /**
+     * addActivation
+     *
+     * adds a new activation event to this rule.
+     *
+     * @param now time of activation
+     * @param reward amount of activation (can be negative to punish)
+     *
+     * @return true if the reward was applied
+     */
+    public boolean addActivation(int now, double reward) {
+        //Check: rule can't be activated twice in the same timestep
+        int prevIdx = this.nextActPos - 1;
+        if (prevIdx < 0) prevIdx = this.lastActTimes.length - 1;
+        if (lastActTimes[prevIdx] == now) {
+            if (lastActAmount[prevIdx] < reward) {
+                this.lastActAmount[prevIdx] = reward;
+                return true;
+            }
+            return false;
+        }
+
+        this.lastActTimes[this.nextActPos] = now;
+        this.lastActAmount[this.nextActPos] = reward;
+        this.nextActPos = (this.nextActPos + 1) % ACTHISTLEN;
+        return true;
+    }//addActivation
+
+    /**
+     * calculateActivation
+     *
+     * calculates the activation of the rule atm.  Activation is increased
+     * by fixed amounts and each increase decays over time.
+     * The sum of these values is the total activation.
+     */
+    public double calculateActivation(int now) {
+        //If we've already updated the activation level used that value
+        if (lastActCalcTime == now) return this.activationLevel;
+
+        double result = 0.0;
+        for(int j=0; j < lastActTimes.length; ++j) {
+            if(lastActTimes[j] != 0) {
+                double decayAmount = Math.pow(DECAY_RATE, now-lastActTimes[j]);
+                result += lastActAmount[j]*decayAmount;
+            }
+        }
+
+        this.activationLevel = result;
+        return this.activationLevel;
+    }//calculateActivation
 
     //region Abstract Methods
     /**
@@ -98,13 +162,7 @@ public abstract class Rule {
         return lhsMatchScore(action, this.agent.getCurrInternal(), this.agent.getCurrExternal());
     }
 
-    /**
-     * calculateActivation
-     *
-     * calculates the activation of the rule atm. Activation is a measure of
-     * the frequency and recency with which a rule is used to reach a goal
-     */
-    public abstract double calculateActivation(int now);
+
 
     //endregion
 

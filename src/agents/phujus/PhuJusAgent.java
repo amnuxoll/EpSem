@@ -968,8 +968,8 @@ public class PhuJusAgent implements IAgent {
         int time = this.now;
         for(int i = this.pathTraversedSoFar.size() - 1; i >= 0; --i) {
             TreeNode node = this.pathTraversedSoFar.get(i);
-            EpRule rule = node.getRule();
-            if (rule != null) rule.addActivation(time, reward);
+            BaseRule br = node.getRule();
+            if (br != null) br.addActivation(time, reward);
             time--;
             reward *= EpRule.DECAY_RATE;
         }

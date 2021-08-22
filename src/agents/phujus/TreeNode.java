@@ -60,7 +60,7 @@ public class TreeNode {
     private boolean isLeaf = false;
 
     //This is the rule used to reach this node (use null for the root)
-    private EpRule rule;
+    private BaseRule rule;
 
     //This is the path used to reach this node
     private final Vector<TreeNode> path;
@@ -96,7 +96,7 @@ public class TreeNode {
      * Note:  caller is responsible for verifying the rule matches
      *
      */
-    public TreeNode(TreeNode parent, EpRule rule) {
+    public TreeNode(TreeNode parent, BaseRule rule) {
         //initializing agent and its children
         this.agent = parent.agent;
         this.rules = parent.rules;
@@ -126,15 +126,14 @@ public class TreeNode {
             char action = agent.getActionList()[i].getName().charAt(0);
             //find the best matching rule
             double bestScore = 0.01;  //avoid "best" being 0.0 match
-            EpRule bestRule = null;
-            for (Rule rule : this.rules) {
-                if(rule instanceof EpRule) {
-                    EpRule r = (EpRule) rule;
-                    double score = r.lhsMatchScore(action, this.currInternal, this.currExternal);
-                    if (score > bestScore) {
-                        bestScore = score;
-                        bestRule = r;
-                    }
+            BaseRule bestRule = null;
+            for (Rule r : this.rules) {
+                if (!(r instanceof BaseRule)) continue;
+                BaseRule br = (BaseRule)r;
+                double score = r.lhsMatchScore(action, this.currInternal, this.currExternal);
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestRule = br;
                 }
             }
 
@@ -146,12 +145,13 @@ public class TreeNode {
             TreeNode child = new TreeNode(this, bestRule);
             this.children.add(child);
 
-            //If the rule has sisters, create nodes with them as well
-            for(EpRule r : bestRule.getSisters()) {
-                if (r.equals(bestRule)) continue;
-                child = new TreeNode(this, r);
-                this.children.add(child);
-            }
+            //TODO:  no longer needed?
+//            //If the rule has sisters, create nodes with them as well
+//            for(EpRule r : bestRule.getSisters()) {
+//                if (r.equals(bestRule)) continue;
+//                child = new TreeNode(this, r);
+//                this.children.add(child);
+//            }
 
         }//for each action
 
@@ -445,7 +445,7 @@ public class TreeNode {
 
     public char getAction() { return this.pathStr.charAt(this.pathStr.length() - 1); }
     public String getPathStr() { return this.pathStr; }
-    public EpRule getRule() { return this.rule; }
+    public BaseRule getRule() { return this.rule; }
     public HashSet<Integer> getCurrInternal() { return this.currInternal; }
     public SensorData getCurrExternal() { return this.currExternal; }
     public TreeNode getParent() { return this.parent; }

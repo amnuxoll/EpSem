@@ -62,17 +62,6 @@ public class EpRule extends BaseRule {
     //each predict a different RHS
     private HashSet<EpRule> sisters = new HashSet<>();
 
-    // Each rule has an activation level that tracks the frequency and
-    // recency with which it fired and correctly predicted an external
-    // sensor value
-    public static final int ACTHISTLEN = 10;
-    private final int[] lastActTimes = new int[ACTHISTLEN];  // last N times the rule was activated
-    private final double[] lastActAmount = new double[ACTHISTLEN]; // amount of activation last N times
-    private int nextActPos = 0;
-    private double activationLevel;  //CAVEAT:  this value may not be correct!  Call calculateActivation() to update it.
-    private int lastActCalcTime = -1;  //the last timestep when activation for which activation was calculated
-    public static final double DECAY_RATE = 0.95;  //activation decays exponentially over time
-
     //How many timesteps of internal sensors are required for a match with this rule
     private int timeDepth = 0;
 
@@ -613,34 +602,6 @@ public class EpRule extends BaseRule {
     }
 
     /**
-     * addActivation
-     *
-     * adds a new activation event to this rule.
-     *
-     * @param now time of activation
-     * @param reward amount of activation (can be negative to punish)
-     *
-     * @return true if the reward was applied
-     */
-    public boolean addActivation(int now, double reward) {
-        //Check: rule can't be activated twice in the same timestep
-        int prevIdx = this.nextActPos - 1;
-        if (prevIdx < 0) prevIdx = this.lastActTimes.length - 1;
-        if (lastActTimes[prevIdx] == now) {
-            if (lastActAmount[prevIdx] < reward) {
-                this.lastActAmount[prevIdx] = reward;
-                return true;
-            }
-            return false;
-        }
-
-        this.lastActTimes[this.nextActPos] = now;
-        this.lastActAmount[this.nextActPos] = reward;
-        this.nextActPos = (this.nextActPos + 1) % ACTHISTLEN;
-        return true;
-    }//addActivation
-
-    /**
      * updateConfidencesForPrediction
      *
      * adjusts the confidence values of this rule when it effectively predicts
@@ -1052,7 +1013,6 @@ public class EpRule extends BaseRule {
 
 //region Getters and Setters
 
-    public char getAction() { return this.action; }
     public HashSet<ExtCond> getRHSConds() { return this.rhsExternal; }
     public int getTimeDepth() { return this.timeDepth; }
 

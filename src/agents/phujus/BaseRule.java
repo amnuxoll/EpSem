@@ -210,31 +210,11 @@ public class BaseRule extends Rule {
 
     }//rhsMatchScore
 
-    /**
-     * calculateActivation
-     *
-     * calculates the activation of the rule atm.  Activation is increased
-     * by fixed amounts and each increase decays over time.
-     * The sum of these values is the total activation.
-     */
-    public double calculateActivation(int now) {
-        //If we've already updated the activation level used that value
-        if (lastActCalcTime == now) return this.activationLevel;
 
-        double result = 0.0;
-        for(int j=0; j < lastActTimes.length; ++j) {
-            if(lastActTimes[j] != 0) {
-                double decayAmount = Math.pow(DECAY_RATE, now-lastActTimes[j]);
-                result += lastActAmount[j]*decayAmount;
-            }
-        }
-
-        this.activationLevel = result;
-        return this.activationLevel;
-    }//calculateActivation
 
 //region Getters and Setters
 
+    public char getAction() { return this.action; }
     public boolean hasChildren() { return this.children.size() > 0; }
 
 
