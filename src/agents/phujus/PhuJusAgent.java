@@ -893,26 +893,28 @@ public class PhuJusAgent implements IAgent {
 
             EpRule matchingChild = null;
             for(EpRule er : match.children) {
-                if (er.lhsMatchScore(this.prevAction, getPrevInternal(), getPrevExternal()) == 1.0) {
-                    if (er.getAccuracy() >= match.getAccuracy()) {
-                        matchingChild = er;
-                        break;
-                    }
+                double score = er.lhsMatchScore(this.prevAction, getPrevInternal(), getPrevExternal());
+                if (score == 1.0) {
+                    matchingChild = er;
+                    break;
                 }
             }
 
-            //In some cases the BaseRule won't have a child that matches
+            //In some cases none of the rule's children will match
             if (matchingChild == null) {
                 //Make a new child to reflect the current experience
                 EpRule newChild = null;
-                if (match instanceof BaseRule) {
-                    newChild = new EpRule(this);
-                } else {
+                if (match instanceof EpRule) {
                     int depth = ((EpRule)match).getTimeDepth() + 1;
                     newChild = new EpRule(this, depth);
+                } else {  //BaseRule
+                    newChild = new EpRule(this);
                 }
                 newChild.parent = match;  //who's your daddy?
-                if (integrateNewEpRule(newChild)) addRule(newChild);
+                if (integrateNewEpRule(newChild)) {
+                    addRule(newChild);
+                    match.children.add(newChild);
+                }
                 break;
             } else {
                 match = matchingChild;  //set match for next iteration

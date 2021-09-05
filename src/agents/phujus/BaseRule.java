@@ -182,6 +182,7 @@ public class BaseRule extends Rule {
     public String toString() {
         StringBuilder result = new StringBuilder();
         result.append("#");
+        if (this.ruleId < 10) result.append(" "); //to line up with two-digit rule ids
         result.append(this.ruleId);
         result.append(":    ");  //extra space so it will line up with 0-depth EpRule
         result.append(this.action);

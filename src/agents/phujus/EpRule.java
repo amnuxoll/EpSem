@@ -181,8 +181,14 @@ public class EpRule extends BaseRule {
      */
     @Override
     public String toString() {
-        //rule number
+        //rule #
         StringBuilder result = new StringBuilder();
+        result.append("#");
+        if (this.ruleId < 10) result.append(" ");
+        result.append(this.ruleId);
+        result.append(": ");
+        result.append(toStringShort());
+        result.append("    ");
 
         //LHS internal sensors
         result.append(toStringInternalLHS(true));
@@ -234,7 +240,7 @@ public class EpRule extends BaseRule {
         result.append(String.format("act=%.5f", calculateActivation(agent.getNow())));
         result.append(String.format("  acc=%.5f", getAccuracy()));
 
-        return "#" + this.ruleId + ": " + toStringShort() + "    " + result;
+        return result.toString();
     }//toString
 
 
