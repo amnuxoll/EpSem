@@ -14,7 +14,6 @@ import java.util.Random;
  * A rule based episodic memory learner
  * <p>
  * TODO code maint items
- * > Figure out why the results are non-repeatable with a seeded random
  * > Profiling (timing the code)
  * > Implement .dot format print-to-file for the current FSM
  * > add a toString() to PJA
@@ -97,10 +96,10 @@ public class PhuJusAgent implements IAgent {
     // Counter that tracks time steps since hitting a goal
     private int stepsSinceGoal = 0;
 
-    //the current, partial-formed PathRule is stored here
+    //the current, partially-formed PathRule is stored here
     private PathRule pendingPR = null;
 
-    //random numbers are useful sometimes (use a hardcoded seed for debugging)
+    //"random" numbers are useful sometimes (use a hardcoded seed for debugging)
     public static Random rand = new Random(2);
 
     /**
@@ -137,13 +136,10 @@ public class PhuJusAgent implements IAgent {
             printExternalSensors(this.currExternal);
         }
 
-        //DEBUG: break here to debug
+        //DEBUG: breakpoint here to debug
         if(this.stepsSinceGoal >= 40) {
             debugPrintln("");
         }
-
-        //see which rules correctly predicted these sensor values
-        ///TODO:  no longer needed? updateRuleConfidences();
 
         //New rule may be added, old rule may be removed
         Rule newRule = updateRuleSet();
@@ -160,16 +156,18 @@ public class PhuJusAgent implements IAgent {
             rewardRulesForGoal();
             this.stepsSinceGoal = 0;
             buildNewPath();
-        //reset path once expended with no goal
+        //If agent was unable to build a path last time step.  Try now to build a new path.
         } else if ((this.pathToDo == null)) {
             buildNewPath();
-        //reached end of path without finding goal
+        //reached end of current path without finding goal
         } else if ((this.pathToDo.size() == 0)) {
             //DEBUG
             debugPrintln("Current path failed.");
 
             buildNewPath();
-        } //TODO: reimplement path validation (be careful since partial matching now)
+        }
+
+        //TODO: reimplement path validation (be careful since partial matching now)
 
         //extract next action
         char action;
@@ -220,7 +218,7 @@ public class PhuJusAgent implements IAgent {
     /**
      * genNextInternal
      * <p>
-     * calculates what the internal sensors will be for the next timestep
+     * calculates what the internal sensors will be on for the next timestep
      * by seeing which rules have a sufficient match score.
      *
      * At the moment, "sufficient" is any non-zero match score
@@ -242,19 +240,12 @@ public class PhuJusAgent implements IAgent {
         return result;
     }//genNextInternal
 
-    /**
-     * convenience overload that uses the this.currInternal and this.currExternal
-     */
+    /** convenience overload that uses the this.currInternal and this.currExternal */
     public HashSet<Integer> genNextInternal(char action) {
         return genNextInternal(action, this.currInternal, this.currExternal);
     }//genNextInternal
 
-    /**
-     * DEBUG
-     * prints internal sensors.  Used for debugging.
-     *
-     * @param printMe sensors to print
-     */
+    /** DEBUG: prints internal sensors */
     private void printInternalSensors(HashSet<Integer> printMe) {
         debugPrint("Internal Sensors: ");
         int count = 0;
@@ -271,13 +262,7 @@ public class PhuJusAgent implements IAgent {
         debugPrintln("");
     }
 
-    /**
-     * printExternalSensors
-     * <p>
-     * verbose debugging println
-     *
-     * @param sensorData sensors to print
-     */
+    /** DEBUG: prints external sensors */
     public void printExternalSensors(SensorData sensorData) {
         //Sort sensor names alphabetical order with GOAL last
         Vector<String> sNames = new Vector<>(sensorData.getSensorNames());
@@ -309,7 +294,7 @@ public class PhuJusAgent implements IAgent {
     /**
      * printBaseRule
      *
-     * prints a given BaseRule to the console
+     * prints a given BaseRule to the console (DEBUG)
      *
      * @param action the action the agent was selected.  This can be set to '\0' if the action is not yet known
      */
@@ -334,8 +319,8 @@ public class PhuJusAgent implements IAgent {
 
     /**
      * printRules
-     * <p>
-     * prints all the rules in a verbose ASCII format
+     *
+     * prints all the rules in a verbose ASCII format  (DEBUG)
      *
      * @param action the action the agent was selected.  This can be set to '\0' if the action is not yet known
      */
@@ -365,7 +350,7 @@ public class PhuJusAgent implements IAgent {
 
 
 
-    /** prints the sequence of actions discovered by a path */
+    /** DEBUG: prints the sequence of actions discovered by a path */
     public String pathToString(Vector<TreeNode> path) {
         if (path == null) return "<null path>";
         StringBuilder sbResult = new StringBuilder();
@@ -612,58 +597,6 @@ public class PhuJusAgent implements IAgent {
     }//findBestMatchingRule
 
     /**
-     * resolveRuleConflict
-     *
-     * is called when an EpRule has a short match on the LHS with an existing
-     * rule.  The method attempts to resolve the conflict as best it can
-     * so that both rules can be used.
-     *
-     * @param prof  a description of how well the rules match.
-     *              prof.given is presumed to be the shorter rule
-     * @return  null for success.  Otherwise the method results the rule to
-     *          discard (conflict not resolved)
-     */
-    public EpRule resolveEpRuleConflict(EpRuleMatchProfile prof) {
-
-        //sanity check:  nothing to resolve?
-        if(prof.shortScore != 1.0) {
-            return null;
-        }
-
-        // Special handling is needed if match is in a sisterhood
-        if ( (prof.rhsScore == 1.0) && (prof.match.getSisters().size() > 0) ) {
-            int ret = prof.given.adjustSisterhood(prof.match);
-            //on success, given replaces match
-            if (ret == 0) {
-                return prof.match;
-            }
-        }//if sisterhood
-
-        //Try to resolve the match
-        int ret = prof.given.resolveMatchingLHS(prof.match);
-        if(ret < 0) {
-            if (prof.rhsScore < 1.0) {
-                //If the RHS differ, then create a new sisterhood (resolved...ish)
-                prof.match.addSister(prof.given);
-            } else {
-                //Since LHS and RHS both match, these rules are too redundant.
-                //Ditch the rule with the least info
-                if (prof.given.maxTimeDepth() > prof.match.maxTimeDepth()) {
-                    //candidate has more to offer
-                    while (prof.given.getTimeDepth() < prof.match.getTimeDepth()) {
-                        prof.given.extendTimeDepth();
-                    }
-                    return prof.match;
-                } else {
-                    return prof.given;
-                }
-            }//else RHS match
-        }//else no resolution
-
-        return null;  //success
-    }//resolveRuleConflict
-
-    /**
      * getPredictingBaseRule
      *
      * retrieves the BaseRule that matches the agent's previous action and
@@ -711,7 +644,7 @@ public class PhuJusAgent implements IAgent {
      * is called when a new EpRule has the same LHS but different RHS from an
      * existing rule and this conflict needs to be resolved.  This is done with
      * two steps:
-     *  a) both rules' confidence level is decreased
+     *  a) both rules' confidence levels are decreased
      *  b) if possible, the rules are expanded to create a child (or more
      *     distant descendant) that differentiates them
      *
@@ -726,7 +659,8 @@ public class PhuJusAgent implements IAgent {
      *
      * @param newb the new rule
      * @param extant the existing rule
-     * @return 'true' if new should be added to the agent's rule set (false otherwise)
+     * @return 'true' if newb has been adjusted and should be added to the
+     *          agent's rule set (false otherwise)
      */
     public boolean resolveRuleConflict(EpRule newb, EpRule extant) {
         //due to conflict we can't be confident in either rule
@@ -748,7 +682,8 @@ public class PhuJusAgent implements IAgent {
             return true;
         }
 
-        //Since newb is new it can only have one child
+        //Get/create the child rule for newb.
+        //Note: since newb is new it can only have one child atm
         EpRule newbChild = null;
         if (newb.hasChildren()) {
             newbChild = newb.children.get(0);

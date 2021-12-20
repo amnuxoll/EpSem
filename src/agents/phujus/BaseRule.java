@@ -10,8 +10,8 @@ import java.util.Vector;
 /**
  * BaseRule
  *
- * describes the prior probability that a particular action will take the
- * agent to a particular outcome
+ * describes the agent's current estimate of prior probability that a
+ * particular action will take the agent to a particular outcome
  */
 public class BaseRule extends Rule {
 
@@ -52,6 +52,7 @@ public class BaseRule extends Rule {
     //While a base rule has only an action on the LHS, it may later spawn
     // a child EpRule that needs to use LHS sensors based upon
     // the sequence of episodes that led up to this base rule
+    // So, a snapshot of that sequence is stored in these variables.
     protected Vector<HashSet<EpRule.IntCond>> lhsInternal;
     protected HashSet<ExtCond> lhsExternal;
 
@@ -62,12 +63,13 @@ public class BaseRule extends Rule {
     //Parent rule this was spawned from (this is null for BaseRule objects)
     protected BaseRule parent = null;
 
-    //All of the children
+    //All of the rules that spawned from this one.
     protected Vector<EpRule> children = new Vector<>();
 
     // Each rule has an activation level that tracks the frequency and
     // recency with which it fired and correctly predicted an external
     // sensor value
+    // TODO:  remove this becasue it's in Rule now?
     public static final int ACTHISTLEN = 10;
     private final int[] lastActTimes = new int[ACTHISTLEN];  // last N times the rule was activated
     private final double[] lastActAmount = new double[ACTHISTLEN]; // amount of activation last N times
@@ -76,6 +78,7 @@ public class BaseRule extends Rule {
     private int lastActCalcTime = -1;  //the last timestep when activation for which activation was calculated
     public static final double DECAY_RATE = 0.95;  //activation decays exponentially over time
 
+    /** ctor initializes this rule from the agent's current state */
     public BaseRule(PhuJusAgent agent) {
         super(agent);
         this.action = agent.getPrevAction();
@@ -84,7 +87,7 @@ public class BaseRule extends Rule {
         this.rhsExternal = initExternal(agent.getCurrExternal());
     }//BaseRule ctor
 
-    /** converts from SensorData to HashSet<ExtCond> */
+    /** converts from SensorData (used by the FSM environment) to HashSet<ExtCond> */
     protected HashSet<ExtCond> initExternal(SensorData sData) {
         HashSet<ExtCond> result = new HashSet<>();
         for(String sName : sData.getSensorNames()) {
@@ -94,12 +97,7 @@ public class BaseRule extends Rule {
         return result;
     }//initExternal
 
-    /**
-     * initInternal
-     *
-     * initializes this.lhsInternal from a given set of values
-     *
-     */
+    /** initializes this.lhsInternal from a given set of values */
     private Vector<HashSet<EpRule.IntCond>> initInternal(Vector<HashSet<Integer>> initLHS) {
         Vector<HashSet<EpRule.IntCond>> result = new Vector<>();
         for(HashSet<Integer> initLevel : initLHS) {
@@ -143,8 +141,9 @@ public class BaseRule extends Rule {
      * sortedConds
      *
      * creates a Vector from a HashSet of ExtCond where the conditions are in sorted order
-     * but with the GOAL at the end.
-     * */
+     * but with the GOAL at the end.  This is used by the toString methods to present
+     * a consistent ordering to frazzled human eyes.
+     */
     protected Vector<ExtCond> sortedConds(HashSet<ExtCond> conds) {
         //Sort the vector
         Vector<ExtCond> result = new Vector<>(conds);
@@ -164,7 +163,8 @@ public class BaseRule extends Rule {
         return result;
     }//sortedConds
 
-    /** toStringShortRHS
+    /**
+     * toStringShortRHS
      *
      * is a helper method for {@link #toString()} & {@link EpRule#toStringShort()} to
      * convert a RHS to a bit string
@@ -193,7 +193,9 @@ public class BaseRule extends Rule {
     }
 
     /**
-     * calculates how closely this rule matches a given rhs sensors
+     * rhsMatchScore
+     *
+     * calculates how closely this rule matches a given rhs sensor set
      *
      * @return  a match score from 0.0 to 1.0
      */
@@ -216,12 +218,11 @@ public class BaseRule extends Rule {
 
 
     /**
-     * calculates how closely this rule matches a given action and lhs sensors
-     * A total match score [0.0..1.0] is calculated as the product of the
-     * match score for each level (this.timeDepth) of the rule.
+     * lhsMatchScore
      *
-     * TODO:  I think this method (and helpers) should ignore zero-confidence conditions.
-     *  - Already sort of ignores them, however it still increments count, so test if it shouldn't
+     * calculates how closely this rule matches a given action and lhs sensors
+     * For a BaseRule this is trivial since the LHS is just an action.
+     * This method is overridden in child classes
      *
      * @return  a match score from 0.0 to 1.0
      */
@@ -233,7 +234,10 @@ public class BaseRule extends Rule {
     }//lhsMatchScore
 
     /**
-     * calculates how closely this rule matches another given rule
+     * compareLHS
+     *
+     * calculates how closely this rule matches another given rule.
+     * This is trivial for BaseRule but overridden later.
      *
      * @param other  the other rule to compare it to
      * @param depth compare up to this depth
@@ -250,11 +254,7 @@ public class BaseRule extends Rule {
      * updateConfidencesForPrediction
      *
      * adjusts the confidence values of this rule when it effectively predicts
-     * the next state
-     *
-     * CAVEAT:  This rule should be called when the rule correctly predicted
-     *          the future.  Not when it didn't.
-     * CAVEAT:  Do not call this method with sensors it didn't match with!
+     * the next state.  This is trivial for BaseRule but will be overridden.
      *
      * @param lhsInt  the internal sensors that the rule matched
      * @param lhsExt  the external sensors that the rule matched
@@ -269,7 +269,9 @@ public class BaseRule extends Rule {
      * spawn
      *
      * create an EpRule from this BaseRule based on the sensors that were present when
-     * the BaseRule was originally created
+     * the BaseRule was originally created.  An EpRule is spawned when the BaseRule
+     * is no longer consistent with all the agent's experiences.
+     *
      * @return the resulting EpRule
      */
     public EpRule spawn() {
@@ -297,20 +299,5 @@ public class BaseRule extends Rule {
         return result;
     }
 //endregion
-
-    //DEBUG
-    public String toStringAllLHS() {
-        StringBuilder result = new StringBuilder();
-        for (int i = this.lhsInternal.size(); i >= 1; --i) {
-            result.append('(');
-            HashSet<EpRule.IntCond> level = this.lhsInternal.get(this.lhsInternal.size() - i);
-            String intStr = toStringIntConds(level, false, false);
-            result.append(intStr);
-            result.append(')');
-        }
-        result.append(" // "); //time depth divider
-
-        return result.toString();
-    }
 
 }//class BaseRule

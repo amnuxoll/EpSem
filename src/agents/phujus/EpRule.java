@@ -20,7 +20,7 @@ public class EpRule extends BaseRule {
      * Tracks internal conditions (LHS or RHS)
      */
     public static class IntCond extends Confidence {
-        public int sId;
+        public int sId;  //sensor id
 
         public IntCond(int initSId) {
             this.sId = initSId;
@@ -53,22 +53,21 @@ public class EpRule extends BaseRule {
     // - the action that the agent took just before this rule was created (See BaseRule)
     //Initially, all sensor values are present but, over time, they may get culled if they
     //prove inconsistent with the agent's experiences
-    //Note:  the instance variables for all but these not-sensors are inherited from BaseRule
+    //Note:  the instance variables for all but these not-sensors (below) are inherited from BaseRule
     protected Vector<HashSet<IntCond>> lhsNotInternal;
 
-    //In some cases, a rule becomes indeterminate:  multiple RHS have been
-    //seen but the agent doesn't know how to predict which will occur.
-    //When this happens, this rule acquires multiple "sister" rules that
-    //each predict a different RHS
+    //When a rule becomes inconsistent with all the agent's experience so
+    // far, this rule acquires multiple "sister" rules that
+    //each predict a different RHS.  Sister rules attempt to distinguish
+    //themselves from each other so that, for any given episode,
+    //only one matches.  This is mainly done by increasing the time depth.
     private HashSet<EpRule> sisters = new HashSet<>();
 
     //How many timesteps of internal sensors are required for a match with this rule
     private int timeDepth = 0;
 
 //region Ctors and Init
-    /**
-     * this ctor initializes the rule from the agent's current and previous episodes
-     */
+    /** this ctor initializes the rule from the agent's current and previous episodes */
     public EpRule(PhuJusAgent agent, int timeDepth){
         super(agent);
         this.lhsNotInternal = new Vector<>();
@@ -80,9 +79,7 @@ public class EpRule extends BaseRule {
         this(agent, 0);
     }
 
-    /**
-     * this ctor initializes the rule from a specified merging of two rules
-     */
+    /** this ctor initializes the rule from the properties of an existing rule */
     public EpRule(PhuJusAgent agent, char action, HashSet<ExtCond> lhsExternal,
                   Vector<HashSet<IntCond>> lhsInternal, HashSet<ExtCond> rhsExternal) {
         super(agent);
@@ -520,93 +517,6 @@ public class EpRule extends BaseRule {
         return compareLHS(other, maxLevelDepth);
     }//compareLHS
 
-    public EpRule intersectRules(EpRule other) {
-        EpRule ret = intersectRulesHelper(other);
-
-        // Remove time depths if there are any empty internal levels
-        int depth = ret.timeDepth;
-        for(int i = depth; i >= 1; --i) {
-            if(ret.getInternalLevel(i).size() == 0) {
-                ret.timeDepth = i-1;
-            }
-        }
-
-        return ret;
-    }
-
-    private EpRule intersectRulesHelper(EpRule other) {
-
-        // Used in the constructor
-        HashSet<ExtCond> lhsExt = new HashSet<>();
-        Vector<HashSet<IntCond>> lhsInt = new Vector<>();
-        HashSet<ExtCond> rhsExt = new HashSet<>();
-
-        int depth = Math.max(this.timeDepth, other.timeDepth);
-
-        for(int i = 1; i <= depth; ++i) {
-            HashSet<IntCond> thisLevel = this.getInternalLevel(i);
-            HashSet<IntCond> otherLevel = other.getInternalLevel(i);
-
-            HashSet<IntCond> lhsIntToAdd = new HashSet<>();
-
-            if(thisLevel == null && otherLevel == null) {
-                continue;
-            }
-
-            //Compare LHS internal values
-            HashSet<IntCond> largerLHSInt = thisLevel;
-            HashSet<IntCond> smallerLHSInt = otherLevel;
-            if (largerLHSInt.size() < smallerLHSInt.size()) {
-                largerLHSInt = otherLevel;
-                smallerLHSInt = thisLevel;
-            }
-            for (IntCond iCond1 : largerLHSInt) {
-                for (IntCond iCond2 : smallerLHSInt) {
-                    if (iCond1.equals(iCond2)) {
-                        lhsIntToAdd.add(iCond1);
-                        break;
-                    }
-                }
-            }
-            lhsInt.add(lhsIntToAdd);
-        }
-
-        //Compare LHS external values
-        HashSet<ExtCond> largerLHSExt = this.lhsExternal;
-        HashSet<ExtCond> smallerLHSExt = other.lhsExternal;
-        if (largerLHSExt.size() < smallerLHSExt.size()) {
-            largerLHSExt = other.lhsExternal;
-            smallerLHSExt = this.lhsExternal;
-        }
-        for (ExtCond thisECond : largerLHSExt) {
-            for (ExtCond otherECond : smallerLHSExt) {
-                if (thisECond.equals(otherECond)) {
-                    lhsExt.add(thisECond);
-                    break;
-                }
-            }
-        }
-
-        //Compare RHS external values
-        HashSet<ExtCond> largerRHSExt = this.rhsExternal;
-        HashSet<ExtCond> smallerRHSExt = other.rhsExternal;
-        if (largerRHSExt.size() < smallerRHSExt.size()) {
-            largerRHSExt = other.rhsExternal;
-            smallerRHSExt = this.rhsExternal;
-        }
-        for (ExtCond thisECond : largerRHSExt) {
-            for (ExtCond otherECond : smallerRHSExt) {
-                if (thisECond.equals(otherECond)) {
-                    rhsExt.add(thisECond);
-                    break;
-                }
-            }
-        }
-
-        EpRule ret = new EpRule(this.agent, this.action, lhsExt, lhsInt, rhsExt);
-        return ret;
-    }
-
     /**
      * updateConfidencesForPrediction
      *
@@ -677,9 +587,10 @@ public class EpRule extends BaseRule {
      *
      * adds another depth to a rule assuming it has not reached the max depth
      *
+     * Note:  to support NDFAs this would need to be expanded.
+     *
      * @return 0 on success, negative on fail
      */
-    //TODO: this will need to be expanded to handle NDFA's
     public int extendTimeDepth() {
         if(this.timeDepth < PhuJusAgent.MAX_TIME_DEPTH) {
             this.timeDepth++;
@@ -1087,25 +998,6 @@ public class EpRule extends BaseRule {
 
 
 //endregion
-
-
-    //DEBUG
-    @Override
-    public String toStringAllLHS() {
-        StringBuilder result = new StringBuilder();
-        for (int i = this.lhsInternal.size(); i >= 1; --i) {
-            result.append('(');
-            HashSet<EpRule.IntCond> level = this.lhsInternal.get(this.lhsInternal.size() - i);
-            String intStr = toStringIntConds(level, false, false);
-            result.append(intStr);
-            result.append(')');
-            if (i == this.timeDepth) result.append(" // "); //time depth divider
-        }
-
-        if (this.timeDepth == 0) result.append(" // ");
-
-        return result.toString();
-    }
 
 
 }//class EpRule

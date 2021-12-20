@@ -20,6 +20,9 @@ public abstract class Rule {
      * tracks a rule's confidence in something over time.  The most
      * recent call to increase/decrease confidence bears the most
      * weight.  Previous calls have diminishing influence
+     *
+     * This is a parent class for {@link BaseRule.ExtCond} and
+     * {@link EpRule.IntCond}.
      */
     public static class Confidence {
         public static final int TRUEMASK  = 0b00010000;
