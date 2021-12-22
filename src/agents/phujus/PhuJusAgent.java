@@ -24,6 +24,9 @@ import java.util.Random;
  * > review long methods and break into main + helper methods
  *
  * TODO research items
+ * > "not" sensors don't seem to be in use anymore.  Turn them back on and use them
+ *   when a rule can't be time depth extended (i.e., what internal sensors were on when
+ *   I misfired that aren't on my LHS as non-"not" sensors?)
  * > Rules refine/generalize themselves based on experience.  Rules should be able to:
  *    - merge when they become very similar
  *    - split when it will improve the activation of both progeny
@@ -140,6 +143,12 @@ public class PhuJusAgent implements IAgent {
         if(this.stepsSinceGoal >= 40) {
             debugPrintln("");
         }
+        if (this.now == 68) {
+            debugPrintln("");
+        }
+
+        //adj confidence for rules that in/correctly predicted current sensor values
+        //TODO:  no longer needed? updateRuleConfidences();
 
         //New rule may be added, old rule may be removed
         Rule newRule = updateRuleSet();
@@ -199,7 +208,7 @@ public class PhuJusAgent implements IAgent {
 
         //Now that we know what action the agent will take, setup the sensor
         // values for the next iteration
-        this.prevInternal.add(this.currInternal);
+        this.prevInternal.add(calcPrunedInternal());
         while (prevInternal.size() > MAX_TIME_DEPTH) {
             prevInternal.remove(0);
         }
@@ -214,6 +223,82 @@ public class PhuJusAgent implements IAgent {
 
         return new Action(action + "");
     }//getNextAction
+
+    /** @return a rule with a given id (or null if not found) */
+    public Rule getRuleById(int id) {
+        int index = id;
+        int max = this.rules.size() - 1;
+        int min = 0;
+
+        //check for unfindable id
+        if ( (max <= 0) || (id > max) ) return null;
+
+        Rule result = null;
+        //binary search
+        while(min < max) {
+            result = this.rules.get(index);
+            int guessId = result.getId();
+            if (guessId == id) {
+                break;  //rule found
+            }
+            else if (guessId < id) {
+                min = index + 1;
+            } else {
+                max = index - 1;
+            }
+
+            //next check at the midpoint between min:max
+            index = (min + max) / 2;
+        }//while
+
+        return result;
+    }//getRuleById
+
+    /**
+     * calcPrunedInternal
+     *
+     * There are cases where the agent's current internal sensors should not
+     * be included in new rules:
+     * 1.  When two sensors correspond to a rule and its ancestor only the
+     *     most specific one should be included.  Example:
+     *        # 1:    b -> 00  <-- omit this
+     *        #24: |00b -> 00
+     * 2. When the rule associated with the sensor failed to predict the
+     *    agent's subsequent sensing
+     *
+     *  This method prunes such issues from a current set of internal
+     *  sensors. This is called on agent.currInternal before it is added
+     *  to the this.prevInternal set
+     */
+    private HashSet<Integer> calcPrunedInternal() {
+        HashSet<Integer> result = new HashSet<Integer>();
+
+        for(int i : this.currInternal) {
+            //ok to type cast since all internal sensors are BaseRule or EpRule
+            BaseRule cand = (BaseRule)getRuleById(i);
+            if (cand == null) continue;
+
+            //Check for ancestors
+            for(int j : this.currInternal) {
+                if (i == j) continue;
+                BaseRule r = (BaseRule)getRuleById(j);
+                if (cand.isAncestor(r)) {
+                    cand = null;
+                    break;
+                }
+            }
+            if (cand == null) continue;  //ancestor found
+
+            //Check for mis-predicts
+            double score = cand.rhsMatchScore(this.currExternal);
+            if (score == 1.0) {
+                result.add(i);
+            }
+
+        }//for each internal sensor
+
+        return result;
+    }//calcPrunedInternal
 
     /**
      * genNextInternal
@@ -442,9 +527,13 @@ public class PhuJusAgent implements IAgent {
     private void updateRuleConfidences() {
         //Compare all the rules that matched RHS to the ones that matched LHS last timestep
         Vector<Rule> rhsMatches = getRHSMatches();
+        //We can't add new rules to this.rules while the loop below is running
+        // (will cause an exception) so store them in this temp vector and
+        // add them at the end
+        Vector<Rule> tempAdd = new Vector<Rule>();
         for(Rule rule : this.rules) {
             if (this.currInternal.contains(rule.getId())) {  //did the rule match last timestep?
-                //TODO:  What about parent rules that also matched?
+                //TODO:  What about parent rules that also matched?  <-- I think these get covered in other iterations of the loop since it's reviewing all rules that matched
                 if (rhsMatches.contains(rule)) {
                     if(rule instanceof EpRule) {
                         //effective prediction means we can adjust confidences
@@ -468,14 +557,20 @@ public class PhuJusAgent implements IAgent {
                         this.currInternal.remove(r.getId());
                     } else {  //BaseRule
                         //Create a new EpRule based on this BaseRule (if it doesn't already exist).
-                        // TODO: This creates problems if we are already at max rules
                         BaseRule br = (BaseRule) rule;
                         EpRule newb = br.spawn();
-                        addRule(newb);
+                        tempAdd.add(newb);
                     }
                 }
             }
         }
+
+        //Add any new rules that were spawned
+        //TODO:  add will fail if we've reached MAXNUMRULES.  Remove older rules in this case?
+        for(Rule newb : tempAdd) {
+            addRule(newb);
+        }
+
     }//updateRuleConfidences
 
     /**
@@ -637,6 +732,27 @@ public class PhuJusAgent implements IAgent {
         return result;
     }//getMisPredictingBaseRules
 
+    /**
+     * rectifyTopLevel
+     *
+     * when a new rule is created that is a time-depth-extended version
+     * of its parent, the new level of LHS internal sensors may be empty.
+     * In this case, this method will insert one or more "not" sensors
+     * that correspond to the agent's experiences leading up to now.
+     *
+     * @return true  if the rule is valid; false if it was empty could not be fixed
+     */
+    private boolean rectifyTopLevel(EpRule er) {
+        //check for emtpy top level
+        if (er.getTimeDepth() == 0) return true;
+        HashSet<EpRule.IntCond> topLevel = er.getInternalLevel(er.getTimeDepth());
+        if (topLevel.size() > 0) return true;
+
+        //TODO: add not-sensors to the level
+
+        return false;
+
+    }//rectifyTopLevel
 
     /**
      * resolveRuleConflict
@@ -689,6 +805,9 @@ public class PhuJusAgent implements IAgent {
             newbChild = newb.children.get(0);
         } else {
             newbChild = newb.spawn();
+            if (!rectifyTopLevel(newbChild)) {
+                return false;  //rule's top level is irreconcilably empty
+            }
             addRule(newbChild);
         }
 
@@ -705,7 +824,9 @@ public class PhuJusAgent implements IAgent {
             }
         } else {
             extantChild = extant.spawn();
-            addRule(extantChild);
+            if (rectifyTopLevel(extantChild)) {
+                addRule(extantChild);
+            }
         }
 
 

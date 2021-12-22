@@ -301,11 +301,15 @@ public class EpRule extends BaseRule {
      * that creates a score for all levels of internal sensors.  Each
      */
     private double lhsInternalMatchScore(HashSet<Integer> lhsInt) {
-        double score = 1.0;
-        //Compare LHS internal values
+        double score = -1.0;
+        //Compare LHS internal values (disjunction)
         for(int i = 1; i <= timeDepth; ++i) {
             HashSet<IntCond> level = getInternalLevel(i);
-            score = lhsInternalLevelMatch(lhsInt, level);
+            score = Math.max(score, lhsInternalLevelMatch(lhsInt, level));
+        }//for timedepth
+
+        //Check LHS internal "not" sensors (conjunction)
+        for(int i = 1; i <= timeDepth; ++i) {
             HashSet<IntCond> notLevel = getNotInternalLevel(i);
             score *= lhsNotInternalLevelMatch(lhsInt, notLevel);
         }//for timedepth
@@ -730,6 +734,15 @@ public class EpRule extends BaseRule {
         return 0;
     }//resolveMatchingLHS
 
+    /** @return true if one HashSet<IntCond> is a superset of the other */
+    private boolean isSuperSet(HashSet<IntCond> a, HashSet<IntCond> b) {
+        //handle null params
+        if (a == null) return (b == null);
+        if (b == null) return false;
+
+        return a.containsAll(b);
+    }//isSuperSet
+
     /**
      * mergeWith
      *
@@ -747,14 +760,15 @@ public class EpRule extends BaseRule {
         for(int i = this.timeDepth + 1; i < maxDepth; ++i) {
             HashSet<IntCond> thisLevel = getInternalLevel(i);
             HashSet<IntCond> shadLevel = shadow.getInternalLevel(i);
-            if (!thisLevel.containsAll(shadLevel)) {
+
+            if (! isSuperSet(thisLevel, shadLevel)) {
                 thisSuper = false;
-                if (!shadSuper) break;
+                if (! shadSuper) break;
             }
 
-            if (!shadLevel.containsAll(thisLevel)) {
+            if (! isSuperSet(shadLevel, thisLevel)) {
                 shadSuper = false;
-                if (!thisSuper) break;
+                if (! thisSuper) break;
             }
         }
 

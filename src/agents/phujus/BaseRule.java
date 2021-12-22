@@ -283,6 +283,21 @@ public class BaseRule extends Rule {
     }//spawn
 
 
+    /** @return true is the given rule is an ancestor of this one */
+    public boolean isAncestor(BaseRule maybeMommy) {
+        BaseRule parent = this.parent;
+        while(parent != null) {
+            if (parent == maybeMommy) {  //using '==' as it must be this exact rule
+                return true;
+            }
+            parent = parent.parent;
+        }
+
+        return false;
+    }//isAncestor
+
+
+
 
 //region Getters and Setters
 
