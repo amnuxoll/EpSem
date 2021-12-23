@@ -298,15 +298,21 @@ public class EpRule extends BaseRule {
      * lhsInternalMatchScore
      *
      * is a helper method for {@link #lhsMatchScore(char, HashSet, SensorData)}
-     * that creates a score for all levels of internal sensors.  Each
+     * that creates a score for all levels of internal sensors.
      */
     private double lhsInternalMatchScore(HashSet<Integer> lhsInt) {
-        double score = -1.0;
+        //match irrelevant at zero depth
+        if (this.timeDepth == 0) return 1.0;
+
         //Compare LHS internal values (disjunction)
+        double score = -1.0;  //any match score will beat this one
         for(int i = 1; i <= timeDepth; ++i) {
             HashSet<IntCond> level = getInternalLevel(i);
             score = Math.max(score, lhsInternalLevelMatch(lhsInt, level));
         }//for timedepth
+
+        //Special case:  no positive conditions (prev loop did nothing)
+        if (score == -1.0) score = 1.0;
 
         //Check LHS internal "not" sensors (conjunction)
         for(int i = 1; i <= timeDepth; ++i) {
@@ -795,14 +801,16 @@ public class EpRule extends BaseRule {
     /**
      * spawn
      *
-     * When spawning from an EpRule you must also increase the child's depth.
-     * Caller is responsible for ensuring that the next level in lhsInternal
-     * is not empty.
+     * Creates a new rule that is one time depth greater than its parent
+     *
+     * @return null if the child could not be created.  Caller should
+     *          handle this possibility!
      */
     @Override
     public EpRule spawn() {
         EpRule child = super.spawn();
-        child.timeDepth = this.timeDepth + 1;
+        child.timeDepth = this.timeDepth;
+        if (child.extendTimeDepth() < 0) return null;  //could not be extended
         return child;
     }
 

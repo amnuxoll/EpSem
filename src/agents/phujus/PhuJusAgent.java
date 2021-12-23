@@ -27,6 +27,8 @@ import java.util.Random;
  * > "not" sensors don't seem to be in use anymore.  Turn them back on and use them
  *   when a rule can't be time depth extended (i.e., what internal sensors were on when
  *   I misfired that aren't on my LHS as non-"not" sensors?)
+ * > "sister" rules aren't being used anymore. I don't think they are needed. Investigate and,
+ *   if confirmed, remove the relevant code.
  * > Rules refine/generalize themselves based on experience.  Rules should be able to:
  *    - merge when they become very similar
  *    - split when it will improve the activation of both progeny
@@ -143,7 +145,7 @@ public class PhuJusAgent implements IAgent {
         if(this.stepsSinceGoal >= 40) {
             debugPrintln("");
         }
-        if (this.now == 68) {
+        if (this.now == 12) {
             debugPrintln("");
         }
 
@@ -559,7 +561,12 @@ public class PhuJusAgent implements IAgent {
                         //Create a new EpRule based on this BaseRule (if it doesn't already exist).
                         BaseRule br = (BaseRule) rule;
                         EpRule newb = br.spawn();
-                        tempAdd.add(newb);
+                        if (newb == null) {
+                            //TODO: something more intelligent
+                            debugPrintln("Can't spawn!  Aborting...");
+                        } else {
+                            tempAdd.add(newb);
+                        }
                     }
                 }
             }
@@ -744,13 +751,35 @@ public class PhuJusAgent implements IAgent {
      */
     private boolean rectifyTopLevel(EpRule er) {
         //check for emtpy top level
-        if (er.getTimeDepth() == 0) return true;
-        HashSet<EpRule.IntCond> topLevel = er.getInternalLevel(er.getTimeDepth());
+        int timeDepth = er.getTimeDepth();
+        if (timeDepth == 0) return true;
+        HashSet<EpRule.IntCond> topLevel = er.getInternalLevel(timeDepth);
         if (topLevel.size() > 0) return true;
 
-        //TODO: add not-sensors to the level
+        //Get the "not" sensors for the target level which may require putting empty lists at prev levels
+        HashSet<EpRule.IntCond> notTopLevel = er.getNotInternalLevel(timeDepth);
 
-        return false;
+        //TODO: add not-sensors to the level
+        int piIndex = prevInternal.size() + 1 - timeDepth;
+        HashSet<Integer> sensors = prevInternal.get(piIndex);
+
+        //remove all sensors that are already present
+        for(EpRule.IntCond cond : notTopLevel) {
+            if (sensors.contains(cond.sId)) {
+                sensors.remove(cond.sId);
+            }
+        }
+
+        //Nothing to add?  Then can't be fixed
+        if (sensors.isEmpty()) return false;
+
+
+        //Add the ones that are not yet present
+        for(int sId : sensors) {
+            notTopLevel.add(new EpRule.IntCond(sId));
+        }
+
+        return true;
 
     }//rectifyTopLevel
 
@@ -805,7 +834,9 @@ public class PhuJusAgent implements IAgent {
             newbChild = newb.children.get(0);
         } else {
             newbChild = newb.spawn();
-            if (!rectifyTopLevel(newbChild)) {
+
+            //Is this a valid child?
+            if ( (newbChild != null) && (!rectifyTopLevel(newbChild)) ) {
                 return false;  //rule's top level is irreconcilably empty
             }
             addRule(newbChild);
@@ -824,7 +855,9 @@ public class PhuJusAgent implements IAgent {
             }
         } else {
             extantChild = extant.spawn();
-            if (rectifyTopLevel(extantChild)) {
+
+            //Is this a valid child?
+            if ( (extantChild != null) && (rectifyTopLevel(extantChild)) ) {
                 addRule(extantChild);
             }
         }
@@ -894,7 +927,7 @@ public class PhuJusAgent implements IAgent {
             //Create a new EpRule based on this BaseRule (if it doesn't already exist).
             // TODO: This creates problems if we are already at max rules
             EpRule newb = br.spawn();
-            if(integrateNewEpRule(newb)) addRule(newb);
+            if ( (newb != null) && (integrateNewEpRule(newb)) ) addRule(newb);
         }
     }//adjustBaseRuleForConflict
 
