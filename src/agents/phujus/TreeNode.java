@@ -37,7 +37,7 @@ public class TreeNode {
         }
     }//class RatedRule
 
-    //Agent
+    //Agent's current state and ruleset is needed to build the tree
     private final PhuJusAgent agent;
 
     // all rules in the system
@@ -142,7 +142,7 @@ public class TreeNode {
     /**
      * findBestMatchingBaseRule
      *
-     * finds the EpRule that best matches this TreeNode
+     * finds the BaseRule that best matches this TreeNode
      *
      * @param action the action to use for the match
      * @return the best match or null if no match found
@@ -192,14 +192,6 @@ public class TreeNode {
             TreeNode child = new TreeNode(this, bestRule);
             this.children.add(child);
 
-            //TODO:  no longer needed?
-//            //If the rule has sisters, create nodes with them as well
-//            for(EpRule r : bestRule.getSisters()) {
-//                if (r.equals(bestRule)) continue;
-//                child = new TreeNode(this, r);
-//                this.children.add(child);
-//            }
-
         }//for each action
 
     }//expand
@@ -209,7 +201,7 @@ public class TreeNode {
      * <p>
      * uses an iterative deepening search tree to find a path to the goal
      *
-     * //TODO:  A*Search instead?
+     * //TODO:  Could do A*Search instead if this is too slow
      */
     public Vector<TreeNode> findBestGoalPath() {
         double bestScore = 0.0;
@@ -256,7 +248,9 @@ public class TreeNode {
             return null;
         }
 
-        //Recursive case: examine child nodes
+        /* ====================================
+           Recursive case: examine child nodes
+           ------------------------------------ */
 
         //Keeps track of the best path we've seen so far
         Vector<TreeNode> bestPath = null;

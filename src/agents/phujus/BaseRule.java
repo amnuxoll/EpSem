@@ -47,6 +47,7 @@ public class BaseRule extends Rule {
         public int hashCode() { return Objects.hash(sName, val); }
     }//class ExtCond
 
+    //A BaseRule's LHS is only an action
     protected char action;
 
     //While a base rule has only an action on the LHS, it may later spawn
@@ -65,18 +66,6 @@ public class BaseRule extends Rule {
 
     //All of the rules that spawned from this one.
     protected Vector<EpRule> children = new Vector<>();
-
-    // Each rule has an activation level that tracks the frequency and
-    // recency with which it fired and correctly predicted an external
-    // sensor value
-    // TODO:  remove this becasue it's in Rule now?
-    public static final int ACTHISTLEN = 10;
-    private final int[] lastActTimes = new int[ACTHISTLEN];  // last N times the rule was activated
-    private final double[] lastActAmount = new double[ACTHISTLEN]; // amount of activation last N times
-    private int nextActPos = 0;
-    private double activationLevel;  //CAVEAT:  this value may not be correct!  Call calculateActivation() to update it.
-    private int lastActCalcTime = -1;  //the last timestep when activation for which activation was calculated
-    public static final double DECAY_RATE = 0.95;  //activation decays exponentially over time
 
     /** ctor initializes this rule from the agent's current state */
     public BaseRule(PhuJusAgent agent) {

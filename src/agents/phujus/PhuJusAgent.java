@@ -29,6 +29,8 @@ import java.util.Random;
  *   I misfired that aren't on my LHS as non-"not" sensors?)
  * > "sister" rules aren't being used anymore. I don't think they are needed. Investigate and,
  *   if confirmed, remove the relevant code.
+ * > PathRules need to be reviewed.  I think they are still being created but not
+ *   being used.  I'm not sure they are correct anymore either.
  * > Rules refine/generalize themselves based on experience.  Rules should be able to:
  *    - merge when they become very similar
  *    - split when it will improve the activation of both progeny
@@ -98,7 +100,7 @@ public class PhuJusAgent implements IAgent {
     private final Vector<TreeNode> pathTraversedSoFar = new Vector<>();
     private Vector<TreeNode> prevPath = null;
 
-    // Counter that tracks time steps since hitting a goal
+    // Counter that tracks time steps since hitting a goal (DEBUG)
     private int stepsSinceGoal = 0;
 
     //the current, partially-formed PathRule is stored here
@@ -134,7 +136,7 @@ public class PhuJusAgent implements IAgent {
         this.currExternal = sensorData;
         this.stepsSinceGoal++;
 
-        //DEBUG
+        //DEBUG:  Tell the human what time it is
         if (PhuJusAgent.DEBUGPRINTSWITCH) {
             debugPrintln("TIME STEP: " + this.now);
             printInternalSensors(this.currInternal);
@@ -149,15 +151,82 @@ public class PhuJusAgent implements IAgent {
             debugPrintln("");
         }
 
-        //adj confidence for rules that in/correctly predicted current sensor values
-        //TODO:  no longer needed? updateRuleConfidences();
-
-        //New rules may be added, old rules may be removed
-        //Rule confidences are adjusted
+        //rules may be added, rules may be removed, rule confidences are adjusted
         updateRuleSet();
 
-        //Reset path when goal is reached
-        if (sensorData.isGoal()) {
+        //Update the agent's current path
+        pathMaintenance(sensorData.isGoal());
+
+
+        //extract next action
+        char action = calcAction();
+
+        //Now that we know what action the agent will take, setup the sensor
+        // values for the next iteration
+        updateSensors(action);
+
+        //DEBUG
+        debugPrintln("----------------------------------------------------------------------");
+
+        return new Action(action + "");
+    }//getNextAction
+
+    /**
+     * buildNewPath
+     *
+     * uses a search tree to find a path to goal.  The resulting path is
+     * placed in this.pathToDo if found.  Otherwise, this.pathToDO is
+     * set to null.
+     *
+     */
+    private void buildNewPath() {
+        //If the last path was completed, save it
+        if ((this.pathTraversedSoFar.size() > 0)
+                && (this.pathToDo != null)
+                && (this.pathToDo.size() == 0)) {
+            this.prevPath = new Vector<>(this.pathTraversedSoFar);
+        } else {
+            //if path was aborted early, also abort any pending PathRule data
+            this.prevPath = null;
+            this.pendingPR = null;
+        }
+
+        this.pathTraversedSoFar.clear();
+
+        //Find a new path to the goal
+        TreeNode root = new TreeNode(this);
+        this.pathToDo = root.findBestGoalPath();
+
+        //DEBUG
+        if (PhuJusAgent.DEBUGPRINTSWITCH) {
+            root.printTree();
+            if (this.pathToDo != null) {
+                debugPrintln("found path: " + this.pathToDo.lastElement().getPathStr());
+            } else {
+                this.pathToDo = root.findMostUncertainPath();
+                if (this.pathToDo != null) {
+                    debugPrintln("found uncertain path: " + this.pathToDo.lastElement().getPathStr());
+                } else {
+                    debugPrintln("no path found");
+                }
+            }
+        }
+
+        //Update the PathRule set as well
+        addPathRule();
+
+    }//buildNewPath
+
+    /**
+     * pathMaintenance
+     *
+     * updates the agent's current path information, particularly the pathToDo
+     * and prevPath instance variables
+     *
+     * @param isGoal  did the agent just reach a goal?
+     */
+    private void pathMaintenance(boolean isGoal) {
+        if (isGoal) {
             System.out.println("Found GOAL");
             rewardRulesForGoal();
             this.stepsSinceGoal = 0;
@@ -173,9 +242,23 @@ public class PhuJusAgent implements IAgent {
             buildNewPath();
         }
 
-        //TODO: reimplement path validation (be careful since partial matching now)
+        //TODO: path validation?
+        //If the agent is partway through a path but the predicted outcome
+        //of it's most recent step has already not been met, then it may
+        //make sense to abort the path now and build a new one.  We've tried
+        //this before and the downside to this is that the agent misses out
+        //on some nifty exploratory options and is more vulnerable to getting
+        //into loops.  If we can avoid that issue, then this is  the right
+        // thing to do.
 
-        //extract next action
+    }//pathMaintenance
+
+    /**
+     * calcAction
+     *
+     * determines what action the agent will take next based upon the current path
+     */
+    private char calcAction() {
         char action;
         if (pathToDo != null) {
             action = this.pathToDo.get(0).getAction();
@@ -202,54 +285,8 @@ public class PhuJusAgent implements IAgent {
         if (PhuJusAgent.DEBUGPRINTSWITCH) {
             printRules(action);
         }
-
-        //Now that we know what action the agent will take, setup the sensor
-        // values for the next iteration
-        this.prevInternal.add(calcPrunedInternal());
-        while (prevInternal.size() > MAX_TIME_DEPTH) {
-            prevInternal.remove(0);
-        }
-        this.prevExternal = this.currExternal;
-        this.prevAction = action;
-        if (this.rules.size() > 0) {  //can't update if no rules yet
-            this.currInternal = genNextInternal(action);
-        }
-
-        //DEBUG
-        debugPrintln("----------------------------------------------------------------------");
-
-        return new Action(action + "");
-    }//getNextAction
-
-    /** @return a rule with a given id (or null if not found) */
-    public Rule getRuleById(int id) {
-        int index = id;
-        int max = this.rules.size() - 1;
-        int min = 0;
-
-        //check for unfindable id
-        if ( (max <= 0) || (id > max) ) return null;
-
-        Rule result = null;
-        //binary search
-        while(min < max) {
-            result = this.rules.get(index);
-            int guessId = result.getId();
-            if (guessId == id) {
-                break;  //rule found
-            }
-            else if (guessId < id) {
-                min = index + 1;
-            } else {
-                max = index - 1;
-            }
-
-            //next check at the midpoint between min:max
-            index = (min + max) / 2;
-        }//while
-
-        return result;
-    }//getRuleById
+        return action;
+    }//calcAction
 
     /**
      * calcPrunedInternal
@@ -266,6 +303,8 @@ public class PhuJusAgent implements IAgent {
      *  This method prunes such issues from a current set of internal
      *  sensors. This is called on agent.currInternal before it is added
      *  to the this.prevInternal set
+     *  
+     *  This is a helper method for {@link #updateSensors(char)}.
      */
     private HashSet<Integer> calcPrunedInternal() {
         HashSet<Integer> result = new HashSet<Integer>();
@@ -327,253 +366,57 @@ public class PhuJusAgent implements IAgent {
         return genNextInternal(action, this.currInternal, this.currExternal);
     }//genNextInternal
 
-    /** DEBUG: prints internal sensors */
-    private void printInternalSensors(HashSet<Integer> printMe) {
-        debugPrint("Internal Sensors: ");
-        int count = 0;
-        for (Integer i : printMe) {
-            if (count > 0) debugPrint(", ");
-            debugPrint("" + i);
-            count++;
-        }
-
-        if (count == 0) {
-            debugPrint("none");
-        }
-
-        debugPrintln("");
-    }
-
-    /** DEBUG: prints external sensors */
-    public void printExternalSensors(SensorData sensorData) {
-        //Sort sensor names alphabetical order with GOAL last
-        Vector<String> sNames = new Vector<>(sensorData.getSensorNames());
-        Collections.sort(sNames);
-        int i = sNames.indexOf(SensorData.goalSensor);
-        if (i > -1) {
-            sNames.remove(i);
-            sNames.add(SensorData.goalSensor);
-        }
-
-        //print sensor values as bit string
-        System.out.print("External Sensors: ");
-        for (String sName : sNames) {
-            int val = ((Boolean)sensorData.getSensor(sName)) ? 1 : 0;
-            System.out.print(val);
-        }
-
-        //print sensor names after
-        System.out.print("  (");
-        boolean comma = false;
-        for (String sName : sNames) {
-            if (comma) System.out.print(", ");
-            comma = true;
-            System.out.print(sName);
-        }
-        System.out.println(")");
-    }//printExternalSensors
 
     /**
-     * printBaseRule
+     * updateSensors
      *
-     * prints a given BaseRule to the console (DEBUG)
+     * calculates the correct values for the agent's next internal sensors and
+     * logs the current sensor values for use in rule creation
      *
-     * @param action the action the agent was selected.  This can be set to '\0' if the action is not yet known
+     * @param action  the action that the agent selected for this timestep
      */
-    private void printBaseRule(BaseRule br, char action) {
-        //Print a match score first
-        double score = br.lhsMatchScore(action);
-        if ((action != '\0') && (score > 0.0)) {
-            debugPrint(String.format("%.3f", score));
-            debugPrint(" ");
-        } else {
-            debugPrint("      ");
+    private void updateSensors(char action) {
+        this.prevInternal.add(calcPrunedInternal());
+        while (prevInternal.size() > MAX_TIME_DEPTH) {
+            prevInternal.remove(0);
         }
-
-        //Print an '@' in front of leaf rules
-        if (!br.hasChildren()) debugPrint("@");
-        else debugPrint(" ");
-
-        br.calculateActivation(now);  //update this so it's accurate
-        debugPrintln(br.toString());
-    }//printBaseRule
-
-
-    /**
-     * printRules
-     *
-     * prints all the rules in a verbose ASCII format  (DEBUG)
-     *
-     * @param action the action the agent was selected.  This can be set to '\0' if the action is not yet known
-     */
-    public void printRules(char action) {
-        if (this.rules.size() == 0) System.out.println("(There are no rules yet.)");
-
-        //print all BaseRules first
-        for (BaseRule br : this.baseRules) {
-            printBaseRule(br, action);
+        this.prevExternal = this.currExternal;
+        this.prevAction = action;
+        if (this.rules.size() > 0) {  //can't update if no rules yet
+            this.currInternal = genNextInternal(action);
         }
+    }//updateSensors
 
-        //then print EpRules in order of increasing depth
-        for(int depth = 0; depth <= MAX_TIME_DEPTH; ++depth) {
-            boolean found = false;
-            for (EpRule er : this.epRules) {
-                if (er.getTimeDepth() == depth) {
-                    printBaseRule(er, action);
-                    found = true;
-                }
+
+    /** @return a rule with a given id (or null if not found) */
+    public Rule getRuleById(int id) {
+        int index = id;
+        int max = this.rules.size() - 1;
+        int min = 0;
+
+        //check for unfindable id
+        if ( (max <= 0) || (id > max) ) return null;
+
+        Rule result = null;
+        //binary search
+        while(min < max) {
+            result = this.rules.get(index);
+            int guessId = result.getId();
+            if (guessId == id) {
+                break;  //rule found
             }
-            if (!found) break;
-        }//for
-
-        //TODO:  add PathRules here
-
-    }//printRules
-
-
-
-    /** DEBUG: prints the sequence of actions discovered by a path */
-    public String pathToString(Vector<TreeNode> path) {
-        if (path == null) return "<null path>";
-        StringBuilder sbResult = new StringBuilder();
-        for(TreeNode node : path) {
-            sbResult.append(node.getAction());
-        }
-        return sbResult.toString();
-    }//pathToString
-
-
-    /**
-     * buildNewPath
-     *
-     * uses a search tree to find a path to goal.  The resulting path is
-     * placed in this.pathToDo if found.  Otherwise, this.pathToDO is
-     * set to null.
-     *
-     */
-    private void buildNewPath() {
-        //If the last path was completed, save it
-        if ((this.pathTraversedSoFar.size() > 0)
-                && (this.pathToDo != null)
-                && (this.pathToDo.size() == 0)) {
-            this.prevPath = new Vector<>(this.pathTraversedSoFar);
-        } else {
-            //if path was aborted early, also abort any pending PathRule data
-            this.prevPath = null;
-            this.pendingPR = null;
-        }
-
-        this.pathTraversedSoFar.clear();
-
-        //Find a new path to the goal
-        TreeNode root = new TreeNode(this);
-        this.pathToDo = root.findBestGoalPath();
-
-        //DEBUG
-        if (PhuJusAgent.DEBUGPRINTSWITCH) {
-            root.printTree();
-            if (this.pathToDo != null) {
-                debugPrintln("found path: " + this.pathToDo.lastElement().getPathStr());
+            else if (guessId < id) {
+                min = index + 1;
             } else {
-                this.pathToDo = root.findMostUncertainPath();
-                if (this.pathToDo != null) {
-                    debugPrintln("found uncertain path: " + this.pathToDo.lastElement().getPathStr());
-                } else {
-                    debugPrintln("no path found");
-                }
+                max = index - 1;
             }
-        }
 
-        //Update the PathRule set as well
-        addPathRule();
-
-    }//buildNewPath
-
-    /**
-     * getRHSMatches
-     *
-     * calculates which rules have a RHS that best match the agent's sensors.
-     * This, in effect, tells you which rules *should* have matched last timestep.
-     *
-     */
-    public Vector<Rule> getRHSMatches() {
-        Vector<Rule> result = new Vector<>();
-
-        //Get a RHS match score for every rule
-        //  also calc the average and best
-        for (Rule r : this.rules) {
-            double score = r.rhsMatchScore(this.currExternal);
-            if (score == 1.0) {
-                result.add(r);
-            }
-        }
+            //next check at the midpoint between min:max
+            index = (min + max) / 2;
+        }//while
 
         return result;
-    }//getRHSMatches
-
-    /**
-     * updateRuleConfidences
-     *
-     * examines all the rules that fired last timestep and updates
-     * the confidence of those that made an effective prediction.
-     * The list of effective rules is returned to the caller.
-     *
-     * Side Effect:  incorrect rules are removed from this.currInternal
-     *
-     */
-    private void updateRuleConfidences() {
-        //Compare all the rules that matched RHS to the ones that matched LHS last timestep
-        Vector<Rule> rhsMatches = getRHSMatches();
-        //We can't add new rules to this.rules while the loop below is running
-        // (will cause an exception) so store them in this temp vector and
-        // add them at the end
-        Vector<Rule> tempAdd = new Vector<Rule>();
-        for(Rule rule : this.rules) {
-            if (this.currInternal.contains(rule.getId())) {  //did the rule match last timestep?
-                //TODO:  What about parent rules that also matched?  <-- I think these get covered in other iterations of the loop since it's reviewing all rules that matched
-                if (rhsMatches.contains(rule)) {
-                    if(rule instanceof EpRule) {
-                        //effective prediction means we can adjust confidences
-                        EpRule r = (EpRule) rule;
-                        r.updateConfidencesForPrediction(getAllPrevInternal(), this.prevExternal, this.currExternal);
-                    } else {  //assume it's a BaseRule
-                        rule.increaseConfidence();
-                    }
-                } else {
-                    if(rule instanceof EpRule) {
-                        EpRule r = (EpRule) rule;
-                        //try to extend the incorrect rule in hopes of increasing its future accuracy
-                        int ret = r.extendTimeDepth();
-
-                        //extension failed, decrease accuracy measure
-                        if (ret != 0)
-                            r.decreaseConfidence();
-
-                        //Since the rule made an incorrect prediction, remove it from currInternal
-                        //to prevent future rules from having incorrect LHS
-                        this.currInternal.remove(r.getId());
-                    } else {  //BaseRule
-                        //Create a new EpRule based on this BaseRule (if it doesn't already exist).
-                        BaseRule br = (BaseRule) rule;
-                        EpRule newb = br.spawn();
-                        if (newb == null) {
-                            //TODO: something more intelligent
-                            debugPrintln("Can't spawn!  Aborting...");
-                        } else {
-                            tempAdd.add(newb);
-                        }
-                    }
-                }
-            }
-        }
-
-        //Add any new rules that were spawned
-        //TODO:  add will fail if we've reached MAXNUMRULES.  Remove older rules in this case?
-        for(Rule newb : tempAdd) {
-            addRule(newb);
-        }
-
-    }//updateRuleConfidences
+    }//getRuleById
 
     /**
      * metaScorePath
@@ -643,55 +486,7 @@ public class PhuJusAgent implements IAgent {
         //DEBUG
         debugPrintln("Pending PathRule: " + this.pendingPR);
 
-
     }//addPathRule
-
-    /**
-     * findBestMatchingRule
-     *
-     * finds the EpRule in the ruleset that most closely matches a given one.
-     * The match is first scored at the timedepth at the shorter rule.
-     * Ties are broken by RHS match and then long depth.
-     *
-     * @return a RuleMatchProfile object describing the best match
-     */
-    private EpRuleMatchProfile findBestMatchingRule(EpRule given) {
-        //Find the existing rule that is most similar
-        EpRuleMatchProfile result = new EpRuleMatchProfile(given);
-        for (Rule rule : this.rules) {
-            if(rule instanceof EpRule) {
-                EpRule r = (EpRule) rule;
-                if (r.equals(given)) continue;  //Rule may not match itself
-
-                int shorterDepth = Math.min(given.getTimeDepth(), r.getTimeDepth());
-                double score = r.compareLHS(given, shorterDepth);
-
-                //If they match at short depth, break the potential with with RHS
-                double rhsScore = 0.0;
-                if (score == 1.0) {
-                    rhsScore = given.rhsMatchScore(r.getRHSExternal());
-                }
-
-                //if they also match at RHS score, break the tie with long depth
-                double longScore = 0.0;
-                if (rhsScore == 1.0) {
-                    int longerDepth = Math.max(given.getTimeDepth(), r.getTimeDepth());
-                    longScore = r.compareLHS(given, longerDepth);
-                }
-
-                double totalScore = score + rhsScore + longScore;
-                double bestTotal = result.shortScore + result.rhsScore + result.longScore;
-                if (totalScore >= bestTotal) {
-                    result.match = r;
-                    result.shortScore = score;
-                    result.longScore = longScore;
-                    result.rhsScore = rhsScore;
-                }
-            }
-        }//for each rule
-
-        return result;
-    }//findBestMatchingRule
 
     /**
      * getPredictingBaseRule
@@ -768,11 +563,12 @@ public class PhuJusAgent implements IAgent {
         //Get the "not" sensors for the target level which may require putting empty lists at prev levels
         HashSet<EpRule.IntCond> notTopLevel = er.getNotInternalLevel(timeDepth);
 
-        //TODO: add not-sensors to the level
+        //Get the sensors that were on in the timestep right before this
+        //rule's parent's match
         int piIndex = prevInternal.size() + 1 - timeDepth;
         HashSet<Integer> sensors = prevInternal.get(piIndex);
 
-        //remove all sensors that are already present
+        //remove all sensors that are already in this rule
         for(EpRule.IntCond cond : notTopLevel) {
             if (sensors.contains(cond.sId)) {
                 sensors.remove(cond.sId);
@@ -784,6 +580,8 @@ public class PhuJusAgent implements IAgent {
 
 
         //Add the ones that are not yet present
+        //TODO:  right now we add all sensors.  In the future consider just adding the one that is the most rarely on.
+        //       This means we'd need to re-implement the code that tracks sensor longevity and rarity.
         for(int sId : sensors) {
             notTopLevel.add(new EpRule.IntCond(sId));
         }
@@ -813,6 +611,7 @@ public class PhuJusAgent implements IAgent {
      *
      * @param newb the new rule
      * @param extant the existing rule
+     *
      * @return 'true' if newb has been adjusted and should be added to the
      *          agent's rule set (false otherwise)
      */
@@ -957,8 +756,11 @@ public class PhuJusAgent implements IAgent {
     /**
      * adjustBaseRuleForConflict
      *
-     * adjusts a BaseRule's confidence for a conflict and (if appropriate)
-     * spawns an EpRule child that still has full confidence.
+     * adjusts a BaseRule's confidence for a conflict and updates
+     * the BaseRule's children for same.  This may require:
+     *   a.  creating a new EpRule that has 100% confidence
+     *   b.  discovering existing EpRules that also were wrong
+     *       and need to be adjusted
      *
      * Warning:  This method is recursive
      *
@@ -997,11 +799,10 @@ public class PhuJusAgent implements IAgent {
     /**
      * updateEpAndBaseRuleSet
      *
-     * updates the accuracy of all BaseRules whose LHS matches the most recent action.
-     * If no BaseRule exists that matches the agent's current experience,
-     * a new BaseRule is created and added to the baseRules list
+     * updates the accuracy of all BaseRules and EpRules whose LHS matches
+     * the most recent action.
      *
-     * @return the (possibly new) BaseRule that matches
+     * Side Effect:  new rules may be created
      */
     public void updateEpAndBaseRuleSet() {
         //reward the matching BaseRule
@@ -1120,6 +921,53 @@ public class PhuJusAgent implements IAgent {
     }
 
     /**
+     * findMostSimilarRule
+     *
+     * finds the EpRule in the ruleset that most closely matches a given one.
+     * The match is first scored at the timedepth of the shorter rule.
+     * Ties are broken by RHS match and then long depth.
+     *
+     * @return a RuleMatchProfile object describing the best match
+     */
+    private EpRuleMatchProfile findMostSimilarRule(EpRule given) {
+        //Find the existing rule that is most similar
+        EpRuleMatchProfile result = new EpRuleMatchProfile(given);
+        for (Rule rule : this.rules) {
+            if(rule instanceof EpRule) {
+                EpRule r = (EpRule) rule;
+                if (r.getId() == given.getId()) continue;  //Rule may not match itself
+
+                int shorterDepth = Math.min(given.getTimeDepth(), r.getTimeDepth());
+                double score = r.compareLHS(given, shorterDepth);
+
+                //If they match at short depth, break the potential with with RHS
+                double rhsScore = 0.0;
+                if (score == 1.0) {
+                    rhsScore = given.rhsMatchScore(r.getRHSExternal());
+                }
+
+                //if they also match at RHS score, break the tie with long depth
+                double longScore = 0.0;
+                if (rhsScore == 1.0) {
+                    int longerDepth = Math.max(given.getTimeDepth(), r.getTimeDepth());
+                    longScore = r.compareLHS(given, longerDepth);
+                }
+
+                double totalScore = score + rhsScore + longScore;
+                double bestTotal = result.shortScore + result.rhsScore + result.longScore;
+                if (totalScore >= bestTotal) {
+                    result.match = r;
+                    result.shortScore = score;
+                    result.longScore = longScore;
+                    result.rhsScore = rhsScore;
+                }
+            }
+        }//for each rule
+
+        return result;
+    }//findMostSimilarRule
+
+    /**
      * removeRule
      *
      * removes a rule from the agent's repertoire.  If the rule has an internal
@@ -1163,7 +1011,7 @@ public class PhuJusAgent implements IAgent {
         // I'm sure this will come back and bite us later...
         Vector<EpRule> removeThese = new Vector<>();
         for(EpRule r : truncated) {
-            EpRuleMatchProfile prof = findBestMatchingRule(r);
+            EpRuleMatchProfile prof = findMostSimilarRule(r);
             if (prof.shortScore == 1.0) {
                 removeThese.add(r);
             }
@@ -1214,7 +1062,120 @@ public class PhuJusAgent implements IAgent {
         }
     }//rewardRulesForGoal
 
+    //region Debug Printing Methods
 
+    /** DEBUG: prints internal sensors */
+    private void printInternalSensors(HashSet<Integer> printMe) {
+        debugPrint("Internal Sensors: ");
+        int count = 0;
+        for (Integer i : printMe) {
+            if (count > 0) debugPrint(", ");
+            debugPrint("" + i);
+            count++;
+        }
+
+        if (count == 0) {
+            debugPrint("none");
+        }
+
+        debugPrintln("");
+    }
+
+    /** DEBUG: prints external sensors */
+    public void printExternalSensors(SensorData sensorData) {
+        //Sort sensor names alphabetical order with GOAL last
+        Vector<String> sNames = new Vector<>(sensorData.getSensorNames());
+        Collections.sort(sNames);
+        int i = sNames.indexOf(SensorData.goalSensor);
+        if (i > -1) {
+            sNames.remove(i);
+            sNames.add(SensorData.goalSensor);
+        }
+
+        //print sensor values as bit string
+        System.out.print("External Sensors: ");
+        for (String sName : sNames) {
+            int val = ((Boolean)sensorData.getSensor(sName)) ? 1 : 0;
+            System.out.print(val);
+        }
+
+        //print sensor names after
+        System.out.print("  (");
+        boolean comma = false;
+        for (String sName : sNames) {
+            if (comma) System.out.print(", ");
+            comma = true;
+            System.out.print(sName);
+        }
+        System.out.println(")");
+    }//printExternalSensors
+
+    /**
+     * printBaseRule
+     *
+     * prints a given BaseRule to the console (DEBUG)
+     *
+     * @param action the action the agent was selected.  This can be set to '\0' if the action is not yet known
+     */
+    private void printBaseRule(BaseRule br, char action) {
+        //Print a match score first
+        double score = br.lhsMatchScore(action);
+        if ((action != '\0') && (score > 0.0)) {
+            debugPrint(String.format("%.3f", score));
+            debugPrint(" ");
+        } else {
+            debugPrint("      ");
+        }
+
+        //Print an '@' in front of leaf rules
+        if (!br.hasChildren()) debugPrint("@");
+        else debugPrint(" ");
+
+        br.calculateActivation(now);  //update this so it's accurate
+        debugPrintln(br.toString());
+    }//printBaseRule
+
+
+    /**
+     * printRules
+     *
+     * prints all the rules in a verbose ASCII format  (DEBUG)
+     *
+     * @param action the action the agent was selected.  This can be set to '\0' if the action is not yet known
+     */
+    public void printRules(char action) {
+        if (this.rules.size() == 0) System.out.println("(There are no rules yet.)");
+
+        //print all BaseRules first
+        for (BaseRule br : this.baseRules) {
+            printBaseRule(br, action);
+        }
+
+        //then print EpRules in order of increasing depth
+        for(int depth = 0; depth <= MAX_TIME_DEPTH; ++depth) {
+            boolean found = false;
+            for (EpRule er : this.epRules) {
+                if (er.getTimeDepth() == depth) {
+                    printBaseRule(er, action);
+                    found = true;
+                }
+            }
+            if (!found) break;
+        }//for
+
+        //TODO:  add PathRules here
+
+    }//printRules
+
+    /** DEBUG: prints the sequence of actions discovered by a path */
+    public String pathToString(Vector<TreeNode> path) {
+        if (path == null) return "<null path>";
+        StringBuilder sbResult = new StringBuilder();
+        for(TreeNode node : path) {
+            sbResult.append(node.getAction());
+        }
+        return sbResult.toString();
+    }//pathToString
 
     /**
      * debugPrintln
@@ -1240,6 +1201,7 @@ public class PhuJusAgent implements IAgent {
         }
     }//debugPrint
 
+    //endregion
 
     //region Getters and Setters
 
