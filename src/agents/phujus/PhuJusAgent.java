@@ -147,7 +147,7 @@ public class PhuJusAgent implements IAgent {
         if(this.stepsSinceGoal >= 40) {
             debugPrintln("");
         }
-        if (this.now == 7) {
+        if (this.now == 24) {
             debugPrintln("");
         }
 
@@ -392,16 +392,22 @@ public class PhuJusAgent implements IAgent {
 
     /** @return a rule with a given id (or null if not found) */
     public Rule getRuleById(int id) {
-        int index = id;
         int max = this.rules.size() - 1;
         int min = 0;
 
         //check for unfindable id
-        if ( (max <= 0) || (id > max) ) return null;
+        if ( (id < 1) || (max < 0) ) return null;
 
-        Rule result = null;
+        //Adjust index if needed
+        int index = id - 1;  //This is often a good first guess
+        if ((index < min) || (index > max)) {
+            index = (min + max) / 2;
+        }
+
+
         //binary search
-        while(min < max) {
+        Rule result = null;
+        while(min <= max) {
             result = this.rules.get(index);
             int guessId = result.getId();
             if (guessId == id) {
@@ -858,7 +864,20 @@ public class PhuJusAgent implements IAgent {
         if (rules.size() >= MAXNUMRULES) {
             System.err.println("ERROR: Exceeded MAXNUMRULES!");
         }
-        rules.add(newRule);
+
+        //Insert the new rule in numerical order by id
+        //(needs to be in order to support findRuleById())
+        int nInsert = rules.size();
+        while (nInsert > 0) {
+            Rule prevRule = rules.get(nInsert - 1);
+            if (prevRule.getId() < newRule.getId()) {
+                break;
+            }
+            nInsert--;
+        }
+        rules.add(nInsert, newRule);
+
+
         //TODO add PathRule support here
 //        if (newRule instanceof PathRule) {
 //            this.pathRules.add((PathRule)newRule);
