@@ -147,7 +147,7 @@ public class PhuJusAgent implements IAgent {
         if(this.stepsSinceGoal >= 40) {
             debugPrintln("");
         }
-        if (this.now == 22) {
+        if (this.now == 7) {
             debugPrintln("");
         }
 
@@ -200,17 +200,19 @@ public class PhuJusAgent implements IAgent {
         //DEBUG
         if (PhuJusAgent.DEBUGPRINTSWITCH) {
             root.printTree();
+        }
+
+        if (this.pathToDo == null) {
+            debugPrintln("no path found");
+
+            this.pathToDo = root.findMostUncertainPath();
+
+            //DEBUG
             if (this.pathToDo != null) {
-                debugPrintln("found path: " + this.pathToDo.lastElement().getPathStr());
-            } else {
-                this.pathToDo = root.findMostUncertainPath();
-                if (this.pathToDo != null) {
-                    debugPrintln("found uncertain path: " + this.pathToDo.lastElement().getPathStr());
-                } else {
-                    debugPrintln("no path found");
-                }
+                debugPrintln("using non-goal path with greatest uncertainty: " + this.pathToDo.lastElement().getPathStr());
             }
         }
+
 
         //Update the PathRule set as well
         addPathRule();
@@ -544,53 +546,6 @@ public class PhuJusAgent implements IAgent {
     }//getMisPredictingBaseRules
 
     /**
-     * rectifyTopLevel
-     *
-     * when a new rule is created that is a time-depth-extended version
-     * of its parent, the new level of LHS internal sensors may be empty.
-     * In this case, this method will insert one or more "not" sensors
-     * that correspond to the agent's experiences leading up to now.
-     *
-     * @return true  if the rule is valid; false if it was empty could not be fixed
-     */
-    private boolean rectifyTopLevel(EpRule er) {
-        //check for emtpy top level
-        int timeDepth = er.getTimeDepth();
-        if (timeDepth == 0) return true;
-        HashSet<EpRule.IntCond> topLevel = er.getInternalLevel(timeDepth);
-        if (topLevel.size() > 0) return true;
-
-        //Get the "not" sensors for the target level which may require putting empty lists at prev levels
-        HashSet<EpRule.IntCond> notTopLevel = er.getNotInternalLevel(timeDepth);
-
-        //Get the sensors that were on in the timestep right before this
-        //rule's parent's match
-        int piIndex = prevInternal.size() + 1 - timeDepth;
-        HashSet<Integer> sensors = prevInternal.get(piIndex);
-
-        //remove all sensors that are already in this rule
-        for(EpRule.IntCond cond : notTopLevel) {
-            if (sensors.contains(cond.sId)) {
-                sensors.remove(cond.sId);
-            }
-        }
-
-        //Nothing to add?  Then can't be fixed
-        if (sensors.isEmpty()) return false;
-
-
-        //Add the ones that are not yet present
-        //TODO:  right now we add all sensors.  In the future consider just adding the one that is the most rarely on.
-        //       This means we'd need to re-implement the code that tracks sensor longevity and rarity.
-        for(int sId : sensors) {
-            notTopLevel.add(new EpRule.IntCond(sId));
-        }
-
-        return true;
-
-    }//rectifyTopLevel
-
-    /**
      * resolveRuleConflict
      *
      * is called when a new EpRule has the same LHS but different RHS from an
@@ -642,10 +597,8 @@ public class PhuJusAgent implements IAgent {
             newbChild = newb.children.get(0);
         } else {
             newbChild = newb.spawn();
-
-            //Is this a valid child?
-            if ( (newbChild != null) && (!rectifyTopLevel(newbChild)) ) {
-                return false;  //rule's top level is irreconcilably empty
+            if (newbChild == null) {
+                return false;
             }
             addRule(newbChild);
         }
@@ -665,7 +618,7 @@ public class PhuJusAgent implements IAgent {
             extantChild = extant.spawn();
 
             //Is this a valid child?
-            if ( (extantChild != null) && (rectifyTopLevel(extantChild)) ) {
+            if (extantChild != null) {
                 addRule(extantChild);
             }
         }
@@ -771,12 +724,10 @@ public class PhuJusAgent implements IAgent {
 
         //If this rule has never been wrong before, a new, child EpRule
         // needs to be created and integreated into the rule set
-        if (!br.hasChildren()) {
+        if (! br.hasChildren()) {
             //Create a new EpRule based on this BaseRule (if it doesn't already exist).
             EpRule newb = br.spawn();
             if ( (newb != null) && (integrateNewEpRule(newb)) ) {
-                //make sure this new rule has a non-empty top level
-                rectifyTopLevel(newb);
 
                 addRule(newb);
             }
@@ -812,10 +763,13 @@ public class PhuJusAgent implements IAgent {
         //reward the matching EpRule(s)
         EpRule erMatch = findBestMatchingDescendent(brMatch);
         if (erMatch != null) {
-            BaseRule tmp = erMatch;
-            while (tmp != brMatch) {
-                tmp.increaseConfidence();
-                tmp = tmp.parent;
+            while (true) {
+                erMatch.updateConfidencesForPrediction(this.prevInternal, this.prevExternal, this.currExternal);
+                if (erMatch.parent instanceof EpRule) {
+                    erMatch = (EpRule)erMatch.parent;
+                } else {
+                    break;
+                }
             }
         }
 

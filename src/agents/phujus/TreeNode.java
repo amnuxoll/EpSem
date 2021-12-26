@@ -127,6 +127,7 @@ public class TreeNode {
         for (EpRule er : this.agent.getEpRules()) {
             if (er.getTimeDepth() < bestDepth) continue;
             double score = er.lhsMatchScore(action, this.currInternal, this.currExternal);
+            score *= er.getAccuracy();
             if (score <= 0.0) continue;  //no match
 
             //A deeper match is always better, otherwise break ties with score
@@ -375,7 +376,7 @@ public class TreeNode {
         result.append(this.pathStr);
         result.append("->");
 
-        //internal sensors
+        //Internal Sensors
         result.append("(");
         int count = 0;
         for (Integer i : sortedKeys(this.currInternal)) {
@@ -387,10 +388,10 @@ public class TreeNode {
         }
         result.append(")|");
 
-        //external sensors
+        //External Sensors
         result.append(TreeNode.extToString(this.currExternal));
 
-        //Rule # and match score
+        //Rule # and Match Score
         if (this.rule != null) {
             result.append(" #");
             result.append(this.rule.getId());
@@ -403,11 +404,8 @@ public class TreeNode {
 
         //Confidence
         result.append("\tc");
-        if ((this.confidence == 1.0) || (this.confidence == 0.0) || (this.confidence == 0.1)){
-            result.append(this.confidence);
-        } else {
-            result.append(String.format("%.6f", this.confidence));
-        }
+        //note:  replaceAll call removes extra trailing 0's to improve readability
+        result.append(String.format("%.6f", this.confidence).replaceAll("0+$", "0"));
 
         return result.toString();
     }

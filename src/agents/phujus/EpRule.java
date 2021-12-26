@@ -198,8 +198,12 @@ public class EpRule extends BaseRule {
      * A total match score [0.0..1.0] is calculated as the product of the
      * match score for each level (this.timeDepth) of the rule.
      *
-     * TODO:  I think this method (and helpers) should ignore zero-confidence conditions.
-     *  - Already sort of ignores them, however it still increments count, so test if it shouldn't
+     * TODO:  This method does not factor overall rule confidence
+     * (this.accurracy) in its calculations as some callers need to know
+     * if it's a strict match or not.  Those that want to weight confidence
+     * (see especially the TreeNode class) factor it in manually.  However,
+     * individual confidence in particular sensors is factored in.  I'm
+     * not sure that's right.
      *
      * @return  a match score from 0.0 to 1.0
      */
@@ -212,6 +216,7 @@ public class EpRule extends BaseRule {
         score *= lhsExternalMatchScore(lhsExt);
         if (score == 0.0) return 0.0;
 
+        //This considers the internal sensors match
         score *= lhsInternalMatchScore(lhsInt);
 
         return score;
@@ -380,12 +385,17 @@ public class EpRule extends BaseRule {
     /**
      * updateConfidencesForPrediction
      *
-     * adjusts the confidence values of this rule when it effectively predicts
-     * the next state
+     * adjusts the confidence values of this rule when it matches and
+     * correctly predicts the next state
      *
-     * CAVEAT:  This rule should be called when the rule correctly predicted
-     *          the future.  Not when it didn't.
-     * CAVEAT:  Do not call this method with sensors it didn't match with!
+     * CAVEAT:  Caller is responsible for ensuring conditions are right
+     *          for calling this method.
+     * CAVEAT:  This method does not verify that parameters are correct
+     *
+     * TODO:  Do we need a method for "mis-prediction"?  I started to
+     *        add it but not sure it would make much difference.  I'd
+     *        leave this as a low priority item until we can test is
+     *        effectiveness with a working agent.
      *
      * @param lhsInt  the internal sensors that the rule matched
      * @param lhsExt  the external sensors that the rule matched
@@ -393,9 +403,10 @@ public class EpRule extends BaseRule {
      */
     @Override
     public void updateConfidencesForPrediction(Vector<HashSet<Integer>> lhsInt, SensorData lhsExt, SensorData rhsExt) {
+        //This increases the overall rule's confidence
         super.updateConfidencesForPrediction(lhsInt, lhsExt, rhsExt);
 
-        //Compare LHS internal values
+        //Update LHS internal values
         for(int i = 1; i <= timeDepth; ++i) {
             HashSet<IntCond> level = this.getInternalLevel(i);
             if(level == null) {
@@ -408,9 +419,22 @@ public class EpRule extends BaseRule {
                     iCond.increaseConfidence();
                 } else {
                     iCond.decreaseConfidence();
+
+                    //Note:  A zero confidence condition is retained but ignored for matching
+                    //       It can recover confidence if it matches later.
                 }
-            }
-        }
+            }//for each condition
+
+            //A sensor that was present but didn't match should be added now with low confidence
+            //as the sensor may be relevant and just didn't exist when the rule was first created
+            for(int sId : sensors) {
+                IntCond newCond = new IntCond(sId);
+                if (! level.contains(newCond)) {
+                    newCond.minConfidence();
+                    level.add(newCond);
+                }
+            }//for each sensor
+        }//for each level
 
         //Compare LHS external values
         for (ExtCond eCond : this.lhsExternal) {
@@ -426,21 +450,56 @@ public class EpRule extends BaseRule {
             }
         }
 
-        //Compare RHS external values
-        //TODO: no longer relevant with sister rules in place?
-        for (ExtCond eCond : this.rhsExternal) {
-            if (rhsExt.hasSensor(eCond.sName)) {
-                Boolean sVal = (Boolean) rhsExt.getSensor(eCond.sName);
-                if (sVal == eCond.val){
-                    eCond.increaseConfidence();
-                } else {
-                    eCond.decreaseConfidence();
-                }
-            } else {
-                eCond.decreaseConfidence();
+    }//updateConfidencesForPrediction
+
+    /**
+     * rectifyTopLevel
+     *
+     * when extending a rule's time depth creates a level with no positive
+     * internal sensors, this method adds one or more "not" sensors
+     * that correspond to the agent's experiences leading up to now.
+     *
+     * This is a helper method for {@link #extendTimeDepth()}.
+     *
+     * @return true  if the rule is valid; false if it was empty could not be fixed
+     */
+    private boolean rectifyTopLevel() {
+        //check for empty top level
+        if (this.timeDepth == 0) return true;
+        HashSet<EpRule.IntCond> topLevel = getInternalLevel(timeDepth);
+        if (topLevel.size() > 0) return true;
+
+        //Get the "not" sensors for the target level which may require putting empty lists at prev levels
+        HashSet<EpRule.IntCond> notTopLevel = getNotInternalLevel(timeDepth);
+
+        //Get the sensors that were on in the timestep right before this
+        //rule's parent's match
+        Vector<HashSet<Integer> > prevInternal = this.agent.getAllPrevInternal();
+        int piIndex = prevInternal.size() - timeDepth;
+        HashSet<Integer> sensors = prevInternal.get(piIndex);
+
+        //remove all sensors that are already in this rule
+        for(EpRule.IntCond cond : notTopLevel) {
+            if (sensors.contains(cond.sId)) {
+                sensors.remove(cond.sId);
             }
         }
-    }//updateConfidencesForPrediction
+
+        //Nothing to add?  Then can't be fixed
+        if (sensors.isEmpty()) return false;
+
+
+        //Add the ones that are not yet present
+        //TODO:  right now we add all sensors.  In the future consider just adding the one that is the most rarely on.
+        //       This means we'd need to re-implement the code that tracks sensor longevity and rarity.
+        for(int sId : sensors) {
+            notTopLevel.add(new EpRule.IntCond(sId));
+        }
+
+        return true;
+
+    }//rectifyTopLevel
+
 
     /**
      * extendTimeDepth
@@ -458,15 +517,17 @@ public class EpRule extends BaseRule {
             return -1; // code failed
         }
 
-        //Check to see if this new level is empty
-        if(isEmptyLevel(this.timeDepth)) {
-            timeDepth--;
-            return -2; // code failed
-        }
-
         //Add "not" conditions for this level
         while(this.lhsNotInternal.size() < this.timeDepth) {  //should only iterate once...
             this.lhsNotInternal.add(new HashSet<>());
+        }
+
+        //Check to see if this new level is empty
+        if(isEmptyLevel(this.timeDepth)) {
+            if (!rectifyTopLevel()) {
+                timeDepth--;
+                return -2; // code failed
+            }
         }
 
         return this.timeDepth;

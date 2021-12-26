@@ -43,6 +43,13 @@ public abstract class Rule {
         public double getConfidence() {
             return ((double)conf) / ((double)MAXVAL);
         }
+
+        //In some cases a Confidence object needs to be set to min instead of max (default)
+        public void minConfidence() {
+            this.conf = 0;
+            this.increaseConfidence();
+        }
+
     }//class Confidence
 
 

@@ -177,7 +177,8 @@ public class BaseRule extends Rule {
         result.append(this.action);
         result.append(" -> ");
         result.append(toStringShortRHS(this.rhsExternal));
-        result.append(String.format(" ^  acc=%.5f", getAccuracy()));
+        //note:  replaceAll call removes extra trailing 0's to improve readability
+        result.append(String.format(" ^  acc=%.5f", getAccuracy()).replaceAll("0+$", "0"));
         return result.toString();
     }
 
@@ -245,9 +246,9 @@ public class BaseRule extends Rule {
      * adjusts the confidence values of this rule when it effectively predicts
      * the next state.  This is trivial for BaseRule but will be overridden.
      *
-     * @param lhsInt  the internal sensors that the rule matched
-     * @param lhsExt  the external sensors that the rule matched
-     * @param rhsExt  the external sensors that appeared on the next timestep
+     * @param lhsInt  ignored
+     * @param lhsExt  ignored
+     * @param rhsExt  ignored
      */
     public void updateConfidencesForPrediction(Vector<HashSet<Integer>> lhsInt, SensorData lhsExt, SensorData rhsExt) {
         //Update overall confidence
