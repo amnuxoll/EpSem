@@ -147,7 +147,7 @@ public class PhuJusAgent implements IAgent {
         if(this.stepsSinceGoal >= 40) {
             debugPrintln("");
         }
-        if (this.now == 24) {
+        if (this.now == 11) {
             debugPrintln("");
         }
 
@@ -211,6 +211,11 @@ public class PhuJusAgent implements IAgent {
             if (this.pathToDo != null) {
                 debugPrintln("using non-goal path with greatest uncertainty: " + this.pathToDo.lastElement().getPathStr());
             }
+        }
+
+        //DEBUG
+        else {
+            debugPrintln("found path: " + this.pathToDo.lastElement().getPathStr());
         }
 
 

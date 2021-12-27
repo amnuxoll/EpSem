@@ -127,7 +127,7 @@ public class EpRule extends BaseRule {
      * @return highest confidence condition (or 0.0 if any condition is violated)
      */
     private double lhsNotInternalLevelMatch(HashSet<Integer> lhsInt, HashSet<IntCond> level) {
-        if (level == null) return 1.0;  //no not-condition to violate
+        if ((level == null) || (level.size() == 0)) return 1.0;  //no not-condition to violate
         double best = 0.0;
         for (IntCond iCond : level) {
             Integer sIdVal = iCond.sId;
@@ -138,6 +138,7 @@ public class EpRule extends BaseRule {
                 best = iCond.getConfidence();
             }
         }
+
         return best;  //Note: this can still be 0.0 if getConfidence() returns 0.0
                       //      on all satisfied conditions
     }//lhsNotInternalLevelMatch
