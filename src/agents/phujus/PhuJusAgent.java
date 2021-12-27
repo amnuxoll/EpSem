@@ -814,6 +814,10 @@ public class PhuJusAgent implements IAgent {
 
         //Find the rule with lowest activation & accuracy
         //TODO:  score of a node should be its own score or child's whichever is higher!
+        //       A good way to do this is to override calculateActivation in
+        //       BaseRule and have it recurse through children.  It's expensive but
+        //       calculating activation is already expensive anyway.  We can memoize
+        //       it later if needed.  -:AMN: Dec 2021
         EpRule worstRule = (EpRule) this.rules.get(0);
         double worstScore = worstRule.calculateActivation(this.now) * worstRule.getAccuracy();
         for (Rule rule : this.rules) {

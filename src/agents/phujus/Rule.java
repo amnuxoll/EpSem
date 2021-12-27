@@ -1,6 +1,8 @@
 package agents.phujus;
 
 import framework.SensorData;
+import tests.agents.phujus.PhuJusAgentTest;
+
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Random;
@@ -14,6 +16,7 @@ import java.util.Vector;
 
 public abstract class Rule {
 
+    //region Inner Classes
     /**
      * class Confidence
      *
@@ -52,7 +55,9 @@ public abstract class Rule {
 
     }//class Confidence
 
+    //endregion
 
+    //region Instance Variables
 
     //to assign a unique id to each rule this shared variable is incremented by the ctor
     private static int nextRuleId = 1;
@@ -77,25 +82,14 @@ public abstract class Rule {
     protected int lastActCalcTime = -1;  //the last timestep when activation for which activation was calculated
     public static final double DECAY_RATE = 0.95;  //activation decays exponentially over time
 
-
+    //endregion
 
     public Rule(PhuJusAgent agent) {
         this.agent = agent;
         this.ruleId = this.nextRuleId++;
     }
 
-    //region Getters and Setters
-
-    public int getId() { return this.ruleId; }
-
-    public double getAccuracy() { return accuracy.getConfidence(); }
-
-    public void increaseConfidence() {this.accuracy.increaseConfidence(); }
-
-    public void decreaseConfidence() { this.accuracy.decreaseConfidence(); }
-
-    //endregion
-
+    //region Rule Activation
     /**
      * addActivation
      *
@@ -146,6 +140,20 @@ public abstract class Rule {
         this.activationLevel = result;
         return this.activationLevel;
     }//calculateActivation
+
+    //endregion
+
+    //region Getters and Setters
+
+    public int getId() { return this.ruleId; }
+
+    public double getAccuracy() { return accuracy.getConfidence(); }
+
+    public void increaseConfidence() {this.accuracy.increaseConfidence(); }
+
+    public void decreaseConfidence() { this.accuracy.decreaseConfidence(); }
+
+    //endregion
 
     //region Abstract Methods
     /**

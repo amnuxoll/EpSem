@@ -15,6 +15,7 @@ import java.util.Vector;
  */
 public class BaseRule extends Rule {
 
+    //region Inner Classes
     /**
      * class ExtCond
      *
@@ -47,6 +48,10 @@ public class BaseRule extends Rule {
         public int hashCode() { return Objects.hash(sName, val); }
     }//class ExtCond
 
+    //endregion
+
+    //region Instance Variables
+
     //A BaseRule's LHS is only an action
     protected char action;
 
@@ -66,6 +71,10 @@ public class BaseRule extends Rule {
 
     //All of the rules that spawned from this one.
     protected Vector<EpRule> children = new Vector<>();
+
+    //endregion
+
+    //region Ctors
 
     /** ctor initializes this rule from the agent's current state */
     public BaseRule(PhuJusAgent agent) {
@@ -87,7 +96,7 @@ public class BaseRule extends Rule {
     }//initExternal
 
     /** initializes this.lhsInternal from a given set of values */
-    private Vector<HashSet<EpRule.IntCond>> initInternal(Vector<HashSet<Integer>> initLHS) {
+    protected Vector<HashSet<EpRule.IntCond>> initInternal(Vector<HashSet<Integer>> initLHS) {
         Vector<HashSet<EpRule.IntCond>> result = new Vector<>();
         for(HashSet<Integer> initLevel : initLHS) {
             HashSet<EpRule.IntCond> level = new HashSet<>();
@@ -99,6 +108,9 @@ public class BaseRule extends Rule {
         return result;
     }//initInternal
 
+    //endregion
+
+    //region toString and Helper Methods
     /**
      * toStringIntConds
      *
@@ -182,6 +194,10 @@ public class BaseRule extends Rule {
         return result.toString();
     }
 
+    //endregion
+
+    //region Matching
+
     /**
      * rhsMatchScore
      *
@@ -240,6 +256,8 @@ public class BaseRule extends Rule {
         return 1.0;
     }//compareLHS
 
+    //endregion
+
     /**
      * updateConfidencesForPrediction
      *
@@ -255,6 +273,7 @@ public class BaseRule extends Rule {
         this.increaseConfidence();
     }//updateConfidencesForPrediction
 
+    //region Spawning EpRules
     /**
      * spawn
      *
@@ -286,10 +305,9 @@ public class BaseRule extends Rule {
         return false;
     }//isAncestor
 
+    //endregion
 
-
-
-//region Getters and Setters
+    //region Getters and Setters
 
     public char getAction() { return this.action; }
     public boolean hasChildren() { return this.children.size() > 0; }
@@ -303,6 +321,6 @@ public class BaseRule extends Rule {
         }
         return result;
     }
-//endregion
+    //endregion
 
 }//class BaseRule
