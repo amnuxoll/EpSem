@@ -71,21 +71,17 @@ public class EpRule extends BaseRule {
         this(agent, 0);
     }
 
-    /** this ctor initializes the rule from the properties of an existing rule */
-    public EpRule(PhuJusAgent agent, char action, HashSet<ExtCond> lhsExternal,
-                  Vector<HashSet<IntCond>> lhsInternal, HashSet<ExtCond> rhsExternal) {
-        super(agent);
+    /** this ctor initializes the rule from the properties of an existing BaseRule */
+    public EpRule(BaseRule parent) {
+        super(parent.agent);
 
         //override some of the base behavior of BaseRule's ctor
-        this.action = action;
-        this.lhsExternal = lhsExternal;
-        this.lhsInternal = lhsInternal;
-        this.rhsExternal = rhsExternal;
-
+        this.action = parent.action;
+        this.lhsExternal = parent.lhsExternal;
+        this.lhsInternal = parent.lhsInternal;
         this.lhsNotInternal = new Vector<>();
+        this.rhsExternal = parent.rhsExternal;
     }
-
-
 
 //endregion
 
@@ -600,6 +596,7 @@ public class EpRule extends BaseRule {
     @Override
     public EpRule spawn() {
         EpRule child = super.spawn();
+        child.lhsNotInternal = this.lhsNotInternal;  //spawn doesn't copy this so do it manually
         child.timeDepth = this.timeDepth;
         if (child.extendTimeDepth() < 0) return null;  //could not be extended
         return child;

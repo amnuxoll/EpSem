@@ -284,8 +284,7 @@ public class BaseRule extends Rule {
      * @return the resulting EpRule
      */
     public EpRule spawn() {
-        EpRule child = new EpRule(this.agent, this.action, this.lhsExternal,
-                this.lhsInternal, this.rhsExternal);
+        EpRule child = new EpRule(this);
         this.children.add(child);
         child.parent = this;
         return child;
