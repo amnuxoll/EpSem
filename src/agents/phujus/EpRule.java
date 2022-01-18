@@ -508,22 +508,28 @@ public class EpRule extends BaseRule {
      * @return 0 on success, negative on fail
      */
     public int extendTimeDepth() {
-        if(this.timeDepth < PhuJusAgent.MAX_TIME_DEPTH) {
-            this.timeDepth++;
-        } else {
+        //check for exceeds max time depth
+        if(this.timeDepth == PhuJusAgent.MAX_TIME_DEPTH) {
             return -1; // code failed
         }
 
+        //check for unextendable
+        if (this.timeDepth == this.lhsInternal.size()) {
+            return -2;
+        }
+
+        this.timeDepth++;
+
         //Add "not" conditions for this level
         while(this.lhsNotInternal.size() < this.timeDepth) {  //should only iterate once...
-            this.lhsNotInternal.add(new HashSet<>());
+            this.lhsNotInternal.add(0, new HashSet<>());
         }
 
         //Check to see if this new level is empty
         if(isEmptyLevel(this.timeDepth)) {
             if (!rectifyTopLevel()) {
                 timeDepth--;
-                return -2; // code failed
+                return -3; // code failed
             }
         }
 
