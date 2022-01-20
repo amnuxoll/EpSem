@@ -174,7 +174,7 @@ public class PhuJusAgent implements IAgent {
         if(this.stepsSinceGoal >= 40) {
             debugPrintln("");
         }
-        if (this.now == 11) {
+        if (this.now == 13) {
             debugPrintln("");
         }
 
