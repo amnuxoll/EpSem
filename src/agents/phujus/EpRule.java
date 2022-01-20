@@ -138,7 +138,6 @@ public class EpRule extends BaseRule {
         return best;  //Note: this can still be 0.0 if getConfidence() returns 0.0
                       //      on all satisfied conditions
     }//lhsNotInternalLevelMatch
-
     /**
      * lhsInternalMatchScore
      *

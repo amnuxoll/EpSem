@@ -47,7 +47,7 @@ public class PhuJusAgent implements IAgent {
 //region InnerClasses
 
     /**
-     * class RuleMatchProfile describes how well two EpRule objects match each other
+     * class EpRuleMatchProfile describes how well two EpRule objects match each other
      */
     public class EpRuleMatchProfile {
         public EpRule given = null;
@@ -57,7 +57,27 @@ public class PhuJusAgent implements IAgent {
         public double rhsScore = -1.0;  //RHS matchs score
 
         public EpRuleMatchProfile(EpRule initGiven) { this.given = initGiven; }
-    }//class RuleMatchProfile
+    }//class EpRuleMatchProfile
+
+    /**
+     * class Triple describes a Triple object for storing three values of different type
+     * modified from the following sources:
+     * https://commons.apache.org/proper/commons-lang/apidocs/org/apache/commons/lang3/tuple/Triple.html
+     */
+    public class Tuple<F, S> {
+        private F first;
+        private S second;
+
+        public Tuple(F first, S second) {
+            this.first = first;
+            this.second = second;
+        }
+
+        public F getFirst() { return first; }
+        public S getSecond() { return second; }
+        public void setFirst(F newFirst) { this.first = newFirst; }
+        public void setSecond(S newSecond) { this.second = newSecond; }
+    }//class Triple
 
 //endregion
 
@@ -100,7 +120,7 @@ public class PhuJusAgent implements IAgent {
     private final Vector<TreeNode> pathTraversedSoFar = new Vector<>();
     private Vector<TreeNode> prevPath = null;
 
-    // Counter that tracks time steps since hitting a goal (DEBUG)
+    //Counter that tracks time steps since hitting a goal (DEBUG)
     private int stepsSinceGoal = 0;
 
     //the current, partially-formed PathRule is stored here
@@ -108,6 +128,11 @@ public class PhuJusAgent implements IAgent {
 
     //"random" numbers are useful sometimes (use a hardcoded seed for debugging)
     public static Random rand = new Random(2);
+
+    //Stores the percentage that each sensor is on and relative info to calculate it.
+    //HashMap maps sensor name (String) to Tuple containing creation time step (Integer) and percentage (Double)
+    private HashMap<String, Tuple<Integer, Double>> externalPercents = new HashMap<>();
+    private HashMap<String, Tuple<Integer, Double>> internalPercents = new HashMap<>();
 
     /**
      * This method is called each time a new FSM is created and a new agent is
@@ -141,6 +166,8 @@ public class PhuJusAgent implements IAgent {
             debugPrintln("TIME STEP: " + this.now);
             printInternalSensors(this.currInternal);
             printExternalSensors(this.currExternal);
+            printInternalPercents();
+            printExternalPercents();
         }
 
         //DEBUG: breakpoint here to debug
@@ -160,6 +187,10 @@ public class PhuJusAgent implements IAgent {
 
         //extract next action
         char action = calcAction();
+
+        //Calculate percentage that each sensor is on
+        updateInternalPercents();
+        updateExternalPercents();
 
         //Now that we know what action the agent will take, setup the sensor
         // values for the next iteration
@@ -373,7 +404,6 @@ public class PhuJusAgent implements IAgent {
         return genNextInternal(action, this.currInternal, this.currExternal);
     }//genNextInternal
 
-
     /**
      * updateSensors
      *
@@ -394,6 +424,116 @@ public class PhuJusAgent implements IAgent {
         }
     }//updateSensors
 
+    /**
+     * updateExternalPercents
+     *
+     * Updates our external sensor percentage data with the latest activations of the external rules
+     */
+    private void updateExternalPercents() {
+        //handle the external sensors
+        if (this.currExternal != null) { //we have external sensor data to track
+
+            //Go through each sensor name and check if the sensor is in the vector
+            //if it is, then we calculate the new sensor percent - update the triple
+            //if it isn't then we want to calculate and add the tuple to the vector
+
+            String[] nameArr = this.currExternal.getSensorNames().toArray(new String[0]);
+
+            for(int i = 0; i < nameArr.length; i++){
+                boolean sensorVal = (Boolean) this.currExternal.getSensor(nameArr[i]);
+                Tuple<Integer, Double> sensorTuple = this.externalPercents.get(nameArr[i]);
+
+                if(sensorTuple != null){ //We need to adjust the old percent value
+                    double newPercent = calculateSensorPercent(sensorTuple.first, sensorTuple.second, sensorVal);
+                    sensorTuple.setSecond(newPercent);
+                }
+                else { //We just set the percent to either 1.0 or 0 and set the current time
+                    double percentage = sensorVal ? 1.0 : 0.0;
+                    externalPercents.put(nameArr[i], new Tuple<Integer, Double>(this.now, percentage));
+                }
+            }
+        }
+    }//updateExternalPercents
+
+    /**
+     * updateInternalPercents
+     *
+     * Updates our internal sensor percentage data with the latest activations of the internal rules
+     */
+    private void updateInternalPercents() {
+        if(this.currInternal != null){ //we have internal sensor data to track
+
+            //get all of our current internal sensor keys(the names of each sensor)
+            Set<String> hashKeys = this.internalPercents.keySet();
+
+            HashSet<String> totalSensors = new HashSet<>();
+            totalSensors.addAll(hashKeys);
+            for ( int internal : this.currInternal) {
+                //adding all of the sensors that were just on to the set of
+                // sensors to be updated
+                totalSensors.add(Integer.toString(internal));
+            }
+
+            String[] sensorArr = totalSensors.toArray(new String[0]);
+            for(int i = 0; i < sensorArr.length; i++) {
+                boolean wasActive = this.currInternal.contains(Integer.parseInt(sensorArr[i]));
+                // System.out.println(wasActive);
+
+
+                Tuple<Integer, Double> sensorTuple = this.internalPercents.get(sensorArr[i]);
+
+                if (sensorTuple != null) { //We need to adjust the old percent value
+                    double newPercent = calculateSensorPercent(sensorTuple.first, sensorTuple.second, wasActive);
+                    sensorTuple.setSecond(newPercent);
+                } else { //We just set the percent to either 1.0 or 0 and set the current time
+                    double percentage = wasActive ? 1.0 : 0.0;
+                    internalPercents.put(sensorArr[i], new Tuple<Integer, Double>(this.now, percentage));
+                }
+            }
+        }
+    }//updateInternalPercents
+
+    /**
+     * removeInternalSensorPercent
+     *
+     * Removes the given internal sensor from our hashmap of internal sensor Percentages
+     *
+     * @param ruleNumber the rule number to be removed
+     */
+    private void removeInternalSensorPercent(int ruleNumber){
+
+        this.internalPercents.remove(Integer.toString(ruleNumber));
+        System.out.println("removed Internal Sensor number: "+ ruleNumber);
+    }//removeInternalSensorPercent
+
+    /**
+     * calculateSensorPercent
+     *
+     * Calculates the percentage a given sensor is on based on the lifetime of the sensor
+     * and the current percentage.
+     *
+     * @param creationTimeStep the time step the sensor was created
+     * @param currPercent the percentage the sensor has been on
+     * @param on whether the sensor is on
+     * @return the newly calculated percentage
+     */
+    private double calculateSensorPercent(int creationTimeStep, double currPercent, boolean on) {
+        double newPercentage = 0;
+
+        //Number of instances the sensor is on
+        double onInstances = currPercent * (this.now - creationTimeStep);
+
+        int timeDiff = this.now - creationTimeStep + 1;
+
+        //Calculates the new percentage, accounting for the next time step
+        if (on) {
+            newPercentage = (onInstances + 1) / timeDiff;
+        } else {
+            newPercentage = onInstances / timeDiff;
+        }
+
+        return newPercentage;
+    }//calculateSensorPercent
 
     /** @return a rule with a given id (or null if not found) */
     public Rule getRuleById(int id) {
@@ -970,6 +1110,9 @@ public class PhuJusAgent implements IAgent {
         else debugPrint("replaced: ");
         debugPrintln(removeMe.toString());
 
+        //Removes the data from the sensor percentage HashMap
+        removeInternalSensorPercent(removeMe.getId());
+
         // If any rule has a condition that test for 'removeMe' then that
         // condition must also be removed or replaced
         Vector<EpRule> truncated = new Vector<>(); //stores rules that were truncated by this process
@@ -1158,6 +1301,36 @@ public class PhuJusAgent implements IAgent {
         }
         return sbResult.toString();
     }//pathToString
+
+    /** DEBUG: prints internal sensor percentages */
+    public void printInternalPercents(){
+        String[] names = internalPercents.keySet().toArray(new String[0]);
+
+        System.out.print("Internal sensor activation percentages:");
+        if (names.length != 0) {
+            System.out.print("\n");
+            for (String name : names) {
+                System.out.println("\t" + name + ":\t\t" + this.internalPercents.get(name).getSecond());
+            }
+        } else {
+            System.out.println(" none");
+        }
+    }//printExternalPercents
+
+    /** DEBUG: prints external sensor percentages */
+    public void printExternalPercents() {
+        String[] names = externalPercents.keySet().toArray(new String[0]);
+
+        System.out.print("External sensor activation percentages:");
+        if (names.length != 0) {
+            System.out.print("\n");
+            for (String name : names) {
+                System.out.println("\t" + name + ":\t\t" + this.externalPercents.get(name).getSecond());
+            }
+        } else {
+            System.out.println(" none");
+        }
+    }//printExternalPercents
 
     /**
      * debugPrintln
