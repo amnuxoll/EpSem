@@ -60,7 +60,7 @@ public class PhuJusAgent implements IAgent {
     }//class EpRuleMatchProfile
 
     /**
-     * class Triple describes a Triple object for storing three values of different type
+     * class Tuple describes a Tuple object for storing three values of different type
      * modified from the following sources:
      * https://commons.apache.org/proper/commons-lang/apidocs/org/apache/commons/lang3/tuple/Triple.html
      */
@@ -98,7 +98,8 @@ public class PhuJusAgent implements IAgent {
     private Vector<BaseRule> baseRules = new Vector<>();
     private Vector<EpRule> epRules = new Vector<>();
     private Vector<PathRule> pathRules = new Vector<>();
-    private Vector<Rule> rules = new Vector<>();  //all rules (size may not exceed MAXNUMRULES)
+    private Hashtable<String, Rule> rules = new Hashtable<>();
+    //private Vector<Rule> rules = new Vector<>();  //all rules (size may not exceed MAXNUMRULES)
 
     private int now = 0; //current timestep 't'
 
@@ -110,10 +111,14 @@ public class PhuJusAgent implements IAgent {
     //external sensors come from the environment
     private SensorData currExternal;
 
+    //sensor IDs of all of the used internal sensors
+    private HashSet<Integer> totalInternal;
+
     //sensor values from the previous timesteps
     private Vector<HashSet<Integer>> prevInternal = new Vector<>();
     private SensorData prevExternal = null;
     private char prevAction = '\0';
+
 
     //The agent's current selected path to goal (a sequence of nodes in the search tree)
     private Vector<TreeNode> pathToDo = null;
@@ -145,7 +150,7 @@ public class PhuJusAgent implements IAgent {
      */
     @Override
     public void initialize(Action[] actions, IIntrospector introspector) {
-        this.rules = new Vector<>();
+        this.rules = new Hashtable<>();
         this.actionList = actions;
     }
 
@@ -390,7 +395,7 @@ public class PhuJusAgent implements IAgent {
                                             HashSet<Integer> currInt,
                                             SensorData currExt) {
         HashSet<Integer> result = new HashSet<>();
-        for (Rule r : this.rules) {
+        for (Rule r : this.rules.values()) {
             double score = r.lhsMatchScore(action, currInt, currExt);
             if (score > 0.0) {
                 result.add(r.getId());
@@ -960,7 +965,7 @@ public class PhuJusAgent implements IAgent {
         //       it later if needed.  -:AMN: Dec 2021
         EpRule worstRule = (EpRule) this.rules.get(0);
         double worstScore = worstRule.calculateActivation(this.now) * worstRule.getAccuracy();
-        for (Rule rule : this.rules) {
+        for (Rule rule : this.rules.values()) {
             if(rule instanceof EpRule) {
                 EpRule r = (EpRule) rule;
                 double activation = r.calculateActivation(this.now);
@@ -1024,7 +1029,8 @@ public class PhuJusAgent implements IAgent {
             }
             nInsert--;
         }
-        rules.add(nInsert, newRule);
+        rules.put(Integer.toString(nInsert),newRule);
+        //rules.add(nInsert, newRule);
 
 
         //TODO add PathRule support here
@@ -1054,7 +1060,7 @@ public class PhuJusAgent implements IAgent {
     private EpRuleMatchProfile findMostSimilarRule(EpRule given) {
         //Find the existing rule that is most similar
         EpRuleMatchProfile result = new EpRuleMatchProfile(given);
-        for (Rule rule : this.rules) {
+        for (Rule rule : this.rules.values()) {
             if(rule instanceof EpRule) {
                 EpRule r = (EpRule) rule;
                 if (r.getId() == given.getId()) continue;  //Rule may not match itself
@@ -1116,7 +1122,7 @@ public class PhuJusAgent implements IAgent {
         // If any rule has a condition that test for 'removeMe' then that
         // condition must also be removed or replaced
         Vector<EpRule> truncated = new Vector<>(); //stores rules that were truncated by this process
-        for (Rule rule : this.rules) {
+        for (Rule rule : this.rules.values()) {
             if(rule instanceof EpRule) {
                 EpRule r = (EpRule) rule;
                 if (r.testsIntSensor(removeMe.getId())) {
@@ -1360,7 +1366,7 @@ public class PhuJusAgent implements IAgent {
 
     //region Getters and Setters
 
-    public Vector<Rule> getRules() { return this.rules; }
+    public Hashtable<String, Rule> getRules() { return this.rules; }
     public Vector<BaseRule> getBaseRules() { return this.baseRules; }
     public Vector<EpRule> getEpRules() { return this.epRules; }
     public int getNow() { return now; }
