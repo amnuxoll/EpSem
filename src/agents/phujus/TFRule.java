@@ -6,7 +6,11 @@ import java.util.*;
 
 public class TFRule extends Rule{
 
-//region Inner Classes
+    //region Inner Classes
+
+    /**
+     * class TFData packages the data and method required to calculate Term Frequency
+     */
     public class TFData {
         public double numMatches = 1.0;
         public double numOn;
@@ -43,6 +47,11 @@ public class TFRule extends Rule{
         public int hashCode() { return Objects.hash(sId); }
     }//class IntCond
 
+    /**
+     * class ExtCond
+     *
+     * Tracks external conditions (LHS or RHS)
+     */
     public static class ExtCond extends Confidence implements Comparable<ExtCond> {
         public String sName;  //sensor name
         public boolean val;   //sensor value
@@ -70,33 +79,56 @@ public class TFRule extends Rule{
         public int hashCode() { return Objects.hash(sName, val); }
     }//class ExtCond
 
-//endregion
+    //endregion
 
-
+    //region Instance Variables
+    //the action of the rule
     private char action;
+
+    //the conditions of the LHS and RHS
     private HashSet<IntCond> lhsInternal;
     private HashSet<ExtCond> lhsExternal;
     private HashSet<ExtCond> rhsExternal;
+
+    //HashMaps containing the name of the sensor and the TFData associated with the sensor
     private HashMap<String, TFData> lhsExtTF;
     private HashMap<String, TFData> rhsExtTF;
     private HashMap<String, TFData> lhsIntTF;
 
-    public TFRule(PhuJusAgent agent) {
+    //endregion
 
+    /** ctor initializes this rule from the agents current state */
+    public TFRule(PhuJusAgent agent) {
         super(agent);
+
         this.action = agent.getPrevAction();
         this.lhsExternal = initExternal(agent.getPrevExternal());
         this.rhsExternal = initExternal(agent.getCurrExternal());
         lhsInternal = initInternal(agent.getPrevInternal());
         lhsExtTF = initExtTF(lhsExternal);
-        lhsIntTF = initIntTF(lhsInternal);
         rhsExtTF = initExtTF(rhsExternal);
+        lhsIntTF = initIntTF();
 
-    }
+    }//TFRule
 
+    /**
+     * initExtTF
+     *
+     * Initializes the TF values for a given HashSet of external sensors (both lhs and rhs).
+     * Goes through each external sensor and creates a TFData instance for each, with numOn
+     * initialized to 0 or 1.
+     *
+     * @param external the HashSet containing external sensors (either lhs or rhs)
+     * @return HashMap with key/value pairs corresponding to the sensor indentifier and TF data
+     */
     private HashMap<String, TFData> initExtTF(HashSet<ExtCond> external){
-        HashMap<String, TFData> map = new HashMap<String, TFData>();
 
+        // The data HashMap to be returned
+        HashMap<String, TFData> map = new HashMap<>();
+
+        // Creates TFData for each sensor that was previosuly on.
+        // Since there is only a single instance at the time of rule creation,
+        // numOn is set to 1.0 or 0.0 -- either a 100% on or off.
         for(ExtCond sensor:external){
             TFData data = new TFData();
 
@@ -105,28 +137,43 @@ public class TFRule extends Rule{
             else
                 data.numOn = 0.0;
 
+            // Adds the pair to the map
             map.put(sensor.sName ,data);
         }
 
         return map;
-    }
+    }//initExtTF
 
-    private HashMap<String, TFData> initIntTF(HashSet<IntCond> internal){
-        HashMap<String, TFData> map = new HashMap<String, TFData>();
+    /**
+     * initIntTF
+     *
+     * Initializes the TF values for the internal sensors. Gets all the sensors from the previous
+     * time steps and creates a TFData instance for each, with numOn initialized to 0 or 1.
+     *
+     * @return HashMap with key/value pairs corresponding to the sensor indentifier and TF data
+     */
+    private HashMap<String, TFData> initIntTF(){
 
-        //we will go through all of the previous internal sensors we have sensed
-        //and add them to a single super set. This will hopefuly not be necessary
-        //in the future as we wil have an instance variable in phujus agent that
-        //will keep track of this data for us.
+        // The data HashMap to be returned
+        HashMap<String, TFData> map = new HashMap<>();
+
+        // Vector containing the internal sensors that were on at each time step
         Vector<HashSet<Integer>> allInternal = agent.getAllPrevInternal();
+
+        // Gets the previous internal sensors that were on
         HashSet<Integer> prevInternal = allInternal.lastElement();
 
-        HashSet<Integer> combinedSet = new HashSet<Integer>();
+        // Stores all the internal sensors across all tiem steps
+        HashSet<Integer> combinedSet = new HashSet<>();
 
+        // Adds all the on sensors from the previous time steps to a single HashSet
         for(HashSet<Integer> set: allInternal){
             combinedSet.addAll(set);
         }
 
+        // Creates TFData for each sensor that was previosuly on.
+        // Since there is only a single instance at the time of rule creation,
+        // numOn is set to 1.0 or 0.0 -- either a 100% on or off.
         for(Integer id: combinedSet){
             TFData data = new TFData();
 
@@ -135,22 +182,33 @@ public class TFRule extends Rule{
             else
                 data.numOn = 0.0;
 
+            // Adds the pair to the map
             map.put(id.toString() ,data);
         }
 
         return map;
-    }
+    }//initIntTF
 
+    /**
+     * initInternal
+     *
+     * Creates an instance of IntCond for each sensor in the input HashSet and returns
+     * them as a HashSet.
+     *
+     * @param input HashSet containing internal sensors that fired in the previous time step
+     * @return HashSet of IntConds for each sensor
+     */
     private HashSet<IntCond> initInternal(HashSet<Integer> input){
-        HashSet<IntCond> set = new HashSet<IntCond>();
+        HashSet<IntCond> set = new HashSet<>();
         for(Integer sensor:input){
             set.add(new IntCond(sensor));
         }
         return set;
-    }
+    }//initInternal
 
     /** converts from SensorData (used by the FSM environment) to HashSet<ExtCond> */
-    protected HashSet<ExtCond> initExternal(SensorData sData) {
+    private HashSet<ExtCond> initExternal(SensorData sData) {
+
         HashSet<ExtCond> result = new HashSet<>();
         for(String sName : sData.getSensorNames()) {
             result.add(new ExtCond(sName, (Boolean)sData.getSensor(sName)));
@@ -159,12 +217,14 @@ public class TFRule extends Rule{
         return result;
     }//initExternal
 
-//other methods:  isMatch,  updateTFVals
-
-    //checks if a rule has the same lhs external and rhs external and action as this rule
-    // 00a -> 10 would match if this rule was 00a->10
-    // 10b -> 10 would noot match if this rule was 00a->10
-    // we do not care about internal sensors for this comparison
+    /**
+     * isMatch
+     *
+     * Checks if the given rule matches this rule.
+     *
+     * @param rule the rule to compare against
+     * @return whether the rule matches this rule
+     */
     public boolean isMatch(TFRule rule){
 
         boolean sameAction = this.action == rule.getAction();
@@ -173,22 +233,21 @@ public class TFRule extends Rule{
 
         return sameAction && sameRhsExt && sameLhsExt;
 
-    }
+    }//isMatch
 
-    //for all of the rules, we need to check to see if the rule matches this one
-    //if the rule matches then we are going to update its TFVals by
-    //incrementing the denominators by 1 and the numerators by whether or not the
-    //Rule is on?
-    //This action above should take place in the phujusAgent class
-
-    // this method does not update LHSExternal and RHSExternal right now as they are
-    // always a 100% match. Once we get into partial matching this will need to be updated
+    /**
+     * updateTFVals
+     *
+     * updates the TFVals for this rule by looking at the prevInternal and checking if
+     * our internal sensors appear in prevInternal
+     *
+     * Note:
+     * this method does not update LHSExternal and RHSExternal right now as they are
+     * always a 100% match. Once we get into partial matching this will need to be updated
+     */
     public void updateTFVals(){
 
-
-        //get all the keys
-        Enumeration<String> keys = agent.getRules().keys();
-        //get all of the current internal sesnor data to see which ones are on
+        //get all the current internal sesnor data to see which ones are on
         HashSet<Integer> previnternal = agent.getPrevInternal();
 
         //loop through all the tf hashsets (lhs, rhs, etc), check if the sensor id is within curr internal
@@ -210,8 +269,15 @@ public class TFRule extends Rule{
 
         }
 
-    }
+    }//updateTFVals
 
+    /**
+     * rhsMatchScore
+     *
+     * calculates how closely this rule matches a given rhs sensor set
+     *
+     * @return  a match score from 0.0 to 1.0
+     */
     public double rhsMatchScore(SensorData rhsExt){
         double sum = 0.0;
 
@@ -226,13 +292,24 @@ public class TFRule extends Rule{
         }
 
         return (sum / this.rhsExternal.size());
-    }
+    }//rhsMatchScore
 
+    /**
+     * lhsMatchScore
+     *
+     * calculates how closely this rule matches a given action and lhs sensors
+     * For a BaseRule this is trivial since the LHS is just an action.
+     * This method is overridden in child classes
+     *
+     * @return  a match score from 0.0 to 1.0
+     */
     public double lhsMatchScore(char action, HashSet<Integer> lhsInt, SensorData lhsExt){
         if (action != this.action) return 0.0;
 
         return 1.0;
-    }
+    }//lhsMatchScore
+
+    //region getters
 
     public char getAction() { return this.action; }
 
@@ -243,5 +320,7 @@ public class TFRule extends Rule{
     public HashSet<ExtCond> getLHSExternalRaw() {
         return this.lhsExternal;
     }
+
+    //endregion
 
 }//class TFRule

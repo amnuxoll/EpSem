@@ -558,7 +558,7 @@ public class PhuJusAgent implements IAgent {
         //binary search
         Rule result = null;
         while(min <= max) {
-            result = this.rules.get(index);
+            result = this.rules.get(Integer.toString(index));
             int guessId = result.getId();
             if (guessId == id) {
                 break;  //rule found
@@ -1023,7 +1023,7 @@ public class PhuJusAgent implements IAgent {
         //(needs to be in order to support findRuleById())
         int nInsert = rules.size();
         while (nInsert > 0) {
-            Rule prevRule = rules.get(nInsert - 1);
+            Rule prevRule = rules.get(Integer.toString(nInsert - 1));
             if (prevRule.getId() < newRule.getId()) {
                 break;
             }
