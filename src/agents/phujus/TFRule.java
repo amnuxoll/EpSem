@@ -305,7 +305,6 @@ public class TFRule extends Rule{
      */
     public double lhsMatchScore(char action, HashSet<Integer> lhsInt, SensorData lhsExt){
         if (action != this.action) return 0.0;
-
         return 1.0;
     }//lhsMatchScore
 

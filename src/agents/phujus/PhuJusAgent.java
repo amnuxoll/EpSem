@@ -439,7 +439,7 @@ public class PhuJusAgent implements IAgent {
         if (this.currExternal != null) { //we have external sensor data to track
 
             //Go through each sensor name and check if the sensor is in the vector
-            //if it is, then we calculate the new sensor percent - update the triple
+            //if it is, then we calculate the new sensor percent - update the tuple
             //if it isn't then we want to calculate and add the tuple to the vector
 
             String[] nameArr = this.currExternal.getSensorNames().toArray(new String[0]);
@@ -468,33 +468,20 @@ public class PhuJusAgent implements IAgent {
     private void updateInternalPercents() {
         if(this.currInternal != null){ //we have internal sensor data to track
 
-            //get all of our current internal sensor keys(the names of each sensor)
-            Set<String> hashKeys = this.internalPercents.keySet();
+            for(Rule rule: rules.values()){
+                boolean wasActive = this.currInternal.contains(rule.ruleId);
 
-            HashSet<String> totalSensors = new HashSet<>();
-            totalSensors.addAll(hashKeys);
-            for ( int internal : this.currInternal) {
-                //adding all of the sensors that were just on to the set of
-                // sensors to be updated
-                totalSensors.add(Integer.toString(internal));
-            }
-
-            String[] sensorArr = totalSensors.toArray(new String[0]);
-            for(int i = 0; i < sensorArr.length; i++) {
-                boolean wasActive = this.currInternal.contains(Integer.parseInt(sensorArr[i]));
-                // System.out.println(wasActive);
-
-
-                Tuple<Integer, Double> sensorTuple = this.internalPercents.get(sensorArr[i]);
+                Tuple<Integer, Double> sensorTuple = this.internalPercents.get(Integer.toString(rule.ruleId));
 
                 if (sensorTuple != null) { //We need to adjust the old percent value
                     double newPercent = calculateSensorPercent(sensorTuple.first, sensorTuple.second, wasActive);
                     sensorTuple.setSecond(newPercent);
                 } else { //We just set the percent to either 1.0 or 0 and set the current time
                     double percentage = wasActive ? 1.0 : 0.0;
-                    internalPercents.put(sensorArr[i], new Tuple<Integer, Double>(this.now, percentage));
+                    internalPercents.put(Integer.toString(rule.ruleId), new Tuple<Integer, Double>(this.now, percentage));
                 }
             }
+            
         }
     }//updateInternalPercents
 
@@ -1380,6 +1367,8 @@ public class PhuJusAgent implements IAgent {
     public SensorData getPrevExternal() { return this.prevExternal; }
     public Action[] getActionList() { return actionList; }
     public char getPrevAction() { return prevAction; }
+    public HashMap<String, Tuple<Integer, Double>> getInternalPercents(){return this.internalPercents;}
+    public HashMap<String, Tuple<Integer, Double>> getExternalPercents(){return this.externalPercents;}
 
     //endregion
 
