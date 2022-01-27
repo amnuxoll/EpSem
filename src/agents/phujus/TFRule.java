@@ -4,6 +4,16 @@ import framework.SensorData;
 
 import java.util.*;
 
+/**
+ * class TFRUle
+ *
+ * A "term frequency" rule that is generated from a pair of sequential episodes.
+ * The rule tracks a "term frequency" for each of the agent's sensors that existed
+ * at the time it was created.  Each time the rule matches, the TF values are
+ * updated to reflect how frequently each corresponding sensors value was
+ * on/off.  For example, if a sensor was on 2/3 of the time, the TF value
+ * in the rule for that sensor would be ~0.67.
+ */
 public class TFRule extends Rule{
 
     //region Inner Classes
@@ -104,7 +114,7 @@ public class TFRule extends Rule{
         this.action = agent.getPrevAction();
         this.lhsExternal = initExternal(agent.getPrevExternal());
         this.rhsExternal = initExternal(agent.getCurrExternal());
-        lhsInternal = initInternal(agent.getAllPrevInternal());
+        lhsInternal = initInternal(agent.getAllPrevInternal());  //TODO:  need to base on all agent's curr sensors
         lhsExtTF = initExtTF(lhsExternal);
         rhsExtTF = initExtTF(rhsExternal);
         lhsIntTF = initIntTF();
@@ -233,8 +243,8 @@ public class TFRule extends Rule{
     public boolean isMatch(TFRule rule){
 
         boolean sameAction = this.action == rule.getAction();
-        boolean sameRhsExt = this.rhsExternal == rule.getRHSExternalRaw();
-        boolean sameLhsExt = this.lhsExternal == rule.getLHSExternalRaw();
+        boolean sameRhsExt = this.rhsExternal.equals(rule.rhsExternal);
+        boolean sameLhsExt = this.lhsExternal.equals(rule.lhsExternal);
 
         return sameAction && sameRhsExt && sameLhsExt;
 
@@ -262,15 +272,13 @@ public class TFRule extends Rule{
 
         for(IntCond cond: this.lhsInternal){
             String ruleSTR = Integer.toString(cond.sId);
-            TFData data = lhsIntTF.remove(ruleSTR);
+            TFData data = lhsIntTF.get(ruleSTR);
 
             if(previnternal.contains(cond.sId)){
                 data.numOn++;
             }
 
             data.numMatches++;
-
-            lhsIntTF.put(ruleSTR,data);
 
         }
 
@@ -283,7 +291,7 @@ public class TFRule extends Rule{
      *
      * @return  a match score from 0.0 to 1.0
      */
-    public double rhsMatchScore(SensorData rhsExt){
+    public double rhsMatchScore(SensorData rhsExt) {
         double sum = 0.0;
 
         //Compare RHS external values
@@ -293,6 +301,7 @@ public class TFRule extends Rule{
                 if (sVal == eCond.val){
                     sum += eCond.getConfidence();
                 }
+
             }
         }
 
