@@ -104,7 +104,7 @@ public class TFRule extends Rule{
         this.action = agent.getPrevAction();
         this.lhsExternal = initExternal(agent.getPrevExternal());
         this.rhsExternal = initExternal(agent.getCurrExternal());
-        lhsInternal = initInternal(agent.getPrevInternal());
+        lhsInternal = initInternal(agent.getAllPrevInternal());
         lhsExtTF = initExtTF(lhsExternal);
         rhsExtTF = initExtTF(rhsExternal);
         lhsIntTF = initIntTF();
@@ -198,11 +198,16 @@ public class TFRule extends Rule{
      * @param input HashSet containing internal sensors that fired in the previous time step
      * @return HashSet of IntConds for each sensor
      */
-    private HashSet<IntCond> initInternal(HashSet<Integer> input){
+    private HashSet<IntCond> initInternal(Vector<HashSet<Integer>> input){
+        //TODO:Make sure this works? we only have 5 internal sensors when we have 21 rules?
+        System.out.println("Keys : " + input.size());
         HashSet<IntCond> set = new HashSet<>();
-        for(Integer sensor:input){
-            set.add(new IntCond(sensor));
+        for(HashSet<Integer> layer:input){
+            for(Integer sensor:layer){
+                set.add(new IntCond(sensor));
+            }
         }
+
         return set;
     }//initInternal
 
@@ -307,6 +312,91 @@ public class TFRule extends Rule{
         if (action != this.action) return 0.0;
         return 1.0;
     }//lhsMatchScore
+
+    /**
+     * sortedConds
+     *
+     * creates a Vector from a HashSet of ExtCond where the conditions are in sorted order
+     * but with the GOAL at the end.  This is used by the toString methods to present
+     * a consistent ordering to frazzled human eyes.
+     */
+    protected Vector<ExtCond> sortedConds(HashSet<ExtCond> conds) {
+        //Sort the vector
+        Vector<ExtCond> result = new Vector<>(conds);
+        Collections.sort(result);
+
+        //Move the GOAL to the end
+        int goalIndex = 0;
+        for(int i = 0; i < result.size(); ++i) {
+            if (result.get(i).sName.equals(SensorData.goalSensor)) {
+                goalIndex = i;
+                break;
+            }
+        }
+        ExtCond goalCond = result.remove(goalIndex);
+        result.add(goalCond);
+
+        return result;
+    }//sortedConds
+
+    /**
+     * toStringShortRHS
+     *
+     * is a helper method for {@link #toString()} & {@link EpRule#toStringShort()} to
+     * convert a RHS to a bit string
+     */
+    protected String toStringShortRHS(HashSet<ExtCond> rhs) {
+        StringBuilder result = new StringBuilder();
+        for (ExtCond eCond : sortedConds(rhs)) {
+            char bit = (eCond.val) ? '1' : '0';
+            result.append(bit);
+        }
+        return result.toString();
+    }//toStringShortRHS
+
+    /**
+     * toStringShortRHS
+     *
+     * is a helper method for {@link #toString()} & {@link EpRule#toStringShort()} to
+     * convert a RHS to a bit string
+     */
+    protected String toStringShortINT(HashSet<IntCond> lhs) {
+        StringBuilder result = new StringBuilder();
+        HashSet<Integer> prevInternal = agent.getPrevInternal();
+        int i = 0;
+        System.out.println(lhs.size());
+        for (IntCond iCond : lhs) {
+            char bit = (prevInternal.contains(iCond.sId)) ? '1' : '0';
+            result.append(bit);
+        }
+        return result.toString();
+    }//toStringShortRHS
+
+    @Override
+    public String toString(){
+        String str = "";
+        //str += ;
+
+        StringBuilder result = new StringBuilder();
+        result.append("#");
+        if (this.ruleId < 10) result.append(" "); //to line up with two-digit rule ids
+
+        result.append(this.ruleId);
+        result.append(":    ");  //extra space so it will line up with 0-depth EpRule
+        result.append(toStringShortINT(this.lhsInternal));
+        result.append("|");
+        result.append(toStringShortRHS(this.lhsExternal));
+        result.append(this.action);
+        result.append(" -> ");
+        result.append(toStringShortRHS(this.rhsExternal));
+        //note:  replaceAll call removes extra trailing 0's to improve readability
+        result.append(String.format(" ^  acc=%.5f", getAccuracy()).replaceAll("0+$", "0"));
+        return result.toString();
+
+
+        //LHSinternal|lhsexternalAction->RHSExternal #tfterms acc=accuracy
+
+    }
 
     //region getters
 

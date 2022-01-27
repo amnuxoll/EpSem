@@ -98,6 +98,7 @@ public class PhuJusAgent implements IAgent {
     private Vector<BaseRule> baseRules = new Vector<>();
     private Vector<EpRule> epRules = new Vector<>();
     private Vector<PathRule> pathRules = new Vector<>();
+    private Vector<TFRule> tfRules = new Vector<>();
     private Hashtable<String, Rule> rules = new Hashtable<>();
     //private Vector<Rule> rules = new Vector<>();  //all rules (size may not exceed MAXNUMRULES)
 
@@ -200,6 +201,11 @@ public class PhuJusAgent implements IAgent {
         //Now that we know what action the agent will take, setup the sensor
         // values for the next iteration
         updateSensors(action);
+
+        System.out.println("TF Rules:");
+        for(int i = 0; i < tfRules.size(); i++){
+            System.out.println(tfRules.get(i));
+        }
 
         //DEBUG
         debugPrintln("----------------------------------------------------------------------");
@@ -481,7 +487,7 @@ public class PhuJusAgent implements IAgent {
                     internalPercents.put(Integer.toString(rule.ruleId), new Tuple<Integer, Double>(this.now, percentage));
                 }
             }
-            
+
         }
     }//updateInternalPercents
 
@@ -986,6 +992,8 @@ public class PhuJusAgent implements IAgent {
         //Note:  in some cases multiple rules get created by this call
         updateEpAndBaseRuleSet();
 
+        tfRules.add(new TFRule(this));
+
         //See if we need to cull rule(s) to stay below max
         cullRules();
 
@@ -1028,6 +1036,8 @@ public class PhuJusAgent implements IAgent {
             this.epRules.add((EpRule)newRule);
         } else if (newRule instanceof BaseRule) {
             this.baseRules.add((BaseRule)newRule);
+        } else if(newRule instanceof TFRule) {
+            this.tfRules.add((TFRule)newRule);
         }
 
 
