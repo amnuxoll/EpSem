@@ -180,7 +180,7 @@ public class PhuJusAgent implements IAgent {
         if(this.stepsSinceGoal >= 40) {
             debugPrintln("");
         }
-        if (this.now == 13) {
+        if (this.now == 5) {
             debugPrintln("");
         }
 
@@ -992,6 +992,14 @@ public class PhuJusAgent implements IAgent {
         //Note:  in some cases multiple rules get created by this call
         updateEpAndBaseRuleSet();
 
+        //Update the TF values for all extant TFRules
+        for(TFRule tf : this.tfRules) {
+            if (tf.isMatch()) {
+                tf.updateTFVals();
+            }
+        }
+
+        //Create a new TF Rule for this latest experience
         tfRules.add(new TFRule(this));
 
         //See if we need to cull rule(s) to stay below max
