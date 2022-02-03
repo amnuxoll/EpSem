@@ -99,7 +99,7 @@ public class PhuJusAgent implements IAgent {
     private Vector<EpRule> epRules = new Vector<>();
     private Vector<PathRule> pathRules = new Vector<>();
     private Vector<TFRule> tfRules = new Vector<>();
-    private Hashtable<String, Rule> rules = new Hashtable<>();
+    private Hashtable<Integer, Rule> rules = new Hashtable<>();
     //private Vector<Rule> rules = new Vector<>();  //all rules (size may not exceed MAXNUMRULES)
 
     private int now = 0; //current timestep 't'
@@ -551,7 +551,7 @@ public class PhuJusAgent implements IAgent {
         //binary search
         Rule result = null;
         while(min <= max) {
-            result = this.rules.get(Integer.toString(index));
+            result = this.rules.get(index);
             int guessId = result.getId();
             if (guessId == id) {
                 break;  //rule found
@@ -1018,13 +1018,13 @@ public class PhuJusAgent implements IAgent {
         //(needs to be in order to support findRuleById())
         int nInsert = rules.size();
         while (nInsert > 0) {
-            Rule prevRule = rules.get(Integer.toString(nInsert - 1));
+            Rule prevRule = rules.get(nInsert - 1);
             if (prevRule.getId() < newRule.getId()) {
                 break;
             }
             nInsert--;
         }
-        rules.put(Integer.toString(nInsert),newRule);
+        rules.put(nInsert,newRule);
         //rules.add(nInsert, newRule);
 
 
@@ -1363,7 +1363,7 @@ public class PhuJusAgent implements IAgent {
 
     //region Getters and Setters
 
-    public Hashtable<String, Rule> getRules() { return this.rules; }
+    public Hashtable<Integer, Rule> getRules() { return this.rules; }
     public Vector<BaseRule> getBaseRules() { return this.baseRules; }
     public Vector<EpRule> getEpRules() { return this.epRules; }
     public int getNow() { return now; }
@@ -1377,8 +1377,8 @@ public class PhuJusAgent implements IAgent {
     public SensorData getPrevExternal() { return this.prevExternal; }
     public Action[] getActionList() { return actionList; }
     public char getPrevAction() { return prevAction; }
-    public HashMap<String, Tuple<Integer, Double>> getInternalPercents(){return this.internalPercents;}
-    public HashMap<String, Tuple<Integer, Double>> getExternalPercents(){return this.externalPercents;}
+    public HashMap<String, Tuple<Integer, Double>> getInternalPercents() {return this.internalPercents;}
+    public HashMap<String, Tuple<Integer, Double>> getExternalPercents() {return this.externalPercents;}
 
     //endregion
 

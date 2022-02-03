@@ -41,7 +41,7 @@ public class TreeNode {
     private final PhuJusAgent agent;
 
     // all rules in the system
-    Hashtable<String, Rule> rules;
+    Hashtable<Integer, Rule> rules;
 
     //associated timestep for this node
     private final int episodeIndex;
