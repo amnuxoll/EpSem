@@ -74,7 +74,17 @@ public class TFRule extends Rule{
         }
 
         @Override
-        public int compareTo(Cond o) { return this.sName.compareTo(o.sName); }
+        public int compareTo(Cond o) {
+            try{
+                int a = Integer.parseInt(this.sName);
+                int b = Integer.parseInt(o.sName);
+
+                return a-b;
+            } catch(Exception e){
+                return this.sName.compareTo(o.sName);
+            }
+
+        }
 
         @Override
         public int hashCode() { return Objects.hash(sName); }
@@ -152,8 +162,9 @@ public class TFRule extends Rule{
     public boolean isMatch(){
 
         boolean sameAction = this.action == this.agent.getPrevAction();
-        boolean sameRhsExt = this.rhsExternal.equals(this.agent.getCurrExternal());
-        boolean sameLhsExt = this.lhsExternal.equals(this.agent.getPrevExternal());
+        boolean sameRhsExt = this.rhsExternal.equals(initExternal(this.agent.getCurrExternal()));
+        boolean sameLhsExt = this.lhsExternal.equals(initExternal(this.agent.getPrevExternal()));
+
 
         return sameAction && sameRhsExt && sameLhsExt;
 
@@ -359,18 +370,35 @@ public class TFRule extends Rule{
     }//toStringShortRHS
 
     /**
-     * toStringShortRHS
+     * toStringShortINT
      *
      * is a helper method for {@link #toString()} & {@link EpRule#toStringShort()} to
      * convert a RHS to a bit string
      */
     protected String toStringShortINT(HashSet<Cond> lhs) {
         StringBuilder result = new StringBuilder();
-        HashSet<Integer> prevInternal = agent.getPrevInternal();
-        int i = 0;
-        for (Cond cond : lhs) {
-            char bit = (prevInternal.contains(Integer.parseInt(cond.sName))) ? '1' : '0';
-            result.append(bit);
+
+        Vector<Cond> sortedInternal = new Vector<>(lhs);
+        Collections.sort(sortedInternal);
+        for (Cond cond : sortedInternal) {
+            result.append(cond.toStringShort());
+        }
+        return result.toString();
+    }//toStringShortRHS
+
+    /**
+     * toStringLongLHS
+     *
+     * is a helper method for {@link #toString()} & {@link EpRule#toStringShort()} to
+     * convert a RHS to a bit string
+     */
+    protected String toStringLongLHS(HashSet<Cond> lhs) {
+        StringBuilder result = new StringBuilder();
+        Vector<Cond> sortedInternal = new Vector<>(lhs);
+        Collections.sort(sortedInternal);
+        for (Cond cond : sortedInternal) {
+            result.append(cond.toString());
+            result.append(", ");
         }
         return result.toString();
     }//toStringShortRHS
@@ -394,11 +422,10 @@ public class TFRule extends Rule{
         result.append(toStringShortRHS(this.rhsExternal));
         //note:  replaceAll call removes extra trailing 0's to improve readability
         result.append(String.format(" ^  acc=%.5f", getAccuracy()).replaceAll("0+$", "0"));
+        result.append("\t");
+        result.append(toStringLongLHS(this.lhsInternal));
+
         return result.toString();
-
-
-        //LHSinternal|lhsexternalAction->RHSExternal #tfterms acc=accuracy
-
     }
 
     //region getters
