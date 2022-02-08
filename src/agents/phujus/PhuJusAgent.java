@@ -167,13 +167,14 @@ public class PhuJusAgent implements IAgent {
         this.currExternal = sensorData;
         this.stepsSinceGoal++;
 
+        updateRuleSet();
+
         //DEBUG:  Tell the human what time it is
         if (PhuJusAgent.DEBUGPRINTSWITCH) {
             debugPrintln("TIME STEP: " + this.now);
             printInternalSensors(this.currInternal);
             printExternalSensors(this.currExternal);
-            printInternalPercents();
-            printExternalPercents();
+
         }
 
         //DEBUG: breakpoint here to debug
@@ -184,8 +185,27 @@ public class PhuJusAgent implements IAgent {
             debugPrintln("");
         }
 
+
+
         //rules may be added, rules may be removed, rule confidences are adjusted
-        updateRuleSet();
+
+
+
+
+        //Calculate percentage that each sensor is on
+        updateInternalPercents();
+        updateExternalPercents();
+
+        printInternalPercents();
+        printExternalPercents();
+
+
+        System.out.println("TF Rules:");
+        for(int i = 0; i < tfRules.size(); i++){
+            System.out.println(tfRules.get(i));
+        }
+
+
 
         //Update the agent's current path
         pathMaintenance(sensorData.isGoal());
@@ -194,18 +214,14 @@ public class PhuJusAgent implements IAgent {
         //extract next action
         char action = calcAction();
 
-        //Calculate percentage that each sensor is on
-        updateInternalPercents();
-        updateExternalPercents();
+
 
         //Now that we know what action the agent will take, setup the sensor
         // values for the next iteration
         updateSensors(action);
 
-        System.out.println("TF Rules:");
-        for(int i = 0; i < tfRules.size(); i++){
-            System.out.println(tfRules.get(i));
-        }
+
+
 
         //DEBUG
         debugPrintln("----------------------------------------------------------------------");
@@ -241,7 +257,7 @@ public class PhuJusAgent implements IAgent {
 
         //DEBUG
         if (PhuJusAgent.DEBUGPRINTSWITCH) {
-            root.printTree();
+            //root.printTree();
         }
 
         if (this.pathToDo == null) {

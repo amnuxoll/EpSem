@@ -116,7 +116,7 @@ public class TFRule extends Rule{
     /**
      * initInternal
      *
-     * Creates an instance of IntCond for each sensor in the input HashSet and returns
+     * Creates an instance of Cond for each sensor in the input HashSet and returns
      * them as a HashSet.
      *
      * @return HashSet of IntConds for each sensor
@@ -422,9 +422,11 @@ public class TFRule extends Rule{
         result.append(toStringShortRHS(this.rhsExternal));
         //note:  replaceAll call removes extra trailing 0's to improve readability
         result.append(String.format(" ^  acc=%.5f", getAccuracy()).replaceAll("0+$", "0"));
-        result.append("\t");
+        double leftScore = lhsMatchScore(agent.getPrevAction(), agent.getPrevInternal() , agent.getCurrExternal());
+        result.append(String.format("\tMatch Score: lhs=%.3f",leftScore).replaceAll("0+$","0"));
+        double rightScore = rhsMatchScore(agent.getCurrExternal());
+        result.append(String.format(" rhs=%.3f tot=%.3f\t",rightScore, leftScore+rightScore).replaceAll("0+$","0"));
         result.append(toStringLongLHS(this.lhsInternal));
-
         return result.toString();
     }
 
