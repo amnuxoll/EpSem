@@ -167,6 +167,7 @@ public class PhuJusAgent implements IAgent {
         this.currExternal = sensorData;
         this.stepsSinceGoal++;
 
+        //rules may be added, rules may be removed, rule confidences are adjusted
         updateRuleSet();
 
         //DEBUG:  Tell the human what time it is
@@ -181,13 +182,10 @@ public class PhuJusAgent implements IAgent {
         if(this.stepsSinceGoal >= 40) {
             debugPrintln("");
         }
-        if (this.now == 5) {
+        if (this.now == 8) {
             debugPrintln("");
         }
 
-
-
-        //rules may be added, rules may be removed, rule confidences are adjusted
 
 
 
@@ -205,7 +203,8 @@ public class PhuJusAgent implements IAgent {
             System.out.println(tfRules.get(i));
         }
 
-
+        if(this.now > 1)
+            System.out.println("Best Match TF Rule: " + gethighestTFRule().ruleId);
 
         //Update the agent's current path
         pathMaintenance(sensorData.isGoal());
@@ -426,10 +425,50 @@ public class PhuJusAgent implements IAgent {
         return result;
     }//genNextInternal
 
+    public HashSet<Integer> genNextInternalTF(char action,
+                                              HashSet<Integer> currInt,
+                                              SensorData currExt) {
+        HashSet<Integer> result = new HashSet<>();
+
+        for (TFRule r : this.tfRules) {
+            double score = r.lhsMatchScore(action, currInt, currExt);
+            if (score > 0.0){
+                result.add(r.getId());
+            }
+            //if (r.isMatch()) {
+            //    result.add(r.getId());
+            //}
+        }
+        return result;
+    }
+
     /** convenience overload that uses the this.currInternal and this.currExternal */
     public HashSet<Integer> genNextInternal(char action) {
         return genNextInternal(action, this.currInternal, this.currExternal);
     }//genNextInternal
+
+    public TFRule gethighestTFRule() {
+        char action = this.getPrevAction();
+        HashSet<Integer> lhsInt = this.getCurrInternal();
+        SensorData lhsExt = this.prevExternal;
+        SensorData rhsExt = this.currExternal;
+
+        TFRule maxRule = null;
+        double max = 0.0;
+        if(this.tfRules.size() > 0) {
+            maxRule = this.tfRules.get(0);
+            max = maxRule.totalMatchScore(action, lhsInt, lhsExt, rhsExt);
+        }
+
+        for (TFRule rule : this.tfRules) {
+            if(rule.totalMatchScore(action, lhsInt, lhsExt, rhsExt) > max){
+                max = rule.totalMatchScore(action, lhsInt, lhsExt, rhsExt);
+                maxRule = rule;
+            }
+        }
+
+        return maxRule;
+    }
 
     /**
      * updateSensors

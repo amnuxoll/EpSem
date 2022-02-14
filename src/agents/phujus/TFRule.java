@@ -60,7 +60,10 @@ public class TFRule extends Rule{
             if (! (o instanceof Cond)) return false;
             Cond other = (Cond) o;
             //TODO:  should we compare the TFData??
-            return (this.sName.equals(other.sName));
+            if (this.sName.equals(other.sName)) {
+                return this.data.getTF() == other.data.getTF();
+            }
+            return false;
         }
 
         @Override
@@ -128,18 +131,18 @@ public class TFRule extends Rule{
         // For now, use the ids from BaseRule and EpRule objects
         // which atm (Feb 2022) is all that is in the PJA.rules list
         // Later this will just be the TFRules
-        Collection<Integer> combinedSet = agent.getRules().keySet();
+        Collection<Rule> combinedSet = agent.getRules().values();
 
 
         //Add a condition to this rule for each sensor
         HashSet<Cond> set = new HashSet<>();
-        for(Integer sensor : combinedSet){
-            boolean on = prevInternal.contains(sensor);
-            set.add(new Cond(Integer.toString(sensor), on));
+        for(Rule rule : combinedSet){
+            boolean on = prevInternal.contains(rule.ruleId);
+            set.add(new Cond(Integer.toString(rule.ruleId), on));
         }
 
         return set;
-    }//i
+    }//initInternal
 
     /** converts from SensorData (used by the FSM environment) to HashSet<ExtCond> */
     private HashSet<Cond> initExternal(SensorData sData) {
@@ -161,14 +164,57 @@ public class TFRule extends Rule{
      */
     public boolean isMatch(){
 
-        boolean sameAction = this.action == this.agent.getPrevAction();
-        boolean sameRhsExt = this.rhsExternal.equals(initExternal(this.agent.getCurrExternal()));
-        boolean sameLhsExt = this.lhsExternal.equals(initExternal(this.agent.getPrevExternal()));
+        // Return false if the actions are not the same
+        if (this.action != this.agent.getPrevAction()) {
+            return false;
+        }
 
+        // Returns false if the rhs external condtions don't match the current external sensors
+        if (!helperMatch(this.rhsExternal, this.agent.getCurrExternal())) {
+            return false;
+        }
 
-        return sameAction && sameRhsExt && sameLhsExt;
+        // Returns false if the lhs external conditions don't match the previous external sensors
+        if (!helperMatch(this.lhsExternal, this.agent.getPrevExternal())) {
+            return false;
+        }
+
+        return true;
 
     }//isMatch
+
+    /**
+     * helperMatch
+     *
+     * Helper function for checking whether the conditions of the TFRule match the
+     * current or previous SensorData of the agent. This is done by checking if the
+     * SensorData (converted to HashSet<Cond>) contains each condition of the rule.
+     *
+     * @param conditions the external conditions of the TFRule
+     * @param sensors the current or previous SensorData
+     * @return whether the conditions and sensors match
+     */
+    public boolean helperMatch(HashSet<Cond> conditions, SensorData sensors) {
+
+        // Converts SensorData to HashSet<Cond> for comparison
+        HashSet<Cond> convertSensors = initExternal(sensors);
+
+        // First checks that the size of the two sets are equal.
+        // If so, returns false if the converted sensors don't contain the external conditions.
+        if (conditions.size() == convertSensors.size())
+
+            // Checks if each condtion is present
+            for (Cond cond : conditions) {
+                if (!convertSensors.contains(cond)) {
+                    return false;
+                }
+            }
+        else {
+                return false;
+        }
+
+        return true;
+    }//helperMatch
 
     /**
      * isMatch
@@ -217,6 +263,23 @@ public class TFRule extends Rule{
         }
 
     }//updateTFVals
+
+    /**
+     * totalMatchScore
+     *
+     * Adds the match scores of the lhs and rhs to compute the total match score.
+     *
+     * @param action the action made by the rule to compare against
+     * @param lhsInt a HashSet of integers containing the internal sensors that were on
+     * @param lhsExt the lhs external sensorData
+     * @param rhsExt the rhs external sensorData
+     * @return the total match score
+     */
+    public double totalMatchScore(char action, HashSet<Integer> lhsInt, SensorData lhsExt, SensorData rhsExt) {
+
+        // Adds the lhs and rhs match scores
+        return lhsMatchScore(action, lhsInt, lhsExt) + rhsMatchScore(rhsExt);
+    }//totalMatchScore
 
     /**
      * rhsMatchScore
@@ -320,10 +383,11 @@ public class TFRule extends Rule{
     private double calculateTFIDF(double tf, double df, boolean wasOn) {
         double tfidf = 0.0;
 
+        // Added 1 to the denominator to avoid Nan, Inifinity and division by 0 errors
         if (wasOn){
-            tfidf = tf / df;
+            tfidf = tf / (1 + df);
         } else {
-            tfidf = (1 - tf) / (1 - df);
+            tfidf = (1 - tf) / (2 - df);
         }
 
         return tfidf;
