@@ -62,6 +62,9 @@ public class TreeNode {
     //This is the rule used to reach this node (use null for the root)
     private BaseRule rule;
 
+    //This is the rule used to reach this node when using tfrules
+    private TFRule termRule;
+
     //This is the path used to reach this node
     private final Vector<TreeNode> path;
 
@@ -82,12 +85,29 @@ public class TreeNode {
         this.parent = null;
         this.episodeIndex = agent.getNow();
         this.rule = null;
+        this.termRule = null;
         this.currInternal = agent.getCurrInternal();
         this.currExternal = agent.getCurrExternal();
         this.path = new Vector<>();
         this.pathStr = "";
         //full confidence because drawn directly from agent's present sensing
         this.confidence = 1.0;
+    }
+
+    public TreeNode(TreeNode parent, TFRule tfRule) {
+        //initializing agent and its children
+        this.agent = parent.agent;
+        this.rules = parent.rules;
+        this.parent = parent;
+        this.episodeIndex = parent.episodeIndex + 1;
+        this.termRule = tfRule;
+        this.currInternal = agent.genNextInternalTF(tfRule.getAction(), parent.currInternal, parent.currExternal);
+        this.currExternal = tfRule.getRHSExternal();
+        this.path = new Vector<>(parent.path);
+        this.path.add(this);
+        this.pathStr = parent.pathStr + tfRule.getAction();
+        this.confidence = tfRule.lhsMatchScore(tfRule.getAction(), parent.currInternal, parent.currExternal);
+        this.confidence *= tfRule.getAccuracy();
     }
 
     /**
@@ -110,6 +130,25 @@ public class TreeNode {
         this.pathStr = parent.pathStr + rule.getAction();
         this.confidence = rule.lhsMatchScore(rule.getAction(), parent.currInternal, parent.currExternal);
         this.confidence *= rule.getAccuracy();
+    }
+
+    public TFRule findBestMatchingTFRule(char action) {
+        HashSet<Integer> lhsInt = this.agent.getPrevInternal();
+        SensorData lhsExt = this.agent.getPrevExternal();
+        SensorData rhsExt = this.agent.getCurrExternal();
+
+        TFRule maxRule = null;
+        double max = 0.0;
+        for (TFRule tr : this.agent.getTfRules()) {
+            double temp = tr.totalMatchScore(action, lhsInt, lhsExt, rhsExt);
+            System.out.println(tr.ruleId + ": " + temp);
+            if( temp > max ){
+                max = tr.totalMatchScore(action, lhsInt, lhsExt, rhsExt);
+                maxRule = tr;
+            }
+        }
+
+        return maxRule;
     }
 
     /**

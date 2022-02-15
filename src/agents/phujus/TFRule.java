@@ -486,7 +486,7 @@ public class TFRule extends Rule{
         result.append(toStringShortRHS(this.rhsExternal));
         //note:  replaceAll call removes extra trailing 0's to improve readability
         result.append(String.format(" ^  acc=%.5f", getAccuracy()).replaceAll("0+$", "0"));
-        double leftScore = lhsMatchScore(agent.getPrevAction(), agent.getPrevInternal() , agent.getCurrExternal());
+        double leftScore = lhsMatchScore(agent.getPrevAction(), agent.getPrevInternal() , agent.getPrevExternal());
         result.append(String.format("\tMatch Score: lhs=%.3f",leftScore).replaceAll("0+$","0"));
         double rightScore = rhsMatchScore(agent.getCurrExternal());
         result.append(String.format(" rhs=%.3f tot=%.3f\t",rightScore, leftScore+rightScore).replaceAll("0+$","0"));
@@ -500,6 +500,14 @@ public class TFRule extends Rule{
 
     public HashSet<Cond> getRHSExternalRaw() {
         return this.rhsExternal;
+    }
+
+    public SensorData getRHSExternal() {
+        SensorData result = SensorData.createEmpty();
+        for(Cond cond : this.rhsExternal) {
+            result.setSensor(cond.sName, cond.data.getTF() > .5 ? true : false);
+        }
+        return result;
     }
 
     public HashSet<Cond> getLHSExternalRaw() {

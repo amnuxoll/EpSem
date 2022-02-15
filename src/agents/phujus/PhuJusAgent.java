@@ -203,9 +203,9 @@ public class PhuJusAgent implements IAgent {
             System.out.println(tfRules.get(i));
         }
 
-        if(this.now > 1)
-            System.out.println("Best Match TF Rule: " + gethighestTFRule().ruleId);
-
+        //if(this.now > 1)
+        //    System.out.println("Best Match TF Rule: " + gethighestTFRule().ruleId);
+//
         //Update the agent's current path
         pathMaintenance(sensorData.isGoal());
 
@@ -446,29 +446,6 @@ public class PhuJusAgent implements IAgent {
     public HashSet<Integer> genNextInternal(char action) {
         return genNextInternal(action, this.currInternal, this.currExternal);
     }//genNextInternal
-
-    public TFRule gethighestTFRule() {
-        char action = this.getPrevAction();
-        HashSet<Integer> lhsInt = this.getCurrInternal();
-        SensorData lhsExt = this.prevExternal;
-        SensorData rhsExt = this.currExternal;
-
-        TFRule maxRule = null;
-        double max = 0.0;
-        if(this.tfRules.size() > 0) {
-            maxRule = this.tfRules.get(0);
-            max = maxRule.totalMatchScore(action, lhsInt, lhsExt, rhsExt);
-        }
-
-        for (TFRule rule : this.tfRules) {
-            if(rule.totalMatchScore(action, lhsInt, lhsExt, rhsExt) > max){
-                max = rule.totalMatchScore(action, lhsInt, lhsExt, rhsExt);
-                maxRule = rule;
-            }
-        }
-
-        return maxRule;
-    }
 
     /**
      * updateSensors
@@ -1429,6 +1406,7 @@ public class PhuJusAgent implements IAgent {
     public Hashtable<Integer, Rule> getRules() { return this.rules; }
     public Vector<BaseRule> getBaseRules() { return this.baseRules; }
     public Vector<EpRule> getEpRules() { return this.epRules; }
+    public Vector<TFRule> getTfRules() { return tfRules; }
     public int getNow() { return now; }
     public HashSet<Integer> getCurrInternal() { return this.currInternal; }
     /** returns the most recent */
