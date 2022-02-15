@@ -256,7 +256,7 @@ public class PhuJusAgent implements IAgent {
 
         //DEBUG
         if (PhuJusAgent.DEBUGPRINTSWITCH) {
-            //root.printTree();
+            root.printTree();
         }
 
         if (this.pathToDo == null) {
@@ -375,10 +375,10 @@ public class PhuJusAgent implements IAgent {
 
         for(int i : this.currInternal) {
             //ok to type cast since all internal sensors are BaseRule or EpRule
-            BaseRule cand = (BaseRule)getRuleById(i);
+            TFRule cand = (TFRule) getRuleById(i);
             if (cand == null) continue;
 
-            //Check for ancestors
+            /*//Check for ancestors
             for(int j : this.currInternal) {
                 if (i == j) continue;
                 BaseRule r = (BaseRule)getRuleById(j);
@@ -386,7 +386,7 @@ public class PhuJusAgent implements IAgent {
                     cand = null;
                     break;
                 }
-            }
+            }*/
             if (cand == null) continue;  //ancestor found
 
             //Check for mis-predicts
@@ -1022,8 +1022,8 @@ public class PhuJusAgent implements IAgent {
 
         //Find (or create) the rule that matches the current situation
         //Note:  in some cases multiple rules get created by this call
-        updateEpAndBaseRuleSet();
-
+        /*updateEpAndBaseRuleSet();
+*/
         //Update the TF values for all extant TFRules
         for(TFRule tf : this.tfRules) {
             if (tf.isMatch()) {
@@ -1032,7 +1032,7 @@ public class PhuJusAgent implements IAgent {
         }
 
         //Create a new TF Rule for this latest experience
-        tfRules.add(new TFRule(this));
+        addRule(new TFRule(this));
 
         //See if we need to cull rule(s) to stay below max
         cullRules();

@@ -133,7 +133,7 @@ public class TreeNode {
     }
 
     public TFRule findBestMatchingTFRule(char action) {
-        HashSet<Integer> lhsInt = this.agent.getPrevInternal();
+        HashSet<Integer> lhsInt = this.agent.getCurrInternal();
         SensorData lhsExt = this.agent.getPrevExternal();
         SensorData rhsExt = this.agent.getCurrExternal();
 
@@ -141,7 +141,6 @@ public class TreeNode {
         double max = 0.0;
         for (TFRule tr : this.agent.getTfRules()) {
             double temp = tr.totalMatchScore(action, lhsInt, lhsExt, rhsExt);
-            System.out.println(tr.ruleId + ": " + temp);
             if( temp > max ){
                 max = tr.totalMatchScore(action, lhsInt, lhsExt, rhsExt);
                 maxRule = tr;
@@ -219,7 +218,14 @@ public class TreeNode {
         for(int i = 0; i < agent.getActionList().length; ++i) {
             char action = agent.getActionList()[i].getName().charAt(0);
 
-            //Prefer a matching EpRule over any BaseRule
+            TFRule bestRule = findBestMatchingTFRule(action);
+            if(bestRule == null) {
+                continue;
+            }
+
+            TreeNode child = new TreeNode(this, bestRule);
+            this.children.add(child);
+            /*//Prefer a matching EpRule over any BaseRule
             BaseRule bestRule = findBestMatchingEpRule(action);
             if(bestRule == null) {
                 bestRule = findBestMatchingBaseRule(action);
@@ -230,7 +236,7 @@ public class TreeNode {
 
             //Create a child node for this rule
             TreeNode child = new TreeNode(this, bestRule);
-            this.children.add(child);
+            this.children.add(child);*/
 
         }//for each action
 
