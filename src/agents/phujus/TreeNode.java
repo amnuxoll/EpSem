@@ -347,6 +347,7 @@ public class TreeNode {
         Vector<TreeNode> bestPath = null;
         while(toSearch.size() > 0) {
             TreeNode curr = toSearch.remove(0);
+            //TreeNode a = toSearch.remove(1);
             double invConf = 1.0 - curr.confidence;
             double score = (1.0/((double)curr.path.size())) * invConf;
             if (score > bestScore) {

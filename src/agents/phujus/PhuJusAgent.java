@@ -38,7 +38,7 @@ import java.util.Random;
  *   (frequency and recency of correctness)
  */
 public class PhuJusAgent implements IAgent {
-    public static final int MAXNUMRULES = 5000;
+    public static final int MAXNUMRULES = 20;
     public static final int MAX_SEARCH_DEPTH = 5; //TODO: get the search to self prune again
     public static final int MAX_TIME_DEPTH = 7;  //size of short term memory
 
@@ -252,7 +252,13 @@ public class PhuJusAgent implements IAgent {
 
         //Find a new path to the goal
         TreeNode root = new TreeNode(this);
-        this.pathToDo = root.findBestGoalPath();
+
+        ////// *********************************************
+        // THIS IF STATEMENT NEEDS TO GO BUT IT DOESN'T WORK WITHOUT IT
+        ////// *********************************************
+        if(this.now > 2)
+            ///// ABOVE MAKES PROGRAM WORK. DON'T REMOVE UNLESS NECESARRY
+            this.pathToDo = root.findBestGoalPath();
 
         //DEBUG
         if (PhuJusAgent.DEBUGPRINTSWITCH) {
