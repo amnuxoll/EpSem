@@ -186,7 +186,9 @@ public class PhuJusAgent implements IAgent {
             debugPrintln("");
         }
 
-
+        if(this.rules.values().size() > 25){
+            debugPrintln("");
+        }
 
 
 
@@ -377,10 +379,10 @@ public class PhuJusAgent implements IAgent {
      *  This is a helper method for {@link #updateSensors(char)}.
      */
     private HashSet<Integer> calcPrunedInternal() {
-        HashSet<Integer> result = new HashSet<Integer>();
+        HashSet<Integer> result = new HashSet<>();
 
         for(int i : this.currInternal) {
-            //ok to type cast since all internal sensors are BaseRule or EpRule
+            //ok to type cast since all internal sensors are TFRules
             TFRule cand = (TFRule) getRuleById(i);
             if (cand == null) continue;
 
@@ -573,8 +575,10 @@ public class PhuJusAgent implements IAgent {
 
     /** @return a rule with a given id (or null if not found) */
     public Rule getRuleById(int id) {
-        int max = this.rules.size() - 1;
-        int min = 0;
+
+        return this.rules.get(id);
+        /*int max = this.rules.size() - 1;
+        int min = 1;
 
         //check for unfindable id
         if ( (id < 1) || (max < 0) ) return null;
@@ -604,7 +608,7 @@ public class PhuJusAgent implements IAgent {
             index = (min + max) / 2;
         }//while
 
-        return result;
+        return result;*/
     }//getRuleById
 
     /**
@@ -988,7 +992,21 @@ public class PhuJusAgent implements IAgent {
     private void cullRules() {
         if (this.rules.size() <= MAXNUMRULES) return;
 
-        //Find the rule with lowest activation & accuracy
+        TFRule worstRule = (TFRule) this.rules.elements().nextElement();
+        double worstScore = worstRule.calculateActivation(this.now) * worstRule.getAccuracy();
+        for (Rule rule : this.rules.values()) {
+            if(rule instanceof TFRule) {
+                TFRule r = (TFRule) rule;
+                double activation = r.calculateActivation(this.now);
+                double score = activation * r.getAccuracy();
+                if (score < worstScore) {
+                    worstScore = score;
+                    worstRule = r;
+                }
+            }
+        }
+
+        /*//Find the rule with lowest activation & accuracy
         //TODO:  score of a node should be its own score or child's whichever is higher!
         //       A good way to do this is to override calculateActivation in
         //       BaseRule and have it recurse through children.  It's expensive but
@@ -1007,7 +1025,7 @@ public class PhuJusAgent implements IAgent {
                 }
             }
         }
-
+*/
         //out with the old, in with the new...was there a baby in that bath water?
         //TODO:  the removeRule method needs to change
         removeRule(worstRule, null);
@@ -1060,17 +1078,8 @@ public class PhuJusAgent implements IAgent {
             System.err.println("ERROR: Exceeded MAXNUMRULES!");
         }
 
-        //Insert the new rule in numerical order by id
-        //(needs to be in order to support findRuleById())
-        int nInsert = rules.size();
-        while (nInsert > 0) {
-            Rule prevRule = rules.get(nInsert - 1);
-            if (prevRule.getId() < newRule.getId()) {
-                break;
-            }
-            nInsert--;
-        }
-        rules.put(nInsert,newRule);
+
+        rules.put(newRule.ruleId,newRule);
         //rules.add(nInsert, newRule);
 
 
@@ -1151,8 +1160,12 @@ public class PhuJusAgent implements IAgent {
      * @param removeMe  the rule to remove
      * @param replacement (can be null) the rule that will be replacing this one
      */
-    public void removeRule(EpRule removeMe, EpRule replacement) {
-        rules.remove(removeMe);
+    public void removeRule(TFRule removeMe, TFRule replacement) {
+        boolean removed = rules.remove(removeMe.ruleId ,removeMe);
+        //rules.remove
+        tfRules.remove(removeMe);
+        //tfRules.removeElement(removeMe);
+
 
         //DEBUGGING
         if (replacement == null) debugPrint("removed: ");
@@ -1164,10 +1177,10 @@ public class PhuJusAgent implements IAgent {
 
         // If any rule has a condition that test for 'removeMe' then that
         // condition must also be removed or replaced
-        Vector<EpRule> truncated = new Vector<>(); //stores rules that were truncated by this process
+        Vector<TFRule> truncated = new Vector<>(); //stores rules that were truncated by this process
         for (Rule rule : this.rules.values()) {
-            if(rule instanceof EpRule) {
-                EpRule r = (EpRule) rule;
+            if(rule instanceof TFRule) {
+                TFRule r = (TFRule) rule;
                 if (r.testsIntSensor(removeMe.getId())) {
                     int replId = (replacement == null) ? -1 : replacement.getId();
                     int ret = r.removeIntSensor(removeMe.getId(), replId);
@@ -1182,28 +1195,28 @@ public class PhuJusAgent implements IAgent {
 
         //Truncated rules are extra nasty to resolve well.  For now we're just going
         // to remove them if they conflict with other rules in the ruleset.
-        // I'm sure this will come back and bite us later...
-        Vector<EpRule> removeThese = new Vector<>();
-        for(EpRule r : truncated) {
+       /* // I'm sure this will come back and bite us later...
+        Vector<TFRule> removeThese = new Vector<>();
+        for(TFRule r : truncated) {
             EpRuleMatchProfile prof = findMostSimilarRule(r);
             if (prof.shortScore == 1.0) {
                 removeThese.add(r);
             }
         }
-        for(EpRule r : removeThese) {
+        for(TFRule r : removeThese) {
             removeRule(r, null);  //recursion here
         }
+*/
 
-
-        //the replacement may also have to-be-removed rule in its sensor set
+        /*//the replacement may also have to-be-removed rule in its sensor set
         if (replacement != null) {
-            if(replacement instanceof EpRule) {
+            if(replacement instanceof TFRule) {
                 if (replacement.testsIntSensor(removeMe.getId())) {
                     replacement.removeIntSensor(removeMe.getId(), replacement.getId());
                 }
             }
         }
-
+*/
         //If the removed rule was in the internal sensor set, it has to be fixed as well
         if (this.currInternal.contains(removeMe.getId())) {
             this.currInternal.remove(removeMe.getId());

@@ -393,6 +393,28 @@ public class TFRule extends Rule{
         return tfidf;
     }//calculateTFIDF
 
+    public boolean testsIntSensor(int id){
+        for(Cond cond: this.lhsInternal){
+            if(Integer.parseInt(cond.sName)==id){
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public int removeIntSensor(int oldId, int newId){
+        int removeCount = 0;
+
+        for(Cond cond: this.lhsInternal){
+            if(Integer.parseInt(cond.sName) == oldId){
+                this.lhsInternal.remove(cond);
+                removeCount++;
+                return removeCount;
+            }
+        }
+        return 0;
+    }
+
     /**
      * sortedConds
      *
