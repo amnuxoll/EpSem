@@ -182,7 +182,7 @@ public class PhuJusAgent implements IAgent {
         if(this.stepsSinceGoal >= 40) {
             debugPrintln("");
         }
-        if (this.now == 8) {
+        if (this.now == 20) {
             debugPrintln("");
         }
 
@@ -577,38 +577,7 @@ public class PhuJusAgent implements IAgent {
     public Rule getRuleById(int id) {
 
         return this.rules.get(id);
-        /*int max = this.rules.size() - 1;
-        int min = 1;
 
-        //check for unfindable id
-        if ( (id < 1) || (max < 0) ) return null;
-
-        //Adjust index if needed
-        int index = id - 1;  //This is often a good first guess
-        if ((index < min) || (index > max)) {
-            index = (min + max) / 2;
-        }
-
-
-        //binary search
-        Rule result = null;
-        while(min <= max) {
-            result = this.rules.get(index);
-            int guessId = result.getId();
-            if (guessId == id) {
-                break;  //rule found
-            }
-            else if (guessId < id) {
-                min = index + 1;
-            } else {
-                max = index - 1;
-            }
-
-            //next check at the midpoint between min:max
-            index = (min + max) / 2;
-        }//while
-
-        return result;*/
     }//getRuleById
 
     /**
@@ -1049,14 +1018,21 @@ public class PhuJusAgent implements IAgent {
         /*updateEpAndBaseRuleSet();
 */
         //Update the TF values for all extant TFRules
-        for(TFRule tf : this.tfRules) {
-            if (tf.isMatch()) {
-                tf.updateTFVals();
+        boolean wasMatch = false;
+
+        for(TFRule rule : this.tfRules) {
+            if (rule.isMatch()) {
+                rule.updateTFVals();
+                //check and make sure the rule has internal conditions for every other rule
+                //if not add them
+                rule.addConditions();
+                wasMatch = true;
             }
         }
 
         //Create a new TF Rule for this latest experience
-        addRule(new TFRule(this));
+        if(!wasMatch)
+            addRule(new TFRule(this));
 
         //See if we need to cull rule(s) to stay below max
         cullRules();

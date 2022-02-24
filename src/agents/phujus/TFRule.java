@@ -155,6 +155,36 @@ public class TFRule extends Rule{
         return result;
     }//initExternal
 
+    public void addConditions(){
+        //make the tf rule
+        //go through each sensor we have in new TFRule and make sure it is in this TFRule
+        //if not then check to make sure it is not for this TFRule
+        //if it isn't then add condition to this
+        Integer[] currInt =  agent.getRules().keySet().toArray(new Integer[0]);
+
+        boolean doesHave =false;
+        for(int i:currInt){
+            if(i == this.ruleId)
+                continue;
+
+            for(Cond cond: this.lhsInternal){
+                int name = Integer.parseInt(cond.sName);
+
+                if(name == i){
+                    doesHave = true;
+                }
+            }
+            if(!doesHave){//we don't have this condition! time to add it
+                boolean initVal = agent.getPrevInternal().contains(i);
+                this.lhsInternal.add(new Cond(Integer.toString(i),initVal));
+            }
+
+        }
+
+
+
+    }
+
     /**
      * isMatch
      *
