@@ -386,21 +386,8 @@ public class PhuJusAgent implements IAgent {
             TFRule cand = (TFRule) getRuleById(i);
             if (cand == null) continue;
 
-            /*//Check for ancestors
-            for(int j : this.currInternal) {
-                if (i == j) continue;
-                BaseRule r = (BaseRule)getRuleById(j);
-                if (cand.isAncestor(r)) {
-                    cand = null;
-                    break;
-                }
-            }*/
-            if (cand == null) continue;  //ancestor found
-
-            //Check for mis-predicts
-            double score = cand.rhsMatchScore(this.currExternal);
-            if (score == 1.0) {
-                result.add(i);
+            if(cand.isMatch()){
+                result.add(cand.ruleId);
             }
 
         }//for each internal sensor

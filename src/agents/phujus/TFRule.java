@@ -279,6 +279,7 @@ public class TFRule extends Rule{
         //get all the current internal sesnor data to see which ones are on
         HashSet<Integer> previnternal = agent.getPrevInternal();
 
+
         //loop through all the tf hashsets (lhs, rhs, etc), check if the sensor id is within prev internal
         // if it is, then update the tf accordingly
         // -> increment the numerator by one
@@ -539,9 +540,8 @@ public class TFRule extends Rule{
         //note:  replaceAll call removes extra trailing 0's to improve readability
         result.append(String.format(" ^  acc=%.5f", getAccuracy()).replaceAll("0+$", "0"));
         double leftScore = lhsMatchScore(agent.getPrevAction(), agent.getCurrInternal() , agent.getPrevExternal());
-        result.append(String.format("\tMatch Score: lhs=%.3f",leftScore).replaceAll("0+$","0"));
         double rightScore = rhsMatchScore(agent.getCurrExternal());
-        result.append(String.format(" rhs=%.3f tot=%.3f\t",rightScore, leftScore+rightScore).replaceAll("0+$","0"));
+        result.append(String.format(" Score: %.3f\t|| ", leftScore+rightScore).replaceAll("0+$","0"));
         result.append(toStringLongLHS(this.lhsInternal));
         return result.toString();
     }

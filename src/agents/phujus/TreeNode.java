@@ -225,18 +225,6 @@ public class TreeNode {
 
             TreeNode child = new TreeNode(this, bestRule);
             this.children.add(child);
-            /*//Prefer a matching EpRule over any BaseRule
-            BaseRule bestRule = findBestMatchingEpRule(action);
-            if(bestRule == null) {
-                bestRule = findBestMatchingBaseRule(action);
-                if(bestRule == null) {
-                    continue; //we can't expand with this action
-                }
-            }
-
-            //Create a child node for this rule
-            TreeNode child = new TreeNode(this, bestRule);
-            this.children.add(child);*/
 
         }//for each action
 
@@ -315,10 +303,10 @@ public class TreeNode {
             //Recursive case: test all children and return shortest path
             Vector<TreeNode> foundPath = child.fbgpHelper(depth + 1, maxDepth);
 
-            if ( foundPath != null) {
-                double confidence = foundPath.lastElement().confidence;
+            if ( foundPath != null && depth > 0) {
+                double tfidf = foundPath.lastElement().termRule.totalMatchScore(this.getAction(),this.currInternal,this.currExternal,this.currExternal);
                 //TODO: Braeden is unsatisfied with the 1/length , think about another metric?
-                double foundScore = (1.0 / (foundPath.size())) * confidence;
+                double foundScore = (1.0 / (foundPath.size())) * tfidf;
                 if (foundScore > bestScore) {
                     bestPath = foundPath;
                     bestScore = foundScore;
