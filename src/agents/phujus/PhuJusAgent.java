@@ -179,7 +179,7 @@ public class PhuJusAgent implements IAgent {
         }
 
         //DEBUG: breakpoint here to debug
-        if(this.stepsSinceGoal >= 40) {
+        if(this.stepsSinceGoal >= 5) {
             debugPrintln("");
         }
         if (this.now == 20) {

@@ -303,8 +303,11 @@ public class TreeNode {
             //Recursive case: test all children and return shortest path
             Vector<TreeNode> foundPath = child.fbgpHelper(depth + 1, maxDepth);
 
-            if ( foundPath != null && depth > 0) {
-                double tfidf = foundPath.lastElement().termRule.totalMatchScore(this.getAction(),this.currInternal,this.currExternal,this.currExternal);
+            if ( foundPath != null ) {
+                double tfidf = 0.01;
+                if(depth != 0){
+                    tfidf = foundPath.lastElement().termRule.totalMatchScore(this.getAction(),this.currInternal,this.currExternal,this.currExternal);
+                }
                 //TODO: Braeden is unsatisfied with the 1/length , think about another metric?
                 double foundScore = (1.0 / (foundPath.size())) * tfidf;
                 if (foundScore > bestScore) {

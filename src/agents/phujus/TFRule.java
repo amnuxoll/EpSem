@@ -325,8 +325,9 @@ public class TFRule extends Rule{
 
         // Loops through all external sensors of the rule and checks if the incoming
         // sensor data contains the external sensor
+        int c = 0;
         for (Cond eCond : this.rhsExternal) {
-
+            c++;
             // If so, then we calculate the TF/DF value to be added to the score
             if (rhsExt.hasSensor(eCond.sName)) {
 
@@ -339,7 +340,7 @@ public class TFRule extends Rule{
             }
         }
 
-        return score;
+        return score/c;
     }//rhsMatchScore
 
     /**
@@ -360,11 +361,11 @@ public class TFRule extends Rule{
         if (action != this.action) return 0.0;
 
         double score = 0.0;
-
+        int c = 0;
         // Loops through all external sensors of the rule and checks if the incoming
         // sensor data contains the external sensor
         for (Cond eCond : this.lhsExternal) {
-
+            c++;
             // If so, then we calculate the TF/DF value to be added to the score
             if (lhsExt.hasSensor(eCond.sName)) {
 
@@ -384,7 +385,7 @@ public class TFRule extends Rule{
         // Loops through all internal sensors of the rule and checks if the incoming
         // sensor data contains the internal sensor
         for (Cond cond : this.lhsInternal) {
-
+        c++;
             // If so, then we calculate the TF/DF value to be added to the score
             if (lhsInt.contains(Integer.parseInt(cond.sName))) {
 
@@ -397,7 +398,7 @@ public class TFRule extends Rule{
             }
         }
 
-        return score;
+        return score/c;
     }//lhsMatchScore
 
     /**
