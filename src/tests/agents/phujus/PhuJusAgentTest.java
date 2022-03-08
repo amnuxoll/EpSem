@@ -1,6 +1,7 @@
 package tests.agents.phujus;
 import agents.phujus.EpRule;
 import agents.phujus.PhuJusAgent;
+import agents.phujus.TFRule;
 import agents.phujus.TreeNode;
 import framework.Action;
 import framework.SensorData;
@@ -110,6 +111,33 @@ public class PhuJusAgentTest {
         return rule;
     }//quickRuleGen
 
+    @EpSemTest
+    public void testAddRule() throws Exception {
+        PhuJusAgent agent = quickAgentGen("abcde", "1101010");
+        SensorData sd = PhuJusAgentTest.quickExtGen("1011010");
+        agent.getNextAction(sd);
+
+        // Creates and adds a new TFRule
+        TFRule tfr = new TFRule(agent);
+        agent.addRule(tfr);
+
+        // The agent should have the new rule
+        Assertions.assertTrue(agent.getRules().contains(tfr));
+
+        // The agent should have the new TF rule
+        Assertions.assertTrue(agent.getTfRules().contains(tfr));
+    }
+
+    @EpSemTest
+    public void testUpdateRuleSet() throws Exception {
+        PhuJusAgent agent = quickAgentGen("abcde", "1101010");
+
+        // Creates and adds a new TFRule
+        TFRule tfr = new TFRule(agent);
+        agent.addRule(tfr);
+
+
+    }
 //
 //    /** test the EpRule.matchScore() method */
 //    @EpSemTest

@@ -21,7 +21,7 @@ public class TFRule extends Rule{
     /**
      * class TFData packages the data and method required to calculate Term Frequency
      */
-    public class TFData {
+    public static class TFData {
         public double numMatches = 1.0;
         public double numOn = 0;
 
@@ -40,7 +40,7 @@ public class TFRule extends Rule{
      *
      * Tracks external conditions (LHS or RHS)
      */
-    public class Cond implements Comparable<Cond> {
+    public static class Cond implements Comparable<Cond> {
         public String sName;  //sensor name
         public TFData data;   //term frequency data
 
