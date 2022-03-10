@@ -132,17 +132,23 @@ public class TreeNode {
         this.confidence *= rule.getAccuracy();
     }
 
+    /**
+     * findBestMatchingTFRule
+     *
+     * finds the TFRule that best matches this TreeNode
+     *
+     * @param action the action to use for the match
+     * @return the best match or null if no match found
+     */
     public TFRule findBestMatchingTFRule(char action) {
-        HashSet<Integer> lhsInt = this.agent.getCurrInternal();
-        SensorData lhsExt = this.agent.getPrevExternal();
-        SensorData rhsExt = this.agent.getCurrExternal();
-
         TFRule maxRule = null;
         double max = 0.0;
         for (TFRule tr : this.agent.getTfRules()) {
-            double temp = tr.totalMatchScore(action, lhsInt, lhsExt, rhsExt);
-            if( temp > max ){
-                max = tr.totalMatchScore(action, lhsInt, lhsExt, rhsExt);
+
+            double score = tr.lhsMatchScore(action, this.currInternal, this.currExternal);
+            if (score <= TFRule.MATCH_CUTOFF) continue;
+            if( score > max ){
+                max = score;
                 maxRule = tr;
             }
         }
@@ -271,7 +277,7 @@ public class TreeNode {
      */
     private Vector<TreeNode> fbgpHelper(int depth, int maxDepth) {
         //base case:  found goal
-        if (isGoalNode()) {
+        if (this.isGoalNode()) {
             this.isLeaf = true;
             return this.path;
         }
@@ -306,6 +312,8 @@ public class TreeNode {
             if ( foundPath != null ) {
                 double tfidf = 0.01;
                 if(depth != 0){
+                    //TODO:  Is this the right calculation?  This is replacing confidence
+                    //       from the old EpRules
                     tfidf = foundPath.lastElement().termRule.totalMatchScore(this.getAction(),this.currInternal,this.currExternal,this.currExternal);
                 }
                 //TODO: Braeden is unsatisfied with the 1/length , think about another metric?

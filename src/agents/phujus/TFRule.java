@@ -72,8 +72,8 @@ public class TFRule extends Rule{
         }
 
         public String toStringShort() {
-            //return a 0 or 1 by rounding the TFData to the nearest int
-            return "" +  ((data.getTF() >= 0.5) ? 1 : 0);
+            //return a 0 or 1 using the MATCH_CUTOFF
+            return "" +  ((data.getTF() >= MATCH_CUTOFF) ? 1 : 0);
         }
 
         @Override
@@ -96,6 +96,12 @@ public class TFRule extends Rule{
     //endregion
 
     //region Instance Variables
+
+    //Hyper-parameter:  How close does a partial match need to be to
+    // be considered a match (e.g., for the purposes of internal sensors)?
+    //TODO: For now we have this hard-coded (on the scale 0.0..1.0)
+    public static final double MATCH_CUTOFF = 0.5;
+
     //the action of the rule
     private char action;
 
@@ -225,7 +231,7 @@ public class TFRule extends Rule{
      * @param sensors the current or previous SensorData
      * @return whether the conditions and sensors match
      */
-    public boolean helperMatch(HashSet<Cond> conditions, SensorData sensors) {
+    private boolean helperMatch(HashSet<Cond> conditions, SensorData sensors) {
 
         // Converts SensorData to HashSet<Cond> for comparison
         HashSet<Cond> convertSensors = initExternal(sensors);
@@ -348,8 +354,6 @@ public class TFRule extends Rule{
      * lhsMatchScore
      *
      * calculates how closely this rule matches a given action and lhs sensors
-     * For a BaseRule this is trivial since the LHS is just an action.
-     * This method is overridden in child classes
      *
      * @param action the action made by the rule to compare against
      * @param lhsInt a HashSet of integers containing the internal sensors that were on
@@ -377,26 +381,26 @@ public class TFRule extends Rule{
 
                 // Adds the TF/DF to the current score
                 score += calculateTFIDF(tfValue, dfValue, sVal);
+
+                //TODO:  remove Debuggin' code below
+                double foo1 = calculateTFIDF(1.0 - tfValue, dfValue, sVal);
+                double foo2 = calculateTFIDF(tfValue, 1.0 - dfValue, sVal);
+                double foo3 = calculateTFIDF(1.0 - tfValue, 1.0 - dfValue, sVal);
+                double foo4 = 3.0;
             }
         }
-
-        // Gets the internal sensors that were previously on
-        HashSet<Integer> prevInternal = agent.getPrevInternal();
 
         // Loops through all internal sensors of the rule and checks if the incoming
         // sensor data contains the internal sensor
         for (Cond cond : this.lhsInternal) {
-        c++;
-            // If so, then we calculate the TF/DF value to be added to the score
-            if (lhsInt.contains(Integer.parseInt(cond.sName))) {
+            c++;
 
-                // Calculates the TF and DF values, and if the sensor values are the same
-                double tf = cond.data.getTF();
-                double df = agent.getInternalPercents().get(cond.sName).getSecond();
-                boolean wasOn = prevInternal.contains(cond.sName);
+            // Calculates the TF and DF values, and if the sensor values are the same
+            double tf = cond.data.getTF();
+            double df = agent.getInternalPercents().get(cond.sName).getSecond();
+            boolean wasOn = lhsInt.contains(Integer.parseInt(cond.sName));
 
-                score += calculateTFIDF(tf,df,wasOn);
-            }
+            score += calculateTFIDF(tf,df,wasOn);
         }
 
         return score/c;
@@ -416,7 +420,7 @@ public class TFRule extends Rule{
     private double calculateTFIDF(double tf, double df, boolean wasOn) {
         double tfidf = 0.0;
 
-        // Added 1 to the denominator to avoid Nan, Inifinity and division by 0 errors
+        // Added 1 to the denominator to avoid Nan, Infinity and division by 0 errors
         if (wasOn){
             tfidf = tf / (1 + df);
         } else {
@@ -559,7 +563,7 @@ public class TFRule extends Rule{
     public SensorData getRHSExternal() {
         SensorData result = SensorData.createEmpty();
         for(Cond cond : this.rhsExternal) {
-            result.setSensor(cond.sName, cond.data.getTF() > .5 ? true : false);
+            result.setSensor(cond.sName, cond.data.getTF() > MATCH_CUTOFF ? true : false);
         }
         return result;
     }
