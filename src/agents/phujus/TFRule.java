@@ -138,6 +138,7 @@ public class TFRule extends Rule{
         HashSet<Cond> set = new HashSet<>();
         for(Rule rule : combinedSet){
             boolean on = prevInternal.contains(rule.ruleId);
+            //TODO:                should this just be true for internal sensors?
             set.add(new Cond(Integer.toString(rule.ruleId), on));
         }
 
@@ -565,6 +566,10 @@ public class TFRule extends Rule{
 
     public HashSet<Cond> getLHSExternalRaw() {
         return this.lhsExternal;
+    }
+
+    public HashSet<Cond> getLhsInternal() {
+        return this.lhsInternal;
     }
 
     //endregion
