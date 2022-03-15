@@ -73,7 +73,7 @@ public class TFRule extends Rule{
 
         public String toStringShort() {
             //return a 0 or 1 using the MATCH_CUTOFF
-            return "" +  ((data.getTF() >= MATCH_CUTOFF) ? 1 : 0);
+            return "" +  ((data.getTF() > MATCH_CUTOFF) ? 1 : 0);
         }
 
         @Override
@@ -100,7 +100,7 @@ public class TFRule extends Rule{
     //Hyper-parameter:  How close does a partial match need to be to
     // be considered a match (e.g., for the purposes of internal sensors)?
     //TODO: For now we have this hard-coded (on the scale 0.0..1.0)
-    public static final double MATCH_CUTOFF = 0.5;
+    public static final double MATCH_CUTOFF = 0.35;
 
     //the action of the rule
     private char action;
@@ -545,8 +545,8 @@ public class TFRule extends Rule{
         result.append(toStringShortRHS(this.rhsExternal));
         //note:  replaceAll call removes extra trailing 0's to improve readability
         result.append(String.format(" ^  acc=%.5f", getAccuracy()).replaceAll("0+$", "0"));
-        double leftScore = lhsMatchScore(agent.getPrevAction(), agent.getCurrInternal() , agent.getPrevExternal());
-        double rightScore = rhsMatchScore(agent.getCurrExternal());
+        double leftScore = lhsMatchScore(agent.getPrevAction(), agent.getPrevInternal() , agent.getPrevExternal());
+        double rightScore = 0;//rhsMatchScore(agent.getCurrExternal());
         result.append(String.format(" Score: %.3f\t|| ", leftScore+rightScore).replaceAll("0+$","0"));
         result.append(toStringLongLHS(this.lhsInternal));
         return result.toString();

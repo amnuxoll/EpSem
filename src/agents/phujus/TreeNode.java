@@ -106,8 +106,8 @@ public class TreeNode {
         this.path = new Vector<>(parent.path);
         this.path.add(this);
         this.pathStr = parent.pathStr + tfRule.getAction();
-        this.confidence = tfRule.lhsMatchScore(tfRule.getAction(), parent.currInternal, parent.currExternal);
-        this.confidence *= tfRule.getAccuracy();
+        //this.confidence = tfRule.lhsMatchScore(tfRule.getAction(), parent.currInternal, parent.currExternal);
+        this.confidence = tfRule.getAccuracy();
     }
 
     /**
@@ -147,6 +147,7 @@ public class TreeNode {
 
             double score = tr.lhsMatchScore(action, this.currInternal, this.currExternal);
             if (score <= TFRule.MATCH_CUTOFF) continue;
+            score*= tr.getAccuracy();
             if( score > max ){
                 max = score;
                 maxRule = tr;
@@ -221,7 +222,7 @@ public class TreeNode {
         if (this.children.size() != 0) return;
 
         //Find the best matching Rule
-        for(int i = 0; i < agent.getActionList().length; ++i) {
+        for(int i = 0; i < agent.getActionList().length; i++) {
             char action = agent.getActionList()[i].getName().charAt(0);
 
             TFRule bestRule = findBestMatchingTFRule(action);
@@ -252,7 +253,7 @@ public class TreeNode {
                 double foundScore = path.lastElement().confidence;
 
                 //Adjust confidence based upon the PathRules eval
-                foundScore *= agent.metaScorePath(path);
+                //foundScore *= agent.metaScorePath(path);
 
                 if(foundScore > bestScore) {
                     bestPath = path;
@@ -310,11 +311,11 @@ public class TreeNode {
             Vector<TreeNode> foundPath = child.fbgpHelper(depth + 1, maxDepth);
 
             if ( foundPath != null ) {
-                double tfidf = 0.01;
+                double tfidf = 0.00;
                 if(depth != 0){
                     //TODO:  Is this the right calculation?  This is replacing confidence
                     //       from the old EpRules
-                    tfidf = foundPath.lastElement().termRule.totalMatchScore(this.getAction(),this.currInternal,this.currExternal,this.currExternal);
+                    tfidf = foundPath.lastElement().termRule.lhsMatchScore(this.getAction(),this.currInternal,this.currExternal);
                 }
                 //TODO: Braeden is unsatisfied with the 1/length , think about another metric?
                 double foundScore = (1.0 / (foundPath.size())) * tfidf;
@@ -339,6 +340,8 @@ public class TreeNode {
      * @return the path found
      */
     public Vector<TreeNode> findMostUncertainPath() {
+
+
         Vector<TreeNode> toSearch = new Vector<>();
         toSearch.add(this);
 

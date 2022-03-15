@@ -38,7 +38,7 @@ import java.util.Random;
  *   (frequency and recency of correctness)
  */
 public class PhuJusAgent implements IAgent {
-    public static final int MAXNUMRULES = 20;
+    public static final int MAXNUMRULES = 1000;
     public static final int MAX_SEARCH_DEPTH = 5; //TODO: get the search to self prune again
     public static final int MAX_TIME_DEPTH = 7;  //size of short term memory
 
@@ -255,12 +255,8 @@ public class PhuJusAgent implements IAgent {
         //Find a new path to the goal
         TreeNode root = new TreeNode(this);
 
-        ////// *********************************************
-        // THIS IF STATEMENT NEEDS TO GO BUT IT DOESN'T WORK WITHOUT IT
-        ////// *********************************************
-        if(this.now > 2)
-            ///// ABOVE MAKES PROGRAM WORK. DON'T REMOVE UNLESS NECESARRY
-            this.pathToDo = root.findBestGoalPath();
+
+        this.pathToDo = root.findBestGoalPath();
 
         //DEBUG
         if (PhuJusAgent.DEBUGPRINTSWITCH) {
@@ -895,6 +891,27 @@ public class PhuJusAgent implements IAgent {
 
 
     /**
+     * updateTFRulesAccuracy
+     *
+     * updates the accuracy(called confidence) of the tfrules that
+     * matched correctly this timestep and decreases the rules that
+     * didn't match correctly
+     */
+    public void updateTFRulesAccuracy() {
+        for(TFRule rule: tfRules) {
+            if(rule.lhsMatchScore(prevAction,this.getPrevInternal(),prevExternal) > TFRule.MATCH_CUTOFF) {
+                if(rule.isMatch()){
+                    rule.increaseConfidence();
+                }
+                else {
+                    rule.decreaseConfidence();
+                }
+
+            }
+        }
+    }
+
+    /**
      * updateEpAndBaseRuleSet
      *
      * updates the accuracy of all BaseRules and EpRules whose LHS matches
@@ -1004,6 +1021,9 @@ public class PhuJusAgent implements IAgent {
         //Note:  in some cases multiple rules get created by this call
         /*updateEpAndBaseRuleSet();
 */
+        //updates the accuracies of our tf rules
+        updateTFRulesAccuracy();
+
         //Update the TF values for all extant TFRules
         boolean wasMatch = false;
 
