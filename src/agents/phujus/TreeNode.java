@@ -379,7 +379,8 @@ public class TreeNode {
                 for (TreeNode child : curr.children) {
                     if (child != null) toSearch.add(child);
                 }
-            } else {
+            //else if not at a leaf node...
+            } else if (curr.path.size() < PhuJusAgent.MAX_SEARCH_DEPTH) {
                 //If we reach this point, there is an action that has never been
                 // taken in this scenario.  So find that action and build a path
                 // with it.
@@ -403,6 +404,7 @@ public class TreeNode {
 
                 }
             }
+
         }//while
 
         return bestPath;

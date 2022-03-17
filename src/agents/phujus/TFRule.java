@@ -54,16 +54,13 @@ public class TFRule extends Rule{
 
         }
 
-        /** Conds are equal if they have the same sName and val */
+        /** Conds are equal if they have the same name.
+         *   TFData is not compared. */
         @Override
         public boolean equals(Object o) {
             if (! (o instanceof Cond)) return false;
             Cond other = (Cond) o;
-            //TODO:  should we compare the TFData??
-            if (this.sName.equals(other.sName)) {
-                return this.data.getTF() == other.data.getTF();
-            }
-            return false;
+            return this.sName.equals(other.sName);
         }
 
         @Override
@@ -193,13 +190,14 @@ public class TFRule extends Rule{
     }
 
     /**
-     * isMatch
+     * isExtMatch
      *
-     * Checks if this rule matches the agent's most recent experience
+     * Checks if this rule matches the agent's most recent experience.
+     * This method only checks external sensors for comparison.
      *
      * @return whether the rule matches this rule
      */
-    public boolean isMatch(){
+    public boolean isExtMatch() {
 
         // Return false if the actions are not the same
         if (this.action != this.agent.getPrevAction()) {
@@ -218,7 +216,7 @@ public class TFRule extends Rule{
 
         return true;
 
-    }//isMatch
+    }//isExtMatch
 
     /**
      * helperMatch

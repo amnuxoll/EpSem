@@ -38,7 +38,7 @@ import java.util.Random;
  *   (frequency and recency of correctness)
  */
 public class PhuJusAgent implements IAgent {
-    public static final int MAXNUMRULES = 15;
+    public static final int MAXNUMRULES = 40;
     public static final int MAX_SEARCH_DEPTH = 5; //TODO: get the search to self prune again
     public static final int MAX_TIME_DEPTH = 7;  //size of short term memory
 
@@ -175,14 +175,13 @@ public class PhuJusAgent implements IAgent {
             debugPrintln("TIME STEP: " + this.now);
             printInternalSensors(this.currInternal);
             printExternalSensors(this.currExternal);
-
         }
 
         //DEBUG: breakpoint here to debug
-        if(this.stepsSinceGoal >= 5) {
+        if(this.stepsSinceGoal >= 30) {
             debugPrintln("");
         }
-        if (this.now == 20) {
+        if (this.now == 45) {
             debugPrintln("");
         }
         if(this.rules.values().size() > 25){
@@ -195,8 +194,9 @@ public class PhuJusAgent implements IAgent {
         updateInternalPercents();
         updateExternalPercents();
 
-        printInternalPercents();
-        printExternalPercents();
+//        //DEBUG
+//        printInternalPercents();
+//        printExternalPercents();
 
 
         System.out.println("TF Rules:");
@@ -381,7 +381,7 @@ public class PhuJusAgent implements IAgent {
             TFRule cand = (TFRule) getRuleById(i);
             if (cand == null) continue;
 
-            if(cand.isMatch()){
+            if(cand.isExtMatch()){
                 result.add(cand.ruleId);
             }
 
@@ -890,17 +890,21 @@ public class PhuJusAgent implements IAgent {
 
 
     /**
-     * updateTFRulesAccuracy
+     * updateTFRuleConfidences
      *
      * updates the accuracy (called confidence) of the tfrules that
      * matched correctly this timestep and decreases the rules that
      * didn't match correctly
      *
      */
-    public void updateTFRulesAccuracy() {
+    public void updateTFRuleConfidences() {
         for(TFRule rule: tfRules) {
             if(rule.lhsMatchScore(prevAction,this.getPrevInternal(),prevExternal) > TFRule.MATCH_CUTOFF) {
-                if(rule.isMatch()){
+                //TODO Confidence currently depends only on the rule's LHS and
+                //     RHS external both matching completely.  We will need
+                //     to revisit this once noise sensors get added.
+
+                if(rule.isExtMatch()) {
                     rule.increaseConfidence();
                 }
                 else {
@@ -909,7 +913,7 @@ public class PhuJusAgent implements IAgent {
 
             }
         }
-    }
+    }//updateTFRuleConfidences
 
     /**
      * updateEpAndBaseRuleSet
@@ -1022,13 +1026,13 @@ public class PhuJusAgent implements IAgent {
         /*updateEpAndBaseRuleSet();
 */
         //updates the accuracies of our tf rules
-        updateTFRulesAccuracy();
+        updateTFRuleConfidences();
 
         //Update the TF values for all extant TFRules
         boolean wasMatch = false;
 
         for(TFRule rule : this.tfRules) {
-            if (rule.isMatch()) {
+            if (rule.isExtMatch()) {
                 rule.updateTFVals();
                 //check and make sure the rule has internal conditions for every other rule
                 //if not add them
