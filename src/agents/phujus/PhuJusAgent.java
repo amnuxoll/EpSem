@@ -38,7 +38,7 @@ import java.util.Random;
  *   (frequency and recency of correctness)
  */
 public class PhuJusAgent implements IAgent {
-    public static final int MAXNUMRULES = 1000;
+    public static final int MAXNUMRULES = 15;
     public static final int MAX_SEARCH_DEPTH = 5; //TODO: get the search to self prune again
     public static final int MAX_TIME_DEPTH = 7;  //size of short term memory
 
@@ -185,7 +185,6 @@ public class PhuJusAgent implements IAgent {
         if (this.now == 20) {
             debugPrintln("");
         }
-
         if(this.rules.values().size() > 25){
             debugPrintln("");
         }
@@ -893,9 +892,10 @@ public class PhuJusAgent implements IAgent {
     /**
      * updateTFRulesAccuracy
      *
-     * updates the accuracy(called confidence) of the tfrules that
+     * updates the accuracy (called confidence) of the tfrules that
      * matched correctly this timestep and decreases the rules that
      * didn't match correctly
+     *
      */
     public void updateTFRulesAccuracy() {
         for(TFRule rule: tfRules) {
@@ -1032,8 +1032,10 @@ public class PhuJusAgent implements IAgent {
                 rule.updateTFVals();
                 //check and make sure the rule has internal conditions for every other rule
                 //if not add them
-                rule.addConditions();
-                wasMatch = true;
+                //TODO:  this is the new merging stuff for TFRule
+                //       not sure if we should be doing this or not
+                //rule.addConditions();
+                //wasMatch = true;
             }
         }
 

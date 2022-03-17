@@ -69,6 +69,7 @@ public abstract class Rule {
     protected final int ruleId;
 
     //the rule's historical accuracy is tracked with a Confidence object
+    //TODO:  rename this variable to confidence
     protected Confidence accuracy = new Confidence();
 
     // Each rule has an activation level that tracks the frequency and

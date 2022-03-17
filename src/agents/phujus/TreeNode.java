@@ -111,6 +111,25 @@ public class TreeNode {
     }
 
     /**
+     * This may be a mistake...  This ctor creates "dummy"
+     * TreeNode object to support {@link #findMostUncertainPath()}
+     * so it can return a path that has never been tried before
+     */
+    public TreeNode(TreeNode parent, char action) {
+        this.agent = parent.agent;
+        this.rules = parent.rules;
+        this.parent = parent;
+        this.episodeIndex = parent.episodeIndex + 1;
+        this.termRule = null;
+        this.currInternal = agent.genNextInternalTF(action, parent.currInternal, parent.currExternal);
+        this.currExternal = new SensorData(false);
+        this.path = new Vector<>(parent.path);
+        this.path.add(this);
+        this.pathStr = parent.pathStr + action;
+        this.confidence = 0.0;
+    }
+
+    /**
      * This child node constructor is built from a parent node and a matching rule
      *
      * Note:  caller is responsible for verifying the rule matches
@@ -253,6 +272,7 @@ public class TreeNode {
                 double foundScore = path.lastElement().confidence;
 
                 //Adjust confidence based upon the PathRules eval
+                //TODO:  removed for now until we get PathRules back online
                 //foundScore *= agent.metaScorePath(path);
 
                 if(foundScore > bestScore) {
@@ -311,14 +331,10 @@ public class TreeNode {
             Vector<TreeNode> foundPath = child.fbgpHelper(depth + 1, maxDepth);
 
             if ( foundPath != null ) {
-                double tfidf = 0.00;
-                if(depth != 0){
-                    //TODO:  Is this the right calculation?  This is replacing confidence
-                    //       from the old EpRules
-                    tfidf = foundPath.lastElement().termRule.lhsMatchScore(this.getAction(),this.currInternal,this.currExternal);
-                }
+                double confidence = foundPath.lastElement().confidence;
+
                 //TODO: Braeden is unsatisfied with the 1/length , think about another metric?
-                double foundScore = (1.0 / (foundPath.size())) * tfidf;
+                double foundScore = (1.0 / (foundPath.size())) * confidence;
                 if (foundScore > bestScore) {
                     bestPath = foundPath;
                     bestScore = foundScore;
@@ -345,21 +361,47 @@ public class TreeNode {
         Vector<TreeNode> toSearch = new Vector<>();
         toSearch.add(this);
 
-        double bestScore = 0.0;
+        double bestScore = -99.9;  //no score can be this low
         Vector<TreeNode> bestPath = null;
         while(toSearch.size() > 0) {
             TreeNode curr = toSearch.remove(0);
-            //TreeNode a = toSearch.remove(1);
             double invConf = 1.0 - curr.confidence;
-            double score = (1.0/((double)curr.path.size())) * invConf;
-            if (score > bestScore) {
-                bestScore = score;
-                bestPath = curr.path;
+            if (curr.path.size() > 0) {  //node with no path can't be selected
+                double score = (1.0 / ((double) curr.path.size())) * invConf;
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestPath = curr.path;
+                }
             }
 
-            //queue children to be searched
-            for(TreeNode child : curr.children) {
-                if (child != null) toSearch.add(child);
+            if (curr.children.size() == this.agent.getActionList().length) {
+                //queue children to be searched
+                for (TreeNode child : curr.children) {
+                    if (child != null) toSearch.add(child);
+                }
+            } else {
+                //If we reach this point, there is an action that has never been
+                // taken in this scenario.  So find that action and build a path
+                // with it.
+                for (int i = 0; i < agent.getActionList().length; i++) {
+                    char action = agent.getActionList()[i].getName().charAt(0);
+                    boolean found = false;
+                    for(TreeNode child : curr.children) {
+                        if (child.getAction() == action) {
+                            found = true;
+                            break;
+                        }
+                    }
+                    //found an unused action
+                    if (!found) {
+                        //create a fake tree node with this unused action so
+                        // that there will be a path that uses it
+                        TreeNode fake = new TreeNode(curr, action);
+                        return fake.path;
+                    }
+
+
+                }
             }
         }//while
 
@@ -475,6 +517,8 @@ public class TreeNode {
      * @param indent how much to indent any output from this method
      */
     private void printTreeHelper(String indent) {
+        int id = (this.termRule == null) ? 0 :  this.termRule.getId();
+        System.out.print("#" + id);
         System.out.print(indent + "  " + this);
 
         //base case #1: Goal Node found (not at root)
