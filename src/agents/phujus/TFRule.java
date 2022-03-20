@@ -236,16 +236,34 @@ public class TFRule extends Rule{
 
         // First checks that the size of the two sets are equal.
         // If so, returns false if the converted sensors don't contain the external conditions.
-        if (conditions.size() == convertSensors.size())
+        if (conditions.size() == convertSensors.size()) {
+
+            // Convert the HashSets to Lists for greater usability
+            List<Cond> condList = Arrays.stream(conditions.toArray(new Cond[0])).toList();
+            List<Cond> convertList = Arrays.stream(convertSensors.toArray(new Cond[0])).toList();
 
             // Checks if each condtion is present
-            for (Cond cond : conditions) {
-                if (!convertSensors.contains(cond)) {
+            for (int i = 0; i < condList.size(); i++) {
+
+                // Extract the current condition from conditions
+                Cond cond = condList.get(i);
+
+                // Return false if the converted sensor data doesn't contain the condition
+                if (convertList.contains(cond)) {
+
+                    // Get the index of the matching condition
+                    int condIndex = convertList.indexOf(cond);
+
+                    // Return false if the TF vals of the conditions don't match
+                    if (cond.data.getTF() != convertList.get(condIndex).data.getTF()) {
+                        return false;
+                    }
+                } else {
                     return false;
                 }
             }
-        else {
-                return false;
+        } else {
+            return false;
         }
 
         return true;
