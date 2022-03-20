@@ -239,8 +239,8 @@ public class TFRule extends Rule{
         if (conditions.size() == convertSensors.size()) {
 
             // Convert the HashSets to Lists for greater usability
-            List<Cond> condList = Arrays.stream(conditions.toArray(new Cond[0])).toList();
-            List<Cond> convertList = Arrays.stream(convertSensors.toArray(new Cond[0])).toList();
+            List<Cond> condList = Arrays.asList(conditions.toArray(new Cond[0]));
+            List<Cond> convertList = Arrays.asList(convertSensors.toArray(new Cond[0]));
 
             // Checks if each condtion is present
             for (int i = 0; i < condList.size(); i++) {
