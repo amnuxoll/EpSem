@@ -358,16 +358,9 @@ public class PhuJusAgent implements IAgent {
     /**
      * calcPrunedInternal
      *
-     * There are cases where the agent's current internal sensors should not
-     * be included in new rules:
-     * 1.  When two sensors correspond to a rule and its ancestor only the
-     *     most specific one should be included.  Example:
-     *        # 1:    b -> 00  <-- omit this
-     *        #24: |00b -> 00
-     * 2. When the rule associated with the sensor failed to predict the
-     *    agent's subsequent sensing
-     *
-     *  This method prunes such issues from a current set of internal
+     * When the rule associated with an internal sensor failed to predict the
+     * agent's subsequent sensing it should not be included in new rules.
+     * This method prunes such issues from a current set of internal
      *  sensors. This is called on agent.currInternal before it is added
      *  to the this.prevInternal set
      *  
@@ -396,33 +389,21 @@ public class PhuJusAgent implements IAgent {
      * calculates what the internal sensors will be on for the next timestep
      * by seeing which rules have a sufficient match score.
      *
-     * At the moment, "sufficient" is any non-zero match score
+     * Caveat: At the moment, "sufficient" is any rule that exceeds the
+     *         match cutoff.
      * <p>
      * @param action  selected action to generate from
      * @param currInt internal sensors to generate from
      * @param currExt external sensors to generate from
      */
     public HashSet<Integer> genNextInternal(char action,
-                                            HashSet<Integer> currInt,
-                                            SensorData currExt) {
-        HashSet<Integer> result = new HashSet<>();
-        for (Rule r : this.rules.values()) {
-            double score = r.lhsMatchScore(action, currInt, currExt);
-            if (score > 0.0) {
-                result.add(r.getId());
-            }
-        }
-        return result;
-    }//genNextInternal
-
-    public HashSet<Integer> genNextInternalTF(char action,
                                               HashSet<Integer> currInt,
                                               SensorData currExt) {
         HashSet<Integer> result = new HashSet<>();
 
         for (TFRule r : this.tfRules) {
             double score = r.lhsMatchScore(action, currInt, currExt);
-            if (score > 0.0){
+            if (score > TFRule.MATCH_CUTOFF){
                 result.add(r.getId());
             }
             //if (r.isMatch()) {

@@ -101,7 +101,7 @@ public class TreeNode {
         this.parent = parent;
         this.episodeIndex = parent.episodeIndex + 1;
         this.termRule = tfRule;
-        this.currInternal = agent.genNextInternalTF(tfRule.getAction(), parent.currInternal, parent.currExternal);
+        this.currInternal = agent.genNextInternal(tfRule.getAction(), parent.currInternal, parent.currExternal);
         this.currExternal = tfRule.getRHSExternal();
         this.path = new Vector<>(parent.path);
         this.path.add(this);
@@ -121,7 +121,7 @@ public class TreeNode {
         this.parent = parent;
         this.episodeIndex = parent.episodeIndex + 1;
         this.termRule = null;
-        this.currInternal = agent.genNextInternalTF(action, parent.currInternal, parent.currExternal);
+        this.currInternal = agent.genNextInternal(action, parent.currInternal, parent.currExternal);
         this.currExternal = new SensorData(false);
         this.path = new Vector<>(parent.path);
         this.path.add(this);
