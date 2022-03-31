@@ -38,7 +38,7 @@ import java.util.Random;
  *   (frequency and recency of correctness)
  */
 public class PhuJusAgent implements IAgent {
-    public static final int MAXNUMRULES = 40;
+    public static final int MAXNUMRULES = 50000000; //10 to 100 for testing
     public static final int MAX_SEARCH_DEPTH = 5; //TODO: get the search to self prune again
     public static final int MAX_TIME_DEPTH = 7;  //size of short term memory
 
@@ -178,10 +178,10 @@ public class PhuJusAgent implements IAgent {
         }
 
         //DEBUG: breakpoint here to debug
-        if(this.stepsSinceGoal >= 30) {
+        if(this.stepsSinceGoal >= 15) {
             debugPrintln("");
         }
-        if (this.now == 45) {
+        if (this.now == 59) {
             debugPrintln("");
         }
         if(this.rules.values().size() > 25){
@@ -194,9 +194,9 @@ public class PhuJusAgent implements IAgent {
         updateInternalPercents();
         updateExternalPercents();
 
-//        //DEBUG
-//        printInternalPercents();
-//        printExternalPercents();
+        //DEBUG
+        printInternalPercents();
+        printExternalPercents();
 
 
         System.out.println("TF Rules:");
@@ -879,6 +879,7 @@ public class PhuJusAgent implements IAgent {
      *
      */
     public void updateTFRuleConfidences() {
+        Vector<TFRule> toRemove = new Vector<>();
         for(TFRule rule: tfRules) {
             if(rule.lhsMatchScore(prevAction,this.getPrevInternal(),prevExternal) > TFRule.MATCH_CUTOFF) {
                 //TODO Confidence currently depends only on the rule's LHS and
@@ -890,10 +891,18 @@ public class PhuJusAgent implements IAgent {
                 }
                 else {
                     rule.decreaseConfidence();
+                    if(rule.getAccuracy() == 0 && rule.getId() > this.now + 30) {
+                        toRemove.add(rule);
+                    }
                 }
 
             }
         }
+
+//        for(TFRule rule: toRemove){
+//            removeRule(rule,null);
+//        }
+
     }//updateTFRuleConfidences
 
     /**
@@ -944,13 +953,15 @@ public class PhuJusAgent implements IAgent {
      * if MAXNUMRULES has been reached, this method culls the set down
      * by removing the worst rules.
      *
-     * Note: this method only removes EpRules.  MAXNUMRULES should never be
-     * set so small that BaseRules need to be removed.
+     * a rules score is calculated by multiplying its activation with its accuracy
      */
     private void cullRules() {
+
+
         if (this.rules.size() <= MAXNUMRULES) return;
 
         TFRule worstRule = (TFRule) this.rules.elements().nextElement();
+
         double worstScore = worstRule.calculateActivation(this.now) * worstRule.getAccuracy();
         for (Rule rule : this.rules.values()) {
             if(rule instanceof TFRule) {
@@ -1019,15 +1030,15 @@ public class PhuJusAgent implements IAgent {
                 //if not add them
                 //TODO:  this is the new merging stuff for TFRule
                 //       not sure if we should be doing this or not
-                //rule.addConditions();
-                //wasMatch = true;
+//                rule.addConditions();
+//                wasMatch = true;
             }
         }
 
         //Create a new TF Rule for this latest experience
-        if(!wasMatch)
+        if(!wasMatch) {
             addRule(new TFRule(this));
-
+        }
         //See if we need to cull rule(s) to stay below max
         cullRules();
 
@@ -1045,12 +1056,12 @@ public class PhuJusAgent implements IAgent {
      */
     public void addRule(Rule newRule) {
         if (rules.size() >= MAXNUMRULES) {
-            System.err.println("ERROR: Exceeded MAXNUMRULES!");
+            //System.err.println("ERROR: Exceeded MAXNUMRULES!");
         }
 
 
         rules.put(newRule.ruleId,newRule);
-        //rules.add(nInsert, newRule);
+        newRule.addActivation(this.now, 0.1);
 
 
         //TODO add PathRule support here
@@ -1208,15 +1219,19 @@ public class PhuJusAgent implements IAgent {
      */
     private void rewardRulesForGoal() {
         //reward the rules in reverse order
-        double reward = EpRule.FOUND_GOAL_REWARD;
+        double reward = 1;
         int time = this.now;
         for(int i = this.pathTraversedSoFar.size() - 1; i >= 0; --i) {
             TreeNode node = this.pathTraversedSoFar.get(i);
-            BaseRule br = node.getRule();
-            if (br != null) br.addActivation(time, reward);
+            TFRule tr = node.getTermRule();
+            if (tr != null) {
+                tr.addActivation(time, reward);
+                System.out.println("current activation: " + tr.calculateActivation(this.now));
+            }
             time--;
-            reward *= EpRule.DECAY_RATE;
+            reward *= TFRule.DECAY_RATE;
         }
+
     }//rewardRulesForGoal
 
     //region Debug Printing Methods

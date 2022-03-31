@@ -97,7 +97,7 @@ public class TFRule extends Rule{
     //Hyper-parameter:  How close does a partial match need to be to
     // be considered a match (e.g., for the purposes of internal sensors)?
     //TODO: For now we have this hard-coded (on the scale 0.0..1.0)
-    public static final double MATCH_CUTOFF = 0.35;
+    public static final double MATCH_CUTOFF = 0.40; // .25 to .50
 
     //the action of the rule
     private char action;
@@ -533,19 +533,26 @@ public class TFRule extends Rule{
      */
     protected String toStringLongLHS(HashSet<Cond> lhs) {
         StringBuilder result = new StringBuilder();
+        StringBuilder zeros = new StringBuilder();
         Vector<Cond> sortedInternal = new Vector<>(lhs);
         Collections.sort(sortedInternal);
         for (Cond cond : sortedInternal) {
-            result.append(cond.toString());
-            result.append(", ");
+            if(cond.data.getTF() > 0.001) {
+                result.append(cond.toString());
+                result.append(", ");
+            } else {
+                zeros.append(cond.sName);
+                zeros.append(", ");
+            }
         }
+        // Currently doesn't print conditions with a zero TF. This can be changed by adding
+        // zeros.toString to the return statement.
         return result.toString();
     }//toStringShortRHS
 
     @Override
     public String toString(){
         String str = "";
-        //str += ;
 
         StringBuilder result = new StringBuilder();
         result.append("#");

@@ -1,5 +1,6 @@
 package agents.phujus;
 
+import framework.Action;
 import framework.SensorData;
 
 import java.util.*;
@@ -13,6 +14,8 @@ import java.util.*;
  */
 
 public class TreeNode {
+
+    Random rand = new Random();
 
     /** pairs an EpRule with a numerical value so it can be sorted by that value */
     private class RatedRule implements Comparable<RatedRule> {
@@ -164,9 +167,9 @@ public class TreeNode {
         double max = 0.0;
         for (TFRule tr : this.agent.getTfRules()) {
 
-            double score = tr.lhsMatchScore(action, this.currInternal, this.currExternal);
+            double score = tr.lhsMatchScore(action, this.currInternal, this.currExternal) * tr.getAccuracy();
             if (score <= TFRule.MATCH_CUTOFF) continue;
-            score*= tr.getAccuracy();
+            //score*= tr.getAccuracy();
             if( score > max ){
                 max = score;
                 maxRule = tr;
@@ -372,6 +375,13 @@ public class TreeNode {
                     bestScore = score;
                     bestPath = curr.path;
                 }
+                else if(score == bestScore) {
+
+                    if(rand.nextBoolean()){
+                        bestScore = score;
+                        bestPath = curr.path;
+                    }
+                }
             }
 
             if (curr.children.size() == this.agent.getActionList().length) {
@@ -380,10 +390,12 @@ public class TreeNode {
                     if (child != null) toSearch.add(child);
                 }
             //else if not at a leaf node...
-            } else if (curr.path.size() < PhuJusAgent.MAX_SEARCH_DEPTH) {
+            } else if (curr.path.size() < PhuJusAgent.MAXNUMRULES) {
                 //If we reach this point, there is an action that has never been
                 // taken in this scenario.  So find that action and build a path
                 // with it.
+                ArrayList<String> unusedActionsArr = new ArrayList<String>();
+                int numUnusedActions = 0;
                 for (int i = 0; i < agent.getActionList().length; i++) {
                     char action = agent.getActionList()[i].getName().charAt(0);
                     boolean found = false;
@@ -394,13 +406,18 @@ public class TreeNode {
                         }
                     }
                     //found an unused action
-                    if (!found) {
-                        //create a fake tree node with this unused action so
-                        // that there will be a path that uses it
-                        TreeNode fake = new TreeNode(curr, action);
-                        return fake.path;
+                    if(!found) {
+                        unusedActionsArr.add(action + "");
+                        numUnusedActions++;
                     }
+                }
+                if (numUnusedActions > 0) {
+                    //create a fake tree node with this unused action so
+                    // that there will be a path that uses it
 
+                    char action = unusedActionsArr.get(rand.nextInt(numUnusedActions)).charAt(0);
+                    TreeNode fake = new TreeNode(curr, action);
+                    return fake.path;
 
                 }
             }
@@ -579,6 +596,7 @@ public class TreeNode {
     public char getAction() { return this.pathStr.charAt(this.pathStr.length() - 1); }
     public String getPathStr() { return this.pathStr; }
     public BaseRule getRule() { return this.rule; }
+    public TFRule getTermRule() { return this.termRule; }
     public HashSet<Integer> getCurrInternal() { return this.currInternal; }
     public SensorData getCurrExternal() { return this.currExternal; }
     public TreeNode getParent() { return this.parent; }
