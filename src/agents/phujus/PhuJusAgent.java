@@ -38,7 +38,7 @@ import java.util.Random;
  *   (frequency and recency of correctness)
  */
 public class PhuJusAgent implements IAgent {
-    public static final int MAXNUMRULES = 50000000; //10 to 100 for testing
+    public static final int MAXNUMRULES = 50; //10 to 100 for testing
     public static final int MAX_SEARCH_DEPTH = 5; //TODO: get the search to self prune again
     public static final int MAX_TIME_DEPTH = 7;  //size of short term memory
 
@@ -401,17 +401,29 @@ public class PhuJusAgent implements IAgent {
                                               SensorData currExt) {
         HashSet<Integer> result = new HashSet<>();
 
+        //find the highest match score
+        //TODO:  If we were clever we'd put all these scores in an array
+        //       so we don't have to calc them twice (see next loop)
+        double bestScore = 0.0;
         for (TFRule r : this.tfRules) {
             double score = r.lhsMatchScore(action, currInt, currExt);
-            if (score > TFRule.MATCH_CUTOFF){
+            if (score > bestScore) {
+                bestScore = score;
+            }
+        }
+
+        //Turn on internal sensors for all rules that are at or "near" the
+        //highest match score.  "near" is currently hard-coded
+        //TODO:  have "near" be adjusted based on agent experience
+
+        for (TFRule r : this.tfRules) {
+            double score = r.lhsMatchScore(action, currInt, currExt);
+            if (1.0 - (score / bestScore)  < TFRule.MATCH_NEAR){
                 result.add(r.getId());
             }
-            //if (r.isMatch()) {
-            //    result.add(r.getId());
-            //}
         }
         return result;
-    }
+    }//genNextInternal
 
     /** convenience overload that uses the this.currInternal and this.currExternal */
     public HashSet<Integer> genNextInternal(char action) {
@@ -891,17 +903,10 @@ public class PhuJusAgent implements IAgent {
                 }
                 else {
                     rule.decreaseConfidence();
-                    if(rule.getAccuracy() == 0 && rule.getId() > this.now + 30) {
-                        toRemove.add(rule);
-                    }
                 }
 
             }
         }
-
-//        for(TFRule rule: toRemove){
-//            removeRule(rule,null);
-//        }
 
     }//updateTFRuleConfidences
 
@@ -1061,7 +1066,7 @@ public class PhuJusAgent implements IAgent {
 
 
         rules.put(newRule.ruleId,newRule);
-        newRule.addActivation(this.now, 0.1);
+        newRule.addActivation(this.now, 1.0);
 
 
         //TODO add PathRule support here
@@ -1219,7 +1224,7 @@ public class PhuJusAgent implements IAgent {
      */
     private void rewardRulesForGoal() {
         //reward the rules in reverse order
-        double reward = 1;
+        double reward = 1.0;
         int time = this.now;
         for(int i = this.pathTraversedSoFar.size() - 1; i >= 0; --i) {
             TreeNode node = this.pathTraversedSoFar.get(i);

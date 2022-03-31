@@ -167,9 +167,8 @@ public class TreeNode {
         double max = 0.0;
         for (TFRule tr : this.agent.getTfRules()) {
 
-            double score = tr.lhsMatchScore(action, this.currInternal, this.currExternal) * tr.getAccuracy();
-            if (score <= TFRule.MATCH_CUTOFF) continue;
-            //score*= tr.getAccuracy();
+            double score = tr.lhsMatchScore(action, this.currInternal, this.currExternal);
+            score*= tr.getAccuracy();
             if( score > max ){
                 max = score;
                 maxRule = tr;
@@ -390,7 +389,7 @@ public class TreeNode {
                     if (child != null) toSearch.add(child);
                 }
             //else if not at a leaf node...
-            } else if (curr.path.size() < PhuJusAgent.MAXNUMRULES) {
+            } else if (curr.path.size() < PhuJusAgent.MAX_SEARCH_DEPTH) {
                 //If we reach this point, there is an action that has never been
                 // taken in this scenario.  So find that action and build a path
                 // with it.

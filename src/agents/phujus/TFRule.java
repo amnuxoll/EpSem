@@ -23,7 +23,7 @@ public class TFRule extends Rule{
      */
     public static class TFData {
         public double numMatches = 1.0;
-        public double numOn = 0;
+        public double numOn = 0.0;
 
         public TFData(double numMatches, double numOn){
             this.numMatches = numMatches;
@@ -69,8 +69,8 @@ public class TFRule extends Rule{
         }
 
         public String toStringShort() {
-            //return a 0 or 1 using the MATCH_CUTOFF
-            return "" +  ((data.getTF() > MATCH_CUTOFF) ? 1 : 0);
+            //round to nearest value (true or false)
+            return "" +  ((data.getTF() >= 0.5) ? 1 : 0);
         }
 
         @Override
@@ -97,7 +97,10 @@ public class TFRule extends Rule{
     //Hyper-parameter:  How close does a partial match need to be to
     // be considered a match (e.g., for the purposes of internal sensors)?
     //TODO: For now we have this hard-coded (on the scale 0.0..1.0)
-    public static final double MATCH_CUTOFF = 0.40; // .25 to .50
+    public static final double MATCH_CUTOFF = 0.2; // .25 to .50
+
+    //How similar two match scores need to be to each other to be "near"
+    public static final double MATCH_NEAR = 0.05;
 
     //the action of the rule
     private char action;
@@ -367,19 +370,15 @@ public class TFRule extends Rule{
     }//rhsMatchScore
 
     /**
-     * lhsMatchScore
+     * lhsExtMatchScore
      *
      * calculates how closely this rule matches a given action and lhs sensors
      *
-     * @param action the action made by the rule to compare against
-     * @param lhsInt a HashSet of integers containing the internal sensors that were on
      * @param lhsExt the lhs external sensorData
+     *
      * @return  a match score from 0.0 to 1.0
      */
-    public double lhsMatchScore(char action, HashSet<Integer> lhsInt, SensorData lhsExt){
-
-        // Immediately return 0.0 if the actions don't match
-        if (action != this.action) return 0.0;
+    public double lhsExtMatchScore(SensorData lhsExt){
 
         double score = 0.0;
         int c = 0;
@@ -397,15 +396,26 @@ public class TFRule extends Rule{
 
                 // Adds the TF/DF to the current score
                 score += calculateTFIDF(tfValue, dfValue, sVal);
-
-                //TODO:  remove Debuggin' code below
-                double foo1 = calculateTFIDF(1.0 - tfValue, dfValue, sVal);
-                double foo2 = calculateTFIDF(tfValue, 1.0 - dfValue, sVal);
-                double foo3 = calculateTFIDF(1.0 - tfValue, 1.0 - dfValue, sVal);
-                double foo4 = 3.0;
             }
         }
 
+        return score/c;
+    }//lhsExtMatchScore
+
+
+    /**
+     * lhsIntMatchScore
+     *
+     * calculates how closely this rule matches a given action and lhs sensors
+     *
+     * @param lhsInt a HashSet of integers containing the internal sensors that were on
+     *
+     * @return  a match score from 0.0 to 1.0
+     */
+    public double lhsIntMatchScore(HashSet<Integer> lhsInt){
+
+        double score = 0.0;
+        int c = 0;
         // Loops through all internal sensors of the rule and checks if the incoming
         // sensor data contains the internal sensor
         for (Cond cond : this.lhsInternal) {
@@ -420,6 +430,27 @@ public class TFRule extends Rule{
         }
 
         return score/c;
+    }//lhsIntMatchScore
+
+
+    /**
+     * lhsMatchScore
+     *
+     * calculates how closely this rule matches a given action and lhs sensors
+     *
+     * @param action the action made by the rule to compare against
+     * @param lhsInt a HashSet of integers containing the internal sensors that were on
+     * @param lhsExt the lhs external sensorData
+     * @return  a match score from 0.0 to 1.0
+     */
+    public double lhsMatchScore(char action, HashSet<Integer> lhsInt, SensorData lhsExt){
+
+        // Immediately return 0.0 if the actions don't match
+        if (action != this.action) return 0.0;
+
+        double score = lhsExtMatchScore(lhsExt);
+        score *= lhsIntMatchScore(lhsInt);
+        return score;
     }//lhsMatchScore
 
     /**
@@ -586,7 +617,8 @@ public class TFRule extends Rule{
     public SensorData getRHSExternal() {
         SensorData result = SensorData.createEmpty();
         for(Cond cond : this.rhsExternal) {
-            result.setSensor(cond.sName, cond.data.getTF() > MATCH_CUTOFF ? true : false);
+            //pick true/false by rounding
+            result.setSensor(cond.sName, cond.data.getTF() >= 0.5);
         }
         return result;
     }
