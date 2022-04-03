@@ -47,19 +47,6 @@ public class PhuJusAgent implements IAgent {
 //region InnerClasses
 
     /**
-     * class EpRuleMatchProfile describes how well two EpRule objects match each other
-     */
-    public class EpRuleMatchProfile {
-        public EpRule given = null;
-        public EpRule match = null;
-        public double shortScore = -1.0;  //LHS match score at depth of shorter rule
-        public double longScore = -1.0;  //LHS match score at depth of shorter rule
-        public double rhsScore = -1.0;  //RHS matchs score
-
-        public EpRuleMatchProfile(EpRule initGiven) { this.given = initGiven; }
-    }//class EpRuleMatchProfile
-
-    /**
      * class Tuple describes a Tuple object for storing three values of different type
      * modified from the following sources:
      * https://commons.apache.org/proper/commons-lang/apidocs/org/apache/commons/lang3/tuple/Triple.html
@@ -95,8 +82,6 @@ public class PhuJusAgent implements IAgent {
     public static final boolean DEBUGPRINTSWITCH = true;
 
     //The agent keeps lists of the rules it is using
-    private Vector<BaseRule> baseRules = new Vector<>();
-    private Vector<EpRule> epRules = new Vector<>();
     private Vector<PathRule> pathRules = new Vector<>();
     private Vector<TFRule> tfRules = new Vector<>();
     private Hashtable<Integer, Rule> rules = new Hashtable<>();
@@ -350,7 +335,6 @@ public class PhuJusAgent implements IAgent {
 
         //DEBUG:
         if (PhuJusAgent.DEBUGPRINTSWITCH) {
-            printRules(action);
         }
         return action;
     }//calcAction
@@ -626,263 +610,6 @@ public class PhuJusAgent implements IAgent {
     }//addPathRule
 
     /**
-     * getPredictingBaseRule
-     *
-     * retrieves the BaseRule that matches the agent's previous action and
-     * current RHS.  If no such rule exists, one is created.
-     *
-     * SIDE EFFECT:  if a new base rule is created it is added to currInternal
-     *
-     * @return the matching rule or null if not found
-     */
-    private BaseRule getPredictingBaseRule() {
-        BaseRule brMatch = null;
-        for(BaseRule br : this.baseRules) {
-            if(br.lhsMatchScore(this.prevAction, getPrevInternal(), getPrevExternal()) == 1.0) {
-                if(br.rhsMatchScore(this.currExternal) == 1.0) {
-                    brMatch = br;
-                    break;
-                }
-            }
-        }
-
-        //If no brMatch was found, create a new BaseRule that matches
-        if(brMatch == null) {
-            brMatch = new BaseRule(this);
-            addRule(brMatch);
-
-            //Retroactively put this in currInternal for use by future rules
-            //TODO:  I hate this I'm doing this here as as side effect but I don't see an alternative
-            this.currInternal.add(brMatch.getId());
-        }
-
-        return brMatch;
-    }//getPredictingBaseRule
-
-    /**
-     * getMisPredictingBaseRules
-     *
-     * retrieves the BaseRules that matches the agent's previous action
-     * but mispredicted the current RHS
-     *
-     * @return a Vector of mispredicting BaseRules
-     */
-    private Vector<BaseRule> getMisPredictingBaseRules() {
-        Vector<BaseRule> result = new Vector<>();
-        for(BaseRule br : this.baseRules) {
-            if(br.lhsMatchScore(this.prevAction) == 1.0) {
-                if(br.rhsMatchScore(this.currExternal) < 1.0) {
-                    result.add(br);
-                }
-            }
-        }
-
-        return result;
-    }//getMisPredictingBaseRules
-
-    /**
-     * resolveRuleConflict
-     *
-     * is called when a new EpRule has the same LHS but different RHS from an
-     * existing rule and this conflict needs to be resolved.  This is done with
-     * two steps:
-     *  a) both rules' confidence levels are decreased
-     *  b) if possible, the rules are expanded to create a child (or more
-     *     distant descendant) that differentiates them
-     *
-     * Note:  The caller is responsible for guaranteeing the following:
-     *  - that 'newb' is a new rule not yet added to the agent's ruleset
-     *  - that 'newb' and 'extant' have the same time depth
-     *  - that 'newb' and 'extant' having matching LHS
-     *
-     *  Side Effect:  new rules will be added to the agent
-     *
-     *  Warning:  This method is recursive.
-     *
-     * @param newb the new rule
-     * @param extant the existing rule
-     *
-     * @return 'true' if newb has been adjusted and should be added to the
-     *          agent's rule set (false otherwise)
-     */
-    public boolean resolveRuleConflict(EpRule newb, EpRule extant) {
-        //due to conflict we can't be confident in either rule
-        newb.decreaseConfidence();
-        extant.decreaseConfidence();
-
-        //If they also have a RHS match, they are siblings
-        double rhsMatchScore = newb.rhsMatchScore(extant.getRHSExternal());
-        if (rhsMatchScore == 1.0) {
-            //first, try to merge newb and extant together
-            if (extant.mergeWith(newb)) return false;
-
-            //DEBUG
-            if (extant.parent == null) {
-                System.out.println();
-            }
-
-            extant.parent.children.add(newb);
-            return true;
-        }
-
-        //Get/create the child rule for newb.
-        //Note: since newb is new it can only have one child atm
-        EpRule newbChild = null;
-        if (newb.hasChildren()) {
-            newbChild = newb.children.get(0);
-        } else {
-            newbChild = newb.spawn();
-            if (newbChild == null) {
-                return false;
-            }
-            addRule(newbChild);
-        }
-
-        //Find the best matching extant child
-        EpRule extantChild = null;
-        if (extant.hasChildren()) {
-            double bestScore = 0.0;
-            for(EpRule child : extant.children) {
-                double score = child.compareLHSIntLevel(newbChild, newbChild.getTimeDepth(), false);
-                if (score > bestScore) {
-                    bestScore = score;
-                    extantChild = child;
-                }
-            }
-        } else {
-            extantChild = extant.spawn();
-
-            //Is this a valid child?
-            if (extantChild != null) {
-                addRule(extantChild);
-            }
-        }
-
-
-        //If the new children also match we need to recurse to resolve them
-        if ((newbChild != null) && (extantChild != null)) {
-            if (newbChild.compareLHS(extantChild, newbChild.getTimeDepth()) == 1.0) {
-                resolveRuleConflict(newbChild, extantChild);  //Note:  this should always return 0
-            }
-        }
-
-        return true;
-    }//resolveRuleConflict
-
-
-    /**
-     * integrateNewEpRule
-     *
-     * given a new EpRule finds contradictory EpRules and resolves the conflict
-     * in some manner if it can.
-     *
-     * Important:  This method assumes that newb's RHS matches the agent's
-     * current RHS.
-     *
-     * @param newb a new rule that may be creating a conflict
-     * @return true if the rule should be added to the agent's ruleset
-     */
-    private boolean integrateNewEpRule(EpRule newb) {
-
-        //Search for a rule that has a perfect LHS match with newb
-        Vector<EpRule> conflicts = new Vector<>();
-        for(EpRule er : this.epRules) {
-            if (er.equals(newb)) continue; //can't conflict with self
-            if (er.getTimeDepth() != newb.getTimeDepth()) continue;
-            if (er.compareLHS(newb, er.getTimeDepth()) == 1.0) {
-                conflicts.add(er);
-            }
-        }//for
-        if (conflicts.isEmpty()) return true;  //no conflict to resolve
-
-        //Resolve the conflicts (all conflicts must be resolved to add newb)
-        boolean ret = true;
-        for(EpRule er : conflicts) {
-            ret = resolveRuleConflict(newb, er);
-            if (!ret) break;
-        }
-
-        return ret;
-
-    }//integrateNewEpRule
-
-
-    /**
-     * findBestMatchingDescendent
-     *
-     * given a BaseRule whose LHS matched in the previous timestep, this method
-     * searches for the EpRule descendent whose conditions matched best.
-     * In particular, it will find the matching descendent with the most
-     * time depth.
-     *
-     * Warning:  This method is recursive
-     *
-     * @return the matching child (or null)
-     */
-    private EpRule findBestMatchingDescendent(BaseRule br) {
-        if(br == null) return null;
-        EpRule matchingChild = null;
-        for(EpRule er : br.children) {
-            double score = er.lhsMatchScore(this.prevAction, getPrevInternal(), getPrevExternal());
-            if (score == 1.0) {
-                matchingChild = er;
-                break;
-            }
-        }
-
-        //See if there is an even better match
-        if (matchingChild != null) {
-            EpRule descendent = findBestMatchingDescendent(matchingChild);
-            if (descendent != null) {
-                matchingChild = descendent;
-            }
-        }
-
-        return matchingChild;
-    }//findBestMatchingDescendent
-
-    /**
-     * adjustBaseRuleForConflict
-     *
-     * adjusts a BaseRule's confidence for a conflict and updates
-     * the BaseRule's children for same.  This may require:
-     *   a.  creating a new EpRule that has 100% confidence
-     *   b.  discovering existing EpRules that also were wrong
-     *       and need to be adjusted
-     *
-     * Warning:  This method is recursive
-     *
-     * @param br
-     */
-    private void adjustBaseRuleForConflict(BaseRule br) {
-        br.decreaseConfidence();
-
-        //If this rule has never been wrong before, a new, child EpRule
-        // needs to be created and integreated into the rule set
-        if (! br.hasChildren()) {
-            //Create a new EpRule based on this BaseRule (if it doesn't already exist).
-            EpRule newb = br.spawn();
-            if ( (newb != null) && (integrateNewEpRule(newb)) ) {
-
-                addRule(newb);
-            }
-
-            //Since there are no children, no more mispredicting EpRules can be found
-            return;
-        }//if no children
-
-        //see if any child rules are mispredictors
-        for(EpRule child : br.children) {
-            double score = child.lhsMatchScore(this.prevAction, getPrevInternal(), getPrevExternal());
-            if (score == 1.0) {
-                adjustBaseRuleForConflict(child);  //RECURSE
-            }
-        }
-
-    }//adjustBaseRuleForConflict
-
-
-    /**
      * updateTFRuleConfidences
      *
      * updates the accuracy (called confidence) of the tfrules that
@@ -892,65 +619,30 @@ public class PhuJusAgent implements IAgent {
      */
     public void updateTFRuleConfidences() {
         Vector<TFRule> toRemove = new Vector<>();
-        for(TFRule rule: tfRules) {
-            if(rule.lhsMatchScore(prevAction,this.getPrevInternal(),prevExternal) > TFRule.MATCH_CUTOFF) {
-                //TODO Confidence currently depends only on the rule's LHS and
-                //     RHS external both matching completely.  We will need
-                //     to revisit this once noise sensors get added.
 
-                if(rule.isExtMatch()) {
-                    rule.increaseConfidence();
-                }
-                else {
-                    rule.decreaseConfidence();
-                }
+        //find the highest match score
+        //TODO:  If we were clever we'd put all these scores in an array
+        //       so we don't have to calc them twice (see next loop)
+        double bestScore = 0.0;
+        for (TFRule r : this.tfRules) {
+            double score = r.lhsMatchScore(this.prevAction, this.currInternal, this.currExternal);
+            if (score > bestScore) {
+                bestScore = score;
+            }
+        }
 
+        for(TFRule rule: this.tfRules) {
+            double score = rule.lhsMatchScore(this.prevAction, this.currInternal, this.currExternal);
+            if(score > 0.0) {
+                if (rule.isRHSMatch()) {
+                    rule.increaseConfidence(score, bestScore);
+                } else {
+                    rule.decreaseConfidence(score, bestScore);
+                }
             }
         }
 
     }//updateTFRuleConfidences
-
-    /**
-     * updateEpAndBaseRuleSet
-     *
-     * updates the accuracy of all BaseRules and EpRules whose LHS matches
-     * the most recent action.
-     *
-     * Side Effect:  new rules may be created
-     */
-    public void updateEpAndBaseRuleSet() {
-        //reward the matching BaseRule
-        BaseRule brMatch = getPredictingBaseRule();
-        brMatch.increaseConfidence();
-
-        //reward the matching EpRule(s)
-        EpRule erMatch = findBestMatchingDescendent(brMatch);
-        if (erMatch != null) {
-            while (true) {
-                erMatch.updateConfidencesForPrediction(this.prevInternal, this.prevExternal, this.currExternal);
-                if (erMatch.parent instanceof EpRule) {
-                    erMatch = (EpRule)erMatch.parent;
-                } else {
-                    break;
-                }
-            }
-        }
-
-        //TODO:  Each time a rule matches, there is likely a different
-        //       sequence of internal sensors in this current experience
-        //       compared to the one that created the rule initially.
-        //       That experience should be recorded here in some way.
-        //       For example, the internal sensor values could be merged in
-        //       some way.
-
-
-        //Adjust the mismatching BaseRules (this also adjusts their children)
-        Vector<BaseRule> mispredicts = getMisPredictingBaseRules();
-        for(BaseRule br : mispredicts) {
-            adjustBaseRuleForConflict(br);
-        }
-
-    }//updateEpAndBaseRuleSet
 
     /**
      * cullRules
@@ -962,17 +654,16 @@ public class PhuJusAgent implements IAgent {
      */
     private void cullRules() {
 
-
         if (this.rules.size() <= MAXNUMRULES) return;
 
         TFRule worstRule = (TFRule) this.rules.elements().nextElement();
 
-        double worstScore = worstRule.calculateActivation(this.now) * worstRule.getAccuracy();
+        double worstScore = worstRule.calculateActivation(this.now) * worstRule.getConfidence();
         for (Rule rule : this.rules.values()) {
             if(rule instanceof TFRule) {
                 TFRule r = (TFRule) rule;
                 double activation = r.calculateActivation(this.now);
-                double score = activation * r.getAccuracy();
+                double score = activation * r.getConfidence();
                 if (score < worstScore) {
                     worstScore = score;
                     worstRule = r;
@@ -1064,74 +755,14 @@ public class PhuJusAgent implements IAgent {
             //System.err.println("ERROR: Exceeded MAXNUMRULES!");
         }
 
-
         rules.put(newRule.ruleId,newRule);
         newRule.addActivation(this.now, 1.0);
 
-
-        //TODO add PathRule support here
-//        if (newRule instanceof PathRule) {
-//            this.pathRules.add((PathRule)newRule);
-//        } else
-        if (newRule instanceof EpRule) {
-            this.epRules.add((EpRule)newRule);
-        } else if (newRule instanceof BaseRule) {
-            this.baseRules.add((BaseRule)newRule);
-        } else if(newRule instanceof TFRule) {
-            this.tfRules.add((TFRule)newRule);
-        }
-
+        this.tfRules.add((TFRule)newRule);
 
         //DEBUG
         debugPrintln("added: " + newRule);
     }
-
-    /**
-     * findMostSimilarRule
-     *
-     * finds the EpRule in the ruleset that most closely matches a given one.
-     * The match is first scored at the timedepth of the shorter rule.
-     * Ties are broken by RHS match and then long depth.
-     *
-     * @return a RuleMatchProfile object describing the best match
-     */
-    private EpRuleMatchProfile findMostSimilarRule(EpRule given) {
-        //Find the existing rule that is most similar
-        EpRuleMatchProfile result = new EpRuleMatchProfile(given);
-        for (Rule rule : this.rules.values()) {
-            if(rule instanceof EpRule) {
-                EpRule r = (EpRule) rule;
-                if (r.getId() == given.getId()) continue;  //Rule may not match itself
-
-                int shorterDepth = Math.min(given.getTimeDepth(), r.getTimeDepth());
-                double score = r.compareLHS(given, shorterDepth);
-
-                //If they match at short depth, break the potential with with RHS
-                double rhsScore = 0.0;
-                if (score == 1.0) {
-                    rhsScore = given.rhsMatchScore(r.getRHSExternal());
-                }
-
-                //if they also match at RHS score, break the tie with long depth
-                double longScore = 0.0;
-                if (rhsScore == 1.0) {
-                    int longerDepth = Math.max(given.getTimeDepth(), r.getTimeDepth());
-                    longScore = r.compareLHS(given, longerDepth);
-                }
-
-                double totalScore = score + rhsScore + longScore;
-                double bestTotal = result.shortScore + result.rhsScore + result.longScore;
-                if (totalScore >= bestTotal) {
-                    result.match = r;
-                    result.shortScore = score;
-                    result.longScore = longScore;
-                    result.rhsScore = rhsScore;
-                }
-            }
-        }//for each rule
-
-        return result;
-    }//findMostSimilarRule
 
     /**
      * removeRule
@@ -1287,63 +918,6 @@ public class PhuJusAgent implements IAgent {
         System.out.println(")");
     }//printExternalSensors
 
-    /**
-     * printBaseRule
-     *
-     * prints a given BaseRule to the console (DEBUG)
-     *
-     * @param action the action the agent was selected.  This can be set to '\0' if the action is not yet known
-     */
-    private void printBaseRule(BaseRule br, char action) {
-        //Print a match score first
-        double score = br.lhsMatchScore(action);
-        if ((action != '\0') && (score > 0.0)) {
-            debugPrint(String.format("%.3f", score));
-            debugPrint(" ");
-        } else {
-            debugPrint("      ");
-        }
-
-        //Print an '@' in front of leaf rules
-        if (!br.hasChildren()) debugPrint("@");
-        else debugPrint(" ");
-
-        br.calculateActivation(now);  //update this so it's accurate
-        debugPrintln(br.toString());
-    }//printBaseRule
-
-
-    /**
-     * printRules
-     *
-     * prints all the rules in a verbose ASCII format  (DEBUG)
-     *
-     * @param action the action the agent was selected.  This can be set to '\0' if the action is not yet known
-     */
-    public void printRules(char action) {
-        if (this.rules.size() == 0) System.out.println("(There are no rules yet.)");
-
-        //print all BaseRules first
-        for (BaseRule br : this.baseRules) {
-            printBaseRule(br, action);
-        }
-
-        //then print EpRules in order of increasing depth
-        for(int depth = 0; depth <= MAX_TIME_DEPTH; ++depth) {
-            boolean found = false;
-            for (EpRule er : this.epRules) {
-                if (er.getTimeDepth() == depth) {
-                    printBaseRule(er, action);
-                    found = true;
-                }
-            }
-            if (!found) break;
-        }//for
-
-        //TODO:  add PathRules here
-
-    }//printRules
-
     /** DEBUG: prints the sequence of actions discovered by a path */
     public String pathToString(Vector<TreeNode> path) {
         if (path == null) return "<null path>";
@@ -1413,8 +987,6 @@ public class PhuJusAgent implements IAgent {
     //region Getters and Setters
 
     public Hashtable<Integer, Rule> getRules() { return this.rules; }
-    public Vector<BaseRule> getBaseRules() { return this.baseRules; }
-    public Vector<EpRule> getEpRules() { return this.epRules; }
     public Vector<TFRule> getTfRules() { return tfRules; }
     public int getNow() { return now; }
     public HashSet<Integer> getCurrInternal() { return this.currInternal; }

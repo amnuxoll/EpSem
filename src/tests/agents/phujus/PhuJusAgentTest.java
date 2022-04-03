@@ -1,15 +1,11 @@
 package tests.agents.phujus;
-import agents.phujus.EpRule;
 import agents.phujus.PhuJusAgent;
 import agents.phujus.TFRule;
-import agents.phujus.TreeNode;
 import framework.Action;
 import framework.SensorData;
 import tests.Assertions;
 import tests.EpSemTest;
 import tests.EpSemTestClass;
-
-import java.util.Vector;
 
 
 @SuppressWarnings("unused")
@@ -67,49 +63,6 @@ public class PhuJusAgentTest {
 
         return lhsExt;
     }//quickExtGen
-
-    /**
-     * quickRuleGen
-     * <p>
-     * is a helper method to quickly create rules that match a given
-     * sequence of external sensor values and actions.  The resulting
-     * rules are added to a given agent (side effect).
-     * Rule r = quickRuleGen(agent, {"100", "010", "011"});
-     * <p>
-     * Note:  This method does not support internal sensors since there is no
-     * easy way to control those.
-     * CAVEAT:  there is no error checking so do this right :)
-     *
-     * @param actStr A string containing the valid action chars
-     * @param lhsExt  a string of binary digits that represent LHS external sensor values.
-     * @param action the action for the LHS of this rule
-     * @param rhsExt  a string of binary digits that represent RHS external sensor values.
-     * @return the actions that were assigned to each rule (as a String)
-     */
-    public static EpRule quickRuleGen(String actStr, String lhsExt, char action, String rhsExt) throws Exception {
-
-        //a temporary agent is used to create the rule
-        PhuJusAgent tempAgent = quickAgentGen(actStr, lhsExt);
-
-        //The agent needs to take one step first so that its updateRules()
-        // method will actually create a rule for each given sensor string
-        // (it skips timestep 1)
-        SensorData initSD = quickExtGen(lhsExt);
-
-        //Create the rule
-        SensorData sd = quickExtGen(lhsExt);
-        tempAgent.getNextAction(sd);
-        sd = quickExtGen(rhsExt);
-        tempAgent.getNextAction(sd);
-
-        //If result has the wrong action we have to just try again because there is no EpRule.setAction() method
-        EpRule rule = (EpRule) tempAgent.getRules().get(0);
-        if (rule.getAction() != action) {
-            return quickRuleGen(actStr, lhsExt, action, rhsExt);
-        }
-
-        return rule;
-    }//quickRuleGen
 
     @EpSemTest
     public void testAddRule() throws Exception {

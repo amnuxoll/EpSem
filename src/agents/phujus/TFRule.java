@@ -94,10 +94,6 @@ public class TFRule extends Rule{
 
     //region Instance Variables
 
-    //Hyper-parameter:  How close does a partial match need to be to
-    // be considered a match (e.g., for the purposes of internal sensors)?
-    //TODO: For now we have this hard-coded (on the scale 0.0..1.0)
-    public static final double MATCH_CUTOFF = 0.2; // .25 to .50
 
     //How similar two match scores need to be to each other to be "near"
     public static final double MATCH_NEAR = 0.05;
@@ -220,6 +216,21 @@ public class TFRule extends Rule{
         return true;
 
     }//isExtMatch
+
+    /**
+     * isRHSMatch
+     *
+     * Checks if this rule's right-hand side matches the agent's most recent experience
+     *
+     * @return whether the right-hand side of this rule matches the agent
+     */
+    public boolean isRHSMatch(){
+
+        boolean match = helperMatch(this.rhsExternal, this.agent.getCurrExternal());
+        return match;
+
+    }//isRHSMatch
+
 
     /**
      * helperMatch
@@ -528,7 +539,7 @@ public class TFRule extends Rule{
     /**
      * toStringShortRHS
      *
-     * is a helper method for {@link #toString()} & {@link EpRule#toStringShort()} to
+     * is a helper method for {@link #toString()} to
      * convert a RHS to a bit string
      */
     protected String toStringShortRHS(HashSet<Cond> rhs) {
@@ -542,7 +553,7 @@ public class TFRule extends Rule{
     /**
      * toStringShortINT
      *
-     * is a helper method for {@link #toString()} & {@link EpRule#toStringShort()} to
+     * is a helper method for {@link #toString()} to
      * convert a RHS to a bit string
      */
     protected String toStringShortINT(HashSet<Cond> lhs) {
@@ -559,7 +570,7 @@ public class TFRule extends Rule{
     /**
      * toStringLongLHS
      *
-     * is a helper method for {@link #toString()} & {@link EpRule#toStringShort()} to
+     * is a helper method for {@link #toString()} to
      * convert a RHS to a bit string
      */
     protected String toStringLongLHS(HashSet<Cond> lhs) {
@@ -598,7 +609,7 @@ public class TFRule extends Rule{
         result.append(" -> ");
         result.append(toStringShortRHS(this.rhsExternal));
         //note:  replaceAll call removes extra trailing 0's to improve readability
-        result.append(String.format(" ^  acc=%.5f", getAccuracy()).replaceAll("0+$", "0"));
+        result.append(String.format(" ^  acc=%.5f", getConfidence()).replaceAll("0+$", "0"));
         double leftScore = lhsMatchScore(agent.getPrevAction(), agent.getPrevInternal() , agent.getPrevExternal());
         double rightScore = 0;//rhsMatchScore(agent.getCurrExternal());
         result.append(String.format(" Score: %.3f\t|| ", leftScore+rightScore).replaceAll("0+$","0"));

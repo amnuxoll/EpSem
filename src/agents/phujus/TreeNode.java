@@ -17,29 +17,6 @@ public class TreeNode {
 
     Random rand = new Random();
 
-    /** pairs an EpRule with a numerical value so it can be sorted by that value */
-    private class RatedRule implements Comparable<RatedRule> {
-        public EpRule rule;
-        public double rating;
-
-        public RatedRule(EpRule initRule, double initRating) {
-            this.rule = initRule;
-            this.rating = initRating;
-        }
-
-        @Override
-        public int compareTo(RatedRule other) {
-            //Special case: tie
-            if (this.rating == other.rating) {
-                //break ties arbitrarily with rule number
-                return this.rule.getId() - other.rule.getId();
-            }
-
-            //regular case
-            return (this.rating > other.rating) ? -1 : 1;
-        }
-    }//class RatedRule
-
     //Agent's current state and ruleset is needed to build the tree
     private final PhuJusAgent agent;
 
@@ -61,9 +38,6 @@ public class TreeNode {
 
     //bool for if tree has children or not
     private boolean isLeaf = false;
-
-    //This is the rule used to reach this node (use null for the root)
-    private BaseRule rule;
 
     //This is the rule used to reach this node when using tfrules
     private TFRule termRule;
@@ -87,7 +61,6 @@ public class TreeNode {
         this.rules = agent.getRules();
         this.parent = null;
         this.episodeIndex = agent.getNow();
-        this.rule = null;
         this.termRule = null;
         this.currInternal = agent.getCurrInternal();
         this.currExternal = agent.getCurrExternal();
@@ -110,7 +83,7 @@ public class TreeNode {
         this.path.add(this);
         this.pathStr = parent.pathStr + tfRule.getAction();
         //this.confidence = tfRule.lhsMatchScore(tfRule.getAction(), parent.currInternal, parent.currExternal);
-        this.confidence = tfRule.getAccuracy();
+        this.confidence = tfRule.getConfidence();
     }
 
     /**
@@ -133,28 +106,6 @@ public class TreeNode {
     }
 
     /**
-     * This child node constructor is built from a parent node and a matching rule
-     *
-     * Note:  caller is responsible for verifying the rule matches
-     *
-     */
-    public TreeNode(TreeNode parent, BaseRule rule) {
-        //initializing agent and its children
-        this.agent = parent.agent;
-        this.rules = parent.rules;
-        this.parent = parent;
-        this.episodeIndex = parent.episodeIndex + 1;
-        this.rule = rule;
-        this.currInternal = agent.genNextInternal(rule.getAction(), parent.currInternal, parent.currExternal);
-        this.currExternal = rule.getRHSExternal();
-        this.path = new Vector<>(parent.path);
-        this.path.add(this);
-        this.pathStr = parent.pathStr + rule.getAction();
-        this.confidence = rule.lhsMatchScore(rule.getAction(), parent.currInternal, parent.currExternal);
-        this.confidence *= rule.getAccuracy();
-    }
-
-    /**
      * findBestMatchingTFRule
      *
      * finds the TFRule that best matches this TreeNode
@@ -168,7 +119,7 @@ public class TreeNode {
         for (TFRule tr : this.agent.getTfRules()) {
 
             double score = tr.lhsMatchScore(action, this.currInternal, this.currExternal);
-            score*= tr.getAccuracy();
+            score*= tr.getConfidence();
             if( score > max ){
                 max = score;
                 maxRule = tr;
@@ -179,61 +130,6 @@ public class TreeNode {
     }
 
     /**
-     * findBestMatchingEpRule
-     *
-     * finds the EpRule that best matches this TreeNode
-     *
-     * @param action the action to use for the match
-     * @return the best match or null if no match found
-     */
-    private EpRule findBestMatchingEpRule(char action) {
-        double bestScore = 0.01;  //avoid "best" being 0.0 match
-        double bestDepth = -1;
-        EpRule bestRule = null;
-        for (EpRule er : this.agent.getEpRules()) {
-            if (er.getTimeDepth() < bestDepth) continue;
-            double score = er.lhsMatchScore(action, this.currInternal, this.currExternal);
-            score *= er.getAccuracy();
-            if (score <= 0.0) continue;  //no match
-
-            //A deeper match is always better, otherwise break ties with score
-            if ( (er.getTimeDepth() > bestDepth) || (score > bestScore) ){
-                bestScore = score;
-                bestRule = er;
-            }
-        }//for each rule
-
-        return bestRule;
-    }//findBestMatchingEpRule
-
-    /**
-     * findBestMatchingBaseRule
-     *
-     * finds the BaseRule that best matches this TreeNode
-     *
-     * @param action the action to use for the match
-     * @return the best match or null if no match found
-     */
-    private BaseRule findBestMatchingBaseRule(char action) {
-        double bestScore = 0.01;  //avoid "best" being 0.0 match
-        double bestDepth = -1;
-        BaseRule bestRule = null;
-        for (BaseRule br : this.agent.getBaseRules()) {
-            double score = br.lhsMatchScore(action, this.currInternal, this.currExternal);
-            score *= br.getAccuracy();
-            if (score > bestScore){
-                if (score == 1.0) return br;
-                bestScore = score;
-                bestRule = br;
-            }
-        }//for each rule
-
-        return bestRule;
-    }//findBestMatchingBaseRule
-
-
-
-    /**
      * expand
      *
      * populates this.children
@@ -242,19 +138,69 @@ public class TreeNode {
         //check:  already expanded
         if (this.children.size() != 0) return;
 
+        int numActions = agent.getActionList().length;
+        int numExtSensors = 2;//termRule.getRHSExternal().size();
+
         //Find the best matching Rule
-        for(int i = 0; i < agent.getActionList().length; i++) {
+        for(int i = 0; i < numActions; i++) {
+            double[][] votes = new double[numExtSensors][2];
             char action = agent.getActionList()[i].getName().charAt(0);
 
-            TFRule bestRule = findBestMatchingTFRule(action);
-            if(bestRule == null) {
-                continue;
+            for(TFRule rule: this.agent.getTfRules()) {
+                //if(!rule.isRHSMatch()) continue;
+
+                double score = rule.lhsMatchScore(action,this.currInternal, this.currExternal);
+
+                String[] sensors = rule.getRHSExternal().getSensorNames().toArray(new String[0]);
+                for(int j = 0; j < sensors.length; j++){
+                    boolean on = (boolean) rule.getRHSExternal().getSensor(sensors[j]);
+                    votes[j][on ? 1 : 0] += score;
+                }
+
             }
 
-            TreeNode child = new TreeNode(this, bestRule);
-            this.children.add(child);
+            boolean[] predictedVals = new boolean[numExtSensors];
 
-        }//for each action
+            // now find the best rule for this action
+            // for each external sensor see which score is better and choose that value
+            for(int j = 0; j < numExtSensors; j++) {
+                if(votes[j][0] > votes[j][1])
+                    predictedVals[j] = false;
+                else
+                    predictedVals[j] = true;
+
+            }
+
+            TFRule bestRule = null;
+            double bestScore = 0.0;
+            for(TFRule rule: this.agent.getTfRules()) {
+                // we don't want to look at rules that have a different action than the one we are currently looking at
+                if(rule.getAction() != action) continue;
+
+
+                // check if it has the external sensors that we want
+                String[] sensors = rule.getRHSExternal().getSensorNames().toArray(new String[0]);
+                boolean isMatch = true;
+                for(int j = 0; j < sensors.length; j++){
+                    if((boolean) rule.getRHSExternal().getSensor(sensors[j]) != predictedVals[j])
+                        isMatch = false;
+                }
+
+                if(isMatch){
+                    double matchScore = rule.lhsMatchScore(action, this.currInternal, this.currExternal);
+                    if(matchScore > bestScore){
+                        bestScore = matchScore;
+                        bestRule = rule;
+                    }
+                }
+
+            }
+
+            if(bestRule != null) {
+                TreeNode child = new TreeNode(this, bestRule);
+                this.children.add(child);
+            }
+        }
 
     }//expand
 
@@ -500,11 +446,11 @@ public class TreeNode {
         result.append(TreeNode.extToString(this.currExternal));
 
         //Rule # and Match Score
-        if (this.rule != null) {
+        if (this.termRule != null) {
             result.append(" #");
-            result.append(this.rule.getId());
+            result.append(this.termRule.getId());
             result.append("=");
-            double score = this.rule.lhsMatchScore(this.rule.getAction(),
+            double score = this.termRule.lhsMatchScore(this.termRule.getAction(),
                                                    this.parent.currInternal,
                                                    this.parent.currExternal);
             result.append(String.format("%.2f", score));
@@ -594,7 +540,6 @@ public class TreeNode {
 
     public char getAction() { return this.pathStr.charAt(this.pathStr.length() - 1); }
     public String getPathStr() { return this.pathStr; }
-    public BaseRule getRule() { return this.rule; }
     public TFRule getTermRule() { return this.termRule; }
     public HashSet<Integer> getCurrInternal() { return this.currInternal; }
     public SensorData getCurrExternal() { return this.currExternal; }

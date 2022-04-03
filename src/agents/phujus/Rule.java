@@ -23,34 +23,26 @@ public abstract class Rule {
      * tracks a rule's confidence in something over time.  The most
      * recent call to increase/decrease confidence bears the most
      * weight.  Previous calls have diminishing influence
-     *
-     * This is a parent class for {@link BaseRule.ExtCond} and
-     * {@link EpRule.IntCond}.
      */
     public static class Confidence {
-        public static final int TRUEMASK  = 0b00010000;
-        public static final int MAXVAL = 0b00011111;
-        //TODO:  generate the value of MAXVAL and TRUEMASK from a size parameter
 
-        private int conf = MAXVAL; //start will full confidence (optimistic)
+        private double conf = 1.0; //start will full confidence (optimistic)
 
-        public void increaseConfidence() {
-            this.conf = this.conf >>> 1;
-            this.conf |= TRUEMASK;
+        public void increaseConfidence(double matchScore, double bestScore) {
+            this.conf += ((1.0 - this.conf) / 2.0) * (matchScore / bestScore);
         }
 
-        public void decreaseConfidence() {
-            this.conf = this.conf >>> 1;
+        public void decreaseConfidence(double matchScore, double bestScore) {
+           this.conf -= (this.conf / 2.0) * (matchScore / bestScore);
         }
 
         public double getConfidence() {
-            return ((double)conf) / ((double)MAXVAL);
+            return conf;
         }
 
         //In some cases a Confidence object needs to be set to min instead of max (default)
         public void minConfidence() {
-            this.conf = 0;
-            this.increaseConfidence();
+            this.conf = 0.0;
         }
 
     }//class Confidence
@@ -70,7 +62,7 @@ public abstract class Rule {
 
     //the rule's historical accuracy is tracked with a Confidence object
     //TODO:  rename this variable to confidence
-    protected Confidence accuracy = new Confidence();
+    protected Confidence confidence = new Confidence();
 
     // Each rule has an activation level that tracks the frequency and
     // recency with which it has helped the agent reach a goal.  The
@@ -148,11 +140,15 @@ public abstract class Rule {
 
     public int getId() { return this.ruleId; }
 
-    public double getAccuracy() { return accuracy.getConfidence(); }
+    public double getConfidence() { return this.confidence.getConfidence(); }
 
-    public void increaseConfidence() {this.accuracy.increaseConfidence(); }
+    public void increaseConfidence(double matchScore, double bestScore) {
+        this.confidence.increaseConfidence(matchScore, bestScore);
+    }
 
-    public void decreaseConfidence() { this.accuracy.decreaseConfidence(); }
+    public void decreaseConfidence(double matchScore, double bestScore) {
+        this.confidence.decreaseConfidence(matchScore, bestScore);
+    }
 
     //endregion
 
