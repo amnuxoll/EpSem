@@ -147,7 +147,7 @@ public class TreeNode {
             char action = agent.getActionList()[i].getName().charAt(0);
 
             for(TFRule rule: this.agent.getTfRules()) {
-                //if(!rule.isRHSMatch()) continue;
+                if(rule.getAction() != action) continue;
 
                 double score = rule.lhsMatchScore(action,this.currInternal, this.currExternal);
 

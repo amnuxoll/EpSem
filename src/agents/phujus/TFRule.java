@@ -409,7 +409,8 @@ public class TFRule extends Rule{
                 score += calculateTFIDF(tfValue, dfValue, sVal);
             }
         }
-
+        // no sensors so can't match
+        if(c == 0) return 0;
         return score/c;
     }//lhsExtMatchScore
 
@@ -440,6 +441,8 @@ public class TFRule extends Rule{
             score += calculateTFIDF(tf,df,wasOn);
         }
 
+        // no sensors so can't match
+        if(c == 0) return 0;
         return score/c;
     }//lhsIntMatchScore
 
