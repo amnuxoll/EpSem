@@ -441,8 +441,8 @@ public class TFRule extends Rule{
             score += calculateTFIDF(tf,df,wasOn);
         }
 
-        // no sensors so can't match
-        if(c == 0) return 0;
+        // no sensors so base match of 1.0
+        if(c == 0) return 1.0;
         return score/c;
     }//lhsIntMatchScore
 
@@ -613,7 +613,7 @@ public class TFRule extends Rule{
         result.append(toStringShortRHS(this.rhsExternal));
         //note:  replaceAll call removes extra trailing 0's to improve readability
         result.append(String.format(" ^  acc=%.5f", getConfidence()).replaceAll("0+$", "0"));
-        double leftScore = lhsMatchScore(agent.getPrevAction(), agent.getPrevInternal() , agent.getPrevExternal());
+        double leftScore = lhsMatchScore(this.action, agent.getPrevInternal() , agent.getPrevExternal());
         double rightScore = 0;//rhsMatchScore(agent.getCurrExternal());
         result.append(String.format(" Score: %.3f\t|| ", leftScore+rightScore).replaceAll("0+$","0"));
         result.append(toStringLongLHS(this.lhsInternal));
