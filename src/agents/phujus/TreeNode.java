@@ -15,6 +15,7 @@ import java.util.*;
 
 public class TreeNode {
 
+    //This might be useful...
     Random rand = new Random();
 
     //Agent's current state and ruleset is needed to build the tree
@@ -25,6 +26,9 @@ public class TreeNode {
 
     //associated timestep for this node
     private final int episodeIndex;
+
+    //the action that led to this node
+    private char action;
 
     //sensor values for this node
     private final HashSet<Integer> currInternal;
@@ -38,9 +42,6 @@ public class TreeNode {
 
     //bool for if tree has children or not
     private boolean isLeaf = false;
-
-    //This is the rule used to reach this node when using tfrules
-    private TFRule termRule;
 
     //This is the path used to reach this node
     private final Vector<TreeNode> path;
@@ -61,7 +62,7 @@ public class TreeNode {
         this.rules = agent.getRules();
         this.parent = null;
         this.episodeIndex = agent.getNow();
-        this.termRule = null;
+        this.action = '\0';
         this.currInternal = agent.getCurrInternal();
         this.currExternal = agent.getCurrExternal();
         this.path = new Vector<>();
@@ -70,39 +71,27 @@ public class TreeNode {
         this.confidence = 1.0;
     }
 
-    public TreeNode(TreeNode parent, TFRule tfRule) {
+    /**
+     * constructs a treenode with given sensors and action
+     * @param parent
+     * @param action action taken to reach this node
+     * @param newExternal predicted external sensors for this node
+     * @param confidence confidence in newExternal
+     *
+     */
+    public TreeNode(TreeNode parent, char action, SensorData newExternal, double confidence) {
         //initializing agent and its children
         this.agent = parent.agent;
         this.rules = parent.rules;
         this.parent = parent;
         this.episodeIndex = parent.episodeIndex + 1;
-        this.termRule = tfRule;
-        this.currInternal = agent.genNextInternal(tfRule.getAction(), parent.currInternal, parent.currExternal);
-        this.currExternal = tfRule.getRHSExternal();
-        this.path = new Vector<>(parent.path);
-        this.path.add(this);
-        this.pathStr = parent.pathStr + tfRule.getAction();
-        //this.confidence = tfRule.lhsMatchScore(tfRule.getAction(), parent.currInternal, parent.currExternal);
-        this.confidence = tfRule.getConfidence();
-    }
-
-    /**
-     * This may be a mistake...  This ctor creates "dummy"
-     * TreeNode object to support {@link #findMostUncertainPath()}
-     * so it can return a path that has never been tried before
-     */
-    public TreeNode(TreeNode parent, char action) {
-        this.agent = parent.agent;
-        this.rules = parent.rules;
-        this.parent = parent;
-        this.episodeIndex = parent.episodeIndex + 1;
-        this.termRule = null;
+        this.action = action;
         this.currInternal = agent.genNextInternal(action, parent.currInternal, parent.currExternal);
-        this.currExternal = new SensorData(false);
+        this.currExternal = newExternal;
         this.path = new Vector<>(parent.path);
         this.path.add(this);
         this.pathStr = parent.pathStr + action;
-        this.confidence = 0.0;
+        this.confidence = parent.confidence * confidence;
     }
 
     /**
@@ -130,6 +119,56 @@ public class TreeNode {
     }
 
     /**
+     * predicts what the externals sensors will be for a child node of this one
+     *
+     * @param action  the action taken to reach the child
+     * @param predicted  this object should have the desired external sensors
+     *                   names.  The values will changed by the method based
+     *                   on the rule votes.  (Note:  Probably just pass in
+     *                   currExternal from an existing node.)
+     * @return how confident we are in this prediction
+     */
+    public double predictExternalByVote(char action, SensorData predicted) {
+        int numExtSensors = predicted.size();
+        String[] sensorNames = predicted.getSensorNames().toArray(new String[0]);
+        //first index: which sensor; second index: false/true
+        double[][] votes = new double[numExtSensors][2];
+
+        //Let each rule vote based on its match score
+        for(TFRule rule: this.agent.getTfRules()) {
+            if(rule.getAction() != action) continue;
+
+            double score = rule.lhsMatchScore(action,this.currInternal, this.currExternal);
+
+            for(int j = 0; j < sensorNames.length; j++){
+                boolean on = (boolean) rule.getRHSExternal().getSensor(sensorNames[j]);
+                votes[j][on ? 1 : 0] += score;
+            }
+        }
+
+        //Calculate external values based on votes (winner take all)
+        double confidence = 1.0;  //let's be optimistic to start...
+        boolean[] predictedVals = new boolean[numExtSensors];
+        for(int j = 0; j < numExtSensors; j++) {
+            predicted.setSensor(sensorNames[j], (votes[j][0] <= votes[j][1]));
+
+            //indiv sensor confidence is based on fraction of votes received for
+            // that sensor value (e.g., 3.61 "no" votes and 19.3 "yes" votes
+            // = 0.84 confidence in "yes")
+            //overall confidence is the product of confidence in each indiv sensor
+            //TODO:  should we use an average instead of a product??
+            double totalVotes = (votes[j][0] + votes[j][1]);
+            if (totalVotes > 0.0) {
+                confidence *= Math.max(votes[j][0], votes[j][1]) / totalVotes;
+            } else {
+                confidence = 0.0;  // no votes == no confidence
+            }
+        }
+
+        return confidence;
+    }//predictExternalByVote
+
+    /**
      * expand
      *
      * populates this.children
@@ -139,68 +178,20 @@ public class TreeNode {
         if (this.children.size() != 0) return;
 
         int numActions = agent.getActionList().length;
-        int numExtSensors = 2;//termRule.getRHSExternal().size();
 
-        //Find the best matching Rule
+        //Create predicted child node for each possible action
         for(int i = 0; i < numActions; i++) {
-            double[][] votes = new double[numExtSensors][2];
             char action = agent.getActionList()[i].getName().charAt(0);
 
-            for(TFRule rule: this.agent.getTfRules()) {
-                if(rule.getAction() != action) continue;
+            //Calculate the predicted external sensor values
+            SensorData predictedExt = new SensorData(this.currExternal);
+            double confidence = predictExternalByVote(action, predictedExt);
 
-                double score = rule.lhsMatchScore(action,this.currInternal, this.currExternal);
+            //create a child for this action
+            TreeNode child = new TreeNode(this, action, predictedExt, confidence);
+            this.children.add(child);
+        }//for
 
-                String[] sensors = rule.getRHSExternal().getSensorNames().toArray(new String[0]);
-                for(int j = 0; j < sensors.length; j++){
-                    boolean on = (boolean) rule.getRHSExternal().getSensor(sensors[j]);
-                    votes[j][on ? 1 : 0] += score;
-                }
-
-            }
-
-            boolean[] predictedVals = new boolean[numExtSensors];
-
-            // now find the best rule for this action
-            // for each external sensor see which score is better and choose that value
-            for(int j = 0; j < numExtSensors; j++) {
-                if(votes[j][0] > votes[j][1])
-                    predictedVals[j] = false;
-                else
-                    predictedVals[j] = true;
-
-            }
-
-            TFRule bestRule = null;
-            double bestScore = 0.0;
-            for(TFRule rule: this.agent.getTfRules()) {
-                // we don't want to look at rules that have a different action than the one we are currently looking at
-                if(rule.getAction() != action) continue;
-
-
-                // check if it has the external sensors that we want
-                String[] sensors = rule.getRHSExternal().getSensorNames().toArray(new String[0]);
-                boolean isMatch = true;
-                for(int j = 0; j < sensors.length; j++){
-                    if((boolean) rule.getRHSExternal().getSensor(sensors[j]) != predictedVals[j])
-                        isMatch = false;
-                }
-
-                if(isMatch){
-                    double matchScore = rule.lhsMatchScore(action, this.currInternal, this.currExternal);
-                    if(matchScore > bestScore){
-                        bestScore = matchScore;
-                        bestRule = rule;
-                    }
-                }
-
-            }
-
-            if(bestRule != null) {
-                TreeNode child = new TreeNode(this, bestRule);
-                this.children.add(child);
-            }
-        }
 
     }//expand
 
@@ -359,9 +350,10 @@ public class TreeNode {
                 if (numUnusedActions > 0) {
                     //create a fake tree node with this unused action so
                     // that there will be a path that uses it
+                    // TODO:  Is this a mistake?
 
                     char action = unusedActionsArr.get(rand.nextInt(numUnusedActions)).charAt(0);
-                    TreeNode fake = new TreeNode(curr, action);
+                    TreeNode fake = new TreeNode(curr, action, this.currExternal, 1.0);
                     return fake.path;
 
                 }
@@ -445,17 +437,6 @@ public class TreeNode {
         //External Sensors
         result.append(TreeNode.extToString(this.currExternal));
 
-        //Rule # and Match Score
-        if (this.termRule != null) {
-            result.append(" #");
-            result.append(this.termRule.getId());
-            result.append("=");
-            double score = this.termRule.lhsMatchScore(this.termRule.getAction(),
-                                                   this.parent.currInternal,
-                                                   this.parent.currExternal);
-            result.append(String.format("%.2f", score));
-        }
-
         //Confidence
         result.append("\tc");
         //note:  replaceAll call removes extra trailing 0's to improve readability
@@ -481,8 +462,6 @@ public class TreeNode {
      * @param indent how much to indent any output from this method
      */
     private void printTreeHelper(String indent) {
-        int id = (this.termRule == null) ? 0 :  this.termRule.getId();
-        System.out.print("#" + id);
         System.out.print(indent + "  " + this);
 
         //base case #1: Goal Node found (not at root)
@@ -540,7 +519,6 @@ public class TreeNode {
 
     public char getAction() { return this.pathStr.charAt(this.pathStr.length() - 1); }
     public String getPathStr() { return this.pathStr; }
-    public TFRule getTermRule() { return this.termRule; }
     public HashSet<Integer> getCurrInternal() { return this.currInternal; }
     public SensorData getCurrExternal() { return this.currExternal; }
     public TreeNode getParent() { return this.parent; }

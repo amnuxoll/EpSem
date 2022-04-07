@@ -83,7 +83,6 @@ public class TFRule extends Rule{
             } catch(Exception e){
                 return this.sName.compareTo(o.sName);
             }
-
         }
 
         @Override
@@ -612,7 +611,7 @@ public class TFRule extends Rule{
         result.append(" -> ");
         result.append(toStringShortRHS(this.rhsExternal));
         //note:  replaceAll call removes extra trailing 0's to improve readability
-        result.append(String.format(" ^  acc=%.5f", getConfidence()).replaceAll("0+$", "0"));
+        result.append(String.format(" ^  conf=%.5f", getConfidence()).replaceAll("0+$", "0"));
         double leftScore = lhsMatchScore(this.action, agent.getPrevInternal() , agent.getPrevExternal());
         double rightScore = 0;//rhsMatchScore(agent.getCurrExternal());
         result.append(String.format(" Score: %.3f\t|| ", leftScore+rightScore).replaceAll("0+$","0"));

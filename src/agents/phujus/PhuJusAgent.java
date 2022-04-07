@@ -68,16 +68,6 @@ public class PhuJusAgent implements IAgent {
 
 //endregion
 
-    // These variables are used to track sensor longevity and rarity of sensor values
-    //TODO: implement this
-//    private final int[] internalLongevity = new int[MAXNUMRULES];
-//    private final int[] internalTrues = new int[MAXNUMRULES];
-//    private final int[] internalFalses = new int[MAXNUMRULES];
-//
-//    // Arrays that track external sensors' trues and falses
-//    private HashMap<String, Integer> externalTrues = new HashMap<>();
-//    private HashMap<String, Integer> externalFalses = new HashMap<>();
-
     // DEBUG variable to toggle println statements (on/off = true/false)
     public static final boolean DEBUGPRINTSWITCH = true;
 
@@ -85,7 +75,6 @@ public class PhuJusAgent implements IAgent {
     private Vector<PathRule> pathRules = new Vector<>();
     private Vector<TFRule> tfRules = new Vector<>();
     private Hashtable<Integer, Rule> rules = new Hashtable<>();
-    //private Vector<Rule> rules = new Vector<>();  //all rules (size may not exceed MAXNUMRULES)
 
     private int now = 0; //current timestep 't'
 
@@ -855,18 +844,19 @@ public class PhuJusAgent implements IAgent {
      */
     private void rewardRulesForGoal() {
         //reward the rules in reverse order
-        double reward = 1.0;
-        int time = this.now;
-        for(int i = this.pathTraversedSoFar.size() - 1; i >= 0; --i) {
-            TreeNode node = this.pathTraversedSoFar.get(i);
-            TFRule tr = node.getTermRule();
-            if (tr != null) {
-                tr.addActivation(time, reward);
-                System.out.println("current activation: " + tr.calculateActivation(this.now));
-            }
-            time--;
-            reward *= TFRule.DECAY_RATE;
-        }
+        //TODO:  This needs to be revised
+//        double reward = 1.0;
+//        int time = this.now;
+//        for(int i = this.pathTraversedSoFar.size() - 1; i >= 0; --i) {
+//            TreeNode node = this.pathTraversedSoFar.get(i);
+//            TFRule tr = node.getTermRule();
+//            if (tr != null) {
+//                tr.addActivation(time, reward);
+//                System.out.println("current activation: " + tr.calculateActivation(this.now));
+//            }
+//            time--;
+//            reward *= TFRule.DECAY_RATE;
+//        }
 
     }//rewardRulesForGoal
 
