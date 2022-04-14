@@ -122,6 +122,9 @@ public class TreeNode {
     /**
      * predicts what the externals sensors will be for a child node of this one
      *
+     * TODO:  remove?  Currently this is replaced by the bloc-voting method but
+     *        not sure it's better.  So we're keeping this method here for now.
+     *
      * @param action  the action taken to reach the child
      * @param predicted  this object should have the desired external sensors
      *                   names.  The values will changed by the method based
@@ -201,14 +204,14 @@ public class TreeNode {
             if(rule.getAction() != action) continue;
 
             double score = rule.lhsMatchScore(action, this.currInternal,this.currExternal);
+            score *= rule.getConfidence();
 
             String lhsKey = ""; // HashMap key String
 
             // Array containing data about the bloc in the following order:
-            // value of first sensor, value of second sensor, bloc size
+            //first sensor on, first sensor off, second sensor on, second sensor off, bloc size
             double[] predictedExternal = new double[5];
 
-            //first sensor on, first sensor off, second sensor on, second sensor off, bloc size
 
             // Creates the key String for indexing into the HashMap and adds the rule's
             // vote for each lhs external sensor
@@ -237,7 +240,7 @@ public class TreeNode {
                 double[] old = blocData.get(lhsKey);    // Gets the old data
                 for(int i = 0; i < old.length; i++){
 
-                    // Updates the old data
+                    // Updates the data
                     // This also increments the bloc size by 1
                     predictedExternal[i] += old[i];
                 }
@@ -245,36 +248,35 @@ public class TreeNode {
             // Puts the updated data back into the HashMap with the new value
             blocData.put(lhsKey, predictedExternal);
 
-        }
+        }//for each tf rule
 
         // Go through the hashMap and calculate the highest vote for each action
         double confidence = 1.0;
 
-        double[] totalVotes = new double[4];
+        double[] totalVotes = new double[4];  //TODO:  shouldn't be hardcoded for two ext sensors
 
-        // Counts up all the votes across the blocs, facotring in the size of the bloc
+        // Counts up all the votes across the blocs, factoring in the size of the bloc
         for(double[] d: blocData.values()) {
 
-            // Each sensor vote total is divided by yhe size of the bloc to ensure each
+            // Each sensor vote total is divided by the size of the bloc to ensure each
             // bloc has a single vote
             totalVotes[0] += d[0] / d[4];
             totalVotes[1] += d[1] / d[4];
             totalVotes[2] += d[2] / d[4];
             totalVotes[3] += d[3] / d[4];
-
         }
 
+        //Construct the predicted SensorData
         for(int i = 0; i < numExtSensors; i++) {
             predicted.setSensor(sensorNames[i], totalVotes[2*i] >= totalVotes [2*i+1]);
 
+            //calculate confidence in this sensor value
             double max = Math.max(totalVotes[2*i],totalVotes[2*i+1]);
-
             if(max > 0.0){
                 confidence *= max / (totalVotes[2*i] + totalVotes[2*i+1]);
             } else {
                 confidence = 0.0;
             }
-
         }
 
         return confidence;
