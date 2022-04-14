@@ -1,5 +1,6 @@
 package agents.phujus;
 
+import environments.fsm.FSMEnvironment;
 import framework.Action;
 import framework.SensorData;
 
@@ -148,7 +149,6 @@ public class TreeNode {
 
         //Calculate external values based on votes (winner take all)
         double confidence = 1.0;  //let's be optimistic to start...
-        boolean[] predictedVals = new boolean[numExtSensors];
         for(int j = 0; j < numExtSensors; j++) {
             predicted.setSensor(sensorNames[j], (votes[j][0] <= votes[j][1]));
 
@@ -168,6 +168,102 @@ public class TreeNode {
         return confidence;
     }//predictExternalByVote
 
+    public double predictExternalByBloc(char action, SensorData predicted) {
+        int numExtSensors = this.currExternal.size();
+
+        // String is a String representation of a bloc (i.e "a00" or "b01")
+        // TODO: Consider creating a BlocData object to make cleaner?
+        HashMap<String, double[]> blocData = new HashMap<>();
+
+        String[] sensorNames = predicted.getSensorNames().toArray(new String[0]);
+
+        Vector<TFRule> tfRules = this.agent.getTfRules();
+
+        // Go through each rule and add its vote to the blocData
+        for (TFRule rule: tfRules) {
+            // Ignore the rule if the action doesn't match
+            if(rule.getAction() != action) continue;
+
+            double score = rule.lhsMatchScore(action, this.currInternal,this.currExternal);
+
+            String lhsKey = ""; // HashMap key String
+
+            // Array containing data about the bloc in the following order:
+            // value of first sensor, value of second sensor, bloc size
+            double[] predictedExternal = new double[5];
+
+            //first sensor on, first sensor off, second sensor on, second sensor off, bloc size
+
+            // Creates the key String for indexing into the HashMap and adds the rule's
+            // vote for each lhs external sensor
+            for(int j = 0; j < numExtSensors; j++){
+
+                // Gets the value of the lhs external sensor
+                boolean on = (boolean) rule.getLHSExternal().getSensor(sensorNames[j]);
+
+                // Adds "1" or "0" to the key String depending on the sensor value
+                lhsKey += on ? "1" : "0";
+
+                // Gets the value of the prediction for the sensor
+                on = (boolean) rule.getRHSExternal().getSensor(sensorNames[j]);
+
+                // Adds the vote
+                // Use a negative score for off and positive score for on to make summing the
+                // total easier... maybe :)
+                predictedExternal[on ? 2 * j : 2 * j + 1] += score;
+            }
+
+            // Set the bloc size to one, which is used to increment in later function calls
+            predictedExternal[4] = 1.0;
+
+            // If the bloc is already created, we update it with the new vote of the current rule
+            if (blocData.containsKey(lhsKey)){
+                double[] old = blocData.get(lhsKey);    // Gets the old data
+                for(int i = 0; i < old.length; i++){
+
+                    // Updates the old data
+                    // This also increments the bloc size by 1
+                    predictedExternal[i] += old[i];
+                }
+            }
+            // Puts the updated data back into the HashMap with the new value
+            blocData.put(lhsKey, predictedExternal);
+
+        }
+
+        // Go through the hashMap and calculate the highest vote for each action
+        double confidence = 1.0;
+
+        double[] totalVotes = new double[4];
+
+        // Counts up all the votes across the blocs, facotring in the size of the bloc
+        for(double[] d: blocData.values()) {
+
+            // Each sensor vote total is divided by yhe size of the bloc to ensure each
+            // bloc has a single vote
+            totalVotes[0] += d[0] / d[4];
+            totalVotes[1] += d[1] / d[4];
+            totalVotes[2] += d[2] / d[4];
+            totalVotes[3] += d[3] / d[4];
+
+        }
+
+        for(int i = 0; i < numExtSensors; i++) {
+            predicted.setSensor(sensorNames[i], totalVotes[2*i] >= totalVotes [2*i+1]);
+
+            double max = Math.max(totalVotes[2*i],totalVotes[2*i+1]);
+
+            if(max > 0.0){
+                confidence *= max / (totalVotes[2*i] + totalVotes[2*i+1]);
+            } else {
+                confidence = 0.0;
+            }
+
+        }
+
+        return confidence;
+    }
+
     /**
      * expand
      *
@@ -177,18 +273,24 @@ public class TreeNode {
         //check:  already expanded
         if (this.children.size() != 0) return;
 
+        if (agent.getTfRules().size() < 1) return;
+
         int numActions = agent.getActionList().length;
+
+        // bloc = lhs external sensors + action
+        //  00a, 00b, 01a, 01b, etc.
 
         //Create predicted child node for each possible action
         for(int i = 0; i < numActions; i++) {
-            char action = agent.getActionList()[i].getName().charAt(0);
+
+            char a = agent.getActionList()[i].getName().charAt(0);
 
             //Calculate the predicted external sensor values
             SensorData predictedExt = new SensorData(this.currExternal);
-            double confidence = predictExternalByVote(action, predictedExt);
+            double confidence = predictExternalByBloc(a, predictedExt);
 
             //create a child for this action
-            TreeNode child = new TreeNode(this, action, predictedExt, confidence);
+            TreeNode child = new TreeNode(this, a, predictedExt, confidence);
             this.children.add(child);
         }//for
 
