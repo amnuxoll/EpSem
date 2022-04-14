@@ -636,6 +636,15 @@ public class TFRule extends Rule{
         return result;
     }
 
+    public SensorData getLHSExternal() {
+        SensorData result = SensorData.createEmpty();
+        for(Cond cond : this.lhsExternal) {
+            //pick true/false by rounding
+            result.setSensor(cond.sName, cond.data.getTF() >= 0.5);
+        }
+        return result;
+    }
+
     public HashSet<Cond> getLHSExternalRaw() {
         return this.lhsExternal;
     }
