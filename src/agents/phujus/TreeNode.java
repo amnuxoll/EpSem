@@ -168,6 +168,22 @@ public class TreeNode {
         return confidence;
     }//predictExternalByVote
 
+    /**
+     * predictExternalByBloc
+     *
+     * predicts what the externals sensors will be for a child node of this one
+     * by going through the rule list and summing up each bloc's votes for external
+     * sensors. The highest voted state for each sensor will be selected. A bloc is
+     * determined by external sensors and action for a given rule. ie: 00a -> 01
+     * and 00a -> 10 will be in the same bloc
+     *
+     * @param action  the action taken to reach the child
+     * @param predicted  this object should have the desired external sensors
+     *                   names.  The values will be changed by the method based
+     *                   on the rule votes.  (Note:  Probably just pass in
+     *                   currExternal from an existing node.)
+     * @return how confident we are in this prediction
+     */
     public double predictExternalByBloc(char action, SensorData predicted) {
         int numExtSensors = this.currExternal.size();
 
@@ -399,7 +415,13 @@ public class TreeNode {
     public Vector<TreeNode> findMostUncertainPath() {
 
 
-        Vector<TreeNode> toSearch = new Vector<>();
+        char action = agent.getActionList()[rand.nextInt(agent.getActionList().length)].getName().charAt(0);
+        TreeNode random = new TreeNode(this, action, this.currExternal, 1.0);
+        return random.path;
+
+
+        // TODO: Make code function how we want. Currently commented out until we get it working
+       /* Vector<TreeNode> toSearch = new Vector<>();
         toSearch.add(this);
 
         double bestScore = -99.9;  //no score can be this low
@@ -463,7 +485,7 @@ public class TreeNode {
 
         }//while
 
-        return bestPath;
+        return bestPath; */
     }//findMostUncertainPath
 
 
