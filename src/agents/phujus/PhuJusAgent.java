@@ -71,6 +71,14 @@ public class PhuJusAgent implements IAgent {
     // DEBUG variable to toggle println statements (on/off = true/false)
     public static final boolean DEBUGPRINTSWITCH = true;
 
+    // FLAG variable to toggle updating of TFIDF values
+    public static final boolean NO_TFIDF = true;
+
+    // FLAG variabale to toggle rule generation
+    // if this is false, addPredeterminedRules will be called at
+    // timestep 0
+    public static final boolean GENERATERULES = false;
+
     //The agent keeps lists of the rules it is using
     private Vector<PathRule> pathRules = new Vector<>();
     private Vector<TFRule> tfRules = new Vector<>();
@@ -141,8 +149,15 @@ public class PhuJusAgent implements IAgent {
         this.currExternal = sensorData;
         this.stepsSinceGoal++;
 
-        //rules may be added, rules may be removed, rule confidences are adjusted
-        updateRuleSet();
+        if(GENERATERULES) {
+            //rules may be added, rules may be removed, rule confidences are adjusted
+            updateRuleSet();
+        }
+        else if(this.now == 1) {
+            addPredeterminedRules();
+            updateInternalPercents();
+            updateExternalPercents();
+        }
 
         //DEBUG:  Tell the human what time it is
         if (PhuJusAgent.DEBUGPRINTSWITCH) {
@@ -155,7 +170,7 @@ public class PhuJusAgent implements IAgent {
         if(this.stepsSinceGoal >= 15) {
             debugPrintln("");
         }
-        if (this.now == 59) {
+        if (this.now == 5) {
             debugPrintln("");
         }
         if(this.rules.values().size() > 25){
@@ -164,20 +179,22 @@ public class PhuJusAgent implements IAgent {
 
 
 
-        //Calculate percentage that each sensor is on
-        updateInternalPercents();
-        updateExternalPercents();
+        if(!NO_TFIDF) {
+            //Calculate percentage that each sensor is on
+            updateInternalPercents();
+            updateExternalPercents();
 
-        //DEBUG
-        printInternalPercents();
-        printExternalPercents();
-
-
-        System.out.println("TF Rules:");
-        for(int i = 0; i < tfRules.size(); i++){
-            System.out.println(tfRules.get(i));
+            //DEBUG
+            printInternalPercents();
+            printExternalPercents();
         }
 
+        if(this.now > 1) {
+            System.out.println("TF Rules:");
+            for (int i = 0; i < tfRules.size(); i++) {
+                System.out.println(tfRules.get(i));
+            }
+        }
         //if(this.now > 1)
         //    System.out.println("Best Match TF Rule: " + gethighestTFRule().ruleId);
 //
@@ -202,6 +219,115 @@ public class PhuJusAgent implements IAgent {
 
         return new Action(action + "");
     }//getNextAction
+
+    /**
+     * addPredeterminedRules
+     *
+     * adds the predetermined rules to the rule vector.
+     * Note: This method is only called if the GENERATERULES flag is false
+     */
+    private void addPredeterminedRules() {
+        //adds the following rules:
+        //1: 10a->00
+        //2: 10b->10
+        //3: (1)00a->10 c0.5
+        //4: (1)00a->11 c0.25
+        //5: (1)00a->01 c0.25
+        //6: (3)10a->00 c1.0
+        //7: (6)00a->10 c0.5
+        //8: (6)00a->10 c0.5
+        //9: 00b->00
+        //10: (9)00a->00 c0.33
+        //11: (9)00a->11 c0.16
+        //12: (9)00a->01 c0.16
+        //13: (9)00a->10 c0.33
+        //14: 01b->00
+        //15: (1)01a->10 c0.5
+        //16: (1)01a->11 c0.25
+        //17:   (1)01a->01 c0.25
+        //18: (3)11a->00 c1.0
+        //19: (6)01a->10 c0.5
+        //20: (6)01a->10 c0.5
+        //21: (9)01a->00 c0.33
+        //22: (9)01a->11 c0.16
+        //23: (9)01a->01 c0.16
+        //24: (9)01a->10 c0.33
+        //25: 11a->00
+        //26: 11b->10
+
+        //initialize the sensordata we will be using to make the rules
+        SensorData data_00 = new SensorData(false);
+        data_00.setSensor("IS_ODD", false);
+        SensorData data_10 = new SensorData(false);
+        data_10.setSensor("IS_ODD", true);
+        SensorData data_01 = new SensorData(true);
+        data_01.setSensor("IS_ODD", false);
+        SensorData data_11 = new SensorData(true);
+        data_11.setSensor("IS_ODD", true);
+
+        String[] one = {"1", "25"};
+        String[] three = {"3"};
+        String[] six = {"6"};
+        String[] nine = {"9", "14"};
+
+        //1: 10a->00
+        tfRules.add(new TFRule(this, 'a', null, data_10, data_00, 1.0));
+        //2: 10b->10
+        tfRules.add(new TFRule(this, 'b', null, data_10, data_10, 1.0));
+        //3: (1)00a->10 c0.5
+        tfRules.add(new TFRule(this, 'a', one, data_00, data_10, 0.5));
+        //4: (1)00a->11 c0.25
+        tfRules.add(new TFRule(this, 'a', one, data_00, data_11, 0.25));
+        //5: (1)00a->01 c0.25
+        tfRules.add(new TFRule(this, 'a', one, data_00, data_01, 0.25));
+        //6: (3)10a->00 c1.0
+        tfRules.add(new TFRule(this, 'a', three, data_10, data_00, 1.0));
+        //7: (6)00a->01 c0.5
+        tfRules.add(new TFRule(this, 'a', six, data_00, data_01, 0.5));
+        //8: (6)00a->11 c0.5
+        tfRules.add(new TFRule(this, 'a', six, data_00, data_11, 0.5));
+        //9: 00b->00
+        tfRules.add(new TFRule(this, 'b', null, data_00, data_00, 1.0));
+        //10: (9)00a->00 c0.33
+        tfRules.add(new TFRule(this, 'a', nine, data_00, data_00, 0.33));
+        //11: (9)00a->11 c0.16
+        tfRules.add(new TFRule(this, 'a', nine, data_00, data_11, 0.16));
+        //12: (9)00a->01 c0.16
+        tfRules.add(new TFRule(this, 'a', nine, data_00, data_01, 0.16));
+        //13: (9)00a->10 c0.33
+        tfRules.add(new TFRule(this, 'a', nine, data_00, data_10, 0.16));
+        //14: 01b->00
+        tfRules.add(new TFRule(this, 'b', null, data_01, data_00, 1.0));
+        //15: (1)01a->10 c0.5
+        tfRules.add(new TFRule(this, 'a', one, data_01, data_10, 0.5));
+        //16: (1)01a->11 c0.25
+        tfRules.add(new TFRule(this, 'a', one, data_01, data_11, 0.25));
+        //17: (1)01a->01 c0.25
+        tfRules.add(new TFRule(this, 'a', one, data_01, data_01, 0.25));
+        //18: (3)11a->00 c1.0
+        tfRules.add(new TFRule(this, 'a', three, data_11, data_00, 1.0));
+        //19: (6)01a->10 c0.5
+        tfRules.add(new TFRule(this, 'a', six, data_01, data_10, 0.5));
+        //20: (6)01a->10 c0.5
+        tfRules.add(new TFRule(this, 'a', six, data_01, data_10, 0.5));
+        //21: (9)01a->00 c0.33
+        tfRules.add(new TFRule(this, 'a', nine, data_01, data_00, 0.33));
+        //22: (9)01a->11 c0.16
+        tfRules.add(new TFRule(this, 'a', nine, data_01, data_11, 0.16));
+        //23: (9)01a->01 c0.16
+        tfRules.add(new TFRule(this, 'a', nine, data_01, data_01, 0.16));
+        //24: (9)01a->10 c0.33
+        tfRules.add(new TFRule(this, 'a', nine, data_01, data_10, 0.33));
+        //25: 11a->00
+        tfRules.add(new TFRule(this, 'a', null, data_11, data_00, 1.0));
+        //26: 11b->10
+        tfRules.add(new TFRule(this, 'b', null, data_11, data_10, 1.0));
+
+        for(TFRule rule: tfRules) {
+            rules.put(rule.ruleId, rule);
+        }
+
+    }
 
     /**
      * buildNewPath

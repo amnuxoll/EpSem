@@ -40,6 +40,8 @@ public abstract class Rule {
             return conf;
         }
 
+        public void setConfidence(double conf) { this.conf = conf; }
+
         //In some cases a Confidence object needs to be set to min instead of max (default)
         public void minConfidence() {
             this.conf = 0.0;

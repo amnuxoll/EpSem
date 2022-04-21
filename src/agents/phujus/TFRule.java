@@ -118,6 +118,21 @@ public class TFRule extends Rule{
     }//TFRule
 
     /**
+     * ctor to initalize a tf rule given an action, LHSInt, LHSExt, RHSExt, and confidence
+     */
+    public TFRule(PhuJusAgent agent, char action, String[] lhsInt, SensorData lhsExt, SensorData rhsExt, double conf) {
+        super(agent);
+
+        this.action = action;
+
+        this.lhsInternal = initInternal(lhsInt);
+        this.lhsExternal = initExternal(lhsExt);
+        this.rhsExternal = initExternal(rhsExt);
+
+        this.confidence.setConfidence(conf);
+    }//TFRule
+
+    /**
      * initInternal
      *
      * Creates an instance of Cond for each sensor in the input HashSet and returns
@@ -145,6 +160,18 @@ public class TFRule extends Rule{
 
         return set;
     }//initInternal
+
+    private HashSet<Cond> initInternal(String[] in) {
+        HashSet<Cond> set = new HashSet<>();
+        if(in == null)
+            return set;
+
+        for(String s: in){
+            set.add(new Cond(s, true));
+        }
+
+        return set;
+    }
 
     /** converts from SensorData (used by the FSM environment) to HashSet<ExtCond> */
     private HashSet<Cond> initExternal(SensorData sData) {
@@ -612,7 +639,7 @@ public class TFRule extends Rule{
         result.append(toStringShortRHS(this.rhsExternal));
         //note:  replaceAll call removes extra trailing 0's to improve readability
         result.append(String.format(" ^  conf=%.5f", getConfidence()).replaceAll("0+$", "0"));
-        double leftScore = lhsMatchScore(this.action, agent.getPrevInternal() , agent.getPrevExternal());
+        double leftScore = lhsMatchScore(this.action, agent.getPrevInternal() , agent.getCurrExternal());
         double rightScore = 0;//rhsMatchScore(agent.getCurrExternal());
         result.append(String.format(" Score: %.3f\t|| ", leftScore+rightScore).replaceAll("0+$","0"));
         result.append(toStringLongLHS(this.lhsInternal));
