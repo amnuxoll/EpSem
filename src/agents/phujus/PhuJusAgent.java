@@ -153,7 +153,7 @@ public class PhuJusAgent implements IAgent {
             //rules may be added, rules may be removed, rule confidences are adjusted
             updateRuleSet();
         }
-        else if(this.now == 1) {
+        else if(this.now == 2) {
             addPredeterminedRules();
             updateInternalPercents();
             updateExternalPercents();
@@ -227,6 +227,7 @@ public class PhuJusAgent implements IAgent {
      * Note: This method is only called if the GENERATERULES flag is false
      */
     private void addPredeterminedRules() {
+
         //adds the following rules:
         //1: 10a->00
         //2: 10b->10
@@ -255,6 +256,12 @@ public class PhuJusAgent implements IAgent {
         //25: 11a->00
         //26: 11b->10
 
+        RuleLoader loader = new RuleLoader(this);
+        try {
+            loader.loadRules("C:\\Users\\sirma\\OneDrive\\Documents\\NuxResearch2022\\notes\\test.csv");
+        } catch (Exception e) {
+
+        }
         //initialize the sensordata we will be using to make the rules
         SensorData data_00 = new SensorData(false);
         data_00.setSensor("IS_ODD", false);
