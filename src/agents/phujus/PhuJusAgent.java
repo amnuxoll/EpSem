@@ -66,23 +66,74 @@ public class PhuJusAgent implements IAgent {
         public void setSecond(S newSecond) { this.second = newSecond; }
     }//class Triple
 
+    /**
+     * class RuleMatrix describes an adjacency matrix for storing pairs of internal sensors which fire simultaneously.
+     * TODO Vector implementation of the information
+     */
+    public class RuleMatrix {
+
+        private int[][] adjMatrix; // Keeps track of rules when they fire together
+        private int[][] disjMatrix; // Keeps track of times when rules that usually fire together don't
+                                    // Do we care when they fire, or how many times they don't fire? (For both)
+
+        public RuleMatrix(int size) {
+            this.adjMatrix = new int[size][size];
+            this.disjMatrix = new int[size][size];
+        }
+
+        public void updateConnections(HashSet<Integer> sensor) {
+//
+//            for (Integer i : sensor) {
+//                for (Integer j : sensor) {
+//                    if (i.intValue() == j.intValue()) continue;
+//                    adjMatrix[i][j]++;
+//                }
+//            }
+
+            for (Integer i : sensor) {
+                for (TFRule r : tfRules) {
+                    if (r.getId() == i) continue;
+                    // if r is in sensor, it fired so we increment adj Mat
+                    if (sensor.contains(r.getId())) {
+                        adjMatrix[i][r.getId()]++;
+                    }
+                    else {
+                        // otherwise we increment disjMat
+                        disjMatrix[i][r.getId()]++;
+                        disjMatrix[r.getId()][i]++;
+                    }
+                }
+
+            }
+        }
+
+        public int getConnections(int rule1, int rule2) {
+            return adjMatrix[rule1][rule2];
+        }
+
+        public int[][] getAdjMatrix() {
+            return adjMatrix;
+        }
+    }//class RuleMatrix
+
 //endregion
 
     // DEBUG variable to toggle println statements (on/off = true/false)
     public static final boolean DEBUGPRINTSWITCH = true;
 
     // FLAG variable to toggle updating of TFIDF values
-    public static final boolean NO_TFIDF = true;
+    public static final boolean NO_TFIDF = false;
 
     // FLAG variabale to toggle rule generation
     // if this is false, addPredeterminedRules will be called at
     // timestep 0
-    public static final boolean GENERATERULES = false;
+    public static final boolean GENERATERULES = true;
 
     //The agent keeps lists of the rules it is using
     private Vector<PathRule> pathRules = new Vector<>();
     private Vector<TFRule> tfRules = new Vector<>();
     private Hashtable<Integer, Rule> rules = new Hashtable<>();
+    private RuleMatrix matrix = new RuleMatrix(1000); // TODO Make this value based on num of TF Rules
 
     private int now = 0; //current timestep 't'
 
@@ -159,6 +210,8 @@ public class PhuJusAgent implements IAgent {
             updateExternalPercents();
         }
 
+        this.matrix.updateConnections(this.currInternal);
+
         //DEBUG:  Tell the human what time it is
         if (PhuJusAgent.DEBUGPRINTSWITCH) {
             debugPrintln("TIME STEP: " + this.now);
@@ -170,7 +223,7 @@ public class PhuJusAgent implements IAgent {
         if(this.stepsSinceGoal >= 15) {
             debugPrintln("");
         }
-        if (this.now == 5) {
+        if (this.now == 380) {
             debugPrintln("");
         }
         if(this.rules.values().size() > 25){
