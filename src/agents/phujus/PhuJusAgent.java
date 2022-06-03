@@ -122,12 +122,12 @@ public class PhuJusAgent implements IAgent {
     public static final boolean DEBUGPRINTSWITCH = true;
 
     // FLAG variable to toggle updating of TFIDF values
-    public static final boolean NO_TFIDF = false;
+    public static final boolean NO_TFIDF = true;
 
     // FLAG variabale to toggle rule generation
     // if this is false, addPredeterminedRules will be called at
     // timestep 0
-    public static final boolean GENERATERULES = true;
+    public static final boolean GENERATERULES = false;
 
     //The agent keeps lists of the rules it is using
     private Vector<PathRule> pathRules = new Vector<>();
@@ -282,7 +282,7 @@ public class PhuJusAgent implements IAgent {
     private void addPredeterminedRules() {
 
         RuleLoader loader = new RuleLoader(this);
-        loader.loadRules("./src/agents/phujus/res/perfect.csv", this.tfRules);
+        loader.loadRules("./src/agents/phujus/res/attempt3.csv", this.tfRules);
 
 
         for(TFRule rule: this.tfRules){
@@ -461,24 +461,30 @@ public class PhuJusAgent implements IAgent {
                                               SensorData currExt) {
         HashSet<Integer> result = new HashSet<>();
 
-        //find the highest match score
-        //TODO:  If we were clever we'd put all these scores in an array
-        //       so we don't have to calc them twice (see next loop)
+        // find the highest match score
+        // TODO:  If we were clever we'd put all these scores in an array
+        //        so we don't have to calc them twice (see next loop)
         double bestScore = 0.0;
         for (TFRule r : this.tfRules) {
+            // ignore rules that didn't predict external sensors correctly
+            if (!r.isExtMatch())
+                continue;
             double score = r.lhsMatchScore(action, currInt, currExt);
             if (score > bestScore) {
                 bestScore = score;
             }
         }
 
-        //Turn on internal sensors for all rules that are at or "near" the
-        //highest match score.  "near" is currently hard-coded
-        //TODO:  have "near" be adjusted based on agent experience
+        // Turn on internal sensors for all rules that are at or "near" the
+        // highest match score.  "near" is currently hard-coded
+        // TODO:  have "near" be adjusted based on agent experience
 
         for (TFRule r : this.tfRules) {
+            // ignore rules that didn't predict external sensors correctly
+            if (!r.isExtMatch())
+                continue;
             double score = r.lhsMatchScore(action, currInt, currExt);
-            if (1.0 - (score / bestScore)  < TFRule.MATCH_NEAR){
+            if (1.0 - (score / bestScore )  <= TFRule.MATCH_NEAR){
                 result.add(r.getId());
             }
         }

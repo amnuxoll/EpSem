@@ -468,7 +468,8 @@ public class TFRule extends Rule{
         }
 
         // no sensors so base match of 1.0
-        if(c == 0) return 0.5;
+        if(c == 0)
+            return lhsInt.size() == 0 ? 1.0 : 0.0;
         return score/c;
     }//lhsIntMatchScore
 
