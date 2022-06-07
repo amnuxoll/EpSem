@@ -412,14 +412,40 @@ public class TreeNode {
      * It selects a relatively short path with a high degree of
      * uncertainty about the outcome.
      *
+     * TODO:  This code is only looking at paths of length 1 right now
+     *        Consider this case:
+     *           ->(3, 20, 21, 33, 34)|00	c1.0
+     *              a->()|00	c0.563817
+     *                  aa->()|00	c0.317515
+     *                  ab->(3, 20, 21, 33, 34)|00	c0.447692
+     *               b->(3, 15, 20, 21, 33, 34, 35)|00	c0.817221
+     *                   ba->()|00	c0.005266
+     *                   bb->(3, 15, 34, 35)|00	c0.670597
+     *          Shouldn't path 'ba' be selected?  Some code below
+     *          attempted to that but has been commented out
      * @return the path found
      */
     public Vector<TreeNode> findMostUncertainPath() {
 
+        //pick the action (depth 1) with the greatest uncertainty
+        char mostUncertain = '\0';
+        double lowestConfSoFar = 1.1; //can't be this high
+        for (TreeNode child : this.children) {
+            //see if this child has more uncertainty
+            if (child.confidence < lowestConfSoFar) {
+                lowestConfSoFar = child.confidence;
+                mostUncertain = child.action;
+            }
+        }
 
-        char action = agent.getActionList()[rand.nextInt(agent.getActionList().length)].getName().charAt(0);
-        TreeNode random = new TreeNode(this, action, this.currExternal, 1.0);
-        return random.path;
+        //Just in case:  what if there are no children?
+        if (mostUncertain == '\0') {
+            mostUncertain = agent.getActionList()[rand.nextInt(agent.getActionList().length)].getName().charAt(0);
+        }
+
+        //Return a path with this action
+        TreeNode tmpNode = new TreeNode(this, mostUncertain, this.currExternal, 1.0);
+        return tmpNode.path;
 
 
         // TODO: Make code function how we want. Currently commented out until we get it working

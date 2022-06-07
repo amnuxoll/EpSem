@@ -67,21 +67,26 @@ public class RuleLoader {
         try (Scanner rowScanner = new Scanner(line)) {
             rowScanner.useDelimiter(",");
 
-            SensorData lhsExt;
-            SensorData rhsExt;
+            SensorData lhsExt = null;
+            SensorData rhsExt = null;
 
-            String[] lhsInt;
-            String action;
+            String[] lhsInt = null;
+            String action = null;
 
-            double conf;
+            double conf = -1.0;
 
-            String lhsIntData = rowScanner.next();
+            String lhsIntData = rowScanner.next().trim();
             TFRule.RuleOperator operator = getRuleOperatorFromString(lhsIntData);
-            lhsInt = getLHSIntFromString(lhsIntData, operator);
-            lhsExt = getSDFromString(rowScanner.next());
-            action = rowScanner.next();
-            rhsExt = getSDFromString(rowScanner.next());
-            conf = rowScanner.nextDouble();
+            try {
+                lhsInt = getLHSIntFromString(lhsIntData, operator);
+                lhsExt = getSDFromString(rowScanner.next().trim());
+                action = rowScanner.next().trim();
+                rhsExt = getSDFromString(rowScanner.next().trim());
+                String dblStr = rowScanner.next().trim();
+                conf = Double.parseDouble(dblStr);
+            } catch(InputMismatchException ime) {
+                System.err.println("oh no!");
+            }
 
             return new TFRule(this.agent, action.charAt(0), lhsInt, lhsExt, rhsExt, conf, operator);
         }

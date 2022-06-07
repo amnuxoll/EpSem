@@ -122,18 +122,18 @@ public class PhuJusAgent implements IAgent {
     public static final boolean DEBUGPRINTSWITCH = true;
 
     // FLAG variable to toggle updating of TFIDF values
-    public static final boolean NO_TFIDF = true;
+    public static final boolean TFIDF = true;
 
     // FLAG variabale to toggle rule generation
     // if this is false, addPredeterminedRules will be called at
     // timestep 0
-    public static final boolean GENERATERULES = false;
+    public static final boolean GENERATERULES = true;
 
     //The agent keeps lists of the rules it is using
     private Vector<PathRule> pathRules = new Vector<>();
     private Vector<TFRule> tfRules = new Vector<>();
     private Hashtable<Integer, Rule> rules = new Hashtable<>();
-    private RuleMatrix matrix = new RuleMatrix(1000); // TODO Make this value based on num of TF Rules
+    private RuleMatrix matrix = new RuleMatrix(2000); // TODO Make this value based on num of TF Rules
 
     private int now = 0; //current timestep 't'
 
@@ -237,7 +237,7 @@ public class PhuJusAgent implements IAgent {
 
 
 
-        if(!NO_TFIDF) {
+        if(TFIDF) {
             //Calculate percentage that each sensor is on
             updateInternalPercents();
             updateExternalPercents();
@@ -287,7 +287,7 @@ public class PhuJusAgent implements IAgent {
     private void addPredeterminedRules() {
 
         RuleLoader loader = new RuleLoader(this);
-        loader.loadRules("./src/agents/phujus/res/attempt3.csv", this.tfRules);
+        loader.loadRules("./src/agents/phujus/res/nux.csv", this.tfRules);
 
 
         for(TFRule rule: this.tfRules){
