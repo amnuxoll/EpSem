@@ -75,21 +75,42 @@ public class RuleLoader {
 
             double conf;
 
-            lhsInt = getLHSIntFromString(rowScanner.next());
+            String lhsIntData = rowScanner.next();
+            TFRule.RuleOperator operator = getRuleOperatorFromString(lhsIntData);
+            lhsInt = getLHSIntFromString(lhsIntData, operator);
             lhsExt = getSDFromString(rowScanner.next());
             action = rowScanner.next();
             rhsExt = getSDFromString(rowScanner.next());
             conf = rowScanner.nextDouble();
 
-            return new TFRule(this.agent, action.charAt(0), lhsInt, lhsExt, rhsExt, conf);
+            return new TFRule(this.agent, action.charAt(0), lhsInt, lhsExt, rhsExt, conf, operator);
         }
     }
 
     /**
+     * Helper method for getting the operator of the rule (*[any], /[andor], ;[and])
+     * @param token
+     * @return
+     */
+    private TFRule.RuleOperator getRuleOperatorFromString(String token) {
+
+        TFRule.RuleOperator operator = TFRule.RuleOperator.AND;
+
+        if(token.contains("/")) {
+            operator = TFRule.RuleOperator.ANDOR;
+        }
+        else if (token.contains("*")) {
+            operator = TFRule.RuleOperator.ALL;
+        }
+
+        return operator;
+    }
+
+    /**
      * Helper method for retrieving the LHSInt values from a string. The token provided
-     * should be in the format [LHSInt;LHSInt;...]
+     * should be in the format <LHSInt[/*;]LHSInt[/*;]...>
      * <p>
-     * e.g 3;7 or 4;10;7 or 5;9
+     * e.g 3;7 or 4/10/7 or *
      * <p>
      * The token is then converted into an array of strings, where every index is one of the
      * LHSInt values. This array should be used as a parameter for the lhsInt parameter of the
@@ -99,12 +120,24 @@ public class RuleLoader {
      * @param token
      * @return an array of strings that represent the LHSInt values or null if there are none
      */
-    private String[] getLHSIntFromString(String token) {
+    private String[] getLHSIntFromString(String token, TFRule.RuleOperator operator) {
+
+        if (token == null) {
+            return null;
+        }
+
+        if (token.length() < 1) {
+            return null;
+        }
+
+        if(operator == TFRule.RuleOperator.ALL){
+            return new String[]{"-1"};
+        }
 
         Vector<String> lhsInt = new Vector<>();
 
         try (Scanner colonScanner = new Scanner(token)) {
-            colonScanner.useDelimiter(";");
+            colonScanner.useDelimiter(operator.character);
 
             while (colonScanner.hasNext()) {
                 String next = colonScanner.next();

@@ -198,6 +198,11 @@ public class PhuJusAgent implements IAgent {
     public Action getNextAction(SensorData sensorData) throws Exception {
         this.now++;
         this.currExternal = sensorData;
+
+        if (this.rules.size() > 0) {  //can't update if no rules yet
+            this.currInternal = genNextInternal(this.prevAction);
+        }
+
         this.stepsSinceGoal++;
 
         if(GENERATERULES) {
@@ -223,7 +228,7 @@ public class PhuJusAgent implements IAgent {
         if(this.stepsSinceGoal >= 15) {
             debugPrintln("");
         }
-        if (this.now == 380) {
+        if (this.now == 19) {
             debugPrintln("");
         }
         if(this.rules.values().size() > 25){
@@ -242,7 +247,7 @@ public class PhuJusAgent implements IAgent {
             printExternalPercents();
         }
 
-        if(this.now > 1) {
+        if(this.now > 2) {
             System.out.println("TF Rules:");
             for (int i = 0; i < tfRules.size(); i++) {
                 System.out.println(tfRules.get(i));
@@ -505,15 +510,13 @@ public class PhuJusAgent implements IAgent {
      * @param action  the action that the agent selected for this timestep
      */
     private void updateSensors(char action) {
+
         this.prevInternal.add(calcPrunedInternal());
         while (prevInternal.size() > MAX_TIME_DEPTH) {
             prevInternal.remove(0);
         }
         this.prevExternal = this.currExternal;
         this.prevAction = action;
-        if (this.rules.size() > 0) {  //can't update if no rules yet
-            this.currInternal = genNextInternal(action);
-        }
     }//updateSensors
 
     /**

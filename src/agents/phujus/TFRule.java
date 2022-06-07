@@ -19,6 +19,20 @@ public class TFRule extends Rule{
     //region Inner Classes
 
     /**
+     * enum RuleOperator is used to determine what logic is used with the internal sensor.
+     * For example: 4/2/3 (ANDOR), 5;2 (AND), or * (ALL)
+     * By default, if no RuleOperator is specified, the default is 'AND.'
+     */
+    public enum RuleOperator {
+        AND(";"),ANDOR("/"),ALL("*");
+
+        public final String character;
+        RuleOperator(String c) {
+            this.character = c;
+        }
+    }
+
+    /**
      * class TFData packages the data and method required to calculate Term Frequency
      */
     public static class TFData {
@@ -100,6 +114,9 @@ public class TFRule extends Rule{
     //the action of the rule
     private char action;
 
+    //the type of internal sensor comparison. Default value is AND
+    private RuleOperator operator = RuleOperator.AND;
+
     //the conditions of the LHS and RHS
     private HashSet<Cond> lhsInternal;
     private HashSet<Cond> lhsExternal;
@@ -131,6 +148,24 @@ public class TFRule extends Rule{
 
         this.confidence.setConfidence(conf);
     }//TFRule
+
+    /**
+     * ctor to initalize a tf rule given an action, LHSInt, LHSExt, RHSExt, confidence, and operator
+     */
+    public TFRule(PhuJusAgent agent, char action, String[] lhsInt, SensorData lhsExt, SensorData rhsExt, double conf, RuleOperator operator) {
+        super(agent);
+
+        this.action = action;
+
+        this.lhsInternal = initInternal(lhsInt);
+        this.lhsExternal = initExternal(lhsExt);
+        this.rhsExternal = initExternal(rhsExt);
+
+        this.confidence.setConfidence(conf);
+
+        this.operator = operator;
+    }//TFRule
+
 
     /**
      * initInternal
@@ -452,21 +487,38 @@ public class TFRule extends Rule{
      */
     public double lhsIntMatchScore(HashSet<Integer> lhsInt){
 
+        if(this.operator == RuleOperator.ALL)
+            return 1.0;
+
         double score = 0.0;
         int c = 0;
         // Loops through all internal sensors of the rule and checks if the incoming
         // sensor data contains the internal sensor
-        for (Cond cond : this.lhsInternal) {
-            c++;
+        if(this.operator == RuleOperator.AND) {
+            for (Cond cond : this.lhsInternal) {
+                c++;
 
-            // Calculates the TF and DF values, and if the sensor values are the same
-            double tf = cond.data.getTF();
-            double df = agent.getInternalPercents().get(cond.sName).getSecond();
-            boolean wasOn = lhsInt.contains(Integer.parseInt(cond.sName));
+                // Calculates the TF and DF values, and if the sensor values are the same
+                double tf = cond.data.getTF();
+                double df = agent.getInternalPercents().get(cond.sName).getSecond();
+                boolean wasOn = lhsInt.contains(Integer.parseInt(cond.sName));
 
-            score += calculateTFIDF(tf,df,wasOn);
+                score += calculateTFIDF(tf, df, wasOn);
+            }
         }
+        else if (this.operator == RuleOperator.ANDOR){
+            c = 1;
+            for (Cond cond : this.lhsInternal) {
+                // Calculates the TF and DF values, and if the sensor values are the same
+                double tf = cond.data.getTF();
+                double df = agent.getInternalPercents().get(cond.sName).getSecond();
+                boolean wasOn = lhsInt.contains(Integer.parseInt(cond.sName));
 
+                double val = calculateTFIDF(tf, df, wasOn);
+                if(val >= score)
+                    score = val;
+            }
+        }
         // no sensors so base match of 1.0
         if(c == 0)
             return lhsInt.size() == 0 ? 1.0 : 0.0;
@@ -680,6 +732,8 @@ public class TFRule extends Rule{
     public HashSet<Cond> getLhsInternal() {
         return this.lhsInternal;
     }
+
+    public RuleOperator getOperator() { return this.operator; }
 
     //endregion
 
