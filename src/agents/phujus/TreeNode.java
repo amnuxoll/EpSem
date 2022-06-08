@@ -171,6 +171,7 @@ public class TreeNode {
         return confidence;
     }//predictExternalByVote
 
+
     /**
      * predictExternalByBloc
      *
@@ -204,14 +205,16 @@ public class TreeNode {
             if(rule.getAction() != action) continue;
 
             double score = rule.lhsMatchScore(action, this.currInternal,this.currExternal);
+            if (score <= 0.0) continue;
             score *= rule.getConfidence();
+            if (score <= 0.0) continue;
 
             String lhsKey = ""; // HashMap key String
 
             // Array containing data about the bloc in the following order:
             //first sensor on, first sensor off, second sensor on, second sensor off, bloc size
+            //TODO:  this should not be hard-coded for two external sensors.
             double[] predictedExternal = new double[5];
-
 
             // Creates the key String for indexing into the HashMap and adds the rule's
             // vote for each lhs external sensor
@@ -228,7 +231,7 @@ public class TreeNode {
 
                 // Adds the vote
                 // Use a negative score for off and positive score for on to make summing the
-                // total easier... maybe :)
+                // total easier... maybe :)  //TODO:  negative score?
                 predictedExternal[on ? 2 * j : 2 * j + 1] += score;
             }
 
@@ -283,6 +286,176 @@ public class TreeNode {
     }
 
     /**
+     * class BlocData
+     *
+     * One instance of this class corresponds to a single sensor in the
+     * external sensor array.  It tracks the total votes from each voting
+     * bloc as well as the max voter from each block.
+     */
+    public class BlocData {
+        public String sensorName;
+
+        //Each bloc (e.g., 00a, 10b, 11a, etc.) has the sum of its constituents votes stored here
+        //There is a separate map for on vs. off votes
+        public HashMap<String, Double> onVoteSums = new HashMap<>();
+        public HashMap<String, Double> offVoteSums = new HashMap<>();
+
+        //also track the max vote from any bloc for each sensor+value combo
+        public double onVoteMax = 0.0;
+        public double offVoteMax = 0.0;
+
+        public BlocData(String initName) {
+            this.sensorName = initName;
+        }
+
+        /** scales a vote's weight on an exponential scale so that (near)
+         * perfect match scores get much more weight than partial matches */
+        public double scale(double matchScore) {
+            //We want higher math scores to have exponentially higher weight so
+            //that a (near-)perfect match will outweigh many partial matches but
+            //partial matches can still have enough weight to make a difference
+            //The formula 2^(2*r) - 1 gives an appropriately steep curve that
+            // starts at zero.
+            double result = matchScore * 2.0;  //doing this makes the max resulting score 1.0
+            result = Math.pow(2.0, result);
+            result -= 1.0;  //This makes min score 0.0
+            return result;
+        }//BlocData.scale
+
+        /** registers one vote */
+        public void vote(TFRule voter, double matchScore) {
+            if (matchScore <= 0.0) return;  //ignore weightless vote
+
+            //scale the score for a vote weight
+            double weight = scale(matchScore);
+
+            //Calculate the voting bloc this rule is in
+            String bloc = voter.getLHSExternal().toString(false) + voter.getAction();
+
+            //Add the vote to the proper vote sum
+            boolean on = (boolean) voter.getRHSExternal().getSensor(this.sensorName);
+            HashMap<String, Double> ballotBox = on ? this.onVoteSums : this.offVoteSums;
+            double oldVal = 0.0;
+            if (ballotBox.containsKey(bloc)) {
+                oldVal = ballotBox.get(bloc);
+            }
+            double newVal = oldVal + weight;
+            ballotBox.put(bloc, newVal);
+
+            //Update the max vote as needed
+            if (on) {
+                if (weight > this.onVoteMax) {
+                    this.onVoteMax = newVal;
+                }
+            } else {
+                if (weight > this.offVoteMax) {
+                    this.offVoteMax = newVal;
+                }
+            }
+        }//BlocData.vote
+
+        /** calculates the outcome of the vote given the current votes
+         *
+         * @return a double that contains both confidence and outcome.  A
+         *         negative value indicates "off" and a positive value
+         *         indicates "on."  The magnitude of the value is the
+         *         confidence.  It's awkward but this way all the tallying
+         *         only has to be done once.
+         */
+        public double outcome() {
+            //Calculate the winning sensor value
+            double onVotes = 0.0;
+            double offVotes = 0.0;
+            for(double d : onVoteSums.values()) {
+                onVotes += d;
+            }
+            for(double d : offVoteSums.values()) {
+                offVotes += d;
+            }
+            boolean on = onVotes > offVotes;
+
+            //Calculate the base confidence
+            double confidence = 0.0;
+            if (on) {
+                confidence = onVotes / (onVotes + offVotes);
+            } else {
+                //note: make negative to show "off"
+                confidence = -1.0 * offVotes / (onVotes + offVotes);
+            }
+
+            //The confidence is adjusted based on the max vote.  This assures
+            // that when 3 stooges all agree we still don't trust them much.
+            if (on) {
+                confidence *= this.onVoteMax;
+            } else {
+                confidence *= this.offVoteMax;
+            }
+
+            return confidence;
+
+        }//BlocData.outcome
+
+
+    }//Class BlocData
+
+    /**
+     * predictExternalMark3
+     *
+     * This is a revised version of predictExternalByBloc that weights the votes and
+     * an exponential scale and then further weights the final confidence by the
+     * match score of the best matching voter.  It's super complicated but I think
+     * it provides a better balance of the decision.
+     *
+     * @param action  the action taken to reach the child
+     * @param predicted  this object should have the desired external sensors
+     *                   names.  The values will be changed by the method based
+     *                   on the rule votes.  (Note:  Probably just pass in
+     *                   currExternal from an existing node.)
+     * @return how confident we are in this prediction
+     */
+    public double predictExternalMark3(char action, SensorData predicted) {
+        //Get a list of external sensor names
+        int numExtSensors = this.currExternal.size();
+        String[] sensorNames = predicted.getSensorNames().toArray(new String[0]);
+
+        //Track the votes for each sensor
+        HashMap<String, BlocData> votingData = new HashMap<>();
+        for(String sName : sensorNames) {
+            votingData.put(sName, new BlocData(sName));
+        }
+
+        // Record the vote from each rule for each sensor
+        Vector<TFRule> tfRules = this.agent.getTfRules();
+        for (TFRule rule: tfRules) {
+            // Skip rules with zero match scores
+            if (rule.getAction() != action) continue;
+            double score = rule.lhsMatchScore(action, this.currInternal, this.currExternal);
+            if (score <= 0.0) continue;
+            //TODO:  should confidence really be factored in here?  Leave it in for now...
+            score *= rule.getConfidence();
+            if (score <= 0.0) continue;
+
+            //Record this rule's vote for each sensor
+            for (String sName : sensorNames) {
+                BlocData bd = votingData.get(sName);
+                bd.vote(rule, score);
+            }
+        }//for
+
+        // Tally the votes to get the selected value for each sensor
+        double confidence = 1.0;
+        for(String sName : sensorNames) {
+            BlocData bd = votingData.get(sName);
+            double outcome = bd.outcome();
+            predicted.setSensor(sName,  outcome >= 0);
+            confidence *= outcome;
+        }
+
+        return Math.abs(confidence);
+    }//predictExternalMark3
+
+
+    /**
      * expand
      *
      * populates this.children
@@ -301,14 +474,14 @@ public class TreeNode {
         //Create predicted child node for each possible action
         for(int i = 0; i < numActions; i++) {
 
-            char a = agent.getActionList()[i].getName().charAt(0);
+            char act = agent.getActionList()[i].getName().charAt(0);
 
             //Calculate the predicted external sensor values
             SensorData predictedExt = new SensorData(this.currExternal);
-            double confidence = predictExternalByBloc(a, predictedExt);
+            double confidence = predictExternalMark3(act, predictedExt);
 
             //create a child for this action
-            TreeNode child = new TreeNode(this, a, predictedExt, confidence);
+            TreeNode child = new TreeNode(this, act, predictedExt, confidence);
             this.children.add(child);
         }//for
 
