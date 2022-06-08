@@ -249,6 +249,8 @@ public class TFRule extends Rule{
 
     }
 
+
+
     /**
      * isExtMatch
      *
@@ -257,26 +259,41 @@ public class TFRule extends Rule{
      *
      * @return whether the rule matches this rule
      */
-    public boolean isExtMatch() {
+    public boolean isExtMatch(char compAction,
+                              SensorData prevExt,
+                              SensorData currExt) {
 
         // Return false if the actions are not the same
-        if (this.action != this.agent.getPrevAction()) {
-            return false;
-        }
-
-        // Returns false if the rhs external condtions don't match the current external sensors
-        if (!helperMatch(this.rhsExternal, this.agent.getCurrExternal())) {
+        if (this.action != compAction) {
             return false;
         }
 
         // Returns false if the lhs external conditions don't match the previous external sensors
-        if (!helperMatch(this.lhsExternal, this.agent.getPrevExternal())) {
+        if (!helperMatch(this.lhsExternal, prevExt)) {
+            return false;
+        }
+
+        // Returns false if the rhs external condtions don't match the current external sensors
+        if (!helperMatch(this.rhsExternal, currExt)) {
             return false;
         }
 
         return true;
 
     }//isExtMatch
+
+    /**
+     * isExtMatch
+     *
+     * Checks if a given rule matches the agent's most recent experience
+     * (external sensors and action only)
+     *
+     * @return whether the rule matches the agent's most recent experience
+     */
+    public boolean isExtMatch() {
+        return isExtMatch(this.agent.getPrevAction(), this.agent.getPrevExternal(), this.agent.getCurrExternal());
+    }
+
 
     /**
      * isRHSMatch

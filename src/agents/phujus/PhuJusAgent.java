@@ -122,12 +122,12 @@ public class PhuJusAgent implements IAgent {
     public static final boolean DEBUGPRINTSWITCH = true;
 
     // FLAG variable to toggle updating of TFIDF values
-    public static final boolean TFIDF = true;
+    public static final boolean TFIDF = false;
 
     // FLAG variabale to toggle rule generation
     // if this is false, addPredeterminedRules will be called at
     // timestep 0
-    public static final boolean GENERATERULES = true;
+    public static final boolean GENERATERULES = false;
 
     //The agent keeps lists of the rules it is using
     private Vector<PathRule> pathRules = new Vector<>();
@@ -200,7 +200,10 @@ public class PhuJusAgent implements IAgent {
         this.currExternal = sensorData;
 
         if (this.rules.size() > 0) {  //can't update if no rules yet
-            this.currInternal = genNextInternal(this.prevAction);
+            this.currInternal = genNextInternal(this.prevAction,
+                                                this.getPrevInternal(),
+                                                this.prevExternal,
+                                                this.currExternal);
         }
 
         this.stepsSinceGoal++;
@@ -452,18 +455,21 @@ public class PhuJusAgent implements IAgent {
      * genNextInternal
      * <p>
      * calculates what the internal sensors will be on for the next timestep
-     * by seeing which rules have a sufficient match score.
+     * by seeing which rules have a sufficient match score and correctly
+     * predicted the current external sensors
      *
      * Caveat: At the moment, "sufficient" is any rule that exceeds the
      *         match cutoff.
      * <p>
-     * @param action  selected action to generate from
-     * @param currInt internal sensors to generate from
-     * @param currExt external sensors to generate from
+     * @param action  selected action to match LHS
+     * @param prevInt internal sensors to match LHS
+     * @param prevExt external sensors to match LHS
+     * @param currExt external sensors to match RHS
      */
     public HashSet<Integer> genNextInternal(char action,
-                                              HashSet<Integer> currInt,
-                                              SensorData currExt) {
+                                            HashSet<Integer> prevInt,
+                                            SensorData prevExt,
+                                            SensorData currExt) {
         HashSet<Integer> result = new HashSet<>();
 
         // find the highest match score
@@ -472,9 +478,9 @@ public class PhuJusAgent implements IAgent {
         double bestScore = 0.0;
         for (TFRule r : this.tfRules) {
             // ignore rules that didn't predict external sensors correctly
-            if (!r.isExtMatch())
+            if (!r.isExtMatch(action, prevExt, currExt))
                 continue;
-            double score = r.lhsMatchScore(action, currInt, currExt);
+            double score = r.lhsMatchScore(action, prevInt, prevExt);
             if (score > bestScore) {
                 bestScore = score;
             }
@@ -486,19 +492,14 @@ public class PhuJusAgent implements IAgent {
 
         for (TFRule r : this.tfRules) {
             // ignore rules that didn't predict external sensors correctly
-            if (!r.isExtMatch())
+            if (!r.isExtMatch(action, prevExt, currExt))
                 continue;
-            double score = r.lhsMatchScore(action, currInt, currExt);
+            double score = r.lhsMatchScore(action, prevInt, prevExt);
             if (1.0 - (score / bestScore )  <= TFRule.MATCH_NEAR){
                 result.add(r.getId());
             }
         }
         return result;
-    }//genNextInternal
-
-    /** convenience overload that uses the this.currInternal and this.currExternal */
-    public HashSet<Integer> genNextInternal(char action) {
-        return genNextInternal(action, this.currInternal, this.currExternal);
     }//genNextInternal
 
     /**

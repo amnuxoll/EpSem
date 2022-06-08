@@ -87,7 +87,7 @@ public class TreeNode {
         this.parent = parent;
         this.episodeIndex = parent.episodeIndex + 1;
         this.action = action;
-        this.currInternal = agent.genNextInternal(action, parent.currInternal, parent.currExternal);
+        this.currInternal = agent.genNextInternal(action, parent.currInternal, parent.currExternal, newExternal);
         this.currExternal = newExternal;
         this.path = new Vector<>(parent.path);
         this.path.add(this);
