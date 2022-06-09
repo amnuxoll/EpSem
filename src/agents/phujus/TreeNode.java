@@ -395,6 +395,41 @@ public class TreeNode {
 
         }//BlocData.outcome
 
+        public double[] getOutcomes() {
+            double outArr[] = new double[2];
+
+            double onVotes = 0.0;
+            double offVotes = 0.0;
+            for(double d : onVoteSums.values()) {
+                onVotes += d;
+            }
+            for(double d : offVoteSums.values()) {
+                offVotes += d;
+            }
+
+            outArr[0] = onVotes / (onVotes + offVotes);
+            outArr[1] = -1 * offVotes / (onVotes + offVotes);
+
+            if(outArr[0] > outArr[1]) {
+                outArr[0] *= this.onVoteMax;
+                outArr[1] *= this.onVoteMax;  //TODO: I don't know if this is right
+            } else {
+                outArr[0] *= this.offVoteMax;
+                outArr[1] *= this.offVoteMax;
+            }
+
+            // Bloc 00 -> 70% on = [onVoteSums.get("00") - offVoteSums.get("00")] + extra math stuff
+            // Bloc 01 -> 30% on = [onVoteSums.get("01") - offVoteSums.get("01")] + extra math stuff
+            // Bloc 10 -> 15% on = [onVoteSums.get("10") - offVoteSums.get("10")] + extra math stuff
+            // Bloc 11 -> 22% on = [onVoteSums.get("11") - offVoteSums.get("11")] + extra math stuff
+            // Rank based on confidence
+            // e.g if there is a lot more onVotes than offVotes, the rule is more confident
+            // if there are roughly the same number of offVotes and onVotes, the rule is less confident
+
+            return outArr;
+
+        }
+
 
     }//Class BlocData
 
@@ -413,10 +448,10 @@ public class TreeNode {
      *                   currExternal from an existing node.)
      * @return how confident we are in this prediction
      */
-    public double predictExternalMark3(char action, SensorData predicted) {
+    public double[] predictExternalMark3(char action, SensorData[] predicted) {
         //Get a list of external sensor names
         int numExtSensors = this.currExternal.size();
-        String[] sensorNames = predicted.getSensorNames().toArray(new String[0]);
+        String[] sensorNames = predicted[0].getSensorNames().toArray(new String[0]);
 
         //Track the votes for each sensor
         HashMap<String, BlocData> votingData = new HashMap<>();
@@ -442,16 +477,50 @@ public class TreeNode {
             }
         }//for
 
+        /*
+        The absolute value of the outcomes determines how confident that value is, e.g., -0.97 is much more confident than 0.1.
+        This means the first most confident votes are from the direct outcomes, e.g,         OUTCOME > 1, OUTCOME > 1
+        If the first outcome is more confident than the second, the next most confident is   OUTCOME > 1, -(OUTCOME > 1)
+        Logically the next most unlikely scenario is                                       -(OUTCOME > 1), OUTCOME > 1
+        Then the most unlikely scenario is                                                 -(OUTCOME > 1), -(OUTCOME > 1)
+         */
+
         // Tally the votes to get the selected value for each sensor
-        double confidence = 1.0;
-        for(String sName : sensorNames) {
+
+        // 0 -> 00
+        // 1 -> 01
+
+        // 0, 0 0
+        // 1, 1 0
+        // 2, 0 1
+        // 3, 1 1
+
+        double confArr[] = {1.0, 1.0, 1.0 ,1.0};
+
+        int c = 0;
+        for (String sName : sensorNames) {
             BlocData bd = votingData.get(sName);
-            double outcome = bd.outcome();
-            predicted.setSensor(sName,  outcome >= 0);
-            confidence *= outcome;
+            double outcomes[] = bd.getOutcomes();
+            for(int i = 0; i < 4; i++) {
+                if (c == 1)
+                {
+                    predicted[i].setSensor(sName, outcomes[i/2] >= 0);
+                    confArr[i] *= outcomes[i/2];
+                } else {
+                    predicted[i].setSensor(sName, outcomes[i%2] >= 0);
+                    confArr[i] *= outcomes[i%2];
+                }
+            }
+            c++;
         }
 
-        return Math.abs(confidence);
+        // TODO: Sort arrays by confidences
+
+        for (int i = 0; i < confArr.length; i++) {
+            confArr[i] = Math.abs(confArr[i]);
+        }
+
+        return confArr;
     }//predictExternalMark3
 
 
@@ -459,6 +528,14 @@ public class TreeNode {
      * expand
      *
      * populates this.children
+     *
+     * a(1) -> 00
+     *   ..
+     *     ..
+     * a(2) -> 10
+     *   ..
+     *     ..
+     *       .. -> 01*
      */
     private void expand() {
         //check:  already expanded
@@ -471,18 +548,24 @@ public class TreeNode {
         // bloc = lhs external sensors + action
         //  00a, 00b, 01a, 01b, etc.
 
-        //Create predicted child node for each possible action
+        //Create predicted child nodes for each possible action
         for(int i = 0; i < numActions; i++) {
 
             char act = agent.getActionList()[i].getName().charAt(0);
 
-            //Calculate the predicted external sensor values
-            SensorData predictedExt = new SensorData(this.currExternal);
-            double confidence = predictExternalMark3(act, predictedExt);
+            SensorData dataArr[] = new SensorData[4];
+            double confArr[];
+            for(int k = 0; k < 4; k++)
+                dataArr[k] = new SensorData(this.currExternal);
 
-            //create a child for this action
-            TreeNode child = new TreeNode(this, act, predictedExt, confidence);
-            this.children.add(child);
+            confArr = predictExternalMark3(act, dataArr);
+
+            for(int j = 0; j < PhuJusAgent.MAX_SIBLINGS; j++) {
+
+                //create a child for this action
+                TreeNode child = new TreeNode(this, act, dataArr[j], confArr[j]);
+                this.children.add(child);
+            }
         }//for
 
 

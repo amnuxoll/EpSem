@@ -38,9 +38,10 @@ import java.util.Random;
  *   (frequency and recency of correctness)
  */
 public class PhuJusAgent implements IAgent {
-    public static final int MAXNUMRULES = 50; //10 to 100 for testing
+    public static final int MAXNUMRULES = 15; //10 to 100 for testing
     public static final int MAX_SEARCH_DEPTH = 5; //TODO: get the search to self prune again
     public static final int MAX_TIME_DEPTH = 7;  //size of short term memory
+    public static final int MAX_SIBLINGS = 4;
 
 
 
@@ -133,7 +134,7 @@ public class PhuJusAgent implements IAgent {
     private Vector<PathRule> pathRules = new Vector<>();
     private Vector<TFRule> tfRules = new Vector<>();
     private Hashtable<Integer, Rule> rules = new Hashtable<>();
-    private RuleMatrix matrix = new RuleMatrix(2000); // TODO Make this value based on num of TF Rules
+    private RuleMatrix matrix = new RuleMatrix(10000); // TODO Make this value based on num of TF Rules
 
     private int now = 0; //current timestep 't'
 
@@ -231,7 +232,7 @@ public class PhuJusAgent implements IAgent {
         if(this.stepsSinceGoal >= 15) {
             debugPrintln("");
         }
-        if (this.now == 19) {
+        if (this.now == 4) {
             debugPrintln("");
         }
         if(this.rules.values().size() > 25){
@@ -323,8 +324,14 @@ public class PhuJusAgent implements IAgent {
         //Find a new path to the goal
         TreeNode root = new TreeNode(this);
 
-
+        
         this.pathToDo = root.findBestGoalPath();
+        // TODO remove psuedocode??
+//        while (pathToDo == null) {
+//            // Add another node to tree
+//            // Expand tree
+//            // Re-assign pathToDo
+//        }
 
         //DEBUG
         if (PhuJusAgent.DEBUGPRINTSWITCH) {
