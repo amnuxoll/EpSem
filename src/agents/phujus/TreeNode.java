@@ -15,7 +15,7 @@ import java.util.*;
 public class TreeNode {
 
     //This might be useful...
-    Random rand = new Random();
+    private static Random rand = new Random();
 
     //Agent's current state and ruleset is needed to build the tree
     private final PhuJusAgent agent;
@@ -51,6 +51,9 @@ public class TreeNode {
     //A measure from 0.0 to 1.0 of how confident the agent is that this path is correct
     private double confidence;
 
+    //A list of all possible external sensor combinations for this agent
+    // e.g., 000, 001, 010, etc.
+    static String[] comboArr = null;  //init'd by 1st ctor call
     /**
      * This root node constructor is built from the agent.
      *
@@ -68,6 +71,10 @@ public class TreeNode {
         this.pathStr = "";
         //full confidence because drawn directly from agent's present sensing
         this.confidence = 1.0;
+
+        if (TreeNode.comboArr == null) {
+            TreeNode.initComboArr(this.currExternal.size());
+        }
     }
 
     /**
@@ -92,6 +99,26 @@ public class TreeNode {
         this.pathStr = parent.pathStr + action;
         this.confidence = parent.confidence * confidence;
     }
+
+    /**
+     * initComboArr
+     *
+     * initializes TreeNode.comboArr static variable
+     *
+     * @param numExt  number of external sensors the agent has
+     */
+    private static void initComboArr(int numExt) {
+        //Create arrays to store a string rep and confidence value for each possible sensor combination
+        int numCombos = (int)Math.pow(2, numExt);
+        TreeNode.comboArr = new String[numCombos];
+        for(int i = 0; i < numCombos; ++i) {
+            String combo = Integer.toBinaryString(i);
+            while (combo.length() < numExt) {
+                combo = "0" + combo;
+            }
+            TreeNode.comboArr[i] = combo;
+        }
+    }//initComboArr
 
     /**
      * findBestMatchingTFRule
@@ -362,8 +389,8 @@ public class TreeNode {
             }
 
             //Calculate the confidences
-            outArr[0] = onVotes / (onVotes + offVotes) * onVoteMax;
-            outArr[1] = offVotes / (onVotes + offVotes) * offVoteMax;
+            outArr[0] = offVoteMax * offVotes / (onVotes + offVotes);
+            outArr[1] = onVoteMax * onVotes / (onVotes + offVotes);
 
             return outArr;
         }//BlocData.getOutcomes
@@ -372,27 +399,32 @@ public class TreeNode {
 
     }//Class BlocData
 
+
     /**
      * predictExternalMark3
      *
-     * This is a revised version of predictExternalByBloc that weights the votes and
+     * This is a re-revised version of predictExternalByBloc that weights the votes and
      * an exponential scale and then further weights the final confidence by the
-     * match score of the best matching voter.  It's super complicated but I think
-     * it provides a better balance of the decision.
+     * match score of the best matching voter.  Rather than pick the winner (highest
+     * confidence) it calculates the confidence for all possible ext sensor combos
+     * as defined in TreeNode.comboArray.  This method is super complicated but I think
+     * it provides the best confidence calculation (at least until Mark 4...)
+     *
+     * CAVEAT:  The sensor combos are based on the sensor names in alphabetical
+     *          order so GOAL may not be the last sensor as it appears in the toString
      *
      * @param action  the action taken to reach the child
-     * @param predicted  this object should have the desired external sensors
-     *                   names.  The values will be changed by the method based
-     *                   on the rule votes.  (Note:  Probably just pass in
-     *                   currExternal from an existing node.)
-     * @return how confident we are in this prediction
+     * @param predicted  an emtpy array whose length == TreeNode.comboArray.length.
+     *                   This will be filled in with appropriate SensorData objects
+     *                   that are in the same order as comboArray
+     * @return how confident we are in the prediction for each SensorData
      */
     public double[] predictExternalMark3(char action, SensorData[] predicted) {
         //Get a list of external sensor names
         int numExtSensors = this.currExternal.size();
-        String[] sensorNames = predicted[0].getSensorNames().toArray(new String[0]);
+        String[] sensorNames = currExternal.getSensorNames().toArray(new String[0]);
 
-        //Track the votes for each sensor
+        //Create a BlocData object to track the votes for each sensor
         HashMap<String, BlocData> votingData = new HashMap<>();
         for(String sName : sensorNames) {
             votingData.put(sName, new BlocData(sName));
@@ -405,7 +437,7 @@ public class TreeNode {
             if (rule.getAction() != action) continue;
             double score = rule.lhsMatchScore(action, this.currInternal, this.currExternal);
             if (score <= 0.0) continue;
-            //TODO:  should confidence really be factored in here?  Leave it in for now...
+            //TODO:  should rule confidence really be factored in here?  Leave it in for now...
             score *= rule.getConfidence();
             if (score <= 0.0) continue;
 
@@ -416,32 +448,42 @@ public class TreeNode {
             }
         }//for
 
-        //TODO:  The code below doesn't seem to be working properly
-        //       as all the child nodes have '11' as their external sensor
-
-        double confArr[] = {1.0, 1.0, 1.0 ,1.0};
-
-        int c = 0;
-        for (String sName : sensorNames) {
-            BlocData bd = votingData.get(sName);
-            double outcomes[] = bd.getOutcomes();
-            for(int i = 0; i < 4; i++) {
-                if (c == 1)
-                {
-                    predicted[i].setSensor(sName, outcomes[i/2] >= 0);
-                    confArr[i] *= outcomes[i/2];
-                } else {
-                    predicted[i].setSensor(sName, outcomes[i%2] >= 0);
-                    confArr[i] *= outcomes[i%2];
-                }
-            }
-            c++;
+        //Create an array to store a confidence value for each possible sensor combination
+        double confArr[] = new double[TreeNode.comboArr.length];
+        for(int i = 0; i < confArr.length; ++i) {
+            confArr[i] = 1.0;  //start with max conf and whittle it down
         }
 
-        // TODO: Sort arrays by confidences
+        //Calculate the confidence in each combo.  This feels a bit bass-ackwards
+        //because we want to iterate over sensor names first rather than
+        //iterating over each combination first so that getOutcomes only
+        //gets called once per sensor for max efficiency.
+        for (int sId = 0; sId < sensorNames.length; ++sId) {
+            //get the confidences in this sensor's values
+            String sName = sensorNames[sId];
+            BlocData bd = votingData.get(sName);
+            double outcomes[] = bd.getOutcomes();
 
-        for (int i = 0; i < confArr.length; i++) {
-            confArr[i] = Math.abs(confArr[i]);
+            //Update all sensor combos for this sensor
+            for (int i = 0; i < confArr.length; ++i) {
+                if (TreeNode.comboArr[i].charAt(sId) == '0') {
+                    confArr[i] *= outcomes[0];
+                } else {
+                    confArr[i] *= outcomes[1];
+                }
+            }
+        }//for
+
+        //Populate the given SensorData array (predicted)
+        for(int sdIndex = 0; sdIndex < predicted.length; ++sdIndex) {
+            predicted[sdIndex] = new SensorData(false); //set GOAL to false for now
+
+            //set the sensor valus for each SensorData object
+            for (int sId = 0; sId < sensorNames.length; ++sId) {
+                String sName = sensorNames[sId];
+                boolean val = TreeNode.comboArr[sdIndex].charAt(sId) == '1';
+                predicted[sdIndex].setSensor(sName, val);
+            }
         }
 
         return confArr;
@@ -473,23 +515,20 @@ public class TreeNode {
         //  00a, 00b, 01a, 01b, etc.
 
         //Create predicted child nodes for each possible action
-        for(int i = 0; i < numActions; i++) {
+        for(int actId = 0; actId < numActions; actId++) {
 
-            char act = agent.getActionList()[i].getName().charAt(0);
+            char act = agent.getActionList()[actId].getName().charAt(0);
 
-            SensorData dataArr[] = new SensorData[4];
-            double confArr[];
-            //TODO:  This is hardcoded at 4 right now assuming
-            // exactly 2 external sensors and, therefore, 4 possible combinations
-            for(int k = 0; k < 4; k++)
-                dataArr[k] = new SensorData(this.currExternal);
+            //Calculate the confidence in each combination
+            SensorData sdArr[] = new SensorData[TreeNode.comboArr.length];
+            double confArr[] = predictExternalMark3(act, sdArr);
 
-            confArr = predictExternalMark3(act, dataArr);
+            for(int i = 0; i < sdArr.length; i++) {
+                //skip zero confidence
+                if (confArr[i] <= 0.0) continue;
 
-            for(int j = 0; j < PhuJusAgent.MAX_SIBLINGS; j++) {
-
-                //create a child for this action
-                TreeNode child = new TreeNode(this, act, dataArr[j], confArr[j]);
+                //create a child for this action + ext sensor combo
+                TreeNode child = new TreeNode(this, act, sdArr[i], confArr[i]);
                 this.children.add(child);
             }
         }//for

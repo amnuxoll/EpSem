@@ -41,7 +41,6 @@ public class PhuJusAgent implements IAgent {
     public static final int MAXNUMRULES = 15; //10 to 100 for testing
     public static final int MAX_SEARCH_DEPTH = 5; //TODO: get the search to self prune again
     public static final int MAX_TIME_DEPTH = 7;  //size of short term memory
-    public static final int MAX_SIBLINGS = 4;
 
 
 
@@ -291,7 +290,7 @@ public class PhuJusAgent implements IAgent {
     private void addPredeterminedRules() {
 
         RuleLoader loader = new RuleLoader(this);
-        loader.loadRules("./src/agents/phujus/res/nux.csv", this.tfRules);
+        loader.loadRules("./src/agents/phujus/res/landmarks.csv", this.tfRules);
 
 
         for(TFRule rule: this.tfRules){

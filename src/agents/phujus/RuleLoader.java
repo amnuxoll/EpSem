@@ -52,7 +52,8 @@ public class RuleLoader {
 
         while (sc.hasNextLine()) {
             System.out.println("");
-            t.add(createTFRuleFromLine(sc.nextLine()));
+            TFRule newbie = createTFRuleFromLine(sc.nextLine());
+            if (newbie != null)  t.add(newbie);
         }
     }
 
@@ -69,7 +70,15 @@ public class RuleLoader {
      */
     public TFRule createTFRuleFromLine(String line) {
 
+        //remove any comment from this line
+        int commentPos = line.indexOf(",#");
+        if (commentPos != -1) {
+            line = line.substring(0, commentPos);
+        }
+
+        //skip blank lines
         line = line.trim();
+        if (line.length() == 0) return null;
 
         try (Scanner rowScanner = new Scanner(line)) {
             rowScanner.useDelimiter(",");

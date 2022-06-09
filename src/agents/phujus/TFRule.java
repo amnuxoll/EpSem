@@ -483,8 +483,12 @@ public class TFRule extends Rule{
                 double dfValue = agent.getExternalPercents().get(eCond.sName).getSecond();
                 Boolean sVal = (Boolean) lhsExt.getSensor(eCond.sName);
 
-                // Adds the TF/DF to the current score
-                score += calculateTFIDF(tfValue, dfValue, sVal);
+                if (PhuJusAgent.TFIDF) {
+                    // Adds the TF/DF to the current score
+                    score += calculateTFIDF(tfValue, dfValue, sVal);
+                } else {
+                    score += 0.5;  //hard-coded max possible tf-idf val
+                }
             }
         }
         // no sensors so can't match
