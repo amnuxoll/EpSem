@@ -1,7 +1,5 @@
 package agents.phujus;
 
-import environments.fsm.FSMEnvironment;
-import framework.Action;
 import framework.SensorData;
 
 import java.util.*;
@@ -295,14 +293,10 @@ public class TreeNode {
     public class BlocData {
         public String sensorName;
 
-        //Each bloc (e.g., 00a, 10b, 11a, etc.) has the sum of its constituents votes stored here
+        //Each bloc (e.g., 00a, 10b, 11a, etc.) its most confident constituent's vote stored here
         //There is a separate map for on vs. off votes
-        public HashMap<String, Double> onVoteSums = new HashMap<>();
-        public HashMap<String, Double> offVoteSums = new HashMap<>();
-
-        //also track the max vote from any bloc for each sensor+value combo
-        public double onVoteMax = 0.0;
-        public double offVoteMax = 0.0;
+        public HashMap<String, Double> onVotes = new HashMap<>();
+        public HashMap<String, Double> offVotes = new HashMap<>();
 
         public BlocData(String initName) {
             this.sensorName = initName;
@@ -330,105 +324,50 @@ public class TreeNode {
             double weight = scale(matchScore);
 
             //Calculate the voting bloc this rule is in
-            String bloc = voter.getLHSExternal().toString(false) + voter.getAction();
+            String bloc = voter.getLHSExternal().toString(false);
 
             //Add the vote to the proper vote sum
             boolean on = (boolean) voter.getRHSExternal().getSensor(this.sensorName);
-            HashMap<String, Double> ballotBox = on ? this.onVoteSums : this.offVoteSums;
+            HashMap<String, Double> ballotBox = on ? this.onVotes : this.offVotes;
             double oldVal = 0.0;
             if (ballotBox.containsKey(bloc)) {
                 oldVal = ballotBox.get(bloc);
             }
-            double newVal = oldVal + weight;
+            double newVal = Math.max(oldVal,weight);
             ballotBox.put(bloc, newVal);
-
-            //Update the max vote as needed
-            if (on) {
-                if (weight > this.onVoteMax) {
-                    this.onVoteMax = newVal;
-                }
-            } else {
-                if (weight > this.offVoteMax) {
-                    this.offVoteMax = newVal;
-                }
-            }
         }//BlocData.vote
 
-        /** calculates the outcome of the vote given the current votes
+
+        /**
+         * Calculates how confident the node is that this sensor is on or off
          *
-         * @return a double that contains both confidence and outcome.  A
-         *         negative value indicates "off" and a positive value
-         *         indicates "on."  The magnitude of the value is the
-         *         confidence.  It's awkward but this way all the tallying
-         *         only has to be done once.
+         * @return an array containing the confidence values for off and on respectively
          */
-        public double outcome() {
-            //Calculate the winning sensor value
-            double onVotes = 0.0;
-            double offVotes = 0.0;
-            for(double d : onVoteSums.values()) {
-                onVotes += d;
-            }
-            for(double d : offVoteSums.values()) {
-                offVotes += d;
-            }
-            boolean on = onVotes > offVotes;
-
-            //Calculate the base confidence
-            double confidence = 0.0;
-            if (on) {
-                confidence = onVotes / (onVotes + offVotes);
-            } else {
-                //note: make negative to show "off"
-                confidence = -1.0 * offVotes / (onVotes + offVotes);
-            }
-
-            //The confidence is adjusted based on the max vote.  This assures
-            // that when 3 stooges all agree we still don't trust them much.
-            if (on) {
-                confidence *= this.onVoteMax;
-            } else {
-                confidence *= this.offVoteMax;
-            }
-
-            return confidence;
-
-        }//BlocData.outcome
-
         public double[] getOutcomes() {
+            //0=off confidence,  1=on confidence
             double outArr[] = new double[2];
 
+            //Calculate the vote totals and max vote for on and off
             double onVotes = 0.0;
             double offVotes = 0.0;
-            for(double d : onVoteSums.values()) {
+            double onVoteMax = 0.0;
+            double offVoteMax = 0.0;
+            for (double d : this.onVotes.values()) {
                 onVotes += d;
+                if (d > onVoteMax) onVoteMax = d;
             }
-            for(double d : offVoteSums.values()) {
+            for (double d : this.offVotes.values()) {
                 offVotes += d;
+                if (d > offVoteMax) offVoteMax = d;
             }
 
-            outArr[0] = onVotes / (onVotes + offVotes);
-            outArr[1] = -1 * offVotes / (onVotes + offVotes);
-
-            if(Math.abs(outArr[0]) > Math.abs(outArr[1])) {
-                outArr[0] *= this.onVoteMax;
-                outArr[1] *= this.onVoteMax;  //TODO: I don't know if this is right
-            } else {
-                outArr[0] *= this.offVoteMax;
-                outArr[1] *= this.offVoteMax;
-            }
-
-            // Bloc 00 -> 70% on = [onVoteSums.get("00") - offVoteSums.get("00")] + extra math stuff
-            // Bloc 01 -> 30% on = [onVoteSums.get("01") - offVoteSums.get("01")] + extra math stuff
-            // Bloc 10 -> 15% on = [onVoteSums.get("10") - offVoteSums.get("10")] + extra math stuff
-            // Bloc 11 -> 22% on = [onVoteSums.get("11") - offVoteSums.get("11")] + extra math stuff
-            // Rank based on confidence
-            // e.g if there is a lot more onVotes than offVotes, the rule is more confident
-            // if there are roughly the same number of offVotes and onVotes, the rule is less confident
+            //Calculate the confidences
+            outArr[0] = onVotes / (onVotes + offVotes) * onVoteMax;
+            outArr[1] = offVotes / (onVotes + offVotes) * offVoteMax;
 
             return outArr;
+        }//BlocData.getOutcomes
 
-        }
 
 
     }//Class BlocData
@@ -477,23 +416,8 @@ public class TreeNode {
             }
         }//for
 
-        /*
-        The absolute value of the outcomes determines how confident that value is, e.g., -0.97 is much more confident than 0.1.
-        This means the first most confident votes are from the direct outcomes, e.g,         OUTCOME > 1, OUTCOME > 1
-        If the first outcome is more confident than the second, the next most confident is   OUTCOME > 1, -(OUTCOME > 1)
-        Logically the next most unlikely scenario is                                       -(OUTCOME > 1), OUTCOME > 1
-        Then the most unlikely scenario is                                                 -(OUTCOME > 1), -(OUTCOME > 1)
-         */
-
-        // Tally the votes to get the selected value for each sensor
-
-        // 0 -> 00
-        // 1 -> 01
-
-        // 0, 0 0
-        // 1, 1 0
-        // 2, 0 1
-        // 3, 1 1
+        //TODO:  The code below doesn't seem to be working properly
+        //       as all the child nodes have '11' as their external sensor
 
         double confArr[] = {1.0, 1.0, 1.0 ,1.0};
 
@@ -555,6 +479,8 @@ public class TreeNode {
 
             SensorData dataArr[] = new SensorData[4];
             double confArr[];
+            //TODO:  This is hardcoded at 4 right now assuming
+            // exactly 2 external sensors and, therefore, 4 possible combinations
             for(int k = 0; k < 4; k++)
                 dataArr[k] = new SensorData(this.currExternal);
 
