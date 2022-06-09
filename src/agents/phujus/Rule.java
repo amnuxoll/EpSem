@@ -140,6 +140,8 @@ public abstract class Rule {
 
     //region Getters and Setters
 
+    public static int getNextRuleId() { return nextRuleId; }
+
     public int getId() { return this.ruleId; }
 
     public double getConfidence() { return this.confidence.getConfidence(); }

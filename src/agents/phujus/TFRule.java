@@ -528,6 +528,13 @@ public class TFRule extends Rule{
             for (Cond cond : this.lhsInternal) {
                 // Calculates the TF and DF values, and if the sensor values are the same
                 double tf = cond.data.getTF();
+                //TODO:  DEBUG REMOVE
+                PhuJusAgent.Tuple<Integer, Double> foo =  agent.getInternalPercents().get(cond.sName);
+                if (foo == null) {
+                    agent.debugPrint("aw heck");
+                }
+
+
                 double df = agent.getInternalPercents().get(cond.sName).getSecond();
                 boolean wasOn = lhsInt.contains(Integer.parseInt(cond.sName));
 

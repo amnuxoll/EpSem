@@ -17,8 +17,15 @@ public class RuleLoader {
 
     private PhuJusAgent agent;
 
+    //the first time rules are loaded Rule.nextRuleId == 1.
+    //but if rules are reloaded it can be different and internal
+    //sensors references needed to be adjusted.  This variable
+    //records the first rule id for each load for that purpose.
+    private int ruleIdOffset = 1;
+
     public RuleLoader(PhuJusAgent agent) {
         this.agent = agent;
+        this.ruleIdOffset = Rule.getNextRuleId() - 1;
     }
 
     /**
@@ -149,11 +156,23 @@ public class RuleLoader {
                 if (next.equals("0")) {
                     return null;
                 }
+
                 lhsInt.add(next);
             }
         }
-        return lhsInt.toArray(new String[0]);
-    }
+        String[] lhsIntArr = lhsInt.toArray(new String[0]);
+
+        //If these rules are being reloaded, the LHS int values need to be adjusted
+        if (this.ruleIdOffset > 0) {
+            for(int i = 0; i < lhsIntArr.length; ++i) {
+                int tmp = Integer.parseInt(lhsIntArr[i]);
+                tmp += this.ruleIdOffset;
+                lhsIntArr[i] = "" + tmp;
+            }
+        }
+
+        return lhsIntArr;
+    }//getLHSIntFromString
 
     /**
      * Helper method that Instantiates a SensorData object from a given string representation. Token should be
