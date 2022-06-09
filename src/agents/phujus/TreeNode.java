@@ -410,7 +410,7 @@ public class TreeNode {
             outArr[0] = onVotes / (onVotes + offVotes);
             outArr[1] = -1 * offVotes / (onVotes + offVotes);
 
-            if(outArr[0] > outArr[1]) {
+            if(Math.abs(outArr[0]) > Math.abs(outArr[1])) {
                 outArr[0] *= this.onVoteMax;
                 outArr[1] *= this.onVoteMax;  //TODO: I don't know if this is right
             } else {
