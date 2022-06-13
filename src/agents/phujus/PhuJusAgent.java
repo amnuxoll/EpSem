@@ -5,6 +5,7 @@ import framework.IAgent;
 import framework.IIntrospector;
 import framework.SensorData;
 
+import javax.swing.tree.TreeCellRenderer;
 import java.util.*;
 import java.util.Random;
 
@@ -122,7 +123,7 @@ public class PhuJusAgent implements IAgent {
     public static final boolean DEBUGPRINTSWITCH = true;
 
     // FLAG variable to toggle updating of TFIDF values
-    public static final boolean TFIDF = false;
+    public static final boolean TFIDF = true;
 
     // FLAG variabale to toggle rule generation
     // if this is false, addPredeterminedRules will be called at
@@ -482,6 +483,8 @@ public class PhuJusAgent implements IAgent {
         // TODO:  If we were clever we'd put all these scores in an array
         //        so we don't have to calc them twice (see next loop)
         double bestScore = 0.0;
+        //useful for debugging but not strictly needed
+        TFRule bestRule = null;
         for (TFRule r : this.tfRules) {
             // ignore rules that didn't predict external sensors correctly
             if (!r.isExtMatch(action, prevExt, currExt))
@@ -489,6 +492,7 @@ public class PhuJusAgent implements IAgent {
             double score = r.lhsMatchScore(action, prevInt, prevExt);
             if (score > bestScore) {
                 bestScore = score;
+                bestRule = r;
             }
         }
 

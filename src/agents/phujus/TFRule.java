@@ -111,6 +111,13 @@ public class TFRule extends Rule{
     //How similar two match scores need to be to each other to be "near"
     public static final double MATCH_NEAR = 0.05;
 
+    //This min match score is given to ANY (wildcard).  Any actual
+    //match is given a score higher than this
+    public static final double MIN_MATCH = 0.1;
+
+    //A match score may not exceed this value to avoid greater than 100% confidence
+    private static final double MAX_MATCH = 0.5;
+
     //the action of the rule
     private char action;
 
@@ -509,7 +516,7 @@ public class TFRule extends Rule{
     public double lhsIntMatchScore(HashSet<Integer> lhsInt){
 
         if(this.operator == RuleOperator.ALL)
-            return 1.0;
+            return MIN_MATCH;
 
         double score = 0.0;
         int c = 0;
@@ -524,7 +531,19 @@ public class TFRule extends Rule{
                 double df = agent.getInternalPercents().get(cond.sName).getSecond();
                 boolean wasOn = lhsInt.contains(Integer.parseInt(cond.sName));
 
-                score += calculateTFIDF(tf, df, wasOn);
+                //To give actual matches an edge over wildcard matches we make
+                // sure they are higher than MIN_MATCH.  However we can't
+                // exceed MAX_MATCH or it will gum up subsequent calculations.
+                // Yes, this is awkward. :/
+                double tfidf = calculateTFIDF(tf, df, wasOn);
+                if (tfidf > 0.0) {
+                    tfidf += MIN_MATCH;
+                    if (tfidf > MAX_MATCH) {
+                        tfidf = MAX_MATCH;
+                    }
+                }
+
+                score += tfidf;
             }
         }
         else if (this.operator == RuleOperator.ANDOR){
@@ -532,13 +551,6 @@ public class TFRule extends Rule{
             for (Cond cond : this.lhsInternal) {
                 // Calculates the TF and DF values, and if the sensor values are the same
                 double tf = cond.data.getTF();
-                //TODO:  DEBUG REMOVE
-                PhuJusAgent.Tuple<Integer, Double> foo =  agent.getInternalPercents().get(cond.sName);
-                if (foo == null) {
-                    agent.debugPrint("aw heck");
-                }
-
-
                 double df = agent.getInternalPercents().get(cond.sName).getSecond();
                 boolean wasOn = lhsInt.contains(Integer.parseInt(cond.sName));
 
