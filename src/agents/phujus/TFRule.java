@@ -116,7 +116,7 @@ public class TFRule extends Rule{
     public static final double MIN_MATCH = 0.1;
 
     //A match score may not exceed this value to avoid greater than 100% confidence
-    private static final double MAX_MATCH = 0.5;
+    public static final double MAX_MATCH = 0.5;
 
     //the action of the rule
     private char action;

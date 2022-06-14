@@ -39,7 +39,7 @@ import java.util.Random;
  *   (frequency and recency of correctness)
  */
 public class PhuJusAgent implements IAgent {
-    public static final int MAXNUMRULES = 20; //10 to 100 for testing
+    public static final int MAXNUMRULES = 2000; //10 to 100 for testing
     public static final int MAX_SEARCH_DEPTH = 5; //TODO: get the search to self prune again
     public static final int MAX_TIME_DEPTH = 7;  //size of short term memory
 
@@ -232,8 +232,8 @@ public class PhuJusAgent implements IAgent {
         if(this.stepsSinceGoal >= 15) {
             debugPrintln("");
         }
-        if (this.now == 4) {
-            debugPrintln("");
+        if (this.now == 40) {
+                debugPrintln("");
         }
         if(this.rules.values().size() > 25){
             debugPrintln("");
@@ -291,7 +291,7 @@ public class PhuJusAgent implements IAgent {
     private void addPredeterminedRules() {
 
         RuleLoader loader = new RuleLoader(this);
-        loader.loadRules("./src/agents/phujus/res/landmarks.csv", this.tfRules);
+        loader.loadRules("./src/agents/phujus/res/flatland.csv", this.tfRules);
 
 
         for(TFRule rule: this.tfRules){
@@ -326,12 +326,6 @@ public class PhuJusAgent implements IAgent {
 
         
         this.pathToDo = root.findBestGoalPath();
-        // TODO remove psuedocode??
-//        while (pathToDo == null) {
-//            // Add another node to tree
-//            // Expand tree
-//            // Re-assign pathToDo
-//        }
 
         //DEBUG
         if (PhuJusAgent.DEBUGPRINTSWITCH) {
@@ -424,9 +418,6 @@ public class PhuJusAgent implements IAgent {
             debugPrintln("random action: " + action);
         }
 
-        //DEBUG:
-        if (PhuJusAgent.DEBUGPRINTSWITCH) {
-        }
         return action;
     }//calcAction
 
@@ -714,22 +705,30 @@ public class PhuJusAgent implements IAgent {
      *
      */
     public void updateTFRuleConfidences() {
-        Vector<TFRule> toRemove = new Vector<>();
-
-        //find the highest match score
+        //find the highest match score because the ration of a rule's match score
+        //to the best score affects the amount of increase/decrease in confidence
         //TODO:  If we were clever we'd put all these scores in an array
         //       so we don't have to calc them twice (see next loop)
         double bestScore = 0.0;
         for (TFRule r : this.tfRules) {
-            double score = r.lhsMatchScore(this.prevAction, this.currInternal, this.currExternal);
+            double score = r.lhsMatchScore(this.prevAction, this.getPrevInternal(), this.prevExternal);
             if (score > bestScore) {
                 bestScore = score;
             }
         }
 
+        //Update confidences of all matching rules
         for(TFRule rule: this.tfRules) {
-            double score = rule.lhsMatchScore(this.prevAction, this.currInternal, this.currExternal);
+            double score = rule.lhsMatchScore(this.prevAction, this.getPrevInternal(), this.prevExternal);
+
             if(score > 0.0) {
+
+                //For base-event rules, confidence is not adjusted unless it's a perfect match
+                if ( (rule.getOperator() == TFRule.RuleOperator.ALL)
+                        && (rule.lhsExtMatchScore(this.prevExternal) < TFRule.MAX_MATCH) ) {
+                    continue;
+                }
+
                 if (rule.isRHSMatch()) {
                     rule.increaseConfidence(score, bestScore);
                 } else {
