@@ -39,7 +39,7 @@ import java.util.Random;
  *   (frequency and recency of correctness)
  */
 public class PhuJusAgent implements IAgent {
-    public static final int MAXNUMRULES = 15; //10 to 100 for testing
+    public static final int MAXNUMRULES = 20; //10 to 100 for testing
     public static final int MAX_SEARCH_DEPTH = 5; //TODO: get the search to self prune again
     public static final int MAX_TIME_DEPTH = 7;  //size of short term memory
 
@@ -128,7 +128,7 @@ public class PhuJusAgent implements IAgent {
     // FLAG variabale to toggle rule generation
     // if this is false, addPredeterminedRules will be called at
     // timestep 0
-    public static final boolean GENERATERULES = false;
+    public static final boolean GENERATERULES = true;
 
     //The agent keeps lists of the rules it is using
     private Vector<PathRule> pathRules = new Vector<>();
@@ -752,20 +752,21 @@ public class PhuJusAgent implements IAgent {
 
         if (this.rules.size() <= MAXNUMRULES) return;
 
-        TFRule worstRule = (TFRule) this.rules.elements().nextElement();
+        while(this.rules.size() > MAXNUMRULES) {
+            TFRule worstRule = (TFRule) this.rules.elements().nextElement();
 
-        double worstScore = worstRule.calculateActivation(this.now) * worstRule.getConfidence();
-        for (Rule rule : this.rules.values()) {
-            if(rule instanceof TFRule) {
-                TFRule r = (TFRule) rule;
-                double activation = r.calculateActivation(this.now);
-                double score = activation * r.getConfidence();
-                if (score < worstScore) {
-                    worstScore = score;
-                    worstRule = r;
+            double worstScore = worstRule.calculateActivation(this.now) * worstRule.getConfidence();
+            for (Rule rule : this.rules.values()) {
+                if (rule instanceof TFRule) {
+                    TFRule r = (TFRule) rule;
+                    double activation = r.calculateActivation(this.now);
+                    double score = activation * r.getConfidence();
+                    if (score < worstScore) {
+                        worstScore = score;
+                        worstRule = r;
+                    }
                 }
             }
-        }
 
         /*//Find the rule with lowest activation & accuracy
         //TODO:  score of a node should be its own score or child's whichever is higher!
@@ -787,9 +788,10 @@ public class PhuJusAgent implements IAgent {
             }
         }
 */
-        //out with the old, in with the new...was there a baby in that bath water?
-        //TODO:  the removeRule method needs to change
-        removeRule(worstRule, null);
+            //out with the old, in with the new...was there a baby in that bath water?
+            //TODO:  the removeRule method needs to change
+            removeRule(worstRule, null);
+        }
     }
 
 
@@ -818,6 +820,9 @@ public class PhuJusAgent implements IAgent {
         for(TFRule rule : this.tfRules) {
             if (rule.isExtMatch()) {
                 rule.updateTFVals();
+                if (rule.getOperator() == TFRule.RuleOperator.ALL) {
+                    wasMatch = true;
+                }
                 //check and make sure the rule has internal conditions for every other rule
                 //if not add them
                 //TODO:  this is the new merging stuff for TFRule
@@ -826,10 +831,14 @@ public class PhuJusAgent implements IAgent {
 //                wasMatch = true;
             }
         }
+        addRule(new TFRule(this));
 
         //Create a new TF Rule for this latest experience
         if(!wasMatch) {
-            addRule(new TFRule(this));
+            TFRule baseRule = new TFRule(this, this.prevAction, new String[]{"-1"},
+                    this.getPrevExternal(), this.getCurrExternal(), 1.0, TFRule.RuleOperator.ALL);
+            addRule(baseRule);
+
         }
         //See if we need to cull rule(s) to stay below max
         cullRules();

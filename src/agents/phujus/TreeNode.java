@@ -389,9 +389,13 @@ public class TreeNode {
             }
 
             //Calculate the confidences
-            outArr[0] = offVoteMax * offVotes / (onVotes + offVotes);
-            outArr[1] = onVoteMax * onVotes / (onVotes + offVotes);
-
+            if(onVotes + offVotes == 0) {
+                outArr[0] = 0;
+                outArr[1] = 0;
+            } else {
+                outArr[0] = offVoteMax * offVotes / (onVotes + offVotes);
+                outArr[1] = onVoteMax * onVotes / (onVotes + offVotes);
+            }
             return outArr;
         }//BlocData.getOutcomes
 
@@ -529,7 +533,8 @@ public class TreeNode {
 
                 //create a child for this action + ext sensor combo
                 TreeNode child = new TreeNode(this, act, sdArr[i], confArr[i]);
-                this.children.add(child);
+                if (child.confidence > 0.00001)
+                    this.children.add(child);
             }
         }//for
 
@@ -648,25 +653,30 @@ public class TreeNode {
      */
     public Vector<TreeNode> findMostUncertainPath() {
 
-        //pick the action (depth 1) with the greatest uncertainty
-        char mostUncertain = '\0';
-        double lowestConfSoFar = 1.1; //can't be this high
-        for (TreeNode child : this.children) {
-            //see if this child has more uncertainty
-            if (child.confidence < lowestConfSoFar) {
-                lowestConfSoFar = child.confidence;
-                mostUncertain = child.action;
-            }
-        }
+        int i = rand.nextInt(agent.getActionList().length);
+        char action = agent.getActionList()[i].getName().charAt(0);
+        TreeNode random = new TreeNode(this, action, this.currExternal, 1.0);
+        return random.path;
 
-        //Just in case:  what if there are no children?
-        if (mostUncertain == '\0') {
-            mostUncertain = agent.getActionList()[rand.nextInt(agent.getActionList().length)].getName().charAt(0);
-        }
-
-        //Return a path with this action
-        TreeNode tmpNode = new TreeNode(this, mostUncertain, this.currExternal, 1.0);
-        return tmpNode.path;
+//        //pick the action (depth 1) with the greatest uncertainty
+//        char mostUncertain = '\0';
+//        double lowestConfSoFar = 1.1; //can't be this high
+//        for (TreeNode child : this.children) {
+//            //see if this child has more uncertainty
+//            if (child.confidence < lowestConfSoFar) {
+//                lowestConfSoFar = child.confidence;
+//                mostUncertain = child.action;
+//            }
+//        }
+//
+//        //Just in case:  what if there are no children?
+//        if (mostUncertain == '\0') {
+//            mostUncertain = agent.getActionList()[rand.nextInt(agent.getActionList().length)].getName().charAt(0);
+//        }
+//
+//        //Return a path with this action
+//        TreeNode tmpNode = new TreeNode(this, mostUncertain, this.currExternal, 1.0);
+//        return tmpNode.path;
 
 
         // TODO: Make code function how we want. Currently commented out until we get it working
