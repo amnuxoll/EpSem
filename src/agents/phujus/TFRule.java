@@ -387,6 +387,28 @@ public class TFRule extends Rule{
     }//isMatch
 
     /**
+     * isMatch
+     *
+     * Checks if this rule matches the given parameters.
+     *
+     * @param lhsIsOdd  ...|<0>0a -> 00 ||...
+     * @param lhsIsGoal ...|0<0>a -> 00 ||...
+     * @param rhsIsOdd  ...|00a -> <0>0 ||...
+     * @param rhsIsGoal ...|00a -> 0<0> ||...
+     * @param action    ...|00<a> -> 00 ||...
+     * @return True if the rule matches the above properties, false if it doesn't
+     */
+    public boolean isMatch(boolean lhsIsOdd, boolean lhsIsGoal, boolean rhsIsOdd, boolean rhsIsGoal, char action) {
+        SensorData rhsExternal = getRHSExternal();
+        SensorData lhsExternal = getLHSExternal();
+        return this.action == action &&
+                rhsExternal.getSensor("IS_ODD").equals(rhsIsOdd) &&
+                rhsExternal.getSensor("GOAL").equals(rhsIsGoal) &&
+                lhsExternal.getSensor("IS_ODD").equals(lhsIsOdd) &&
+                lhsExternal.getSensor("GOAL").equals(lhsIsGoal);
+    }
+
+    /**
      * updateTFVals
      *
      * updates the TFVals for this rule by looking at the prevInternal and checking if
@@ -675,18 +697,45 @@ public class TFRule extends Rule{
     /**
      * toStringShortINT
      *
-     * is a helper method for {@link #toString()} to
-     * convert a RHS to a bit string
+     * is a helper method for {@link #toString()} to convert the LHS internals to
+     * a string.
      */
     protected String toStringShortINT(HashSet<Cond> lhs) {
-        StringBuilder result = new StringBuilder();
-
+        StringBuilder result = new StringBuilder("(");
         Vector<Cond> sortedInternal = new Vector<>(lhs);
         Collections.sort(sortedInternal);
+
+        int c = 0;
         for (Cond cond : sortedInternal) {
-            result.append(cond.toStringShort());
+
+            String name = cond.sName;
+            if (name.equals("0")) {
+                continue;
+            }
+            if (name.equals("-1")) {
+                result.append("*");
+                break;
+            }
+            if (cond.data.getTF() < 0.001) {
+                continue;
+            }
+            result.append(name);
+            if (c < sortedInternal.size()-1) {
+                result.append(",");
+            }
+            c++;
         }
-        return result.toString();
+
+        result.append(")");
+        // This removes an additional comma that might be added to the end (typically the case when printing
+        // generated rules)
+        String resultStr = result.toString();
+        if (resultStr.endsWith(",)")) {
+            resultStr = resultStr.substring(0, resultStr.length() - 2);
+            resultStr += ")";
+        }
+
+        return resultStr;
     }//toStringShortRHS
 
     /**
