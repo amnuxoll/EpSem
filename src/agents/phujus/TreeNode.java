@@ -655,7 +655,7 @@ public class TreeNode {
 
         int i = rand.nextInt(agent.getActionList().length);
         char action = agent.getActionList()[i].getName().charAt(0);
-        TreeNode random = new TreeNode(this, action, this.currExternal, 1.0);
+        TreeNode random = new TreeNode(this, action, this.currExternal, 0.0);
         return random.path;
 
 //        //pick the action (depth 1) with the greatest uncertainty
@@ -905,5 +905,7 @@ public class TreeNode {
     public HashSet<Integer> getCurrInternal() { return this.currInternal; }
     public SensorData getCurrExternal() { return this.currExternal; }
     public TreeNode getParent() { return this.parent; }
+    public double getConfidence() { return this.confidence; }
+
 
 }//class TreeNode

@@ -38,7 +38,7 @@ import java.util.Random;
  *   (frequency and recency of correctness)
  */
 public class PhuJusAgent implements IAgent {
-    public static final int MAXNUMRULES = 20; //10 to 100 for testing
+    public static final int MAXNUMRULES = 400; //10 to 100 for testing
     public static final int MAX_SEARCH_DEPTH = 5; //TODO: get the search to self prune again
     public static final int MAX_TIME_DEPTH = 7;  //size of short term memory
 
@@ -207,6 +207,11 @@ public class PhuJusAgent implements IAgent {
     private HashMap<String, Tuple<Integer, Double>> externalPercents = new HashMap<>();
     private HashMap<String, Tuple<Integer, Double>> internalPercents = new HashMap<>();
 
+    //Track the agent's current confusion level.  The agent will not
+    //trust paths in which its confidence in the path is lower
+    //than its confusion level.
+    private double confusion = 0.0;
+
     /**
      * This method is called each time a new FSM is created and a new agent is
      * created.  As such, it also performs the duties of a ctor.
@@ -265,7 +270,7 @@ public class PhuJusAgent implements IAgent {
         if(this.stepsSinceGoal >= 15) {
             debugPrintln("");
         }
-        if (this.now == 1400) {
+        if (this.now == 40) {
                 debugPrintln("");
         }
         if(this.rules.values().size() > 25){
@@ -360,6 +365,19 @@ public class PhuJusAgent implements IAgent {
         
         this.pathToDo = root.findBestGoalPath();
 
+        //The agent will not use paths whose confidence is less than its confusion level
+        if ((this.pathToDo != null) && (this.pathToDo.lastElement().getConfidence() < this.confusion)) {
+            if (DEBUGPRINTSWITCH) {
+                debugPrint("I'm too confused for this path: ");
+                for (TreeNode node : this.pathToDo) {
+                    debugPrint("" + node.getAction());
+                }
+                debugPrintln("");
+            }
+            this.pathToDo = null;
+            this.confusion = 0.0;  //reset so agent will use its rules again after the non-path action we're about to take
+        }
+
         //DEBUG
         if (PhuJusAgent.DEBUGPRINTSWITCH) {
             root.printTree();
@@ -401,25 +419,33 @@ public class PhuJusAgent implements IAgent {
             rewardRulesForGoal();
             this.stepsSinceGoal = 0;
             buildNewPath();
-        //If agent was unable to build a path last time step.  Try now to build a new path.
-        } else if ((this.pathToDo == null)) {
-            buildNewPath();
-        //reached end of current path without finding goal
         } else if ((this.pathToDo.size() == 0)) {
             //DEBUG
             debugPrintln("Current path failed.");
 
+            //The agent is now confused
+            if (this.prevPath != null) {
+                this.confusion = this.pathTraversedSoFar.lastElement().getConfidence();
+            }
+
             buildNewPath();
+        } else {
+            //If we reach this point we're partway through a path and no maint is needed
+
+            //TODO:  needed?
+            this.confusion = 0.0;
+
+            //TODO: path validation?
+            //If the agent is partway through a path but the predicted outcome
+            //of it's most recent step has already not been met, then it may
+            //make sense to abort the path now and build a new one.  We've tried
+            //this before and the downside to this is that the agent misses out
+            //on some nifty exploratory options and is more vulnerable to getting
+            //into loops.  If we can avoid that issue, then this is  the right
+            // thing to do.
         }
 
-        //TODO: path validation?
-        //If the agent is partway through a path but the predicted outcome
-        //of it's most recent step has already not been met, then it may
-        //make sense to abort the path now and build a new one.  We've tried
-        //this before and the downside to this is that the agent misses out
-        //on some nifty exploratory options and is more vulnerable to getting
-        //into loops.  If we can avoid that issue, then this is  the right
-        // thing to do.
+
 
     }//pathMaintenance
 
