@@ -5,7 +5,6 @@ import framework.IAgent;
 import framework.IIntrospector;
 import framework.SensorData;
 
-import javax.swing.tree.TreeCellRenderer;
 import java.util.*;
 import java.util.Random;
 
@@ -39,7 +38,7 @@ import java.util.Random;
  *   (frequency and recency of correctness)
  */
 public class PhuJusAgent implements IAgent {
-    public static final int MAXNUMRULES = 2000; //10 to 100 for testing
+    public static final int MAXNUMRULES = 20; //10 to 100 for testing
     public static final int MAX_SEARCH_DEPTH = 5; //TODO: get the search to self prune again
     public static final int MAX_TIME_DEPTH = 7;  //size of short term memory
 
@@ -69,7 +68,7 @@ public class PhuJusAgent implements IAgent {
 
     /**
      * class RuleMatrix describes an adjacency matrix for storing pairs of internal sensors which fire simultaneously.
-     * TODO Vector implementation of the information
+     * TODO Look at other data structures for this (the current implementation could be very expensive)
      */
     public class RuleMatrix {
 
@@ -83,13 +82,6 @@ public class PhuJusAgent implements IAgent {
         }
 
         public void updateConnections(HashSet<Integer> sensor) {
-//
-//            for (Integer i : sensor) {
-//                for (Integer j : sensor) {
-//                    if (i.intValue() == j.intValue()) continue;
-//                    adjMatrix[i][j]++;
-//                }
-//            }
 
             for (Integer i : sensor) {
                 for (TFRule r : tfRules) {
@@ -110,6 +102,47 @@ public class PhuJusAgent implements IAgent {
 
         public int getConnections(int rule1, int rule2) {
             return adjMatrix[rule1][rule2];
+        }
+
+        /**
+         * getRulesThatFireTogether
+         *
+         * Returns a list of all the rules which have fired with this rule 'connections' # of times
+         *
+         * @param ruleNum ID of the rule
+         * @param connections number of times a rule has to have fired with this one
+         * @return
+         */
+        public Vector<TFRule> getSimilarRules(int ruleNum, int connections) {
+
+            Vector<TFRule> broRules = new Vector<>();
+            TFRule rule = (TFRule) rules.get(ruleNum);
+
+            // We go through all of the rules which have fired with this rule. If the number of times that these
+            // two rules have fired is greater than 'connections', then it is a potential candidate to be merged.
+            for (int i = 0; i < adjMatrix.length; i++) {
+
+                if (rules.containsKey(i)) {
+                    if (adjMatrix[ruleNum][i] >= connections) {
+
+                        if (i == ruleNum) {
+                            continue;
+                        }
+
+                        TFRule broRule = (TFRule) rules.get(i); // <- Merge candidate
+
+                        // Checking that the candidate has the same external sensors, action, and similar confidences
+                        // before confirming its selection
+                        if (broRule.isExtMatch(rule.getAction(), rule.getLHSExternal(), rule.getRHSExternal())) {
+                            if (Math.abs(rule.getConfidence() - broRule.getConfidence()) <= 0.02) {
+                                broRules.add((TFRule) rules.get(i));
+                            }
+                        }
+                    }
+                }
+            }
+
+            return broRules;
         }
 
         public int[][] getAdjMatrix() {
@@ -232,7 +265,7 @@ public class PhuJusAgent implements IAgent {
         if(this.stepsSinceGoal >= 15) {
             debugPrintln("");
         }
-        if (this.now == 40) {
+        if (this.now == 1400) {
                 debugPrintln("");
         }
         if(this.rules.values().size() > 25){
@@ -247,8 +280,8 @@ public class PhuJusAgent implements IAgent {
             updateExternalPercents();
 
             //DEBUG
-            printInternalPercents();
-            printExternalPercents();
+            //printInternalPercents();
+            //printExternalPercents();
         }
 
         if(this.now > 2) {
@@ -751,47 +784,92 @@ public class PhuJusAgent implements IAgent {
 
         if (this.rules.size() <= MAXNUMRULES) return;
 
-        while(this.rules.size() > MAXNUMRULES) {
-            TFRule worstRule = (TFRule) this.rules.elements().nextElement();
-
-            double worstScore = worstRule.calculateActivation(this.now) * worstRule.getConfidence();
-            for (Rule rule : this.rules.values()) {
-                if (rule instanceof TFRule) {
-                    TFRule r = (TFRule) rule;
-                    double activation = r.calculateActivation(this.now);
-                    double score = activation * r.getConfidence();
-                    if (score < worstScore) {
-                        worstScore = score;
-                        worstRule = r;
-                    }
-                }
-            }
-
-        /*//Find the rule with lowest activation & accuracy
-        //TODO:  score of a node should be its own score or child's whichever is higher!
-        //       A good way to do this is to override calculateActivation in
-        //       BaseRule and have it recurse through children.  It's expensive but
-        //       calculating activation is already expensive anyway.  We can memoize
-        //       it later if needed.  -:AMN: Dec 2021
-        EpRule worstRule = (EpRule) this.rules.get(0);
-        double worstScore = worstRule.calculateActivation(this.now) * worstRule.getAccuracy();
-        for (Rule rule : this.rules.values()) {
-            if(rule instanceof EpRule) {
-                EpRule r = (EpRule) rule;
-                double activation = r.calculateActivation(this.now);
-                double score = activation * r.getAccuracy();
-                if (score < worstScore) {
-                    worstScore = score;
-                    worstRule = r;
-                }
-            }
-        }
-*/
-            //out with the old, in with the new...was there a baby in that bath water?
-            //TODO:  the removeRule method needs to change
-            removeRule(worstRule, null);
-        }
+        mergeRules();
+//        while(this.rules.size() > MAXNUMRULES) {
+//
+//            TFRule worstRule = (TFRule) this.rules.elements().nextElement();
+//
+//            double worstScore = worstRule.calculateActivation(this.now) * worstRule.getConfidence();
+//            for (Rule rule : this.rules.values()) {
+//                if (rule instanceof TFRule) {
+//                    TFRule r = (TFRule) rule;
+//                    double activation = r.calculateActivation(this.now);
+//                    double score = activation * r.getConfidence();
+//                    if (score < worstScore) {
+//                        worstScore = score;
+//                        worstRule = r;
+//                    }
+//                }
+//            }
+//
+//        /*//Find the rule with lowest activation & accuracy
+//        //TODO:  score of a node should be its own score or child's whichever is higher!
+//        //       A good way to do this is to override calculateActivation in
+//        //       BaseRule and have it recurse through children.  It's expensive but
+//        //       calculating activation is already expensive anyway.  We can memoize
+//        //       it later if needed.  -:AMN: Dec 2021
+//        EpRule worstRule = (EpRule) this.rules.get(0);
+//        double worstScore = worstRule.calculateActivation(this.now) * worstRule.getAccuracy();
+//        for (Rule rule : this.rules.values()) {
+//            if(rule instanceof EpRule) {
+//                EpRule r = (EpRule) rule;
+//                double activation = r.calculateActivation(this.now);
+//                double score = activation * r.getAccuracy();
+//                if (score < worstScore) {
+//                    worstScore = score;
+//                    worstRule = r;
+//                }
+//            }
+//        }
+//*/
+//            //out with the old, in with the new...was there a baby in that bath water?
+//            //TODO:  the removeRule method needs to change
+//            removeRule(worstRule, null);
+//        }
     }
+
+    /**
+     * mergeRules
+     *
+     * Merges similar rules. The process goes something like this:
+     *   - Look at adjacency matrix and find rules which are often firing together (say more than X times)
+     *   - If they've fired more than X times, have the same external sensors and actions, and similar confidences,
+     *     then we merge them
+     *   - Delete one of the rules, then go and adjust all internal sensors for all the rules which use the
+     *     deleted rule
+     */
+    private void mergeRules() {
+
+        // Compilate all of the rules which need to be merged:
+        HashMap<TFRule, Vector<TFRule>> rulesToMerge = new HashMap<>();
+        for (TFRule rule : tfRules) {
+            Vector<TFRule> similarRules = this.matrix.getSimilarRules(rule.getId(), 1);
+            boolean canAdd = true;
+
+            // Making sure that the same rules aren't merged multiple times
+            for (TFRule similarRule : similarRules) {
+                if (rulesToMerge.containsKey(similarRule)) {
+                    canAdd = false;
+                    break;
+                }
+            }
+
+            if (canAdd) {
+                rulesToMerge.put(rule, similarRules);
+            }
+        }
+
+        // Commence merging:
+        for (TFRule rule : rulesToMerge.keySet()) {
+
+            if (rulesToMerge.size() == 0) {
+                continue;
+            }
+            for (TFRule delete : rulesToMerge.get(rule)) {
+                removeRule(delete, rule);
+            }
+        }
+    }//mergeRules
 
 
     /**
@@ -891,7 +969,7 @@ public class PhuJusAgent implements IAgent {
         //DEBUGGING
         if (replacement == null) debugPrint("removed: ");
         else debugPrint("replaced: ");
-        debugPrintln(removeMe.toString());
+        //debugPrintln(removeMe.toString());
 
         //Removes the data from the sensor percentage HashMap
         removeInternalSensorPercent(removeMe.getId());
