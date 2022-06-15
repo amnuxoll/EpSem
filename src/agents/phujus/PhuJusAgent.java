@@ -193,8 +193,9 @@ public class PhuJusAgent implements IAgent {
     private final Vector<TreeNode> pathTraversedSoFar = new Vector<>();
     private Vector<TreeNode> prevPath = null;
 
-    //Counter that tracks time steps since hitting a goal (DEBUG)
+    //Tracks agent performance for debugging  (DEBUG)
     private int stepsSinceGoal = 0;
+    private int numGoals = 0;
 
     //the current, partially-formed PathRule is stored here
     private PathRule pendingPR = null;
@@ -369,10 +370,9 @@ public class PhuJusAgent implements IAgent {
         if ((this.pathToDo != null) && (this.pathToDo.lastElement().getConfidence() < this.confusion)) {
             if (DEBUGPRINTSWITCH) {
                 debugPrint("I'm too confused for this path: ");
-                for (TreeNode node : this.pathToDo) {
-                    debugPrint("" + node.getAction());
-                }
-                debugPrintln("");
+                debugPrint(this.pathToDo.lastElement().getPathStr());
+                debugPrint(" (conf: " + this.pathToDo.lastElement().getConfidence());
+                debugPrintln(" cfsn: " + this.confusion + ")");
             }
             this.pathToDo = null;
             this.confusion = 0.0;  //reset so agent will use its rules again after the non-path action we're about to take
@@ -415,7 +415,8 @@ public class PhuJusAgent implements IAgent {
      */
     private void pathMaintenance(boolean isGoal) {
         if (isGoal) {
-            System.out.println("Found GOAL");
+            numGoals++;
+            System.out.println("Found GOAL No. " + numGoals + " (avg: " + ((double)this.now / (double)numGoals) +  " steps per goal)");
             rewardRulesForGoal();
             this.stepsSinceGoal = 0;
             buildNewPath();
@@ -424,9 +425,7 @@ public class PhuJusAgent implements IAgent {
             debugPrintln("Current path failed.");
 
             //The agent is now confused
-            if (this.prevPath != null) {
-                this.confusion = this.pathTraversedSoFar.lastElement().getConfidence();
-            }
+            this.confusion = this.pathTraversedSoFar.lastElement().getConfidence();
 
             buildNewPath();
         } else {

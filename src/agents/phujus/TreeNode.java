@@ -529,6 +529,8 @@ public class TreeNode {
 
             for(int i = 0; i < sdArr.length; i++) {
                 //skip zero confidence
+                //TODO:  for even better efficiency: skip any node with confidence less
+                //       than best goal path found so far
                 if (confArr[i] <= 0.0) continue;
 
                 //create a child for this action + ext sensor combo
