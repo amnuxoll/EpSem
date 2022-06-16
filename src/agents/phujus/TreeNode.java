@@ -121,30 +121,6 @@ public class TreeNode {
     }//initComboArr
 
     /**
-     * findBestMatchingTFRule
-     *
-     * finds the TFRule that best matches this TreeNode
-     *
-     * @param action the action to use for the match
-     * @return the best match or null if no match found
-     */
-    public TFRule findBestMatchingTFRule(char action) {
-        TFRule maxRule = null;
-        double max = 0.0;
-        for (TFRule tr : this.agent.getTfRules()) {
-
-            double score = tr.lhsMatchScore(action, this.currInternal, this.currExternal);
-            score*= tr.getConfidence();
-            if( score > max ){
-                max = score;
-                maxRule = tr;
-            }
-        }
-
-        return maxRule;
-    }
-
-    /**
      * predicts what the externals sensors will be for a child node of this one
      *
      * TODO:  remove?  Currently this is replaced by the bloc-voting method but
@@ -325,6 +301,9 @@ public class TreeNode {
         public HashMap<String, Double> onVotes = new HashMap<>();
         public HashMap<String, Double> offVotes = new HashMap<>();
 
+        public int offVoteCount = 0;
+        public int onVoteCount = 0;
+
         public BlocData(String initName) {
             this.sensorName = initName;
         }
@@ -356,6 +335,7 @@ public class TreeNode {
             //Add the vote to the proper vote sum
             boolean on = (boolean) voter.getRHSExternal().getSensor(this.sensorName);
             HashMap<String, Double> ballotBox = on ? this.onVotes : this.offVotes;
+            if (on) { this.onVoteCount++; } else { this.offVoteCount++; }
             double oldVal = 0.0;
             if (ballotBox.containsKey(bloc)) {
                 oldVal = ballotBox.get(bloc);
@@ -393,8 +373,9 @@ public class TreeNode {
                 outArr[0] = 0;
                 outArr[1] = 0;
             } else {
-                outArr[0] = offVoteMax * offVotes / (onVotes + offVotes);
-                outArr[1] = onVoteMax * onVotes / (onVotes + offVotes);
+                int totalVotes = this.onVoteCount + this.offVoteCount;
+                outArr[0] = offVoteMax * this.offVoteCount / totalVotes;
+                outArr[1] = onVoteMax * this.onVoteCount / totalVotes;
             }
             return outArr;
         }//BlocData.getOutcomes
@@ -477,6 +458,17 @@ public class TreeNode {
                 }
             }
         }//for
+
+        //Scale the confidence values to the range [0.0..1.0]
+        //This makes the agent more likely to consider longer paths
+        //which ends up being an important nudge toward learning.
+        double max = 0.0;
+        for(double conf : confArr) {
+            max = Math.max(max, conf);
+        }
+        for(int i = 0; i < confArr.length; ++i) {
+            confArr[i] /= max;
+        }
 
         //Populate the given SensorData array (predicted)
         for(int sdIndex = 0; sdIndex < predicted.length; ++sdIndex) {

@@ -440,23 +440,6 @@ public class TFRule extends Rule{
     }//updateTFVals
 
     /**
-     * totalMatchScore
-     *
-     * Adds the match scores of the lhs and rhs to compute the total match score.
-     *
-     * @param action the action made by the rule to compare against
-     * @param lhsInt a HashSet of integers containing the internal sensors that were on
-     * @param lhsExt the lhs external sensorData
-     * @param rhsExt the rhs external sensorData
-     * @return the total match score
-     */
-    public double totalMatchScore(char action, HashSet<Integer> lhsInt, SensorData lhsExt, SensorData rhsExt) {
-
-        // Adds the lhs and rhs match scores
-        return lhsMatchScore(action, lhsInt, lhsExt) + rhsMatchScore(rhsExt);
-    }//totalMatchScore
-
-    /**
      * rhsMatchScore
      *
      * calculates how closely this rule matches a given rhs sensor set
@@ -568,7 +551,7 @@ public class TFRule extends Rule{
                 score += tfidf;
             }
         }
-        else if (this.operator == RuleOperator.ANDOR){
+        else if (this.operator == RuleOperator.ANDOR) {
             c = 1;
             for (Cond cond : this.lhsInternal) {
                 // Calculates the TF and DF values, and if the sensor values are the same
@@ -586,7 +569,6 @@ public class TFRule extends Rule{
             return lhsInt.size() == 0 ? 1.0 : 0.0;
         return score/c;
     }//lhsIntMatchScore
-
 
     /**
      * lhsMatchScore

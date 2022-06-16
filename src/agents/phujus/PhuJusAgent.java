@@ -196,6 +196,7 @@ public class PhuJusAgent implements IAgent {
     //Tracks agent performance for debugging  (DEBUG)
     private int stepsSinceGoal = 0;
     private int numGoals = 0;
+    Vector<Integer> last10Goals = new Vector<>();
 
     //the current, partially-formed PathRule is stored here
     private PathRule pendingPR = null;
@@ -290,10 +291,12 @@ public class PhuJusAgent implements IAgent {
             //printExternalPercents();
         }
 
-        if(this.now > 2) {
-            System.out.println("TF Rules:");
-            for (int i = 0; i < tfRules.size(); i++) {
-                System.out.println(tfRules.get(i));
+        if (DEBUGPRINTSWITCH) {
+            if (this.now > 2) {
+                debugPrintln("TF Rules:");
+                for (int i = 0; i < tfRules.size(); i++) {
+                    debugPrintln("" + tfRules.get(i));
+                }
             }
         }
         //if(this.now > 1)
@@ -416,7 +419,16 @@ public class PhuJusAgent implements IAgent {
     private void pathMaintenance(boolean isGoal) {
         if (isGoal) {
             numGoals++;
-            System.out.println("Found GOAL No. " + numGoals + " (avg: " + ((double)this.now / (double)numGoals) +  " steps per goal)");
+            String avgStr = String.format("%.3f", (double)this.now / (double)numGoals);
+            while (last10Goals.size() >= 10) { last10Goals.remove(0); }
+            last10Goals.add(stepsSinceGoal);
+            double movingAvg = 0.0;
+            for (int steps : last10Goals) {
+                movingAvg += steps;
+            }
+            movingAvg /= last10Goals.size();
+            String movingAvgStr = String.format("%.3f", movingAvg);
+            System.out.println("Found GOAL No. " + numGoals + " in " + this.stepsSinceGoal + " steps (avg: " + avgStr +  "; moving avg: " + movingAvgStr + ")");
             rewardRulesForGoal();
             this.stepsSinceGoal = 0;
             buildNewPath();
@@ -758,7 +770,7 @@ public class PhuJusAgent implements IAgent {
      * updateTFRuleConfidences
      *
      * updates the accuracy (called confidence) of the tfrules that
-     * matched correctly this timestep and decreases the rules that
+     * matched correctly in the prev timestep and decreases the rules that
      * didn't match correctly
      *
      */
@@ -909,44 +921,49 @@ public class PhuJusAgent implements IAgent {
         //Can't do anything in the first timestep because there is no previous timestep
         if (this.now == 1) return;
 
-        //Find (or create) the rule that matches the current situation
-        //Note:  in some cases multiple rules get created by this call
-        /*updateEpAndBaseRuleSet();
-*/
         //updates the accuracies of our tf rules
         updateTFRuleConfidences();
 
         //Update the TF values for all extant TFRules
-        boolean wasMatch = false;
+        boolean wasMatch = updateAllTFValues();
 
+        //Create new TF Rule(s) for this latest experience
+        addRule(new TFRule(this));
+        if(!wasMatch) {
+            //create a base-event rule
+            TFRule baseRule = new TFRule(this, this.prevAction, new String[]{"-1"},
+                    this.getPrevExternal(), this.getCurrExternal(), 1.0, TFRule.RuleOperator.ALL);
+            addRule(baseRule);
+
+        }
+        
+        //See if we need to cull rule(s) to stay below max
+        cullRules();
+
+    }//updateRuleSet
+
+
+
+    /**
+     * updateAllTFValues
+     *
+     * updates the TF values of every condition of every TFRule based
+     * on the agent's most recently completed experience
+     *
+     * @return whether a base-event rule exists for the experience
+     */
+    private boolean updateAllTFValues() {
+        boolean wasMatch = false;
         for(TFRule rule : this.tfRules) {
             if (rule.isExtMatch()) {
                 rule.updateTFVals();
                 if (rule.getOperator() == TFRule.RuleOperator.ALL) {
                     wasMatch = true;
                 }
-                //check and make sure the rule has internal conditions for every other rule
-                //if not add them
-                //TODO:  this is the new merging stuff for TFRule
-                //       not sure if we should be doing this or not
-//                rule.addConditions();
-//                wasMatch = true;
             }
         }
-        addRule(new TFRule(this));
-
-        //Create a new TF Rule for this latest experience
-        if(!wasMatch) {
-            TFRule baseRule = new TFRule(this, this.prevAction, new String[]{"-1"},
-                    this.getPrevExternal(), this.getCurrExternal(), 1.0, TFRule.RuleOperator.ALL);
-            addRule(baseRule);
-
-        }
-        //See if we need to cull rule(s) to stay below max
-        cullRules();
-
-    }//updateRuleSet
-
+        return wasMatch;
+    }//updateAllTFValues
 
 
     /**
