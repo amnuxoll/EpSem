@@ -657,7 +657,7 @@ public class PhuJusAgent implements IAgent {
     private void removeInternalSensorPercent(int ruleNumber){
 
         this.internalPercents.remove(Integer.toString(ruleNumber));
-        System.out.println("removed Internal Sensor number: "+ ruleNumber);
+        debugPrintln("removed Internal Sensor number: "+ ruleNumber);
     }//removeInternalSensorPercent
 
     /**
