@@ -108,6 +108,9 @@ public class PhuJusAgent implements IAgent {
          * getRulesThatFireTogether
          *
          * Returns a list of all the rules which have fired with this rule 'connections' # of times
+         * TODO This matrix could break once the rules start exceeding the maximum or when rules start to merge, since
+         *      a rule's index in the matrix is based on its rule ID.
+         *      A different implementation of this concept could fix this issue.
          *
          * @param ruleNum ID of the rule
          * @param connections number of times a rule has to have fired with this one
@@ -120,7 +123,7 @@ public class PhuJusAgent implements IAgent {
 
             // We go through all of the rules which have fired with this rule. If the number of times that these
             // two rules have fired is greater than 'connections', then it is a potential candidate to be merged.
-            for (int i = 0; i < adjMatrix.length; i++) {
+            for (int i = 0; i < tfRules.get(tfRules.size()-1).ruleId + 1; i++) {
 
                 if (rules.containsKey(i)) {
                     if (adjMatrix[ruleNum][i] >= connections) {
@@ -297,6 +300,7 @@ public class PhuJusAgent implements IAgent {
                 for (int i = 0; i < tfRules.size(); i++) {
                     debugPrintln("" + tfRules.get(i));
                 }
+                debugPrintln("NUM RULES: " + tfRules.size());
             }
         }
         //if(this.now > 1)
@@ -819,9 +823,9 @@ public class PhuJusAgent implements IAgent {
      */
     private void cullRules() {
 
-        if (this.rules.size() <= MAXNUMRULES) return;
-
-        mergeRules();
+        if (this.rules.size() >= MAXNUMRULES || this.currExternal.isGoal()) {
+            mergeRules();
+        }
 //        while(this.rules.size() > MAXNUMRULES) {
 //
 //            TFRule worstRule = (TFRule) this.rules.elements().nextElement();
@@ -1227,6 +1231,9 @@ public class PhuJusAgent implements IAgent {
     public HashMap<String, Tuple<Integer, Double>> getInternalPercents() {return this.internalPercents;}
     public HashMap<String, Tuple<Integer, Double>> getExternalPercents() {return this.externalPercents;}
 
+    public double getConfusion() {
+        return confusion;
+    }
     //endregion
 
 }//class PhuJusAgent

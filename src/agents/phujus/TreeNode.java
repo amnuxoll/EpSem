@@ -374,8 +374,13 @@ public class TreeNode {
                 outArr[1] = 0;
             } else {
                 int totalVotes = this.onVoteCount + this.offVoteCount;
-                outArr[0] = offVoteMax * this.offVoteCount / totalVotes;
-                outArr[1] = onVoteMax * this.onVoteCount / totalVotes;
+                if (totalVotes == 0) {
+                    outArr[0] = 0;
+                    outArr[1] = 0;
+                } else {
+                    outArr[0] = (offVoteMax * this.offVoteCount) / totalVotes;
+                    outArr[1] = (onVoteMax * this.onVoteCount) / totalVotes;
+                }
             }
             return outArr;
         }//BlocData.getOutcomes
@@ -467,7 +472,11 @@ public class TreeNode {
             max = Math.max(max, conf);
         }
         for(int i = 0; i < confArr.length; ++i) {
-            confArr[i] /= max;
+            if (max == 0) {
+                confArr[i] = 0;
+            } else {
+                confArr[i] /= max;
+            }
         }
 
         //Populate the given SensorData array (predicted)
