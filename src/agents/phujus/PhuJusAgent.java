@@ -205,6 +205,8 @@ public class PhuJusAgent implements IAgent {
     private PathRule pendingPR = null;
 
     //"random" numbers are useful sometimes (use a hardcoded seed for debugging)
+    //Important:  Always use this generator so that output is reproducible
+    // with the same seed.  Don't create your own elsewhere in the agent.
     public static Random rand = new Random(2);
 
     //Stores the percentage that each sensor is on and relative info to calculate it.
@@ -275,7 +277,7 @@ public class PhuJusAgent implements IAgent {
         if(this.stepsSinceGoal >= 15) {
             debugPrintln("");
         }
-        if (this.now == 40) {
+        if (this.now == 131) {
                 debugPrintln("");
         }
         if(this.rules.values().size() > 25){

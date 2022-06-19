@@ -763,9 +763,8 @@ public class TFRule extends Rule{
         result.append(toStringShortRHS(this.rhsExternal));
         //note:  replaceAll call removes extra trailing 0's to improve readability
         result.append(String.format(" ^  conf=%.5f", getConfidence()).replaceAll("0+$", "0"));
-        double leftScore = lhsMatchScore(this.action, agent.getPrevInternal() , agent.getCurrExternal());
-        double rightScore = 0;//rhsMatchScore(agent.getCurrExternal());
-        result.append(String.format(" Score: %.3f\t|| ", leftScore+rightScore).replaceAll("0+$","0"));
+        double matchScore = lhsMatchScore(this.action, agent.getCurrInternal() , agent.getCurrExternal());
+        result.append(String.format(" Score: %.3f\t|| ", matchScore).replaceAll("0+$","0"));
         result.append(toStringLongLHS(this.lhsInternal));
         return result.toString();
     }

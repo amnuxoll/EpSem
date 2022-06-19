@@ -14,9 +14,6 @@ import java.util.*;
 
 public class TreeNode {
 
-    //This might be useful...
-    private static Random rand = new Random();
-
     //Agent's current state and ruleset is needed to build the tree
     private final PhuJusAgent agent;
 
@@ -656,7 +653,7 @@ public class TreeNode {
      */
     public Vector<TreeNode> findMostUncertainPath() {
 
-        int i = rand.nextInt(agent.getActionList().length);
+        int i = PhuJusAgent.rand.nextInt(agent.getActionList().length);
         char action = agent.getActionList()[i].getName().charAt(0);
         TreeNode random = new TreeNode(this, action, this.currExternal, 0.0);
         return random.path;
