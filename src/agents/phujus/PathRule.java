@@ -25,24 +25,30 @@ public class PathRule extends Rule {
         this.rhsExternal = initRHS;
     }
 
+    /** helper method for {@link #toString()} to format the LHS of a given Rule as a string */
+    protected void toStringRule(StringBuilder result, Rule r) {
+        if (r instanceof TFRule) {
+            TFRule tf = (TFRule) r;
+            tf.toStringShortLHS(result);
+        } else {
+            result.append(r.toString());
+        }
+
+    }//toStringRule
 
     @Override
     public String toString() {
         StringBuilder result = new StringBuilder();
         result.append("#");
         result.append(this.ruleId);
-        result.append(":[");
-        if (lhs1 != null) result.append(lhs1.toStringShort());
-        result.append("][");
-        if (lhs2 != null) result.append(lhs2.toStringShort());
+        result.append(": [");
+        toStringRule(result, lhs1);
+        result.append("->");
+        toStringRule(result, lhs2);
         result.append("]");
         result.append(" -> ");
-        if (this.rhsExternal == null) {
-            result.append("null");
-        } else {
-            result.append(TreeNode.extToString(this.rhsExternal));
-            result.append(String.format(" ^  conf=%.5f", getConfidence()).replaceAll("0+$", "0"));
-        }
+        result.append(TreeNode.extToString(this.rhsExternal));
+        result.append(String.format(" ^  conf=%.5f", getConfidence()).replaceAll("0+$", "0"));
 
         return result.toString();
     }//toString
@@ -52,9 +58,8 @@ public class PathRule extends Rule {
     public String toStringShort() {
         StringBuilder result = new StringBuilder();
         result.append("(#");
-        if (lhs1 != null) result.append(lhs1.ruleId);
+        result.append(lhs1.ruleId);
         result.append(",#");
-        if (lhs2 != null) result.append(lhs2.ruleId);
         result.append(")");
         result.append("->");
         if (this.rhsExternal == null) {

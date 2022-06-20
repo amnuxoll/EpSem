@@ -665,20 +665,6 @@ public class TFRule extends Rule{
     }//sortedConds
 
     /**
-     * toStringShortRHS
-     *
-     * is a helper method for {@link #toString()} to
-     * convert a RHS to a bit string
-     */
-    protected String toStringShortRHS(HashSet<Cond> rhs) {
-        StringBuilder result = new StringBuilder();
-        for (Cond eCond : sortedConds(rhs)) {
-            result.append(eCond.toStringShort());
-        }
-        return result.toString();
-    }//toStringShortRHS
-
-    /**
      * toStringShortINT
      *
      * is a helper method for {@link #toString()} to convert the LHS internals to
@@ -720,6 +706,40 @@ public class TFRule extends Rule{
         }
 
         return resultStr;
+    }//toStringShortINT
+
+    /**
+     * toStringShortLHS
+     *
+     * is a helper method for {@link #toStringShort()} to
+     * append the LHS of a TFRule in a short format
+     *
+     * @param result  StringBuilder to append to
+     */
+    protected void toStringShortLHS(StringBuilder result) {
+        result.append("#");
+        result.append(this.ruleId);
+        result.append(":");
+        result.append(toStringShortINT(this.lhsInternal));
+        result.append("|");
+        result.append(toStringShortRHS(this.lhsExternal));
+        result.append(this.action);
+    }//toStringShortLHS
+
+
+
+    /**
+     * toStringShortRHS
+     *
+     * is a helper method for {@link #toString()} to
+     * convert a RHS to a bit string
+     */
+    protected String toStringShortRHS(HashSet<Cond> rhs) {
+        StringBuilder result = new StringBuilder();
+        for (Cond eCond : sortedConds(rhs)) {
+            result.append(eCond.toStringShort());
+        }
+        return result.toString();
     }//toStringShortRHS
 
     /**
@@ -777,13 +797,7 @@ public class TFRule extends Rule{
         String str = "";
 
         StringBuilder result = new StringBuilder();
-        result.append("#");
-        result.append(this.ruleId);
-        result.append(": ");  //extra space so it will line up with 0-depth EpRule
-        result.append(toStringShortINT(this.lhsInternal));
-        result.append("|");
-        result.append(toStringShortRHS(this.lhsExternal));
-        result.append(this.action);
+        toStringShortLHS(result);
         result.append("->");
         result.append(toStringShortRHS(this.rhsExternal));
         return result.toString();

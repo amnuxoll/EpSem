@@ -294,7 +294,7 @@ public class PhuJusAgent implements IAgent {
         if(this.stepsSinceGoal >= 15) {
             debugPrintln("");
         }
-        if (this.now >= 3) {
+        if (this.now >= 222) {
                 debugPrintln("");
         }
         if(this.rules.values().size() > 25){
@@ -408,34 +408,50 @@ public class PhuJusAgent implements IAgent {
         if (this.prevPrevBestMatch == null) return;
         if (this.prevBestMatch == null) return;
 
-        //Find all PRs with matching LHS
-        Vector<PathRule> lhsMatches = new Vector<>();
+        //Find all PRs with matching LHS including the correct one
+        Vector<PathRule> incorrectLHSMatches = new Vector<>();
+        PathRule correctPR = null;
         for(PathRule pr : this.pathRules) {
             if (pr.lhsMatch(this.prevPrevBestMatch, this.prevBestMatch)) {
-                lhsMatches.add(pr);
+                if (pr.rhsMatch(this.currExternal)) {
+                    correctPR = pr;
+                } else {
+                    incorrectLHSMatches.add(pr);
+                }
             }
         }
 
-        //Create a PathRule based on the agent's recently completed experience
-        //and add it if it doesn't already exist
-        PathRule goodPR = new PathRule(this, this.prevPrevBestMatch, this.prevBestMatch, this.currExternal);
-        if (! lhsMatches.contains(goodPR)) {
-            this.pathRules.add(goodPR);
-            lhsMatches.add(goodPR);
+        //If no correct PR was found, create it
+        if (correctPR == null) {
+            correctPR = new PathRule(this, this.prevPrevBestMatch, this.prevBestMatch, this.currExternal);
+            this.pathRules.add(correctPR);
         }
 
-        //If the agent's currBestMatch was incorrect, then create a PathRule reflecting that
-        //and add if it doesn't already exist
+        //If the agent's currBestMatch was incorrect, then the PathRule reflecting that
+        //is also a mismatch
         if (! this.currBestMatch.getRHSExternal().equals(this.currExternal)) {
-            PathRule badPR = new PathRule(this, this.prevPrevBestMatch, this.currBestMatch, this.currBestMatch.getRHSExternal());
-            if (! lhsMatches.contains(badPR)) {
-                this.pathRules.add(badPR);
-                lhsMatches.add(badPR);
+            //Find the corresponding PathRule
+            PathRule badPR = null;
+            for(PathRule pr : this.pathRules) {
+                if (pr.lhsMatch(this.prevPrevBestMatch, this.currBestMatch)
+                    && (pr.rhsMatch(this.currBestMatch.getRHSExternal())) ) {
+                    badPR = pr;
+                    break;
+                }
             }
-        }
 
-        //adjust confidences of all matching PRs
-        for(PathRule pr : lhsMatches) {
+            //If not found, add it
+            if (badPR == null) {
+                badPR = new PathRule(this, this.prevPrevBestMatch, this.currBestMatch, this.currBestMatch.getRHSExternal());
+                this.pathRules.add(badPR);
+            }
+
+            //Add to the list of PRs to be penalized (below)
+            incorrectLHSMatches.add(badPR);
+        }//if
+
+        //decrease confidences of all mismatching PRs
+        for(PathRule pr : incorrectLHSMatches) {
             if (pr.rhsMatch(this.currExternal)) {
                 pr.increaseConfidence(1.0, 1.0);  //max increase
             } else {
