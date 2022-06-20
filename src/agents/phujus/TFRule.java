@@ -575,6 +575,8 @@ public class TFRule extends Rule{
      *
      * calculates how closely this rule matches a given action and lhs sensors
      *
+     * TODO:  I've noticed this method gets called A LOT.  Should we cache results for a speedup?
+     *
      * @param action the action made by the rule to compare against
      * @param lhsInt a HashSet of integers containing the internal sensors that were on
      * @param lhsExt the lhs external sensorData
@@ -768,6 +770,25 @@ public class TFRule extends Rule{
         result.append(toStringLongLHS(this.lhsInternal));
         return result.toString();
     }
+
+    /** a shorter string format designed to be used inline */
+    @Override
+    public String toStringShort(){
+        String str = "";
+
+        StringBuilder result = new StringBuilder();
+        result.append("#");
+        result.append(this.ruleId);
+        result.append(": ");  //extra space so it will line up with 0-depth EpRule
+        result.append(toStringShortINT(this.lhsInternal));
+        result.append("|");
+        result.append(toStringShortRHS(this.lhsExternal));
+        result.append(this.action);
+        result.append("->");
+        result.append(toStringShortRHS(this.rhsExternal));
+        return result.toString();
+    }
+
 
     //region getters
 

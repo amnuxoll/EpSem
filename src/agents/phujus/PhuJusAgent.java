@@ -201,9 +201,6 @@ public class PhuJusAgent implements IAgent {
     private int numGoals = 0;
     Vector<Integer> last10Goals = new Vector<>();
 
-    //the current, partially-formed PathRule is stored here
-    private PathRule pendingPR = null;
-
     //"random" numbers are useful sometimes (use a hardcoded seed for debugging)
     //Important:  Always use this generator so that output is reproducible
     // with the same seed.  Don't create your own elsewhere in the agent.
@@ -218,6 +215,21 @@ public class PhuJusAgent implements IAgent {
     //trust paths in which its confidence in the path is lower
     //than its confusion level.
     private double confusion = 0.0;
+
+    //This is the TFRule that best matches the agent's previous int/ext sensing and
+    // current ext sensing (i.e., the rule that best predicted the currently known outcome)
+    // NOTE:  A newly created rule is excluded for consideration for this
+    //        variable since it did not exist in the previous timestep
+    private TFRule prevBestMatch = null;
+    private double prevBestScore = 0.0;  //match score for the above
+
+    //This is the TFRule that best matches the agent's current int/ext sensing
+    //(i.e., the agent is most confident is predicting the future ext sensing)
+    private TFRule currBestMatch = null;
+    private double currBestScore = 0.0;  //match score for the above
+
+    //This is the TFRule that was placed in prevBestMatch two timesteps ago
+    private TFRule prevPrevBestMatch = null;
 
     /**
      * This method is called each time a new FSM is created and a new agent is
@@ -245,12 +257,17 @@ public class PhuJusAgent implements IAgent {
         this.now++;
         this.currExternal = sensorData;
 
+        //update the PathRules now that the agent knows the ext. sensor outcome
+        updatePrevBestMatch();
+        updatePathRules();
+
         if (this.rules.size() > 0) {  //can't update if no rules yet
             this.currInternal = genNextInternal(this.prevAction,
                                                 this.getPrevInternal(),
                                                 this.prevExternal,
                                                 this.currExternal);
         }
+
 
         this.stepsSinceGoal++;
 
@@ -277,7 +294,7 @@ public class PhuJusAgent implements IAgent {
         if(this.stepsSinceGoal >= 15) {
             debugPrintln("");
         }
-        if (this.now == 131) {
+        if (this.now == 30) {
                 debugPrintln("");
         }
         if(this.rules.values().size() > 25){
@@ -305,9 +322,7 @@ public class PhuJusAgent implements IAgent {
                 debugPrintln("NUM RULES: " + tfRules.size());
             }
         }
-        //if(this.now > 1)
-        //    System.out.println("Best Match TF Rule: " + gethighestTFRule().ruleId);
-//
+
         //Update the agent's current path
         pathMaintenance(sensorData.isGoal());
 
@@ -315,20 +330,18 @@ public class PhuJusAgent implements IAgent {
         //extract next action
         char action = calcAction();
 
+        //Use the selected action to make our best prediction about the future
+        updateCurrBestMatch(action);
 
-
-        //Now that we know what action the agent will take, setup the sensor
-        // values for the next iteration
+        //Use the selcted action to setup values for the next iteration
         updateSensors(action);
-
-
-
 
         //DEBUG
         debugPrintln("----------------------------------------------------------------------");
 
         return new Action(action + "");
     }//getNextAction
+
 
     /**
      * addPredeterminedRules
@@ -348,6 +361,150 @@ public class PhuJusAgent implements IAgent {
     }
 
     /**
+     * update the value of this.prevBestMatch/Score
+     *
+     * Note:  call this method before new rules are added in the current time
+     *        step since such rules can't have been the previous best.
+     */
+    private void updatePrevBestMatch() {
+        this.prevPrevBestMatch = this.prevBestMatch;  //save for use by updatePathRules
+        this.prevBestScore = 0.0;
+        this.prevBestMatch = null;
+        for (TFRule r : this.tfRules) {
+            if (r.isExtMatch(this.prevAction, this.prevExternal, this.currExternal)) {
+                double score = r.lhsMatchScore(this.prevAction, this.getPrevInternal(), this.prevExternal);
+                if (score > this.prevBestScore) {
+                    this.prevBestScore = score;
+                    this.prevBestMatch = r;
+                }
+            }
+        }
+    }//updatePrevBestMatch
+
+    /**
+     * update the value of this.currBestMatch/Score
+     *
+     * @param action  the action the agent has chosen for the current timestep
+     */
+    private void updateCurrBestMatch(char action) {
+        this.currBestScore = 0.0;
+        this.currBestMatch = null;
+        for (TFRule r : this.tfRules) {
+            double score = r.lhsMatchScore(action, this.currInternal, this.currExternal);
+            if (score > this.currBestScore) {
+                this.currBestScore = score;
+                this.currBestMatch = r;
+            }
+        }
+    }//updatePrevBestMatch
+
+    /**
+     * TODO: comment this when I have it worked out
+     *
+     * Important:  this.prevBestMatch must be set
+     */
+    private void updatePathRules() {
+        //Must have prev and prev-prev rules to build with.
+        if (this.prevPrevBestMatch == null) return;
+        if (this.prevBestMatch == null) return;
+
+        //Find all PRs with matching LHS
+        Vector<PathRule> lhsMatches = new Vector<>();
+        for(PathRule pr : this.pathRules) {
+            if (pr.lhsMatch(this.prevPrevBestMatch, this.prevBestMatch)) {
+                lhsMatches.add(pr);
+            }
+        }
+
+        //Create a PathRule based on the agent's recently completed experience
+        //and add it if it doesn't already exist
+        PathRule goodPR = new PathRule(this, this.prevPrevBestMatch, this.prevBestMatch, this.currExternal);
+        if (! lhsMatches.contains(goodPR)) {
+            this.pathRules.add(goodPR);
+            lhsMatches.add(goodPR);
+        }
+
+        //If the agent's currBestMatch was incorrect, then create a PathRule reflecting that
+        //and add if it doesn't already exist
+        if (! this.currBestMatch.getRHSExternal().equals(this.currExternal)) {
+            PathRule badPR = new PathRule(this, this.prevPrevBestMatch, this.currBestMatch, this.currBestMatch.getRHSExternal());
+            if (! lhsMatches.contains(badPR)) {
+                this.pathRules.add(badPR);
+                lhsMatches.add(badPR);
+            }
+        }
+
+        //adjust confidences of all matching PRs
+        for(PathRule pr : lhsMatches) {
+            if (pr.rhsMatch(this.currExternal)) {
+                pr.increaseConfidence(1.0, 1.0);  //max increase
+            } else {
+                pr.decreaseConfidence(1.0, 1.0);  //max decrease
+            }
+        }
+
+        //TODO:  limit number of path rules ala MAXNUMRULES
+
+    }//updatePathRulesPart1
+
+    /**
+     * genNextInternal
+     * <p>
+     * calculates what the internal sensors will be on for the next timestep
+     * by seeing which rules have a sufficient match score and correctly
+     * predicted the current external sensors
+     *
+     * Caveat: At the moment, "sufficient" is any rule that exceeds the
+     *         match cutoff.
+     *
+     * <p>
+     * @param action  selected action to match LHS
+     * @param prevInt internal sensors to match LHS
+     * @param prevExt external sensors to match LHS
+     * @param currExt external sensors to match RHS
+     */
+    public HashSet<Integer> genNextInternal(char action,
+                                            HashSet<Integer> prevInt,
+                                            SensorData prevExt,
+                                            SensorData currExt) {
+        HashSet<Integer> result = new HashSet<>();
+
+        // find the TFRule that best matches the given sensors/actions
+        // IMPORTANT:  You can't use this.prevBestScore/Match for this because
+        //             genNextInternal is also used extensively by TreeNode
+        double bestScore = 0.0;
+        TFRule bestRule = null; //useful for debugging but not strictly needed
+        // Put all the scores in an array so we don't have to calc them twice (see next loop)
+        double[] allScores = new double[this.tfRules.size()];
+        for (int i = 0; i < this.tfRules.size(); ++i) {
+            TFRule r = tfRules.get(i);
+            // ignore rules that didn't predict external sensors correctly
+            if (!r.isExtMatch(action, prevExt, currExt)) {
+                allScores[i] = 0.0;
+                continue;
+            }
+            allScores[i] = r.lhsMatchScore(action, prevInt, prevExt);
+            if (allScores[i] > bestScore) {
+                bestScore = allScores[i];
+                bestRule = r;
+            }
+        }
+
+        // Turn on internal sensors for all rules that are at or "near" the
+        // highest match score.  "near" is currently hard-coded
+        // TODO:  have agent adjust "near" based on its experience
+        for (int i = 0; i < this.tfRules.size(); ++i) {
+            if (allScores[i] == 0.0) continue;
+            if (1.0 - (allScores[i] / bestScore )  <= TFRule.MATCH_NEAR){
+                int ruleId = this.tfRules.get(i).getId();
+                result.add(ruleId);
+            }
+        }
+        return result;
+    }//genNextInternal
+
+
+    /**
      * buildNewPath
      *
      * uses a search tree to find a path to goal.  The resulting path is
@@ -361,10 +518,6 @@ public class PhuJusAgent implements IAgent {
                 && (this.pathToDo != null)
                 && (this.pathToDo.size() == 0)) {
             this.prevPath = new Vector<>(this.pathTraversedSoFar);
-        } else {
-            //if path was aborted early, also abort any pending PathRule data
-            this.prevPath = null;
-            this.pendingPR = null;
         }
 
         this.pathTraversedSoFar.clear();
@@ -408,9 +561,6 @@ public class PhuJusAgent implements IAgent {
             debugPrintln("found path: " + this.pathToDo.lastElement().getPathStr());
         }
 
-
-        //Update the PathRule set as well
-        addPathRule();
 
     }//buildNewPath
 
@@ -524,60 +674,6 @@ public class PhuJusAgent implements IAgent {
 
         return result;
     }//calcPrunedInternal
-
-    /**
-     * genNextInternal
-     * <p>
-     * calculates what the internal sensors will be on for the next timestep
-     * by seeing which rules have a sufficient match score and correctly
-     * predicted the current external sensors
-     *
-     * Caveat: At the moment, "sufficient" is any rule that exceeds the
-     *         match cutoff.
-     * <p>
-     * @param action  selected action to match LHS
-     * @param prevInt internal sensors to match LHS
-     * @param prevExt external sensors to match LHS
-     * @param currExt external sensors to match RHS
-     */
-    public HashSet<Integer> genNextInternal(char action,
-                                            HashSet<Integer> prevInt,
-                                            SensorData prevExt,
-                                            SensorData currExt) {
-        HashSet<Integer> result = new HashSet<>();
-
-        // find the highest match score
-        // TODO:  If we were clever we'd put all these scores in an array
-        //        so we don't have to calc them twice (see next loop)
-        double bestScore = 0.0;
-        //useful for debugging but not strictly needed
-        TFRule bestRule = null;
-        for (TFRule r : this.tfRules) {
-            // ignore rules that didn't predict external sensors correctly
-            if (!r.isExtMatch(action, prevExt, currExt))
-                continue;
-            double score = r.lhsMatchScore(action, prevInt, prevExt);
-            if (score > bestScore) {
-                bestScore = score;
-                bestRule = r;
-            }
-        }
-
-        // Turn on internal sensors for all rules that are at or "near" the
-        // highest match score.  "near" is currently hard-coded
-        // TODO:  have "near" be adjusted based on agent experience
-
-        for (TFRule r : this.tfRules) {
-            // ignore rules that didn't predict external sensors correctly
-            if (!r.isExtMatch(action, prevExt, currExt))
-                continue;
-            double score = r.lhsMatchScore(action, prevInt, prevExt);
-            if (1.0 - (score / bestScore )  <= TFRule.MATCH_NEAR){
-                result.add(r.getId());
-            }
-        }
-        return result;
-    }//genNextInternal
 
     /**
      * updateSensors
@@ -716,7 +812,9 @@ public class PhuJusAgent implements IAgent {
         double score = 0.0;
         int count = 0;
         for(PathRule pr : this.pathRules) {
-            if (pr.matches(this.prevPath, path)) {
+            //TODO: repair this code
+            //if (pr.matches(this.prevPath, path))
+            {
                 if (path.lastElement().getCurrExternal().isGoal()) {
                     score++;
                 }
@@ -732,67 +830,16 @@ public class PhuJusAgent implements IAgent {
     }//metaScorePath
 
     /**
-     * addPathRule
-     *
-     * creates a new PathRule if the stars are right.
-     *
-     * Call this method immediately after building a new path
-     */
-    public void addPathRule() {
-        //TODO:  limit number of path rules ala MAXNUMRULES
-
-        //Need two completed paths to build a PathRule
-        if (this.prevPath == null) return;
-        if (this.prevPath.size() == 0) return;
-        if (this.pathTraversedSoFar.size() != 0) return;
-        if (this.pathToDo == null) return;
-        if (this.pathToDo.size() == 0) return;
-
-        //If there is a pending PathRule, complete it
-        if (this.pendingPR != null) {
-            this.pendingPR.setRHS(this.currExternal);
-            if (! this.pathRules.contains(this.pendingPR)) {
-                this.pathRules.add(pendingPR);
-
-                //DEBUG
-                debugPrintln("Completed PathRule: " + this.pendingPR);
-            }
-        }
-        this.pendingPR = null;
-
-        //If last path was completed, complete pending PathRule and save data for building a new PathRule
-        SensorData firstExt = this.prevPath.firstElement().getCurrExternal();
-        TreeNode firstPath = this.prevPath.lastElement();
-        SensorData secondExt = this.pathToDo.firstElement().getCurrExternal();
-        TreeNode secondPath = this.pathToDo.lastElement();
-        this.pendingPR = new PathRule(firstExt, firstPath, secondExt, secondPath);
-
-        //DEBUG
-        debugPrintln("Pending PathRule: " + this.pendingPR);
-
-    }//addPathRule
-
-    /**
      * updateTFRuleConfidences
      *
      * updates the accuracy (called confidence) of the tfrules that
      * matched correctly in the prev timestep and decreases the rules that
      * didn't match correctly
      *
+     * Caveat:  this.prevBestScore should be set correctly before this is called
+     *
      */
     public void updateTFRuleConfidences() {
-        //find the highest match score because the ration of a rule's match score
-        //to the best score affects the amount of increase/decrease in confidence
-        //TODO:  If we were clever we'd put all these scores in an array
-        //       so we don't have to calc them twice (see next loop)
-        double bestScore = 0.0;
-        for (TFRule r : this.tfRules) {
-            double score = r.lhsMatchScore(this.prevAction, this.getPrevInternal(), this.prevExternal);
-            if (score > bestScore) {
-                bestScore = score;
-            }
-        }
-
         //Update confidences of all matching rules
         for(TFRule rule: this.tfRules) {
             double score = rule.lhsMatchScore(this.prevAction, this.getPrevInternal(), this.prevExternal);
@@ -806,9 +853,9 @@ public class PhuJusAgent implements IAgent {
                 }
 
                 if (rule.isRHSMatch()) {
-                    rule.increaseConfidence(score, bestScore);
+                    rule.increaseConfidence(score, this.prevBestScore);
                 } else {
-                    rule.decreaseConfidence(score, bestScore);
+                    rule.decreaseConfidence(score, this.prevBestScore);
                 }
             }
         }

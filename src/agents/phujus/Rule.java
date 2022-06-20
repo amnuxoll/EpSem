@@ -84,6 +84,9 @@ public abstract class Rule {
         this.ruleId = this.nextRuleId++;
     }
 
+    /** a shorter string format designed to be used inline */
+    public abstract String toStringShort();
+
     //region Rule Activation
     /**
      * addActivation
@@ -156,31 +159,6 @@ public abstract class Rule {
 
     //endregion
 
-    //region Abstract Methods
-    /**
-     * calculates how closely this rule matches a given rhs sensors
-     *
-     * @return  a match score from 0.0 to 1.0
-     */
-    public abstract double rhsMatchScore(SensorData rhsExt);
-
-    /**
-     * calculates how closely this rule matches a given action and lhs sensors
-     * A total match score [0.0..1.0] is calculated as the product of the
-     * match score for each level (this.timeDepth) of the rule.
-     *
-     * @return  a match score from 0.0 to 1.0
-     */
-    public abstract double lhsMatchScore(char action, HashSet<Integer> lhsInt, SensorData lhsExt);
-
-    /** convenience function the rule is expected to use the sensors in the current agent */
-    public double lhsMatchScore(char action) {
-        return lhsMatchScore(action, this.agent.getCurrInternal(), this.agent.getCurrExternal());
-    }
-
-
-
-    //endregion
 
 
 }//class Rule
