@@ -294,7 +294,7 @@ public class PhuJusAgent implements IAgent {
         if(this.stepsSinceGoal >= 15) {
             debugPrintln("");
         }
-        if (this.now == 30) {
+        if (this.now >= 3) {
                 debugPrintln("");
         }
         if(this.rules.values().size() > 25){
@@ -840,12 +840,13 @@ public class PhuJusAgent implements IAgent {
      *
      */
     public void updateTFRuleConfidences() {
+        if (prevBestScore <= 0.0) return; //no prev match to compare to
+
         //Update confidences of all matching rules
         for(TFRule rule: this.tfRules) {
             double score = rule.lhsMatchScore(this.prevAction, this.getPrevInternal(), this.prevExternal);
 
             if(score > 0.0) {
-
                 //For base-event rules, confidence is not adjusted unless it's a perfect match
                 if ( (rule.getOperator() == TFRule.RuleOperator.ALL)
                         && (rule.lhsExtMatchScore(this.prevExternal) < TFRule.MAX_MATCH) ) {
