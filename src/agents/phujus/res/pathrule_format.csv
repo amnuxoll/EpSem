@@ -1,0 +1,10 @@
+# TFRule:
+# 0,10,a,00,1.0
+# 0,00,a,01,1.0
+#
+# PathRule:
+# The & notation represents the ID of a rule.
+0,10,a,00,1.0
+0,00,a,01,1.0
+&1,&2,01,1.0
+&3,&1,01,1.0

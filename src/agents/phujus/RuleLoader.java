@@ -4,7 +4,6 @@ import framework.SensorData;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.nio.file.Path;
 import java.util.*;
 
 /**
@@ -33,9 +32,10 @@ public class RuleLoader {
      * @param path the path to the csv file
      * @return vector containing all rules in the file
      */
-    public void loadRules(String path, Collection<TFRule> t) {
-        File ruleFile = new File(path);
+    public void loadRules(String path) {
 
+        // Checking if the file exists...
+        File ruleFile = new File(path);
         if (!ruleFile.exists()) {
             System.err.println("The file at " + path + " could not be found in RuleLoader!");
             return;
@@ -50,11 +50,109 @@ public class RuleLoader {
         }
         sc.useDelimiter(",");
 
+        // Now begin reading each line in the file.
+        //  - Lines which are blank or start with # (comment) are ignored.
+        //  - PathRules start with an & to indicate that they are
+        //    referencing an existing rule.
+        //  - Rules created from each line are added to the PhuJusAgent via the
+        //    addRule method.
         while (sc.hasNextLine()) {
-            System.out.println("");
-            TFRule newbie = createTFRuleFromLine(sc.nextLine());
-            if (newbie != null)  t.add(newbie);
+            String readLine = sc.nextLine();
+
+            // Ignore blank lines or comments
+            if (readLine.length() == 0 || readLine.startsWith("#")) {
+                continue;
+            }
+
+            TFRule tfNewbie = null;
+            PathRule pathNewbie = null;
+            // PathRules start with a ~/= to indicate that they are pathrules
+            if (readLine.startsWith("&")) {
+                pathNewbie = createPathRuleFromLine(readLine);
+            }
+            else {
+                tfNewbie = createTFRuleFromLine(readLine);
+                System.out.println("Loading rule " + readLine);
+            }
+            if (tfNewbie != null)   agent.addRule(tfNewbie);
+            if (pathNewbie != null) agent.addRule(pathNewbie);
         }
+    }
+
+    /**
+     * createPathRuleFromLine
+     *
+     * This method generates a PathRule object from a given String token. The token should
+     * be in the format:
+     *<p>
+     * &X,&Y,??,?.?
+     * <p>
+     * It's important to note that PathRules are essentially: rule1 + rule2 -> sensors.
+     * <p>
+     * The & represents the ID of a rule. The integers X and Y represent the ID number of the rule being referenced.
+     * The ?? represents a set of external sensors that the rule predicts will be true given the LHS rule conditions
+     * are confirmed. The final value, ?.?, represents confidence.
+     * <p>
+     * e.g &3,&1,01,1.0
+     * <p>
+     * Represents a PathRule which predicts that if Rule 3 and Rule 1 are activated, the outcome will
+     * be external sensors of 01 with a confidence of 1.0.
+     * @param line The string representing the PathRule in the form &X,&Y,??,?.?
+     * @return a new PathRule generated from the line
+     */
+    public PathRule createPathRuleFromLine(String line) {
+
+        line = removeTailComment(line);
+
+        line = line.trim();
+
+        try (Scanner rowScanner = new Scanner(line)) {
+            rowScanner.useDelimiter(",");
+
+            System.out.println("PATHRULE:");
+
+            // PathRules are in the format: rule1 + rule2 -> action
+            // [~X],~Y,??,?.?
+            String next = rowScanner.next().trim();
+            Rule rule1 = getRuleFromLHS(next);
+
+            // ~X,[~Y],??,?.?
+            next = rowScanner.next().trim();
+            Rule rule2 = getRuleFromLHS(next);
+
+            // ~X,~Y,[??],?.?
+            next = rowScanner.next().trim();
+            SensorData exSensor = getSDFromString(next);
+
+            // ~X,~Y,??,[?.?]
+            // TODO Should we add confidence as an init value for PathRules?
+            double conf = rowScanner.nextDouble();
+
+            return new PathRule(agent, rule1, rule2, exSensor);
+        }
+    }//createPathRuleFromLine
+
+    /**
+     * getRuleFromLHS
+     *
+     * Should only be called by createPathRuleFromLine. Returns the rule referenced by a given token
+     * in the format [~=]X.
+     * <p>
+     * e.g ~3 gives a TFRule with ID 3.
+     * <p>
+     * e.g =4 gives a PathRule with ID 4.
+     * @param next
+     * @return
+     */
+    private Rule getRuleFromLHS(String next) {
+        Rule rule;
+        String ruleToken = next.substring(1);
+        int ruleID = Integer.parseInt(ruleToken);
+
+        // The ~X ~Y values in the PathRule string indicate rule numbers. An = indicates a PathRule ID number,
+        // and a ~ indicates a normal rule ID number.
+        rule = agent.getRules().get(ruleID + ruleIdOffset);
+        return rule;
     }
 
     /**
@@ -70,15 +168,10 @@ public class RuleLoader {
      */
     public TFRule createTFRuleFromLine(String line) {
 
-        //remove any comment from this line
-        int commentPos = line.indexOf(",#");
-        if (commentPos != -1) {
-            line = line.substring(0, commentPos);
-        }
+        line = removeTailComment(line);
 
-        //skip blank lines
+        //skip blank lines or comments
         line = line.trim();
-        if (line.length() == 0) return null;
 
         try (Scanner rowScanner = new Scanner(line)) {
             rowScanner.useDelimiter(",");
@@ -92,6 +185,7 @@ public class RuleLoader {
             double conf = -1.0;
 
             String lhsIntData = rowScanner.next().trim();
+
             TFRule.RuleOperator operator = getRuleOperatorFromString(lhsIntData);
             try {
                 lhsInt = getLHSIntFromString(lhsIntData, operator);
@@ -106,6 +200,24 @@ public class RuleLoader {
 
             return new TFRule(this.agent, action.charAt(0), lhsInt, lhsExt, rhsExt, conf, operator);
         }
+    }
+
+    /**
+     * removeTailComment
+     *
+     * Removes a comment at the end of a line, such as
+     * <p>
+     * *,00,a,10,0.33,#0a->3
+     * @param line
+     * @return The given String without the tail comment.
+     */
+    private String removeTailComment(String line) {
+        //remove any comment from this line
+        int commentPos = line.indexOf(",#");
+        if (commentPos != -1) {
+            line = line.substring(0, commentPos);
+        }
+        return line;
     }
 
     /**
@@ -211,16 +323,4 @@ public class RuleLoader {
         }
         return data;
     }
-
-    /**
-     * Loads a set of rules from a file into a given collection of TFRules by overwriting any existing rules.
-     * @param path the path to a .csv file containing the rules
-     * @param c the collection
-     */
-    public void overwriteRulesInList(String path, Vector<TFRule> c) {
-        c.clear();
-        loadRules(path, c);
-    }
-
-
 }

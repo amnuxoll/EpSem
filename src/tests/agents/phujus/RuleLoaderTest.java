@@ -1,5 +1,6 @@
 package tests.agents.phujus;
 
+import agents.phujus.PathRule;
 import agents.phujus.PhuJusAgent;
 import agents.phujus.RuleLoader;
 import agents.phujus.TFRule;
@@ -70,16 +71,5 @@ public class RuleLoaderTest {
         Assertions.assertTrue(rule.isMatch(
                 new TFRule(agent, 'a', new String[]{"4", "10", "22"}, data_01, data_00, 0.9d)
         ));
-    }
-
-    @EpSemTest
-    public static void testLoadRulesInList() throws Exception {
-
-        initialize();
-        Vector<TFRule> test_list = new Vector<>();
-        loader.loadRules("./src/agents/phujus/res/test.csv",
-                test_list);
-
-        Assertions.assertTrue(test_list.size() == 24);
     }
 }

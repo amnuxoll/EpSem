@@ -492,7 +492,13 @@ public class TFRule extends Rule{
 
                 // Calculates the TF and DF values, and if the sensor values are the same
                 double tfValue = eCond.data.getTF();
-                double dfValue = agent.getExternalPercents().get(eCond.sName).getSecond();
+                double dfValue = 0;
+
+                // Sometimes, when loading rules from a file, this can be null. This check helps
+                // prevent that
+                if (agent.getExternalPercents().containsKey(eCond.sName)) {
+                    dfValue = agent.getExternalPercents().get(eCond.sName).getSecond();
+                }
                 Boolean sVal = (Boolean) lhsExt.getSensor(eCond.sName);
 
                 if (PhuJusAgent.TFIDF) {

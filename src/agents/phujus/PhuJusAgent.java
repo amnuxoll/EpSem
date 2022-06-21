@@ -311,6 +311,11 @@ public class PhuJusAgent implements IAgent {
                 for (int i = 0; i < tfRules.size(); i++) {
                     debugPrintln("" + tfRules.get(i));
                 }
+
+                debugPrintln("Path Rules:");
+                for (PathRule pr : this.pathRules) {
+                    debugPrintln("" + pr);
+                }
                 debugPrintln("NUM RULES: " + tfRules.size());
             }
         }
@@ -344,12 +349,7 @@ public class PhuJusAgent implements IAgent {
     private void addPredeterminedRules() {
 
         RuleLoader loader = new RuleLoader(this);
-        loader.loadRules("./src/agents/phujus/res/flatland.csv", this.tfRules);
-
-
-        for(TFRule rule: this.tfRules){
-            rules.put(rule.ruleId, rule);
-        }
+        loader.loadRules("./src/agents/phujus/res/pathrule_format.csv");
     }
 
     /**
@@ -1140,9 +1140,19 @@ public class PhuJusAgent implements IAgent {
         }
 
         rules.put(newRule.ruleId,newRule);
-        newRule.addActivation(this.now, 1.0);
 
-        this.tfRules.add((TFRule)newRule);
+        // I'm assuming we don't want to add activations to pre-set rules. Could totally be wrong
+        // about this
+        if (!GENERATERULES) {
+            newRule.addActivation(this.now, 1.0);
+        }
+
+        if (newRule instanceof TFRule) {
+            this.tfRules.add((TFRule) newRule);
+        }
+        else if (newRule instanceof PathRule) {
+            this.pathRules.add((PathRule) newRule);
+        }
 
         //DEBUG
         debugPrintln("added: " + newRule);
