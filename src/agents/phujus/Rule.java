@@ -49,6 +49,56 @@ public abstract class Rule {
 
     }//class Confidence
 
+    /**
+     * class RuleRelationship
+     *
+     * Used inside of the HashMap(Integer, RuleRelationship) variable called 'relationships'. Contains information
+     * about how often this relationship has been on, and often it has been off. Doesn't actually contain references
+     * to the rules since that's not really necessary.
+     */
+    protected class RuleRelationship {
+
+        private int numOn;
+        private int numOff;
+
+        // When we make a new RuleRelationship, it's because two rules have fired at the same time.
+        public RuleRelationship() {
+            this.numOn = 1;
+        }
+
+        public double getPercentage() {
+            if (numOff == 0) return 1.0d;
+            return (numOn + 0.0d) / numOff;
+        }
+
+        /**
+         * append
+         *
+         * Appends the information from another RuleRelationship to this one.
+         * @param other
+         */
+        public void append(RuleRelationship other) {
+            this.numOn += other.numOn;
+            this.numOff += other.numOff;
+        }
+
+        public void turnOn() {
+            this.numOn++;
+        }
+
+        public void turnOff() {
+            this.numOff++;
+        }
+
+        public int getNumOn() {
+            return numOn;
+        }
+
+        public int getNumOff() {
+            return numOff;
+        }
+    }
+
     //endregion
 
     //region Instance Variables
@@ -63,8 +113,12 @@ public abstract class Rule {
     protected final int ruleId;
 
     //the rule's historical accuracy is tracked with a Confidence object
-    //TODO:  rename this variable to confidence
     protected Confidence confidence = new Confidence();
+
+    // The rule's relationships to other rules (how often they fire together/not together) is tracked here.
+    // The Integer value represents the ID of the rule it's related to, and the RuleRelationship tracks the data
+    // about the relationship between this rule and the rules it's related to.
+    protected HashMap<Integer, RuleRelationship> relationships = new HashMap<>();
 
     // Each rule has an activation level that tracks the frequency and
     // recency with which it has helped the agent reach a goal.  The
@@ -138,6 +192,37 @@ public abstract class Rule {
         this.activationLevel = result;
         return this.activationLevel;
     }//calculateActivation
+
+    /**
+     * updateRelationships
+     *
+     * Updates the relationships HashMap inside of Rule. Adds an activation
+     *
+     * @param rules A HashSet containing the ruleIDs of all rules that have fired with this one. Should be
+     *              PhuJusAgent's currInternal.
+     */
+    public void updateRelationships(HashSet<Integer> rules) {
+
+        // Add a relationship for this rule if it doesn't exist already, or increment it if it does.
+        for (Integer ruleID : rules) {
+
+            if (ruleID == this.ruleId) continue;
+
+            if (this.relationships.containsKey(ruleID)) {
+                this.relationships.get(ruleID).turnOn();
+            } else {
+                this.relationships.put(ruleID, new RuleRelationship());
+            }
+        }
+
+        // For every one of the existing relationships, add +1 to the turnOff counter if it wasn't activated
+        // during this timestep.
+        for (Integer relationshipID : this.relationships.keySet()) {
+            if (!rules.contains(relationshipID)) {
+                relationships.get(relationshipID).turnOff();
+            }
+        }
+    }
 
     //endregion
 

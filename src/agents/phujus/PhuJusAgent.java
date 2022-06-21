@@ -148,7 +148,7 @@ public class PhuJusAgent implements IAgent {
 //endregion
 
     // DEBUG variable to toggle println statements (on/off = true/false)
-    public static final boolean DEBUGPRINTSWITCH = false;
+    public static final boolean DEBUGPRINTSWITCH = true;
 
     // FLAG variable to toggle updating of TFIDF values
     public static final boolean TFIDF = true;
@@ -260,6 +260,8 @@ public class PhuJusAgent implements IAgent {
                                                 this.currExternal);
         }
 
+        // Update the relationships between rules
+        updateRelationships();
 
         this.stepsSinceGoal++;
 
@@ -284,6 +286,9 @@ public class PhuJusAgent implements IAgent {
 
         //DEBUG: breakpoint here to debug
         if(this.stepsSinceGoal >= 15) {
+            debugPrintln("");
+        }
+        if (this.now >= 30) {
             debugPrintln("");
         }
         if (this.now >= 200) {
@@ -349,7 +354,16 @@ public class PhuJusAgent implements IAgent {
     private void addPredeterminedRules() {
 
         RuleLoader loader = new RuleLoader(this);
-        loader.loadRules("./src/agents/phujus/res/pathrule_format.csv");
+        loader.loadRules("./src/agents/phujus/res/rule_merge_testing.csv");
+    }
+
+    private void updateRelationships() {
+
+        if (this.currInternal.size() <= 1) return;
+
+        for (Integer i : this.currInternal) {
+            this.rules.get(i).updateRelationships(this.currInternal);
+        }
     }
 
     /**
@@ -1006,7 +1020,7 @@ public class PhuJusAgent implements IAgent {
     private void cullRules() {
 
         if (this.rules.size() >= MAXNUMRULES || this.currExternal.isGoal()) {
-            mergeRules();
+            //mergeRules();
         }
 //        while(this.rules.size() > MAXNUMRULES) {
 //
