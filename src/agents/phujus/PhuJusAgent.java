@@ -1006,8 +1006,7 @@ public class PhuJusAgent implements IAgent {
     private void cullRules() {
 
         if (this.rules.size() >= MAXNUMRULES || this.currExternal.isGoal()) {
-            //TODO:  Nuxoll took this out for now while he gets PathRules working
-            //mergeRules();
+            mergeRules();
         }
 //        while(this.rules.size() > MAXNUMRULES) {
 //
@@ -1262,7 +1261,20 @@ public class PhuJusAgent implements IAgent {
             }
         }
 
-        //TODO:  Any PathRules that use this must also be updated
+        //update PathRules that used this rule
+        Vector<PathRule> toChange = new Vector<>();
+        for(PathRule pr : this.pathRules) {
+            if (pr.uses(removeMe)) {
+                toChange.add(pr);
+            }
+        }
+        for(PathRule changeMe : toChange) {
+            if (replacement == null) {
+                this.pathRules.remove(changeMe);
+            } else {
+                changeMe.replace(removeMe, replacement);
+            }
+        }
 
         //TODO:  remove from all levels in this.prevInternal as well?
 

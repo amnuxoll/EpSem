@@ -13,16 +13,15 @@ import java.util.Vector;
  */
 public class PathRule extends Rule {
 
-    private final Rule lhs1;
-    private final Rule lhs2;
+    private final Rule[] lhs = new Rule[2];
     private final SensorData rhsExternal;
 
     /** ctor */
     public PathRule(PhuJusAgent initAgent, Rule initLHS1, Rule initLHS2, SensorData initRHS) {
         super(initAgent);
 
-        this.lhs1 = initLHS1;
-        this.lhs2 = initLHS2;
+        this.lhs[0] = initLHS1;
+        this.lhs[1] = initLHS2;
         this.rhsExternal = initRHS;
     }
 
@@ -37,15 +36,12 @@ public class PathRule extends Rule {
      */
     public Vector<TFRule> flatten() {
         Vector<TFRule> result = new Vector<>();
-        if (this.lhs1 instanceof TFRule) {
-            result.add((TFRule)this.lhs1);
-        } else {
-            result.addAll( ((PathRule)this.lhs1).flatten() );
-        }
-        if (this.lhs2 instanceof TFRule) {
-            result.add((TFRule)this.lhs2);
-        } else {
-            result.addAll( ((PathRule)this.lhs2).flatten() );
+        for(Rule r : this.lhs) {
+            if (r instanceof TFRule) {
+                result.add((TFRule) r);
+            } else {
+                result.addAll(((PathRule) r).flatten());
+            }
         }
 
         return result;
@@ -68,9 +64,9 @@ public class PathRule extends Rule {
         result.append("#");
         result.append(this.ruleId);
         result.append(": [");
-        toStringRule(result, lhs1);
+        toStringRule(result, lhs[0]);
         result.append("->");
-        toStringRule(result, lhs2);
+        toStringRule(result, lhs[1]);
         result.append("]");
         result.append(" -> ");
         result.append(TreeNode.extToString(this.rhsExternal));
@@ -84,7 +80,7 @@ public class PathRule extends Rule {
     public String toStringShort() {
         StringBuilder result = new StringBuilder();
         result.append("(#");
-        result.append(lhs1.ruleId);
+        result.append(lhs[0].ruleId);
         result.append(",#");
         result.append(")");
         result.append("->");
@@ -102,8 +98,8 @@ public class PathRule extends Rule {
         if (! (obj instanceof PathRule)) return false;
         PathRule other = (PathRule) obj;
 
-        if (other.lhs1.getId() != this.lhs1.getId()) return false;
-        if (other.lhs2.getId() != this.lhs2.getId()) return false;
+        if (other.lhs[0].getId() != this.lhs[0].getId()) return false;
+        if (other.lhs[1].getId() != this.lhs[1].getId()) return false;
         return (other.rhsExternal.equals(this.rhsExternal));
     }
 
@@ -111,7 +107,7 @@ public class PathRule extends Rule {
      * @return 'true' if this PathRule matches given LHS rules
      */
     public boolean lhsMatch(Rule compLHS1, Rule compLHS2) {
-        return (this.lhs1.ruleId == compLHS1.ruleId) && (this.lhs2.ruleId == compLHS2.ruleId);
+        return (this.lhs[0].ruleId == compLHS1.ruleId) && (this.lhs[1].ruleId == compLHS2.ruleId);
     }
 
     /**
@@ -121,5 +117,32 @@ public class PathRule extends Rule {
         return (this.rhsExternal.equals(compRHS));
     }
 
+
+    /** @return true if a given Rule is used anywhere on the LHS of this PathRule */
+    public boolean uses(Rule removeMe) {
+        for(Rule r : this.lhs) {
+            if (r instanceof TFRule) {
+                if (removeMe.ruleId == r.ruleId) return true;
+            } else if (r instanceof PathRule) {
+                if (((PathRule) r).uses(removeMe)) {  //recursion!
+                    return true;
+                }
+            }
+        }
+        return false;
+    }//uses
+
+    /** replaces one TFRule with another in this PathRule */
+    public void replace(TFRule removeMe, TFRule replacement) {
+        for(int i = 0; i < 2; ++i) {
+            if (this.lhs[i] instanceof TFRule) {
+                if (removeMe.ruleId == lhs[i].ruleId) {
+                    lhs[i] = replacement;
+                }
+            } else if (lhs[i] instanceof PathRule) {
+                ((PathRule) lhs[i]).replace(removeMe, replacement);  //recursion!
+            }
+        }
+    }//replace
 
 }//class PathRule
