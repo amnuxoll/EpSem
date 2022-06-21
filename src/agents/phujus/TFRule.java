@@ -539,7 +539,10 @@ public class TFRule extends Rule{
 
                 // Calculates the TF and DF values, and if the sensor values are the same
                 double tf = cond.data.getTF();
-                double df = agent.getInternalPercents().get(cond.sName).getSecond();
+                double df = 0.0;
+                if (agent.getInternalPercents().containsKey(cond.sName)) {
+                    df = agent.getInternalPercents().get(cond.sName).getSecond();
+                }
                 boolean wasOn = lhsInt.contains(Integer.parseInt(cond.sName));
 
                 //To give actual matches an edge over wildcard matches we make

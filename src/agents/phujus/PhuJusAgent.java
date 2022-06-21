@@ -148,7 +148,7 @@ public class PhuJusAgent implements IAgent {
 //endregion
 
     // DEBUG variable to toggle println statements (on/off = true/false)
-    public static final boolean DEBUGPRINTSWITCH = true;
+    public static final boolean DEBUGPRINTSWITCH = false;
 
     // FLAG variable to toggle updating of TFIDF values
     public static final boolean TFIDF = true;
@@ -286,7 +286,7 @@ public class PhuJusAgent implements IAgent {
         if(this.stepsSinceGoal >= 15) {
             debugPrintln("");
         }
-        if (this.now == 20) {
+        if (this.now >= 200) {
             debugPrintln("");
         }
         if(this.rules.values().size() > 25){
@@ -376,6 +376,10 @@ public class PhuJusAgent implements IAgent {
     /**
      * update the value of this.currBestMatch/Score
      *
+     * TODO:  Instead of just the rule with the highest match score, should
+     *        this be the highest match score rule that aligns with the
+     *        bloc-voting result {@see TreeNode#predictExternalMark3}
+     *
      * @param action  the action the agent has chosen for the current timestep
      */
     private void updateCurrBestMatch(char action) {
@@ -401,7 +405,7 @@ public class PhuJusAgent implements IAgent {
      *
      * Side Effect:  increases the confidence of the correct match if found
      * (or creates it if it doesn't exist).  This functionality should
-     * probably be in seaprate methods but its tied together atm and not a big deal.
+     * probably be in separate methods but its tied together atm and not a big deal.
      *
      */
     private Vector<PathRule> getLHSPRMatchesWithRHSMismatch() {
@@ -420,7 +424,7 @@ public class PhuJusAgent implements IAgent {
         //If no correct PR was found, create it
         if (correctPR == null) {
             correctPR = new PathRule(this, this.prevPrevBestMatch, this.prevBestMatch, this.currExternal);
-            this.pathRules.add(correctPR);
+            addRule(correctPR);
             debugPrintln("added new PathRule: " + correctPR);
         } else {
             correctPR.increaseConfidence(1.0, 1.0);
@@ -461,7 +465,7 @@ public class PhuJusAgent implements IAgent {
         //If not found, add it
         if (badPR == null) {
             badPR = new PathRule(this, this.prevPrevBestMatch, this.currBestMatch, this.currBestMatch.getRHSExternal());
-            this.pathRules.add(badPR);
+            addRule(badPR);
             debugPrintln("added new PathRule: " + badPR);
         }
         return badPR;
@@ -917,10 +921,32 @@ public class PhuJusAgent implements IAgent {
         }
         Vector<PathRule> matches = getPRMatches(path, candidates);
 
-        //No matches?  no opinion
-        if (matches.size() == 0) return 0.0;
+        //No matches?  default opinion:  this path is good
+        if (matches.size() == 0) return 1.0;
 
-        //TODO:  break tie with external sensors
+        //Only one match?  No more work need be done
+        if (matches.size() == 1) return matches.firstElement().getConfidence();
+
+        //For each match that is longer than the path compare it to the
+        // present and past sensor values in order to winnow our match pool
+        // TODO:  right now this only compares to currInternal because
+        //        atm there are no PathRule with 3+ steps
+        Vector<PathRule> keepers = new Vector<>();
+        for(PathRule match : matches) {
+            Vector<TFRule> flatMatch = match.flatten();
+            int index = flatMatch.size() - path.size() - 1;
+            if (index >= 0) {
+                TFRule step = flatMatch.get(index);
+                if (this.currInternal.contains(step.ruleId)) {
+                    keepers.add(match);
+                }
+            }
+        }
+
+
+        //TODO:  break tie with external sensors??  Really not sure we should
+        //       do this or not since partially-matching ext sensors maybe okay
+        //       especially if some ext sensors are random.
 
 
         //TODO: If still a tie, break with longest match
@@ -930,8 +956,8 @@ public class PhuJusAgent implements IAgent {
         //Return the average confidence
         //TODO:  Is this wise?  Perhaps the max is better?
         double sum = 0.0;
-        for(PathRule match : matches) { sum += match.getConfidence(); }
-        return sum /= matches.size();
+        for(PathRule match : keepers) { sum += match.getConfidence(); }
+        return sum / keepers.size();
 
     }//metaScorePath
 
