@@ -557,8 +557,7 @@ public class TreeNode {
                 double foundScore = path.lastElement().confidence;
 
                 //Adjust confidence based upon the PathRules eval
-                //TODO:  removed for now until we get PathRules back online
-                //foundScore *= agent.metaScorePath(path);
+                foundScore *= agent.metaScorePath(path);
 
                 if(foundScore > bestScore) {
                     bestPath = path;

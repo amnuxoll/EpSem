@@ -1,6 +1,7 @@
 package agents.phujus;
 
 import framework.SensorData;
+import java.util.Vector;
 
 /**
  * class PathRule
@@ -24,6 +25,31 @@ public class PathRule extends Rule {
         this.lhs2 = initLHS2;
         this.rhsExternal = initRHS;
     }
+
+    /**
+     * flatten
+     *
+     * While a PathRule's lhs1 and lhs2 values can also be a PathRule,
+     * ultimately, any PathRule's LHS can be thought of as a sequence of
+     * TFRules.  This method returns that sequence
+     *
+     *  Note:  This method is recursive.
+     */
+    public Vector<TFRule> flatten() {
+        Vector<TFRule> result = new Vector<>();
+        if (this.lhs1 instanceof TFRule) {
+            result.add((TFRule)this.lhs1);
+        } else {
+            result.addAll( ((PathRule)this.lhs1).flatten() );
+        }
+        if (this.lhs2 instanceof TFRule) {
+            result.add((TFRule)this.lhs2);
+        } else {
+            result.addAll( ((PathRule)this.lhs2).flatten() );
+        }
+
+        return result;
+    }//flatten
 
     /** helper method for {@link #toString()} to format the LHS of a given Rule as a string */
     protected void toStringRule(StringBuilder result, Rule r) {

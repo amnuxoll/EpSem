@@ -145,6 +145,9 @@ public abstract class Rule {
 
     public static int getNextRuleId() { return nextRuleId; }
 
+    //use with caution!!
+    public static void resetRuleIds() { Rule.nextRuleId = 1; }
+
     public int getId() { return this.ruleId; }
 
     public double getConfidence() { return this.confidence.getConfidence(); }
