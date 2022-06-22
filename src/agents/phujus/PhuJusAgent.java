@@ -272,7 +272,7 @@ public class PhuJusAgent implements IAgent {
 //endregion
 
     // DEBUG variable to toggle println statements (on/off = true/false)
-    public static final boolean DEBUGPRINTSWITCH = true;
+    public static final boolean DEBUGPRINTSWITCH = false;
 
     // FLAG variable to toggle updating of TFIDF values
     public static final boolean TFIDF = true;
@@ -412,7 +412,7 @@ public class PhuJusAgent implements IAgent {
         if(this.stepsSinceGoal >= 50) {
             debugPrintln("");
         }
-        if (this.now >= 30) {
+        if (this.now >= 15) {
             debugPrintln("");
         }
         if (this.now >= 200) {
@@ -1224,11 +1224,29 @@ public class PhuJusAgent implements IAgent {
      *
      */
     public void updateTFRuleConfidences() {
-        if (this.prevBestScore <= 0.0) return; //no prev match to compare to
+        //find the highest match score because the ration of a rule's match score
+        //to the best score affects the amount of increase/decrease in confidence
+        //NOTE:  Can't use this.bestPrevMatch for this because it rejects any rule
+        //       with mismatching RHS.
+        //TODO:  If we were clever we'd put all these scores in an array
+        //       so we don't have to calc them twice (see next loop)
+        double bestScore = 0.0;
+        double[] scores = new double[this.tfRules.size()];
+        int scIndex = 0;
+        for (TFRule r : this.tfRules) {
+            double score = r.lhsMatchScore(this.prevAction, this.getPrevInternal(), this.prevExternal);
+            if (score > bestScore) {
+                bestScore = score;
+            }
+            scores[scIndex] = score;
+            scIndex++;
+        }
 
         //Update confidences of all matching rules
+        scIndex = 0;
         for(TFRule rule: this.tfRules) {
-            double score = rule.lhsMatchScore(this.prevAction, this.getPrevInternal(), this.prevExternal);
+            double score = scores[scIndex];
+            scIndex++;
 
             if(score > 0.0) {
                 //For base-event rules, confidence is not adjusted unless it's a perfect match
@@ -1238,9 +1256,9 @@ public class PhuJusAgent implements IAgent {
                 }
 
                 if (rule.isRHSMatch()) {
-                    rule.increaseConfidence(score, this.prevBestScore);
+                    rule.increaseConfidence(score, bestScore);
                 } else {
-                    rule.decreaseConfidence(score, this.prevBestScore);
+                    rule.decreaseConfidence(score, bestScore);
                 }
             }
         }
@@ -1259,7 +1277,6 @@ public class PhuJusAgent implements IAgent {
 
         if (this.rules.size() >= MAXNUMRULES || this.currExternal.isGoal()) {
             mergeRules();
-            System.out.println("Here");
         }
     }
 
@@ -1332,7 +1349,7 @@ public class PhuJusAgent implements IAgent {
      * @param rule2 the rule being replaced
      */
     private void merge(TFRule rule1, TFRule rule2) {
-        System.out.println("MERGED RULE #" + rule2.getId() + " -> #" + rule1.getId());
+        debugPrintln("MERGED RULE #" + rule2.getId() + " -> #" + rule1.getId());
 
         // Firstly, we need to modify the merge queue's rule values.
         // We start by going through all the sets of rules in the queue
