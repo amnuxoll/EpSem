@@ -52,15 +52,17 @@ public class PathRule extends Rule {
         if (r instanceof TFRule) {
             TFRule tf = (TFRule) r;
             tf.toStringShortLHS(result);
+        } else if (r instanceof PathRule){
+            ((PathRule)r).toStringLHS(result);
         } else {
-            result.append(r.toString());
+            result.append(r.toString()); //should never happen
         }
 
     }//toStringRule
 
-    @Override
-    public String toString() {
-        StringBuilder result = new StringBuilder();
+    /** helper for toString that just prints the LHS.  This
+     *   code is split out so it can be also be used by {@link #toStringRule} */
+    private void toStringLHS(StringBuilder result) {
         result.append("#");
         result.append(this.ruleId);
         result.append(": [");
@@ -68,6 +70,12 @@ public class PathRule extends Rule {
         result.append("->");
         toStringRule(result, lhs[1]);
         result.append("]");
+    }//toStringConf
+
+    @Override
+    public String toString() {
+        StringBuilder result = new StringBuilder();
+        toStringLHS(result);
         result.append(" -> ");
         result.append(TreeNode.extToString(this.rhsExternal));
         result.append(String.format(" ^  conf=%.5f", getConfidence()).replaceAll("0+$", "0"));
@@ -144,5 +152,19 @@ public class PathRule extends Rule {
             }
         }
     }//replace
+
+    /** @return number of TFRules this PathRule uses */
+    public int size() {
+        int result = 0;
+        for(Rule r : this.lhs) {
+            if (r instanceof TFRule) {
+                result++;
+            } else if (r instanceof PathRule) {
+                result += ((PathRule) r).size();  //recursion!
+            }
+        }
+
+        return result;
+    }//size
 
 }//class PathRule

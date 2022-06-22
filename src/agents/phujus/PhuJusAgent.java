@@ -35,7 +35,6 @@ public class PhuJusAgent implements IAgent {
     public static final int MAX_TIME_DEPTH = 7;  //size of short term memory
 
 
-
 //region InnerClasses
 
     /**
@@ -148,7 +147,7 @@ public class PhuJusAgent implements IAgent {
 //endregion
 
     // DEBUG variable to toggle println statements (on/off = true/false)
-    public static final boolean DEBUGPRINTSWITCH = false;
+    public static final boolean DEBUGPRINTSWITCH = true;
 
     // FLAG variable to toggle updating of TFIDF values
     public static final boolean TFIDF = true;
@@ -218,10 +217,13 @@ public class PhuJusAgent implements IAgent {
     //This is the TFRule that best matches the agent's current int/ext sensing
     //(i.e., the agent is most confident is predicting the future ext sensing)
     private TFRule currBestMatch = null;
-    private double currBestScore = 0.0;  //match score for the above
 
     //This is the TFRule that was placed in prevBestMatch two timesteps ago
     private TFRule prevPrevBestMatch = null;
+
+    //This is the PathRule that best matches the agent's experience
+    //that concluded with the most recent external sensors.
+    private PathRule prevBestPRMatch = null;
 
     /**
      * This method is called each time a new FSM is created and a new agent is
@@ -250,7 +252,6 @@ public class PhuJusAgent implements IAgent {
         this.currExternal = sensorData;
 
         //update the PathRules now that the agent knows the ext. sensor outcome
-        updatePrevBestMatch();
         updatePathRules();
 
         if (this.rules.size() > 0) {  //can't update if no rules yet
@@ -283,7 +284,7 @@ public class PhuJusAgent implements IAgent {
         }
 
         //DEBUG: breakpoint here to debug
-        if(this.stepsSinceGoal >= 15) {
+        if(this.stepsSinceGoal >= 50) {
             debugPrintln("");
         }
         if (this.now >= 200) {
@@ -352,6 +353,8 @@ public class PhuJusAgent implements IAgent {
         loader.loadRules("./src/agents/phujus/res/pathrule_format.csv");
     }
 
+//region PathRule Methods
+
     /**
      * update the value of this.prevBestMatch/Score
      *
@@ -383,25 +386,138 @@ public class PhuJusAgent implements IAgent {
      * @param action  the action the agent has chosen for the current timestep
      */
     private void updateCurrBestMatch(char action) {
-        this.currBestScore = 0.0;
+        double currBestScore = 0.0;
         this.currBestMatch = null;
         for (TFRule r : this.tfRules) {
             double score = r.lhsMatchScore(action, this.currInternal, this.currExternal);
-            if (score > this.currBestScore) {
-                this.currBestScore = score;
+            if (score > currBestScore) {
+                currBestScore = score;
                 this.currBestMatch = r;
             }
         }
     }//updatePrevBestMatch
 
+    /**
+     * getMatchingPathRules
+     *
+     * @return a list of all rules that match the agent's current most recent experience
+     */
+    private Vector<PathRule> getMatchingPathRules() {
+        Vector<PathRule> matches = new Vector<>();
+        for(PathRule pr : this.pathRules) {
+            if (! pr.rhsMatch(this.currExternal)) continue; //RHS mismatch
+
+            //check against the prev best matches
+            Vector<TFRule> flatPR = pr.flatten();
+            int tfIndex = flatPR.size() - 1;
+            if (flatPR.get(tfIndex).ruleId != this.prevBestMatch.ruleId) continue; //LHS2 mismatch
+            tfIndex--;
+
+            //TODO: DEBUG REMOVE
+            if (this.prevPrevBestMatch == null) {
+                debugPrintln("oops");
+            }
+
+
+            if (flatPR.get(tfIndex).ruleId != this.prevPrevBestMatch.ruleId) continue; //LHS1 mismatch
+            tfIndex--;
+
+            //check against this.prevInternal
+            int prevIndex = PhuJusAgent.MAX_TIME_DEPTH - 3;
+            boolean match = true;
+            while( (tfIndex >= 0) && (prevIndex >= 0) ) {
+                int prId = flatPR.get(tfIndex).ruleId;
+                if (! this.prevInternal.get(prevIndex).contains(prId)) {
+                    match = false;
+                    break;
+                }
+                tfIndex--;
+                prevIndex--;
+            }//while
+
+            if (match) {
+                matches.add(pr);  //Hooray!
+            }
+        }//for
+
+        return matches;
+    }//getMatchingPathRules
+
+
+    /**
+     * getBestMatchingPathRule
+     *
+     * @return the PathRule that best matches the agent's most recent experience
+     */
+    private PathRule getBestMatchingPathRule() {
+        Vector<PathRule> matches = getMatchingPathRules();
+
+        //Easy cases: 0 or 1 matches
+        if (matches.size() == 0) {
+            return null;
+        } else if (matches.size() == 1) {
+            return matches.firstElement();
+        }
+
+        //Break tie with longest match (Is longest best??  Using shorter
+        // rules would yield a more matchable result.)
+        PathRule best = matches.firstElement();
+        int bestSize = best.size();
+        for(PathRule pr : matches) {
+            int size = pr.size();
+            if (size > bestSize) {
+                bestSize = size;
+                best = pr;
+            }
+        }
+        return best;
+    }//getBestMatchingPathRule
+
+
+    /**
+     * updateMultiLevelPathRules
+     *
+     * finds the PathRules that matches the agent's most recent experiences
+     * and increases their confidence.  The best matching of these rules is
+     * placed in this.prevBestPRMatch
+     *
+     * Note:  this.prevBestMatch must have been updated this time step
+     */
+    private void updateMultiLevelPathRules() {
+
+        //Can't create ML rule without this being set
+        if (prevBestPRMatch != null) {
+
+            //See if an existing multi-level pathrule matches the agent's current circumstances
+            PathRule match = null;
+            for (PathRule pr : this.pathRules) {
+                if ((pr.rhsMatch(this.currExternal)
+                        && pr.lhsMatch(this.prevBestPRMatch, this.prevBestMatch))) {
+                    match = pr;
+                    break;
+                }
+            }
+
+            //If none exists, create one
+            if (match == null) {
+                match = new PathRule(this, this.prevBestPRMatch, this.prevBestMatch, this.currExternal);
+                addRule(match);
+            } else {
+                match.increaseConfidence(1.0, 1.0);
+            }
+        }
+
+        //Update the best PathRule match for next time
+        this.prevBestPRMatch = getBestMatchingPathRule();
+    }//updateMultiLevelPathRules
 
     /**
      * getLHSPRMatchesWithRHSMismatch
      *
      * is a helper method for {@link #updatePathRules()}.  It finds a list
-     * of all the PathRules that match the current prev and prevprev BestMatch.
+     * of all the two-step PathRules that match the current prev and prevprev BestMatch.
      *
-     * Caveat:  prevBestMatch and prevPrevBestMatch can't be null
+     * Caveat:  prevBestMatch and prevPrevBestMatch must be up to date and non-null
      *
      * Side Effect:  increases the confidence of the correct match if found
      * (or creates it if it doesn't exist).  This functionality should
@@ -425,7 +541,6 @@ public class PhuJusAgent implements IAgent {
         if (correctPR == null) {
             correctPR = new PathRule(this, this.prevPrevBestMatch, this.prevBestMatch, this.currExternal);
             addRule(correctPR);
-            debugPrintln("added new PathRule: " + correctPR);
         } else {
             correctPR.increaseConfidence(1.0, 1.0);
         }
@@ -466,7 +581,6 @@ public class PhuJusAgent implements IAgent {
         if (badPR == null) {
             badPR = new PathRule(this, this.prevPrevBestMatch, this.currBestMatch, this.currBestMatch.getRHSExternal());
             addRule(badPR);
-            debugPrintln("added new PathRule: " + badPR);
         }
         return badPR;
     }//getPRForBadCurrBestMatch
@@ -483,9 +597,14 @@ public class PhuJusAgent implements IAgent {
      * Important:  this.prevBestMatch must be set
      */
     private void updatePathRules() {
-        //Must have prev and prev-prev rules to build with.
-        if (this.prevPrevBestMatch == null) return;
-        if (this.prevBestMatch == null) return;
+        //Must have prev-prev and prev TFRules set to do anything
+        updatePrevBestMatch();
+        if (this.prevBestMatch == null) {
+            this.prevPrevBestMatch = null;
+            this.prevBestPRMatch = null;
+            return;
+        }
+        if (prevPrevBestMatch == null) return;
 
         //Find all PRs with matching LHS but wrong RHS
         // (while rewarding the correct one with correct RHS)
@@ -497,11 +616,16 @@ public class PhuJusAgent implements IAgent {
         if (badPR != null) incorrectLHSMatches.add(badPR);
 
         //decrease confidences of all mismatching PRs
-        for(PathRule pr : incorrectLHSMatches) {
+        for (PathRule pr : incorrectLHSMatches) {
             pr.decreaseConfidence(1.0, 1.0);  //max decrease
         }
 
+        //also update multi-level PathRules in the same manner
+        //TODO:  Nuxoll commented out for now as not quite working and needs to be rewritten anyway
+        //updateMultiLevelPathRules();
     }//updatePathRules
+
+//endregion
 
     /**
      * genNextInternal
@@ -972,7 +1096,7 @@ public class PhuJusAgent implements IAgent {
      *
      */
     public void updateTFRuleConfidences() {
-        if (prevBestScore <= 0.0) return; //no prev match to compare to
+        if (this.prevBestScore <= 0.0) return; //no prev match to compare to
 
         //Update confidences of all matching rules
         for(TFRule rule: this.tfRules) {
