@@ -69,8 +69,10 @@ public class PhuJusAgent implements IAgent {
      */
     public static class MergeQueue {
 
+        //Each array is length==2 with the number of two rules that are candidates for merging
         private Vector<Integer[]> queue;
 
+        //Pairs of rules that have demonstated they are distinct and should not be merged
         private Vector<Integer[]> blacklist;
 
         public MergeQueue() {
@@ -113,7 +115,7 @@ public class PhuJusAgent implements IAgent {
          * <p>
          * If the set of rules provided is greater than 2, then it's split up into pairs, where the first rule
          * in the pair is the one with the lowest number of internal sensors
-         * @param set a set of rule IDs
+         * @param set a set of 2+ rule IDs
          */
         public void add(HashSet<Integer> set) {
 
@@ -121,8 +123,7 @@ public class PhuJusAgent implements IAgent {
                 return;
             }
 
-            // If your Java language isn't at least 11, this will break
-            Integer[] convertedSet = set.toArray(Integer[]::new);
+            Integer[] convertedSet = set.toArray(new Integer[0]);
 
             if (this.queue.contains(convertedSet) || this.blacklist.contains(convertedSet)) {
                 return;
@@ -179,7 +180,7 @@ public class PhuJusAgent implements IAgent {
         public void blacklist(Integer[] block) {
             this.blacklist.add(block);
         }
-    }
+    }//class MergeQueue
 
     /**
      * class RuleMatrix describes an adjacency matrix for storing pairs of internal sensors which fire simultaneously.
@@ -1297,6 +1298,7 @@ public class PhuJusAgent implements IAgent {
 
             // Wildcard rules should never be merged into
             if (mergeThese[0].getOperator() == TFRule.RuleOperator.ALL) continue;
+            if (mergeThese[1].getOperator() == TFRule.RuleOperator.ALL) continue;
 
             // We merge all of the rules into the rule with the smallest number of internal sensors, since it's
             // the simplest rule. This is an extra sanity check that could probably be removed.
