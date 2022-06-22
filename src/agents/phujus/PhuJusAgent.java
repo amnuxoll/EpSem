@@ -59,6 +59,130 @@ public class PhuJusAgent implements IAgent {
     }//class Triple
 
     /**
+     * class MergeQueue
+     *
+     * Rules that fire simultaneously are added to the MergeQueue. Rules that fire simultaneously tend to be very
+     * similar/identical rules, so when mergeRules() is called, every set of rules in the queue is checked to see
+     * if they should be merged.
+     * <p>
+     * If two rules should NOT be merged, then they are added to a blacklist so that they don't get added again.
+     * Duplicate sets of rules cannot be added to the queue.
+     */
+    public static class MergeQueue {
+
+        private Vector<Integer[]> queue;
+
+        private Vector<Integer[]> blacklist;
+
+        public MergeQueue() {
+            this.queue = new Vector<>();
+            this.blacklist = new Vector<>();
+        }
+
+        public boolean hasNext() {
+            return this.queue.size() > 0;
+        }
+
+        /**
+         * getMinimumIdx
+         *
+         * Helper method for getting the index of the minimum value in the array.
+         * @param arr
+         * @return Index of min value
+         */
+        private int getMinimumIdx(Integer[] arr) {
+
+            if (arr.length <= 0) {
+                return 0;
+            }
+
+            int min = arr[0];
+            int minIdx = 0;
+
+            for (int i = 0; i < arr.length; i++) {
+                if (arr[i] < min) {
+                    min = arr[i];
+                    minIdx = i;
+                }
+            }
+
+            return minIdx;
+        }
+
+        /**
+         * Adds a set of ruleIDs to the queue.
+         * <p>
+         * If the set of rules provided is greater than 2, then it's split up into pairs, where the first rule
+         * in the pair is the one with the lowest number of internal sensors
+         * @param set a set of rule IDs
+         */
+        public void add(HashSet<Integer> set) {
+
+            if (set.size() <= 1) {
+                return;
+            }
+
+            // If your Java language isn't at least 11, this will break
+            Integer[] convertedSet = set.toArray(Integer[]::new);
+
+            if (this.queue.contains(convertedSet) || this.blacklist.contains(convertedSet)) {
+                return;
+            }
+
+            // if the set contains > 2 rule IDs, split it up into pairs.
+            // e.g. [3,5,7,8] -> [3,5] [3,7] [3,8]
+            // This makes rule merging simpler.
+            if (convertedSet.length > 2) {
+
+                // This part of the code dissects an incoming array into pairs.
+                // Right now, it uses the first number (which is the smallest one) as the pivot.
+                // TODO set first element in pairs to rule with lowest # of internal sensors? Not sure if that's
+                //      necessary since the first element most likely is
+                for (int i = 1; i < convertedSet.length; i++) {
+
+                    if (convertedSet[i] == convertedSet[0]) continue;
+
+                    Integer[] newPair = new Integer[] {convertedSet[0], convertedSet[i]};
+
+                    if (this.queue.contains(newPair)) {
+                        continue;
+                    }
+
+                    this.queue.add(newPair);
+                }
+            } else {
+                this.queue.add(convertedSet);
+            }
+        }
+
+        /**
+         * Removes the entry from the start of the queue and returns it (FIFO)
+         * @return
+         */
+        public Integer[] pop() {
+            if (this.queue.size() == 0) return null;
+            return this.queue.remove(0);
+        }
+
+        /**
+         * Reveals the entry at the beginning of the queue without removing it.
+         * @return
+         */
+        public Integer[] peek() {
+            if (this.queue.size() == 0) return null;
+            return this.queue.get(0);
+        }
+
+        /**
+         * Adds a set of ruleIDs to be blocked from being added to the queue.
+         * @param block
+         */
+        public void blacklist(Integer[] block) {
+            this.blacklist.add(block);
+        }
+    }
+
+    /**
      * class RuleMatrix describes an adjacency matrix for storing pairs of internal sensors which fire simultaneously.
      * TODO Look at other data structures for this (the current implementation could be very expensive)
      */
@@ -162,7 +286,7 @@ public class PhuJusAgent implements IAgent {
     private Vector<PathRule> pathRules = new Vector<>();
     private Vector<TFRule> tfRules = new Vector<>();
     private Hashtable<Integer, Rule> rules = new Hashtable<>();
-    private RuleMatrix matrix = new RuleMatrix(10000); // TODO Make this value based on num of TF Rules
+    private MergeQueue mergeQueue = new MergeQueue();
 
     private int now = 0; //current timestep 't'
 
@@ -260,9 +384,6 @@ public class PhuJusAgent implements IAgent {
                                                 this.currExternal);
         }
 
-        // Update the relationships between rules
-        updateRelationships();
-
         this.stepsSinceGoal++;
 
         if(GENERATERULES) {
@@ -275,7 +396,8 @@ public class PhuJusAgent implements IAgent {
             updateExternalPercents();
         }
 
-        this.matrix.updateConnections(this.currInternal);
+        // If multiple sensors are fired, they are added to the merge queue.
+        this.mergeQueue.add(this.currInternal);
 
         //DEBUG:  Tell the human what time it is
         if (PhuJusAgent.DEBUGPRINTSWITCH) {
@@ -355,15 +477,6 @@ public class PhuJusAgent implements IAgent {
 
         RuleLoader loader = new RuleLoader(this);
         loader.loadRules("./src/agents/phujus/res/rule_merge_testing.csv");
-    }
-
-    private void updateRelationships() {
-
-        if (this.currInternal.size() <= 1) return;
-
-        for (Integer i : this.currInternal) {
-            this.rules.get(i).updateRelationships(this.currInternal);
-        }
     }
 
     /**
@@ -1020,92 +1133,95 @@ public class PhuJusAgent implements IAgent {
     private void cullRules() {
 
         if (this.rules.size() >= MAXNUMRULES || this.currExternal.isGoal()) {
-            //mergeRules();
+            mergeRules();
+            System.out.println("Here");
         }
-//        while(this.rules.size() > MAXNUMRULES) {
-//
-//            TFRule worstRule = (TFRule) this.rules.elements().nextElement();
-//
-//            double worstScore = worstRule.calculateActivation(this.now) * worstRule.getConfidence();
-//            for (Rule rule : this.rules.values()) {
-//                if (rule instanceof TFRule) {
-//                    TFRule r = (TFRule) rule;
-//                    double activation = r.calculateActivation(this.now);
-//                    double score = activation * r.getConfidence();
-//                    if (score < worstScore) {
-//                        worstScore = score;
-//                        worstRule = r;
-//                    }
-//                }
-//            }
-//
-//        /*//Find the rule with lowest activation & accuracy
-//        //TODO:  score of a node should be its own score or child's whichever is higher!
-//        //       A good way to do this is to override calculateActivation in
-//        //       BaseRule and have it recurse through children.  It's expensive but
-//        //       calculating activation is already expensive anyway.  We can memoize
-//        //       it later if needed.  -:AMN: Dec 2021
-//        EpRule worstRule = (EpRule) this.rules.get(0);
-//        double worstScore = worstRule.calculateActivation(this.now) * worstRule.getAccuracy();
-//        for (Rule rule : this.rules.values()) {
-//            if(rule instanceof EpRule) {
-//                EpRule r = (EpRule) rule;
-//                double activation = r.calculateActivation(this.now);
-//                double score = activation * r.getAccuracy();
-//                if (score < worstScore) {
-//                    worstScore = score;
-//                    worstRule = r;
-//                }
-//            }
-//        }
-//*/
-//            //out with the old, in with the new...was there a baby in that bath water?
-//            removeRule(worstRule, null);
-//        }
     }
 
     /**
      * mergeRules
      *
-     * Merges similar rules. The process goes something like this:
-     *   - Look at adjacency matrix and find rules which are often firing together (say more than X times)
-     *   - If they've fired more than X times, have the same external sensors and actions, and similar confidences,
-     *     then we merge them
-     *   - Delete one of the rules, then go and adjust all internal sensors for all the rules which use the
-     *     deleted rule
+     * Merges similar rules.
+     * <p>
+     * When two or more rules activate at the same time, they are added to the MergeQueue. If the number of simultaneous
+     * rule is greater than two, they're split up into pairs. For example, the input:
+     * <p>
+     * [3,16,8,19] would turn into -> [3,16] [3,8] [3,19]
+     * <p>
+     * The first rule in the pair is determined by whichever rule in the set has the lowest number of internal
+     * sensors. The first rule is what all of the other rules will merge into if they qualify.
+     * <p>
+     * Whenever the agent reaches a goal, or the number of rules is too high, every pair of rules in the queue is
+     * checked. If their externals match with the first number in the pair, then they're merged.
      */
     private void mergeRules() {
 
-        // Compilate all of the rules which need to be merged:
-        HashMap<TFRule, Vector<TFRule>> rulesToMerge = new HashMap<>();
-        for (TFRule rule : tfRules) {
-            Vector<TFRule> similarRules = this.matrix.getSimilarRules(rule.getId(), 1);
-            boolean canAdd = true;
+        // Don't bother if the queue is empty
+        if (!this.mergeQueue.hasNext()) {
+            return;
+        }
 
-            // Making sure that the same rules aren't merged multiple times
-            for (TFRule similarRule : similarRules) {
-                if (rulesToMerge.containsKey(similarRule)) {
-                    canAdd = false;
-                    break;
+        // The pair of rules being checked
+        TFRule[] mergeThese = new TFRule[2];
+
+        while (mergeQueue.hasNext()) {
+            Integer[] poppedPair = mergeQueue.pop();
+            mergeThese[0] = (TFRule) this.rules.get(poppedPair[0]);
+            mergeThese[1] = (TFRule) this.rules.get(poppedPair[1]);
+
+            if (mergeThese[0] == mergeThese[1]) continue;
+
+            // Wildcard rules should never be merged into
+            if (mergeThese[0].getOperator() == TFRule.RuleOperator.ALL) continue;
+
+            // We merge all of the rules into the rule with the smallest number of internal sensors, since it's
+            // the simplest rule. This is an extra sanity check that could probably be removed.
+            // Remember: The sets of potential merges are kept in pairs! e.g. [3,4] , [3,5], [3,17], etc...
+            TFRule mergeParent = mergeThese[0];
+            TFRule checkThis   = mergeThese[1];
+            if (mergeThese[0].getLhsInternal().size() > mergeThese[1].getLhsInternal().size()) {
+                mergeParent = mergeThese[1];
+                checkThis   = mergeThese[0];
+            }
+
+            // If the rules match, merge them
+            if (checkThis.isExtMatch(mergeParent.getAction(), mergeParent.getLHSExternal(), mergeParent.getRHSExternal())) {
+                merge(mergeParent, checkThis);
+            }
+            // If they don't match, add them to the blacklist so they don't get checked again
+            else {
+                this.mergeQueue.blacklist(poppedPair);
+            }
+        }//while
+    }//mergeRules
+
+
+    /**
+     * merge
+     *
+     * Helper method for merging two rules. It replaces all of the ruleIDs of the rule being replaced within
+     * the MergeQueue.
+     * TODO simply add this code to removeRule/MergeQueue?
+     * @param rule1 the rule being merged into
+     * @param rule2 the rule being replaced
+     */
+    private void merge(TFRule rule1, TFRule rule2) {
+        System.out.println("MERGED RULE #" + rule2.getId() + " -> #" + rule1.getId());
+
+        // Firstly, we need to modify the merge queue's rule values.
+        // We start by going through all the sets of rules in the queue
+        for (Integer[] ruleSet : this.mergeQueue.queue) {
+
+            // If any of the sets of rules contain rule2, we replace the Id with rule1's id
+            for (int i = 0; i < ruleSet.length; i++) {
+                if (ruleSet[i] == rule2.getId()) {
+                    ruleSet[i] = rule1.getId();
                 }
             }
-
-            if (canAdd) {
-                rulesToMerge.put(rule, similarRules);
-            }
         }
 
-        // Commence merging:
-        for (TFRule rule : rulesToMerge.keySet()) {
-
-            if (rulesToMerge.size() == 0) {
-                continue;
-            }
-            for (TFRule delete : rulesToMerge.get(rule)) {
-                removeRule(delete, rule);
-            }
-        }
-    }//mergeRules
+        removeRule(rule2, rule1);
+    }//merge
 
 
     /**
@@ -1127,7 +1243,12 @@ public class PhuJusAgent implements IAgent {
         boolean wasMatch = updateAllTFValues();
 
         //Create new TF Rule(s) for this latest experience
-        addRule(new TFRule(this));
+        // Sometimes, new rules are added which are identical to the previous one. This check is in place to prevent
+        // this from happening.
+        TFRule newRule = new TFRule(this);
+        if (tfRules.size() > 0 && tfRules.lastElement().isExtMatch(newRule.getAction(), newRule.getLHSExternal(), newRule.getRHSExternal())) {
+            addRule(newRule);
+        }
         if(!wasMatch) {
             //create a base-event rule
             TFRule baseRule = new TFRule(this, this.prevAction, new String[]{"-1"},
