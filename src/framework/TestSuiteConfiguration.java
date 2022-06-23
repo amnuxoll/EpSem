@@ -17,6 +17,7 @@ public class TestSuiteConfiguration {
 
     /** Defines a short debug configuration. */
     public static final TestSuiteConfiguration QUICK = new TestSuiteConfiguration(10, 100);
+    public static final TestSuiteConfiguration VERY_QUICK = new TestSuiteConfiguration(5, 80);
     public static final TestSuiteConfiguration QUICK_MULTI = new TestSuiteConfiguration(10, 100, 3);
 
     /** Defines a medium sniff-test configuration. */

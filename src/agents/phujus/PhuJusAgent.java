@@ -272,7 +272,10 @@ public class PhuJusAgent implements IAgent {
 //endregion
 
     // DEBUG variable to toggle println statements (on/off = true/false)
-    public static final boolean DEBUGPRINTSWITCH = false;
+    public static final boolean DEBUGPRINTSWITCH = true;
+
+    // DEBUG variable to toggle printing the tree (on/off = true/false)
+    public static final boolean DEBUGTREESWITCH = false;
 
     // FLAG variable to toggle updating of TFIDF values
     public static final boolean TFIDF = true;
@@ -849,7 +852,7 @@ public class PhuJusAgent implements IAgent {
         }
 
         //DEBUG
-        if (PhuJusAgent.DEBUGPRINTSWITCH) {
+        if (PhuJusAgent.DEBUGPRINTSWITCH && PhuJusAgent.DEBUGTREESWITCH) {
             root.printTree();
         }
 
@@ -1272,12 +1275,10 @@ public class PhuJusAgent implements IAgent {
      * by removing the worst rules.
      *
      * a rules score is calculated by multiplying its activation with its accuracy
+     * TODO delete cullRules()?
      */
     private void cullRules() {
-
-        if (this.rules.size() >= MAXNUMRULES || this.currExternal.isGoal()) {
-            mergeRules();
-        }
+        mergeRules();
     }
 
     /**
@@ -1353,7 +1354,51 @@ public class PhuJusAgent implements IAgent {
 
         // Firstly, we need to modify the merge queue's rule values.
         // We start by going through all the sets of rules in the queue
-        for (Integer[] ruleSet : this.mergeQueue.queue) {
+        mergeDuplicates(rule1, rule2, this.mergeQueue.queue);
+
+        // Also do this with the blacklist
+        mergeDuplicates(rule1, rule2, this.mergeQueue.blacklist);
+
+        // TODO remove? This code handles gentle merging (internal sensors are combined). Doesn't seem to improve
+        //      the performance of the agent. Might be useful in the future, though.
+        /*
+        // This part of the code merges the internal sensors from rule2 into the internal sensors of rule1.
+        // Also switches the rule operator for rule1 to be ANDOR
+
+        boolean switchOperatorFlag = false; // <- If there are sensors to be combined, then we switch the operator
+                                            //    to ANDOR
+
+        System.out.println("Rule #" + rule2.getId() + " internal sensors:");
+        for (TFRule.Cond iSensor : rule2.getLhsInternal()) {
+
+            // Ignore sensors which aren't relevant
+            if (iSensor.data.getTF() == 0) {
+                continue;
+            }
+
+            // Check if the sensor is already inside of rule1 before adding it
+            if (!rule1.hasInternalSensor(iSensor.sName)) {
+                rule1.getLhsInternal().add(iSensor);
+                switchOperatorFlag = true;
+            }
+            System.out.println(iSensor);
+        }
+
+        if (switchOperatorFlag) rule1.setOperator(TFRule.RuleOperator.ANDOR);
+*/
+        removeRule(rule2, rule1);
+    }//merge
+
+    /**
+     * mergeDuplicates
+     *
+     * Helper method for merge() which replaces all instances of rule2 in an Integer[] list with rule1.
+     * @param rule1
+     * @param rule2
+     * @param list
+     */
+    private void mergeDuplicates(TFRule rule1, TFRule rule2, Vector<Integer[]> list) {
+        for (Integer[] ruleSet : list) {
 
             // If any of the sets of rules contain rule2, we replace the Id with rule1's id
             for (int i = 0; i < ruleSet.length; i++) {
@@ -1362,9 +1407,7 @@ public class PhuJusAgent implements IAgent {
                 }
             }
         }
-
-        removeRule(rule2, rule1);
-    }//merge
+    }//mergeDuplicates
 
 
     /**
@@ -1389,7 +1432,7 @@ public class PhuJusAgent implements IAgent {
         // Sometimes, new rules are added which are identical to the previous one. This check is in place to prevent
         // this from happening.
         TFRule newRule = new TFRule(this);
-        if (tfRules.size() > 0 && tfRules.lastElement().isExtMatch(newRule.getAction(), newRule.getLHSExternal(), newRule.getRHSExternal())) {
+        if (tfRules.size() > 0 && !tfRules.lastElement().isExtMatch(newRule.getAction(), newRule.getLHSExternal(), newRule.getRHSExternal())) {
             addRule(newRule);
         }
         if(!wasMatch) {

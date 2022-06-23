@@ -45,6 +45,5 @@ public class MergeQueueTest {
         toAdd.add(5);
 
         mq.add(toAdd);
-        System.out.println("Here");
     }
 }

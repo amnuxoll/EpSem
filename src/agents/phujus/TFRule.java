@@ -409,6 +409,22 @@ public class TFRule extends Rule{
     }
 
     /**
+     * hasInternalSensor
+     *
+     * Returns true if this rule contains an internal sensor with the given sensorName with a TF/IDF value > 0.
+     * @param sensorName The name of the senor (e.g "42" , "6", etc..)
+     * @return
+     */
+    public boolean hasInternalSensor(String sensorName) {
+        for (Cond sensor : this.lhsInternal) {
+            if (sensor.sName.equals(sensorName) && sensor.data.getTF() > 0) {
+                return true;
+            }
+        }
+        return false;
+    }//hasInternalSensor
+
+    /**
      * updateTFVals
      *
      * updates the TFVals for this rule by looking at the prevInternal and checking if
@@ -687,6 +703,8 @@ public class TFRule extends Rule{
         Vector<Cond> sortedInternal = new Vector<>(lhs);
         Collections.sort(sortedInternal);
 
+        String operator = this.operator.character;
+
         int c = 0;
         for (Cond cond : sortedInternal) {
 
@@ -703,7 +721,7 @@ public class TFRule extends Rule{
             }
             result.append(name);
             if (c < sortedInternal.size()-1) {
-                result.append(",");
+                result.append(operator);
             }
             c++;
         }
@@ -712,7 +730,7 @@ public class TFRule extends Rule{
         // This removes an additional comma that might be added to the end (typically the case when printing
         // generated rules)
         String resultStr = result.toString();
-        if (resultStr.endsWith(",)")) {
+        if (this.operator != RuleOperator.ALL && resultStr.endsWith(operator + ")")) {
             resultStr = resultStr.substring(0, resultStr.length() - 2);
             resultStr += ")";
         }
@@ -815,6 +833,9 @@ public class TFRule extends Rule{
         return result.toString();
     }
 
+    public void setOperator(RuleOperator operator) {
+        this.operator = operator;
+    }
 
     //region getters
 
