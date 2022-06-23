@@ -10,14 +10,16 @@ public class TestSuiteConfiguration {
 
     //region Static Configurations
     /** Defines a one-FSM (very short) debug configuration. */
-    public static final TestSuiteConfiguration ONCE = new TestSuiteConfiguration(1, 1000);
+    public static final TestSuiteConfiguration ONCE = new TestSuiteConfiguration(1, 100);
 
     /** Defines a two-FSM (rather short) debug configuration. */
-    public static final TestSuiteConfiguration TWICE = new TestSuiteConfiguration(2, 50);
+    public static final TestSuiteConfiguration TWICE = new TestSuiteConfiguration(2, 100);
+
+    /** very short */
+    public static final TestSuiteConfiguration VERY_QUICK = new TestSuiteConfiguration(5, 80);
 
     /** Defines a short debug configuration. */
     public static final TestSuiteConfiguration QUICK = new TestSuiteConfiguration(10, 100);
-    public static final TestSuiteConfiguration VERY_QUICK = new TestSuiteConfiguration(5, 80);
     public static final TestSuiteConfiguration QUICK_MULTI = new TestSuiteConfiguration(10, 100, 3);
 
     /** Defines a medium sniff-test configuration. */

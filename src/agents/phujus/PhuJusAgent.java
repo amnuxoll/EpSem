@@ -275,7 +275,7 @@ public class PhuJusAgent implements IAgent {
     public static final boolean DEBUGPRINTSWITCH = true;
 
     // DEBUG variable to toggle printing the tree (on/off = true/false)
-    public static final boolean DEBUGTREESWITCH = false;
+    public static final boolean DEBUGTREESWITCH = true;
 
     // FLAG variable to toggle updating of TFIDF values
     public static final boolean TFIDF = true;
@@ -1231,9 +1231,8 @@ public class PhuJusAgent implements IAgent {
         //to the best score affects the amount of increase/decrease in confidence
         //NOTE:  Can't use this.bestPrevMatch for this because it rejects any rule
         //       with mismatching RHS.
-        //TODO:  If we were clever we'd put all these scores in an array
-        //       so we don't have to calc them twice (see next loop)
         double bestScore = 0.0;
+        //Put all these scores in an array so we don't have to calc them twice (see next loop)
         double[] scores = new double[this.tfRules.size()];
         int scIndex = 0;
         for (TFRule r : this.tfRules) {
@@ -1251,7 +1250,7 @@ public class PhuJusAgent implements IAgent {
             double score = scores[scIndex];
             scIndex++;
 
-            if(score > 0.0) {
+            if(score > 0.0) {  //TODO: should this be something like (score > bestScore/2) instead?
                 //For base-event rules, confidence is not adjusted unless it's a perfect match
                 if ( (rule.getOperator() == TFRule.RuleOperator.ALL)
                         && (rule.lhsExtMatchScore(this.prevExternal) < TFRule.MAX_MATCH) ) {
