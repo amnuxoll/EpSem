@@ -334,6 +334,9 @@ public class PhuJusAgent implements IAgent {
     //trust paths in which its confidence in the path is lower
     //than its confusion level.
     private double confusion = 0.0;
+    private boolean currPathRandom = false;
+    private int confusionSteps = 0;  //how many steps until this confusion
+    private int prevConfSteps = 0;
 
     //This is the TFRule that best matches the agent's previous int/ext sensing and
     // current ext sensing (i.e., the rule that best predicted the currently known outcome)
@@ -840,15 +843,14 @@ public class PhuJusAgent implements IAgent {
         this.pathToDo = root.findBestGoalPath();
 
         //The agent will not use paths whose confidence is less than its confusion level
-        if ((this.pathToDo != null) && (this.pathToDo.lastElement().getConfidence() < this.confusion)) {
+        if ((this.pathToDo != null) && (this.pathToDo.lastElement().getConfidence() <= this.confusion)) {
             if (DEBUGPRINTSWITCH) {
                 debugPrint("I'm too confused for this path: ");
                 debugPrint(this.pathToDo.lastElement().getPathStr());
                 debugPrint(" (conf: " + this.pathToDo.lastElement().getConfidence());
-                debugPrintln(" cfsn: " + this.confusion + ")");
+                debugPrintln(" cfsn: " + this.confusion + " steps: " + this.confusionSteps + ")");
             }
             this.pathToDo = null;
-            this.confusion = 0.0;  //reset so agent will use its rules again after the non-path action we're about to take
         }
 
         //DEBUG
@@ -860,6 +862,8 @@ public class PhuJusAgent implements IAgent {
             debugPrintln("no path found");
 
             this.pathToDo = root.findMostUncertainPath();
+            this.currPathRandom = true;
+
 
             //DEBUG
             if (this.pathToDo != null) {
@@ -869,7 +873,8 @@ public class PhuJusAgent implements IAgent {
 
         //DEBUG
         else {
-            debugPrintln("found path: " + this.pathToDo.lastElement().getPathStr());
+            debugPrint("found path: " + this.pathToDo.lastElement().getPathStr());
+            debugPrintln(String.format(" (conf=%.3f)", this.pathToDo.lastElement().getConfidence()));
         }
 
 
@@ -899,19 +904,36 @@ public class PhuJusAgent implements IAgent {
             rewardRulesForGoal();
             this.stepsSinceGoal = 0;
             buildNewPath();
+            //reset confusion info
+            this.confusion = 0.0;
+            this.prevConfSteps = 0;
+            this.confusionSteps = 0;
+            this.currPathRandom = false;
+
         } else if ((this.pathToDo.size() == 0)) {
             //DEBUG
             debugPrintln("Current path failed.");
 
-            //The agent is now confused
-            this.confusion = this.pathTraversedSoFar.lastElement().getConfidence();
+            //TODO:  create a PathNode to record this failure using this.pathTraversedSoFar
+
+            if (this.currPathRandom) {
+                this.confusionSteps --;
+                this.prevConfSteps ++;
+                if (this.confusionSteps <= 0) {
+                    this.confusion = 0.0;
+                }
+            } else {
+                //The agent is now confused
+                this.confusion = this.pathTraversedSoFar.lastElement().getConfidence();
+                if (this.confusion > 0.0) {
+                    this.confusionSteps = this.prevConfSteps + 1;
+                }
+            }
+            this.currPathRandom = false;
 
             buildNewPath();
         } else {
             //If we reach this point we're partway through a path and no maint is needed
-
-            //TODO:  needed?
-            this.confusion = 0.0;
 
             //TODO: path validation?
             //If the agent is partway through a path but the predicted outcome
@@ -1232,6 +1254,7 @@ public class PhuJusAgent implements IAgent {
         //NOTE:  Can't use this.bestPrevMatch for this because it rejects any rule
         //       with mismatching RHS.
         double bestScore = 0.0;
+        TFRule bestRule = null;  //not needed but useful for debugging
         //Put all these scores in an array so we don't have to calc them twice (see next loop)
         double[] scores = new double[this.tfRules.size()];
         int scIndex = 0;
@@ -1239,6 +1262,7 @@ public class PhuJusAgent implements IAgent {
             double score = r.lhsMatchScore(this.prevAction, this.getPrevInternal(), this.prevExternal);
             if (score > bestScore) {
                 bestScore = score;
+                bestRule = r;
             }
             scores[scIndex] = score;
             scIndex++;
