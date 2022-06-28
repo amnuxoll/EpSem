@@ -1,6 +1,5 @@
 package agents.phujus;
 
-import framework.SensorData;
 import java.util.Vector;
 
 /**
@@ -13,39 +12,55 @@ import java.util.Vector;
  */
 public class PathRule extends Rule {
 
-    private final Rule[] lhs = new Rule[2];
-    private final SensorData rhsExternal;
+    private final PathRule lhs;  //can be 'null'
+    private final Vector<TreeNode> rhs;
 
-    /** ctor */
-    public PathRule(PhuJusAgent initAgent, Rule initLHS1, Rule initLHS2, SensorData initRHS) {
+    /** ctor
+     *
+     * note:  initLHS may be null
+     * */
+    public PathRule(PhuJusAgent initAgent, PathRule initLHS, Vector<TreeNode> initRHS) {
         super(initAgent);
 
-        this.lhs[0] = initLHS1;
-        this.lhs[1] = initLHS2;
-        this.rhsExternal = initRHS;
+        this.lhs = initLHS;
+
+        //must make a copy because initRHS is often PJA.pathTraversedSoFar which changes
+        this.rhs = new Vector<>(initRHS);
     }
 
     /**
-     * flatten
+     * matchLen
      *
-     * While a PathRule's lhs1 and lhs2 values can also be a PathRule,
-     * ultimately, any PathRule's LHS can be thought of as a sequence of
-     * TFRules.  This method returns that sequence
+     * calculates how well this PathRule matches given data.  Since PathRule
+     * is a recursive data structure, the match score is how far back into
+     * the past the match persists.
      *
-     *  Note:  This method is recursive.
+     * Caveat:  this is a recursive method!
+     *
+     * @return the length of the match
      */
-    public Vector<TFRule> flatten() {
-        Vector<TFRule> result = new Vector<>();
-        for(Rule r : this.lhs) {
-            if (r instanceof TFRule) {
-                result.add((TFRule) r);
-            } else {
-                result.addAll(((PathRule) r).flatten());
-            }
+    public int matchLen(PathRule matLHS, Vector<TreeNode> matRHS) {
+        //Match the RHS
+        if (matRHS.size() != this.rhs.size()) return 0;
+        for(int i = 0; i < this.rhs.size(); ++i) {
+            TreeNode myNode = this.rhs.get(i);
+            TreeNode otherNode = matRHS.get(i);
+            //note:  a perfect match isn't required: nearEquals is used.
+            if (! myNode.nearEquals(otherNode)) return 0;
         }
 
-        return result;
-    }//flatten
+        //Match the LHS (base cases)
+        if (matLHS == null) return 1;
+        if (this.lhs == null) return 1;
+
+        //If lhs is the same rule we don't need to do any more matching (sort-of base case)
+        if (this.lhs.ruleId == matLHS.ruleId) {
+            return 1 + this.lhs.length();
+        }
+
+        //compare LHS (recursive case)
+        return 1 + this.lhs.matchLen(matLHS.lhs, matLHS.rhs);
+    }//matchLen
 
     /** helper method for {@link #toString()} to format the LHS of a given Rule as a string */
     protected void toStringRule(StringBuilder result, Rule r) {
@@ -60,24 +75,28 @@ public class PathRule extends Rule {
 
     }//toStringRule
 
-    /** helper for toString that just prints the LHS.  This
-     *   code is split out so it can be also be used by {@link #toStringRule} */
+    /** helper for toString that just prints the LHS. */
     private void toStringLHS(StringBuilder result) {
         result.append("#");
         result.append(this.ruleId);
-        result.append(": [");
-        toStringRule(result, lhs[0]);
-        result.append("->");
-        toStringRule(result, lhs[1]);
-        result.append("]");
+        result.append(": (");
+        if (this.lhs != null) {
+            result.append(this.lhs.ruleId);
+        }
+        result.append(") -> ");
     }//toStringConf
 
     @Override
     public String toString() {
         StringBuilder result = new StringBuilder();
         toStringLHS(result);
-        result.append(" -> ");
-        result.append(TreeNode.extToString(this.rhsExternal));
+
+        result.append("[");
+        for(TreeNode node : this.rhs) {
+            result.append(node.toString(false));
+            result.append("; ");
+        }
+        result.append("]");
         result.append(String.format(" ^  conf=%.5f", getConfidence()).replaceAll("0+$", "0"));
 
         return result.toString();
@@ -87,16 +106,10 @@ public class PathRule extends Rule {
     @Override
     public String toStringShort() {
         StringBuilder result = new StringBuilder();
-        result.append("(#");
-        result.append(lhs[0].ruleId);
-        result.append(",#");
-        result.append(")");
-        result.append("->");
-        if (this.rhsExternal == null) {
-            result.append("null");
-        } else {
-            result.append(TreeNode.extToString(this.rhsExternal));
-        }
+        toStringLHS(result);
+        result.append(this.rhs.lastElement().getPathStr());
+        result.append(":");
+        result.append(this.rhs.lastElement().getCurrExternal().toStringShort());
 
         return result.toString();
     }
@@ -106,65 +119,23 @@ public class PathRule extends Rule {
         if (! (obj instanceof PathRule)) return false;
         PathRule other = (PathRule) obj;
 
-        if (other.lhs[0].getId() != this.lhs[0].getId()) return false;
-        if (other.lhs[1].getId() != this.lhs[1].getId()) return false;
-        return (other.rhsExternal.equals(this.rhsExternal));
+        int matchLen = this.matchLen(other.lhs, other.rhs);
+        return (matchLen == this.length());
     }
 
     /**
-     * @return 'true' if this PathRule matches given LHS rules
+     * length
+     *
+     * Caveat:  this is a recursive method!
+     *
+     * @return the time depth of this rule
      */
-    public boolean lhsMatch(Rule compLHS1, Rule compLHS2) {
-        return (this.lhs[0].ruleId == compLHS1.ruleId) && (this.lhs[1].ruleId == compLHS2.ruleId);
-    }
+    public int length() {
+        //Base Case
+        if (this.lhs == null) return 1;
 
-    /**
-     * @return 'true' if this PathRule matches given RHS sensors
-     */
-    public boolean rhsMatch(SensorData compRHS) {
-        return (this.rhsExternal.equals(compRHS));
-    }
-
-
-    /** @return true if a given Rule is used anywhere on the LHS of this PathRule */
-    public boolean uses(Rule removeMe) {
-        for(Rule r : this.lhs) {
-            if (r instanceof TFRule) {
-                if (removeMe.ruleId == r.ruleId) return true;
-            } else if (r instanceof PathRule) {
-                if (((PathRule) r).uses(removeMe)) {  //recursion!
-                    return true;
-                }
-            }
-        }
-        return false;
-    }//uses
-
-    /** replaces one TFRule with another in this PathRule */
-    public void replace(TFRule removeMe, TFRule replacement) {
-        for(int i = 0; i < 2; ++i) {
-            if (this.lhs[i] instanceof TFRule) {
-                if (removeMe.ruleId == lhs[i].ruleId) {
-                    lhs[i] = replacement;
-                }
-            } else if (lhs[i] instanceof PathRule) {
-                ((PathRule) lhs[i]).replace(removeMe, replacement);  //recursion!
-            }
-        }
-    }//replace
-
-    /** @return number of TFRules this PathRule uses */
-    public int size() {
-        int result = 0;
-        for(Rule r : this.lhs) {
-            if (r instanceof TFRule) {
-                result++;
-            } else if (r instanceof PathRule) {
-                result += ((PathRule) r).size();  //recursion!
-            }
-        }
-
-        return result;
+        //Recursive Case
+        return 1 + this.lhs.length();
     }//size
 
 }//class PathRule

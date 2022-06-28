@@ -796,8 +796,7 @@ public class TreeNode {
      * <p>
      * creates a terse ASCII representation of this node.  The child nodes are not depicted.
      */
-    @Override
-    public String toString() {
+    public String toString(boolean includeConf) {
         StringBuilder result = new StringBuilder();
 
         //the actions that led to this node
@@ -820,12 +819,20 @@ public class TreeNode {
         result.append(TreeNode.extToString(this.currExternal));
 
         //Confidence
-        result.append("\tc");
-        //note:  replaceAll call removes extra trailing 0's to improve readability
-        result.append(String.format("%.6f", this.confidence).replaceAll("0+$", "0"));
+        if (includeConf) {
+            result.append("\tc");
+            //note:  replaceAll call removes extra trailing 0's to improve readability
+            result.append(String.format("%.6f", this.confidence).replaceAll("0+$", "0"));
+        }
 
         return result.toString();
     }
+
+    @Override
+    public String toString() {
+        return toString(true);
+    }
+
 
     /**
      * prints the tree in an "easily" readable format.  This method is the front facing interface.
@@ -878,6 +885,34 @@ public class TreeNode {
     }
 
     /**
+     * nearEquals
+     *
+     * This method is like {@link #equals } but it only requires that the
+     * other node have at least one LHS internal sensor in common.  This method
+     * is used directly by {@link PathRule#matchLen}
+     */
+    public boolean nearEquals(TreeNode other) {
+
+        //compare actions
+        if (! this.pathStr.equals(other.pathStr)) return false;
+
+        //compare external sensors
+        if (! other.currExternal.equals(this.currExternal)) return false;
+
+        //look for one internal sensor in common
+        if (this.currInternal.size() == 0) {
+            return (other.currInternal.size() == 0);  //not 100% sure about this
+        }
+        for(Integer i : this.currInternal) {
+            if (other.currInternal.contains(i)) return true;
+        }
+        return false; //no luck
+
+    }//nearEquals
+
+
+
+    /**
      * equals
      *
      * method is overridden to only compare sensors and actions
@@ -887,16 +922,11 @@ public class TreeNode {
         if (! (obj instanceof TreeNode) ) return false;
         TreeNode other = (TreeNode)obj;
 
-        //compare actions
-        if (! this.pathStr.equals(other.pathStr)) return false;
+        if (nearEquals(other)) {
+            return (other.currInternal.equals(this.currInternal));
+        }
 
-        //compare sensors
-        if (! other.currExternal.equals(this.currExternal)) return false;
-        if (! other.currInternal.equals(this.currInternal)) return false;
-
-        //All tests passed
-        return true;
-
+        return false;
     }//equals
 
     public char getAction() { return this.pathStr.charAt(this.pathStr.length() - 1); }

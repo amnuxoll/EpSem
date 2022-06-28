@@ -338,23 +338,8 @@ public class PhuJusAgent implements IAgent {
     private int confusionSteps = 0;  //how many steps until this confusion
     private int prevConfSteps = 0;
 
-    //This is the TFRule that best matches the agent's previous int/ext sensing and
-    // current ext sensing (i.e., the rule that best predicted the currently known outcome)
-    // NOTE:  A newly created rule is excluded for consideration for this
-    //        variable since it did not exist in the previous timestep
-    private TFRule prevBestMatch = null;
-    private double prevBestScore = 0.0;  //match score for the above
-
-    //This is the TFRule that best matches the agent's current int/ext sensing
-    //(i.e., the agent is most confident is predicting the future ext sensing)
-    private TFRule currBestMatch = null;
-
-    //This is the TFRule that was placed in prevBestMatch two timesteps ago
-    private TFRule prevPrevBestMatch = null;
-
-    //This is the PathRule that best matches the agent's experience
-    //that concluded with the most recent external sensors.
-    private PathRule prevBestPRMatch = null;
+    //This is the PathRule that matched at the end of the last path
+    private PathRule prevPRMatch = null;
 
     /**
      * This method is called each time a new FSM is created and a new agent is
@@ -381,9 +366,6 @@ public class PhuJusAgent implements IAgent {
     public Action getNextAction(SensorData sensorData) throws Exception {
         this.now++;
         this.currExternal = sensorData;
-
-        //update the PathRules now that the agent knows the ext. sensor outcome
-        updatePathRules();
 
         if (this.rules.size() > 0) {  //can't update if no rules yet
             this.currInternal = genNextInternal(this.prevAction,
@@ -449,7 +431,7 @@ public class PhuJusAgent implements IAgent {
 
                 debugPrintln("Path Rules:");
                 for (PathRule pr : this.pathRules) {
-                    debugPrintln("" + pr);
+                    debugPrintln("" + pr.toStringShort());
                 }
                 debugPrintln("NUM RULES: " + tfRules.size());
             }
@@ -461,9 +443,6 @@ public class PhuJusAgent implements IAgent {
 
         //extract next action
         char action = calcAction();
-
-        //Use the selected action to make our best prediction about the future
-        updateCurrBestMatch(action);
 
         //Use the selcted action to setup values for the next iteration
         updateSensors(action);
@@ -486,280 +465,6 @@ public class PhuJusAgent implements IAgent {
         RuleLoader loader = new RuleLoader(this);
         loader.loadRules("./src/agents/phujus/res/rule_merge_testing.csv");
     }
-
-//region PathRule Methods
-
-    /**
-     * update the value of this.prevBestMatch/Score
-     *
-     * Note:  call this method before new rules are added in the current time
-     *        step since such rules can't have been the previous best.
-     */
-    private void updatePrevBestMatch() {
-        this.prevPrevBestMatch = this.prevBestMatch;  //save for use by updatePathRules
-        this.prevBestScore = 0.0;
-        this.prevBestMatch = null;
-        for (TFRule r : this.tfRules) {
-            if (r.isExtMatch(this.prevAction, this.prevExternal, this.currExternal)) {
-                double score = r.lhsMatchScore(this.prevAction, this.getPrevInternal(), this.prevExternal);
-                if (score > this.prevBestScore) {
-                    this.prevBestScore = score;
-                    this.prevBestMatch = r;
-                }
-            }
-        }
-    }//updatePrevBestMatch
-
-    /**
-     * update the value of this.currBestMatch/Score
-     *
-     * TODO:  Instead of just the rule with the highest match score, should
-     *        this be the highest match score rule that aligns with the
-     *        bloc-voting result {@see TreeNode#predictExternalMark3}
-     *
-     * @param action  the action the agent has chosen for the current timestep
-     */
-    private void updateCurrBestMatch(char action) {
-        double currBestScore = 0.0;
-        this.currBestMatch = null;
-        for (TFRule r : this.tfRules) {
-            double score = r.lhsMatchScore(action, this.currInternal, this.currExternal);
-            if (score > currBestScore) {
-                currBestScore = score;
-                this.currBestMatch = r;
-            }
-        }
-    }//updatePrevBestMatch
-
-    /**
-     * getMatchingPathRules
-     *
-     * @return a list of all rules that match the agent's current most recent experience
-     */
-    private Vector<PathRule> getMatchingPathRules() {
-        Vector<PathRule> matches = new Vector<>();
-        for(PathRule pr : this.pathRules) {
-            if (! pr.rhsMatch(this.currExternal)) continue; //RHS mismatch
-
-            //check against the prev best matches
-            Vector<TFRule> flatPR = pr.flatten();
-            int tfIndex = flatPR.size() - 1;
-            if (flatPR.get(tfIndex).ruleId != this.prevBestMatch.ruleId) continue; //LHS2 mismatch
-            tfIndex--;
-
-            //TODO: DEBUG REMOVE
-            if (this.prevPrevBestMatch == null) {
-                debugPrintln("oops");
-            }
-
-
-            if (flatPR.get(tfIndex).ruleId != this.prevPrevBestMatch.ruleId) continue; //LHS1 mismatch
-            tfIndex--;
-
-            //check against this.prevInternal
-            int prevIndex = PhuJusAgent.MAX_TIME_DEPTH - 3;
-            boolean match = true;
-            while( (tfIndex >= 0) && (prevIndex >= 0) ) {
-                int prId = flatPR.get(tfIndex).ruleId;
-                if (! this.prevInternal.get(prevIndex).contains(prId)) {
-                    match = false;
-                    break;
-                }
-                tfIndex--;
-                prevIndex--;
-            }//while
-
-            if (match) {
-                matches.add(pr);  //Hooray!
-            }
-        }//for
-
-        return matches;
-    }//getMatchingPathRules
-
-
-    /**
-     * getBestMatchingPathRule
-     *
-     * @return the PathRule that best matches the agent's most recent experience
-     */
-    private PathRule getBestMatchingPathRule() {
-        Vector<PathRule> matches = getMatchingPathRules();
-
-        //Easy cases: 0 or 1 matches
-        if (matches.size() == 0) {
-            return null;
-        } else if (matches.size() == 1) {
-            return matches.firstElement();
-        }
-
-        //Break tie with longest match (Is longest best??  Using shorter
-        // rules would yield a more matchable result.)
-        PathRule best = matches.firstElement();
-        int bestSize = best.size();
-        for(PathRule pr : matches) {
-            int size = pr.size();
-            if (size > bestSize) {
-                bestSize = size;
-                best = pr;
-            }
-        }
-        return best;
-    }//getBestMatchingPathRule
-
-
-    /**
-     * updateMultiLevelPathRules
-     *
-     * finds the PathRules that matches the agent's most recent experiences
-     * and increases their confidence.  The best matching of these rules is
-     * placed in this.prevBestPRMatch
-     *
-     * Note:  this.prevBestMatch must have been updated this time step
-     */
-    private void updateMultiLevelPathRules() {
-
-        //Can't create ML rule without this being set
-        if (prevBestPRMatch != null) {
-
-            //See if an existing multi-level pathrule matches the agent's current circumstances
-            PathRule match = null;
-            for (PathRule pr : this.pathRules) {
-                if ((pr.rhsMatch(this.currExternal)
-                        && pr.lhsMatch(this.prevBestPRMatch, this.prevBestMatch))) {
-                    match = pr;
-                    break;
-                }
-            }
-
-            //If none exists, create one
-            if (match == null) {
-                match = new PathRule(this, this.prevBestPRMatch, this.prevBestMatch, this.currExternal);
-                addRule(match);
-            } else {
-                match.increaseConfidence(1.0, 1.0);
-            }
-        }
-
-        //Update the best PathRule match for next time
-        this.prevBestPRMatch = getBestMatchingPathRule();
-    }//updateMultiLevelPathRules
-
-    /**
-     * getLHSPRMatchesWithRHSMismatch
-     *
-     * is a helper method for {@link #updatePathRules()}.  It finds a list
-     * of all the two-step PathRules that match the current prev and prevprev BestMatch.
-     *
-     * Caveat:  prevBestMatch and prevPrevBestMatch must be up to date and non-null
-     *
-     * Side Effect:  increases the confidence of the correct match if found
-     * (or creates it if it doesn't exist).  This functionality should
-     * probably be in separate methods but its tied together atm and not a big deal.
-     *
-     */
-    private Vector<PathRule> getLHSPRMatchesWithRHSMismatch() {
-        Vector<PathRule> incorrectLHSMatches = new Vector<>();
-        PathRule correctPR = null;
-        for(PathRule pr : this.pathRules) {
-            if (pr.lhsMatch(this.prevPrevBestMatch, this.prevBestMatch)) {
-                if (pr.rhsMatch(this.currExternal)) {
-                    correctPR = pr;  //This should only happen once
-                } else {
-                    incorrectLHSMatches.add(pr);
-                }
-            }
-        }
-
-        //If no correct PR was found, create it
-        if (correctPR == null) {
-            correctPR = new PathRule(this, this.prevPrevBestMatch, this.prevBestMatch, this.currExternal);
-            addRule(correctPR);
-        } else {
-            correctPR.increaseConfidence(1.0, 1.0);
-        }
-
-        return incorrectLHSMatches;
-    }//getLHSPRMatchesWithRHSMismatch
-
-
-    /**
-     * getLHSPRMatchesWithRHSMismatch
-     *
-     * is a helper method for {@link #updatePathRules()}.  It finds the
-     * PathRule that matches what the agent THOUGHT was the best
-     * predicting rule but was wrong.  If no such PathRule exists
-     * it is created.
-     *
-     * Caveat:  prevBestMatch and prevPrevBestMatch can't be null
-     *
-     * @return the found/created rule or null if currBestMatch was correct
-     */
-    private PathRule getPRForBadCurrBestMatch() {
-        //If the currBestMatch predicted correctly, this method has nothing to do
-        if (this.currBestMatch.getRHSExternal().equals(this.currExternal)) {
-            return null;
-        }
-
-        //See if it already exists
-        PathRule badPR = null;
-        for(PathRule pr : this.pathRules) {
-            if (pr.lhsMatch(this.prevPrevBestMatch, this.currBestMatch)
-                    && (pr.rhsMatch(this.currBestMatch.getRHSExternal())) ) {
-                badPR = pr;
-                break;
-            }
-        }
-
-        //If not found, add it
-        if (badPR == null) {
-            badPR = new PathRule(this, this.prevPrevBestMatch, this.currBestMatch, this.currBestMatch.getRHSExternal());
-            addRule(badPR);
-        }
-        return badPR;
-    }//getPRForBadCurrBestMatch
-
-
-    /**
-     * updatePathRules
-     *
-     * Performs maintenance on this.pathRules.  This includes:
-     *  - confidence adjustments
-     *  - creating new PathRules for new experiences
-     *  - TODO: removing PathRules to stay below a given max
-     *
-     * Important:  this.prevBestMatch must be set
-     */
-    private void updatePathRules() {
-        //Must have prev-prev and prev TFRules set to do anything
-        updatePrevBestMatch();
-        if (this.prevBestMatch == null) {
-            this.prevPrevBestMatch = null;
-            this.prevBestPRMatch = null;
-            return;
-        }
-        if (prevPrevBestMatch == null) return;
-
-        //Find all PRs with matching LHS but wrong RHS
-        // (while rewarding the correct one with correct RHS)
-        Vector<PathRule> incorrectLHSMatches = getLHSPRMatchesWithRHSMismatch();
-
-        //If the agent's currBestMatch was incorrect, then the PathRule
-        // reflecting that is also a mismatch
-        PathRule badPR = getPRForBadCurrBestMatch();
-        if (badPR != null) incorrectLHSMatches.add(badPR);
-
-        //decrease confidences of all mismatching PRs
-        for (PathRule pr : incorrectLHSMatches) {
-            pr.decreaseConfidence(1.0, 1.0);  //max decrease
-        }
-
-        //also update multi-level PathRules in the same manner
-        //TODO:  Nuxoll commented out for now as not quite working and needs to be rewritten anyway
-        //updateMultiLevelPathRules();
-    }//updatePathRules
-
-//endregion
 
     /**
      * genNextInternal
@@ -817,6 +522,76 @@ public class PhuJusAgent implements IAgent {
         return result;
     }//genNextInternal
 
+    /**
+     * getMatchingPathRule
+     *
+     * retrieves the PathRule that best matches the path the agent has just
+     * completed.
+     *
+     * @return the matching path or null if not possible
+     */
+    public PathRule getMatchingPathRule(PathRule lhs, Vector<TreeNode> rhs) {
+        //calculate the best match length possible
+        int bestPossible = 1;
+        if (lhs != null) {
+            bestPossible += lhs.length();
+        }
+
+        PathRule bestMatch = null;
+        int bestLen = 0;
+        for (PathRule pr : this.pathRules) {
+            int matchLen = pr.matchLen(lhs, rhs);
+            if (matchLen > bestLen) {
+                bestMatch = pr;
+                bestLen = matchLen;
+                if (bestLen == bestPossible) break;  //we can't do better
+            }
+        }//for
+
+        return bestMatch;
+    }//getMatchingPathRule
+
+    /**
+     * getMatchingPathRule
+     *
+     * retrieves the PathRule that best matches the path the agent has just
+     * completed.  If the best possible PathRule match doesn't exist
+     * then it is created.
+     *
+     * @return the matching path or null if not possible
+     */
+    public PathRule getOrCreateMatchingPathRule() {
+        //catch no-match-possible
+        if ( (this.pathToDo != null) && (this.pathToDo.size() != 0) ) return null;  //path not completed yet
+        if (this.pathTraversedSoFar.size() == 0) return null;  //no path completed
+
+        PathRule bestMatch = getMatchingPathRule(this.prevPRMatch, this.pathTraversedSoFar);
+        int bestLen = 0;
+        if (bestMatch != null) {
+            bestLen = bestMatch.length();
+        }
+
+        //calculate the best match length that was possible
+        int bestPossible = 1;
+        if (this.prevPRMatch != null) {
+            bestPossible += this.prevPRMatch.length();
+        }
+
+        //Create a new PathRule if the best match has not been 100% reliable (if we can)
+        if ( (bestLen > 0) && (bestLen < bestPossible) && (bestMatch.getConfidence() < 1.0 ) ){
+            bestMatch = new PathRule(this, this.prevPRMatch, this.pathTraversedSoFar);
+            addRule(bestMatch);
+        }
+
+        //Create a new PathRule that matches if none was found
+        else if (bestLen == 0) {
+            bestMatch = new PathRule(this, null, this.pathTraversedSoFar);
+            addRule(bestMatch);
+        }
+
+        return bestMatch;
+
+    }//getMatchingPathRule
 
     /**
      * buildNewPath
@@ -889,6 +664,9 @@ public class PhuJusAgent implements IAgent {
      * @param isGoal  did the agent just reach a goal?
      */
     private void pathMaintenance(boolean isGoal) {
+
+        PathRule matPR = getOrCreateMatchingPathRule();
+
         if (isGoal) {
             numGoals++;
             String avgStr = String.format("%.3f", (double)this.now / (double)numGoals);
@@ -904,17 +682,21 @@ public class PhuJusAgent implements IAgent {
             rewardRulesForGoal();
             this.stepsSinceGoal = 0;
             buildNewPath();
+
             //reset confusion info
             this.confusion = 0.0;
             this.prevConfSteps = 0;
             this.confusionSteps = 0;
             this.currPathRandom = false;
 
+            //Reward associated PathRule
+            if (matPR != null) {
+                matPR.increaseConfidence(1.0, 1.0);
+            }
+
         } else if ((this.pathToDo.size() == 0)) {
             //DEBUG
             debugPrintln("Current path failed.");
-
-            //TODO:  create a PathNode to record this failure using this.pathTraversedSoFar
 
             if (this.currPathRandom) {
                 this.confusionSteps --;
@@ -930,6 +712,15 @@ public class PhuJusAgent implements IAgent {
                 }
             }
             this.currPathRandom = false;
+
+            //Punish associated PathRule
+            if (matPR != null) {
+                matPR.decreaseConfidence(1.0, 1.0);
+            }
+
+            //TODO:  DEBUG REMOVE
+            matPR = getOrCreateMatchingPathRule();
+
 
             buildNewPath();
         } else {
@@ -1131,51 +922,6 @@ public class PhuJusAgent implements IAgent {
 
     }//getRuleById
 
-    /**
-     * getPRMatches
-     *
-     * is a helper method for {@link #metaScorePath}.
-     *
-     * @param path          a candidate path the agent is considering
-     * @param candidates    a set of PathRules, some of which may match the given path
-     *
-     * @return all the candidates that actually do match the given path
-     */
-    private Vector<PathRule> getPRMatches(Vector<TreeNode> path, Vector<PathRule> candidates) {
-        Vector<PathRule> result = new Vector<>();
-
-        //Compare each candidate to the path
-        for(PathRule cand : candidates) {
-            Vector<TFRule> flatCand = cand.flatten();
-            boolean mismatch = false;
-
-            //Iterate over each step of the path in reverse order from last to first
-            for (int i = 1; i <= path.size(); ++i) {  //i.e., i-th from the end
-                TreeNode currNode = path.get(path.size() - i);
-
-                //Since the path may have more steps than the PathRule does, check
-                // to make sure the PathRule has a step at this position.
-                int lbIndex = flatCand.size() - i;
-                if (lbIndex < 0) break;  //i.e., it's match as far as it goes
-
-                //Compare this step of the path to corresponding step in the PathRule
-                TFRule lhsBit = flatCand.get(lbIndex);
-                if ( (lhsBit.getAction() != currNode.getAction())
-                        || (! currNode.getCurrInternal().contains(lhsBit.ruleId)) ) {
-                    mismatch = true;
-                    break;
-                }
-
-            }//for
-
-            //Match found, yay!
-            if (!mismatch) {
-                result.add(cand);
-            }
-        }//for
-
-        return result;
-    }//getPRMatches
 
     /**
      * metaScorePath
@@ -1185,56 +931,16 @@ public class PhuJusAgent implements IAgent {
      * @return a double 0.0..1.0 scoring the agent's opinion
      */
     public double metaScorePath(Vector<TreeNode> path) {
-        //If there is no previous path then nothing can match
-        if (this.prevPath == null) return 1.0;
+        //These conditions should never be true but double check anyway
+        if ( (this.pathToDo != null) && (this.pathToDo.size() != 0) ) return 1.0;
+        if (this.pathTraversedSoFar.size() == 0) return 1.0;
 
-        //Find all PathRules that have a matching RHS
-        SensorData outcome = path.lastElement().getCurrExternal();
-        Vector<PathRule> candidates = new Vector<>();
-        for(PathRule pr : this.pathRules) {
-            if (pr.rhsMatch(outcome)) {
-                candidates.add(pr);
-            }
-        }
-        Vector<PathRule> matches = getPRMatches(path, candidates);
+        PathRule bestMatch = getMatchingPathRule(this.prevPRMatch, path);
 
-        //No matches?  default opinion:  this path is good
-        if (matches.size() == 0) return 1.0;
+        //If no match then don't adjust
+        if (bestMatch == null) return 1.0;
 
-        //Only one match?  No more work need be done
-        if (matches.size() == 1) return matches.firstElement().getConfidence();
-
-        //For each match that is longer than the path compare it to the
-        // present and past sensor values in order to winnow our match pool
-        // TODO:  right now this only compares to currInternal because
-        //        atm there are no PathRule with 3+ steps
-        Vector<PathRule> keepers = new Vector<>();
-        for(PathRule match : matches) {
-            Vector<TFRule> flatMatch = match.flatten();
-            int index = flatMatch.size() - path.size() - 1;
-            if (index >= 0) {
-                TFRule step = flatMatch.get(index);
-                if (this.currInternal.contains(step.ruleId)) {
-                    keepers.add(match);
-                }
-            }
-        }
-
-
-        //TODO:  break tie with external sensors??  Really not sure we should
-        //       do this or not since partially-matching ext sensors maybe okay
-        //       especially if some ext sensors are random.
-
-
-        //TODO: If still a tie, break with longest match
-        //      (Won't work at the moment since all PathRules are currently two steps.)
-
-
-        //Return the average confidence
-        //TODO:  Is this wise?  Perhaps the max is better?
-        double sum = 0.0;
-        for(PathRule match : keepers) { sum += match.getConfidence(); }
-        return sum / keepers.size();
+        return bestMatch.getConfidence();
 
     }//metaScorePath
 
@@ -1451,6 +1157,11 @@ public class PhuJusAgent implements IAgent {
         //Update the TF values for all extant TFRules
         boolean wasMatch = updateAllTFValues();
 
+        //TODO:  consider this revision to how TFRules are created and used:
+        //       Trust Operator.ALL TFRules until their confidence drops. Such rules
+        //       would not be limited to MIN_MATCH.  Competing Operator.ANDOR rules would also
+        //       not be created until their confidence drops.
+
         //Create new TF Rule(s) for this latest experience
         // Sometimes, new rules are added which are identical to the previous one. This check is in place to prevent
         // this from happening.
@@ -1605,20 +1316,20 @@ public class PhuJusAgent implements IAgent {
             }
         }
 
-        //update PathRules that used this rule
-        Vector<PathRule> toChange = new Vector<>();
-        for(PathRule pr : this.pathRules) {
-            if (pr.uses(removeMe)) {
-                toChange.add(pr);
-            }
-        }
-        for(PathRule changeMe : toChange) {
-            if (replacement == null) {
-                this.pathRules.remove(changeMe);
-            } else {
-                changeMe.replace(removeMe, replacement);
-            }
-        }
+        //TODO: update PathRules that used this rule (old version below)
+//        Vector<PathRule> toChange = new Vector<>();
+//        for(PathRule pr : this.pathRules) {
+//            if (pr.uses(removeMe)) {
+//                toChange.add(pr);
+//            }
+//        }
+//        for(PathRule changeMe : toChange) {
+//            if (replacement == null) {
+//                this.pathRules.remove(changeMe);
+//            } else {
+//                changeMe.replace(removeMe, replacement);
+//            }
+//        }
 
         //TODO:  remove from all levels in this.prevInternal as well?
 

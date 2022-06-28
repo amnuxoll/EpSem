@@ -68,7 +68,8 @@ public class RuleLoader {
             PathRule pathNewbie = null;
             // PathRules start with a ~/= to indicate that they are pathrules
             if (readLine.startsWith("&")) {
-                pathNewbie = createPathRuleFromLine(readLine);
+                //TODO:  Fix the PathRule loading code
+                //pathNewbie = createPathRuleFromLine(readLine);
             }
             else {
                 tfNewbie = createTFRuleFromLine(readLine);
@@ -128,7 +129,8 @@ public class RuleLoader {
             // TODO Should we add confidence as an init value for PathRules?
             double conf = rowScanner.nextDouble();
 
-            return new PathRule(agent, rule1, rule2, exSensor);
+            return null;  //TODO: for now
+            //return new PathRule(agent, rule1, rule2, exSensor);
         }
     }//createPathRuleFromLine
 
