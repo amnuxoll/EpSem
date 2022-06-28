@@ -143,13 +143,11 @@ public class SensorData {
     }
 
     /**
-     * Performs a pretty-print of the sensor set and its values by formatting the output in
-     * sorted key-value pairs.
+     * getEntriesSorted
      *
-     * @param includeSensorLabels if true, the sensor names will be included in the string.
-     * @return the string representation of this {@link SensorData}.
+     * @return a list of the entries in this.data sorted by sensor labels
      */
-    public String toString(boolean includeSensorLabels) {
+    private ArrayList<Entry<String, Object>> getEntriesSorted() {
         ArrayList<Entry<String, Object>> entries = new ArrayList<>(this.data.entrySet());
         entries.sort((o1, o2) -> {
             String leftKey = o1.getKey();
@@ -162,23 +160,68 @@ public class SensorData {
                 return -1;
             return leftKey.compareTo(rightKey);
         });
+        return entries;
+    }
 
-        StringBuilder stringBuilder = new StringBuilder("[");
+
+
+    /**
+     * toStringShort
+     *
+     * Converts the SensorData into a string with boolean values represented as 0 or 1
+     *
+     * Caveat:  If your SensorData is not a list of Boolean values this will not be helpful
+     */
+    public String toStringShort() {
+        ArrayList<Entry<String, Object>> entries = getEntriesSorted();
+        StringBuilder result = new StringBuilder();
+        for (Entry entry : entries) {
+            Object obj = entry.getValue();
+            if (obj instanceof Boolean) {
+                Boolean val = (Boolean) obj;
+                result.append(val ? 1 : 0);
+            }
+        }
+
+        return result.toString();
+    }//toStringShort
+
+
+
+    /**
+     * Performs a pretty-print of the sensor set and its values by formatting the output in
+     * sorted key-value pairs.
+     *
+     * @param includeSensorLabels if true, the sensor names will be included in the string.
+     * @return the string representation of this {@link SensorData}.
+     */
+    public String toString(boolean includeSensorLabels) {
+        ArrayList<Entry<String, Object>> entries = getEntriesSorted();
+
+        StringBuilder result = new StringBuilder("[");
         for (Entry entry : entries) {
             if (includeSensorLabels) {
-                stringBuilder.append(entry.getKey());
-                stringBuilder.append(":");
+                result.append(entry.getKey());
+                result.append(":");
             }
-            stringBuilder.append(entry.getValue());
-            stringBuilder.append(";");
+            //If the value is a boolean represent as 0 or 1
+            Object obj = entry.getValue();
+            if (obj instanceof Boolean) {
+                Boolean val = (Boolean) obj;
+                result.append(val ? 1 : 0);
+            } else {
+                result.append(obj);
+            }
+
+            result.append(";");
         }
         // remove the unnecessary final semi-colon (if present)
-        if (stringBuilder.length() > 1) {
-            stringBuilder.setLength(stringBuilder.length() - 1);
+        if (result.length() > 1) {
+            result.setLength(result.length() - 1);
         }
         
-        stringBuilder.append("]");
-        return stringBuilder.toString();
+        result.append("]");
+        return result.toString();
     }
 
     @Override
