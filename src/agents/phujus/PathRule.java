@@ -62,19 +62,6 @@ public class PathRule extends Rule {
         return 1 + this.lhs.matchLen(matLHS.lhs, matLHS.rhs);
     }//matchLen
 
-    /** helper method for {@link #toString()} to format the LHS of a given Rule as a string */
-    protected void toStringRule(StringBuilder result, Rule r) {
-        if (r instanceof TFRule) {
-            TFRule tf = (TFRule) r;
-            tf.toStringShortLHS(result);
-        } else if (r instanceof PathRule){
-            ((PathRule)r).toStringLHS(result);
-        } else {
-            result.append(r.toString()); //should never happen
-        }
-
-    }//toStringRule
-
     /** helper for toString that just prints the LHS. */
     private void toStringLHS(StringBuilder result) {
         result.append("#");
@@ -112,9 +99,9 @@ public class PathRule extends Rule {
         result.append(this.rhs.lastElement().getCurrExternal().toStringShort());
 
         return result.toString();
-    }
+    }//toStringShort
 
-    @Override
+
     public boolean equals(Object obj) {
         if (! (obj instanceof PathRule)) return false;
         PathRule other = (PathRule) obj;

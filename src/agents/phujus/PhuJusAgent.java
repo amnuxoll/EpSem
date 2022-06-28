@@ -431,7 +431,7 @@ public class PhuJusAgent implements IAgent {
 
                 debugPrintln("Path Rules:");
                 for (PathRule pr : this.pathRules) {
-                    debugPrintln("" + pr.toStringShort());
+                    debugPrintln("" + pr);
                 }
                 debugPrintln("NUM RULES: " + tfRules.size());
             }
@@ -692,6 +692,7 @@ public class PhuJusAgent implements IAgent {
             //Reward associated PathRule
             if (matPR != null) {
                 matPR.increaseConfidence(1.0, 1.0);
+                this.prevPRMatch = matPR;
             }
 
         } else if ((this.pathToDo.size() == 0)) {
@@ -716,6 +717,7 @@ public class PhuJusAgent implements IAgent {
             //Punish associated PathRule
             if (matPR != null) {
                 matPR.decreaseConfidence(1.0, 1.0);
+                this.prevPRMatch = matPR;
             }
 
             buildNewPath();
