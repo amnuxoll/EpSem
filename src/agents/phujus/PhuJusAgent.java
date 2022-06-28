@@ -718,10 +718,6 @@ public class PhuJusAgent implements IAgent {
                 matPR.decreaseConfidence(1.0, 1.0);
             }
 
-            //TODO:  DEBUG REMOVE
-            matPR = getOrCreateMatchingPathRule();
-
-
             buildNewPath();
         } else {
             //If we reach this point we're partway through a path and no maint is needed
