@@ -313,7 +313,10 @@ public class PhuJusAgent implements IAgent {
     //The agent's current selected path to goal (a sequence of nodes in the search tree)
     private Vector<TreeNode> pathToDo = null;
     private final Vector<TreeNode> pathTraversedSoFar = new Vector<>();
-    private Vector<TreeNode> prevPath = null;
+
+    //Log the actual path the agent followed (which can differ from above)
+    private Vector<TreeNode> actualPath = new Vector<>();
+
 
     //Tracks agent performance for debugging  (DEBUG)
     private int stepsSinceGoal = 0;
@@ -338,8 +341,9 @@ public class PhuJusAgent implements IAgent {
     private int confusionSteps = 0;  //how many steps until this confusion
     private int prevConfSteps = 0;
 
-    //This is the PathRule that matched at the end of the last path
-    private PathRule prevPRMatch = null;
+    //This are the PathRules that matched at the end of the last path
+    private HashSet<PathRule> prevPRMatch = null;
+
 
     /**
      * This method is called each time a new FSM is created and a new agent is
@@ -388,6 +392,10 @@ public class PhuJusAgent implements IAgent {
 
         // If multiple sensors are fired, they are added to the merge queue.
         this.mergeQueue.add(this.currInternal);
+
+        //Regular update to PathRules
+        updatePathRules();
+
 
         //DEBUG:  Tell the human what time it is
         if (PhuJusAgent.DEBUGPRINTSWITCH) {
@@ -522,76 +530,212 @@ public class PhuJusAgent implements IAgent {
         return result;
     }//genNextInternal
 
-    /**
-     * getMatchingPathRule
-     *
-     * retrieves the PathRule that best matches the path the agent has just
-     * completed.
-     *
-     * @return the matching path or null if not possible
-     */
-    public PathRule getMatchingPathRule(PathRule lhs, Vector<TreeNode> rhs) {
-        //calculate the best match length possible
-        int bestPossible = 1;
-        if (lhs != null) {
-            bestPossible += lhs.length();
-        }
+    //region PathRule methods
 
-        PathRule bestMatch = null;
-        int bestLen = 0;
+    /**
+     * getAllMatchingPathRules
+     *
+     * retrieves all the PathRules that match a given lhs and rhs
+     *
+     * @param lengths if this is non-null, the method fill it with the match
+     *                length of each PathRule
+     *
+     * @return this returns a Vector rather than a HashSet so that the lengths Vector can be parallel
+     */
+    public Vector<PathRule> getAllMatchingPathRules(HashSet<PathRule> lhs, Vector<TreeNode> rhs, Vector<Integer> lengths) {
+        Vector<PathRule> matches = new Vector<>();
+
+        if (lengths != null) lengths.clear();  //just in case
+
+        //Find all the matches
         for (PathRule pr : this.pathRules) {
             int matchLen = pr.matchLen(lhs, rhs);
-            if (matchLen > bestLen) {
-                bestMatch = pr;
-                bestLen = matchLen;
-                if (bestLen == bestPossible) break;  //we can't do better
+            if (matchLen > 0) {
+                matches.add(pr);
+                lengths.add(matchLen);
             }
         }//for
 
-        return bestMatch;
-    }//getMatchingPathRule
+        return matches;
+    }//getAllMatchingPathRules
+
 
     /**
-     * getMatchingPathRule
+     * getLongestMatchingPathRules
      *
-     * retrieves the PathRule that best matches the path the agent has just
-     * completed.  If the best possible PathRule match doesn't exist
-     * then it is created.
+     * Given a list of all matching PathRules, it reduces the list to only those with the best match length.
+     *
+     * @param matches  list of matching rules (likely from {@link #getAllMatchingPathRules})
+     * @param lengths  list of match lengths from same  (parallel vector)
+     */
+    public HashSet<PathRule> getLongestMatchingPathRules(Vector<PathRule> matches, Vector<Integer> lengths) {
+        //Find the best matches
+        int bestLen = 0;
+        HashSet<PathRule> bestMatches = new HashSet<>();
+        for(int i = 0; i < matches.size(); ++i) {
+            PathRule mat = matches.get(i);
+            int matchLen = lengths.get(i);
+            if (matchLen > bestLen) {
+                bestMatches.clear();
+                bestLen = matchLen;
+            }
+
+            if (matchLen >= bestLen) {
+                bestMatches.add(mat);
+            }
+        }//for
+
+        return bestMatches;
+    }//getLongestMatchingPathRules
+
+    /** convenience version of the above used by {@link #metaScorePath(Vector)} */
+    public HashSet<PathRule> getLongestMatchingPathRules(HashSet<PathRule> lhs, Vector<TreeNode> rhs) {
+        Vector<Integer> lengths = new Vector<>();
+        Vector<PathRule> matches = getAllMatchingPathRules(lhs, rhs, lengths);
+
+        return getLongestMatchingPathRules(matches, lengths);
+    }//getLongestMatchingPathRules from scratch
+
+
+    /**
+     * getWorstConfidence
+     *
+     * finds the PathRules in a given set that has the lowest confidence.
+     *
+     * @param vec   list to search
+     *
+     * @return  worst confidence found
+     */
+    private PathRule getWorstConfidence(HashSet<PathRule> vec) {
+        PathRule result = null;
+        double bestConf = 1.1;  //effective positive infinity
+        int bestLen = 0;
+        for(PathRule pr : vec) {
+            int len = pr.length();
+            if ( (len > bestLen)
+                || ((len == bestLen) && (pr.getConfidence() < bestConf)) ){
+                bestLen = len;
+                bestConf = pr.getConfidence();
+                result = pr;
+            }
+        }//for
+
+        return result;
+    }//getWorstConfidence
+
+    /**
+     * metaScorePath
+     *
+     * provides an opinion about a given path based on the PathRule set
+     *
+     * @return a double 0.0..1.0 scoring the agent's opinion
+     */
+    public double metaScorePath(Vector<TreeNode> path) {
+        //These conditions should never be true but double check anyway
+        if ( (this.pathToDo != null) && (this.pathToDo.size() != 0) ) return 1.0;
+        if (this.pathTraversedSoFar.size() == 0) return 1.0;
+
+        //Find the PathRule with the best match length and the lowest confidence
+        HashSet<PathRule> bestMatches = getLongestMatchingPathRules(this.prevPRMatch, path);
+        if (bestMatches.size() == 0) return 1.0; // no adjustment
+        PathRule worstBest = getWorstConfidence(bestMatches);
+
+        return worstBest.getConfidence();
+
+    }//metaScorePath
+
+
+
+    /**
+     * getOrCreateMatchingPathRules
+     *
+     * retrieves the PathRules that best matches the path the agent has just
+     * completed.  If no matching PathRules don't or the best matches aren't
+     * reliable, create a new one that is.
+     *
+     * Important:  the path the agent just completed may not have been a
+     *             correct path!
+     *
+     * @param rhs the rhs that should match.  This will typically be either
+     *            this.pathTraversedSoFar or this.actualPath
      *
      * @return the matching path or null if not possible
      */
-    public PathRule getOrCreateMatchingPathRule() {
-        //catch no-match-possible
-        if ( (this.pathToDo != null) && (this.pathToDo.size() != 0) ) return null;  //path not completed yet
-        if (this.pathTraversedSoFar.size() == 0) return null;  //no path completed
+    private HashSet<PathRule> getOrCreateMatchingPathRules(Vector<TreeNode> rhs) {
+        //bad input
+        if (rhs.size() == 0) return new HashSet<>();  //no match possible
 
-        PathRule bestMatch = getMatchingPathRule(this.prevPRMatch, this.pathTraversedSoFar);
-        int bestLen = 0;
-        if (bestMatch != null) {
-            bestLen = bestMatch.length();
-        }
+        //Start with all the matching PathRules
+        Vector<Integer> lengths = new Vector<>();
+        HashSet<PathRule> lhs = new HashSet<>();
+        Vector<PathRule> matches = getAllMatchingPathRules(this.prevPRMatch, rhs, lengths);
 
-        //calculate the best match length that was possible
-        int bestPossible = 1;
-        if (this.prevPRMatch != null) {
-            bestPossible += this.prevPRMatch.length();
-        }
-
-        //Create a new PathRule if the best match has not been 100% reliable (if we can)
-        if ( (bestLen > 0) && (bestLen < bestPossible) && (bestMatch.getConfidence() < 1.0 ) ){
-            bestMatch = new PathRule(this, this.prevPRMatch, this.pathTraversedSoFar);
+        //If none match, create a new matching PathRule
+        if (matches.size() == 0) {
+            PathRule bestMatch = new PathRule(this, null, rhs);
             addRule(bestMatch);
+            matches.add(bestMatch);
+        } else {
+
+            //If the best matches haven't been 100% reliable, then create a new PathRule that is.
+            HashSet<PathRule> bestMatches = getLongestMatchingPathRules(matches, lengths);
+            PathRule worstBest = getWorstConfidence(bestMatches);
+            if (worstBest.getConfidence() < 1.0) {
+                PathRule bestMatch = new PathRule(this, this.prevPRMatch, rhs);
+                addRule(bestMatch);
+                matches.add(bestMatch);
+            }
         }
 
-        //Create a new PathRule that matches if none was found
-        else if (bestLen == 0) {
-            bestMatch = new PathRule(this, null, this.pathTraversedSoFar);
-            addRule(bestMatch);
+        return new HashSet<>(matches);
+
+    }//getOrCreateMatchingPathRules
+
+    /**
+     * calcExternalFromInternal
+     *
+     * attempts to figure out what the external sensors were in the previous
+     * timestep given what the internal sensors were in the subsequent timestep
+     */
+
+    private SensorData calcExternalFromInternal(HashSet<Integer> lhsInt) {
+        //TODO
+        return null;
+    }//calcExternalFromInternal
+
+    /**
+     * updatePathRules
+     *
+     * should be called each time step before the agent builds a new path
+     */
+    private void updatePathRules() {
+        //log what just happened for future use by PathRules
+        if (this.actualPath.size() > 0) {
+            this.actualPath.add(new TreeNode(this.actualPath.lastElement(), this.prevAction, this.currExternal, 1.0));
         }
 
-        return bestMatch;
+        //If the agent hasn't completed its current path then no work is to be done
+        if (this.pathToDo == null) return; //nothing to do
+        if (this.pathToDo.size() > 0) return; //agent is mid-path
 
-    }//getMatchingPathRule
+        //Reward or punish the matching PathRules
+        HashSet<PathRule> matPRs = getOrCreateMatchingPathRules(this.pathTraversedSoFar);
+        for(PathRule pr : matPRs) {
+            if (this.currExternal.equals(pr.getRHSExternal())) {
+                pr.increaseConfidence(1.0, 1.0);
+            } else {
+                pr.decreaseConfidence(1.0, 1.0);
+            }
+        }
+
+        //Log the PathRules that match what actually occurred so we can
+        // use them as LHS of the next PathRule
+        this.actualPath.remove(0); //chop off the root TreeNode as it is not used
+        this.prevPRMatch = getOrCreateMatchingPathRules(this.actualPath);
+
+    }//updatePathRules
+
+    //endregion PathRule Methods
 
     /**
      * buildNewPath
@@ -602,19 +746,16 @@ public class PhuJusAgent implements IAgent {
      *
      */
     private void buildNewPath() {
-        //If the last path was completed, save it
-        if ((this.pathTraversedSoFar.size() > 0)
-                && (this.pathToDo != null)
-                && (this.pathToDo.size() == 0)) {
-            this.prevPath = new Vector<>(this.pathTraversedSoFar);
-        }
-
         this.pathTraversedSoFar.clear();
 
         //Find a new path to the goal
         TreeNode root = new TreeNode(this);
 
-        
+        //Save this root for logging the actual path
+        this.actualPath.clear();
+        this.actualPath.add(root);
+
+
         this.pathToDo = root.findBestGoalPath();
 
         //The agent will not use paths whose confidence is less than its confusion level
@@ -665,8 +806,6 @@ public class PhuJusAgent implements IAgent {
      */
     private void pathMaintenance(boolean isGoal) {
 
-        PathRule matPR = getOrCreateMatchingPathRule();
-
         if (isGoal) {
             numGoals++;
             String avgStr = String.format("%.3f", (double)this.now / (double)numGoals);
@@ -689,12 +828,6 @@ public class PhuJusAgent implements IAgent {
             this.confusionSteps = 0;
             this.currPathRandom = false;
 
-            //Reward associated PathRule
-            if (matPR != null) {
-                matPR.increaseConfidence(1.0, 1.0);
-                this.prevPRMatch = matPR;
-            }
-
         } else if ((this.pathToDo.size() == 0)) {
             //DEBUG
             debugPrintln("Current path failed.");
@@ -714,12 +847,6 @@ public class PhuJusAgent implements IAgent {
             }
             this.currPathRandom = false;
 
-            //Punish associated PathRule
-            if (matPR != null) {
-                matPR.decreaseConfidence(1.0, 1.0);
-                this.prevPRMatch = matPR;
-            }
-
             buildNewPath();
         } else {
             //If we reach this point we're partway through a path and no maint is needed
@@ -737,6 +864,8 @@ public class PhuJusAgent implements IAgent {
 
 
     }//pathMaintenance
+
+
 
     /**
      * calcAction
@@ -920,27 +1049,6 @@ public class PhuJusAgent implements IAgent {
 
     }//getRuleById
 
-
-    /**
-     * metaScorePath
-     *
-     * provides an opinion about a given path based on the PathRule set
-     *
-     * @return a double 0.0..1.0 scoring the agent's opinion
-     */
-    public double metaScorePath(Vector<TreeNode> path) {
-        //These conditions should never be true but double check anyway
-        if ( (this.pathToDo != null) && (this.pathToDo.size() != 0) ) return 1.0;
-        if (this.pathTraversedSoFar.size() == 0) return 1.0;
-
-        PathRule bestMatch = getMatchingPathRule(this.prevPRMatch, path);
-
-        //If no match then don't adjust
-        if (bestMatch == null) return 1.0;
-
-        return bestMatch.getConfidence();
-
-    }//metaScorePath
 
     /**
      * updateTFRuleConfidences

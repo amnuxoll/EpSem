@@ -899,10 +899,13 @@ public class TreeNode {
         //compare external sensors
         if (! other.currExternal.equals(this.currExternal)) return false;
 
-        //look for one internal sensor in common
-        if (this.currInternal.size() == 0) {
-            return (other.currInternal.size() == 0);  //not 100% sure about this
+        //An empty internal set is treated as a wildcard match
+        //(not 100% sure about this)
+        if ((this.currInternal.size() == 0) || (other.currInternal.size() == 0)) {
+            return true;
         }
+
+        //look for one internal sensor in common
         for(Integer i : this.currInternal) {
             if (other.currInternal.contains(i)) return true;
         }

@@ -1,28 +1,32 @@
 package agents.phujus;
 
+import framework.SensorData;
+
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.Vector;
 
 /**
  * class PathRule
  *
- * Describes a rule that looks like this:  rule + rule -> external sensors
- * Since a rule can either be a TFRule or a PathRule, this allows the agent
- * to build a recursive hierarchy of expectations.
+ * Describes a rule that describes the expected outcome of a sequence of paths.
  *
  */
 public class PathRule extends Rule {
 
-    private final PathRule lhs;  //can be 'null'
-    private final Vector<TreeNode> rhs;
+    private HashSet<PathRule> lhs = new HashSet<>();  //can be empty but not null
+    private Vector<TreeNode> rhs;  //must contain at least one TreeNode
 
     /** ctor
      *
      * note:  initLHS may be null
      * */
-    public PathRule(PhuJusAgent initAgent, PathRule initLHS, Vector<TreeNode> initRHS) {
+    public PathRule(PhuJusAgent initAgent, Collection<PathRule> initLHS, Vector<TreeNode> initRHS) {
         super(initAgent);
 
-        this.lhs = initLHS;
+        if (initLHS != null) {
+            this.lhs = new HashSet<>(initLHS);
+        }
 
         //must make a copy because initRHS is often PJA.pathTraversedSoFar which changes
         this.rhs = new Vector<>(initRHS);
@@ -39,7 +43,7 @@ public class PathRule extends Rule {
      *
      * @return the length of the match
      */
-    public int matchLen(PathRule matLHS, Vector<TreeNode> matRHS) {
+    public int matchLen(HashSet<PathRule> matLHS, Vector<TreeNode> matRHS) {
         //Match the RHS
         if (matRHS.size() != this.rhs.size()) return 0;
         for(int i = 0; i < this.rhs.size(); ++i) {
@@ -49,17 +53,18 @@ public class PathRule extends Rule {
             if (! myNode.nearEquals(otherNode)) return 0;
         }
 
-        //Match the LHS (base cases)
-        if (matLHS == null) return 1;
-        if (this.lhs == null) return 1;
-
-        //If lhs is the same rule we don't need to do any more matching (sort-of base case)
-        if (this.lhs.ruleId == matLHS.ruleId) {
-            return 1 + this.lhs.length();
+        //Nasty super-recursive compare (yikes!)
+        int bestLen = 0;
+        for(PathRule thisPR : this.lhs) {
+            for(PathRule otherPR : matLHS) {
+                int len = thisPR.matchLen(otherPR.lhs, otherPR.rhs);
+                if (len > bestLen) {
+                    bestLen = len;
+                }
+            }
         }
 
-        //compare LHS (recursive case)
-        return 1 + this.lhs.matchLen(matLHS.lhs, matLHS.rhs);
+        return 1 + bestLen;
     }//matchLen
 
     /** helper for toString that just prints the LHS. */
@@ -67,8 +72,11 @@ public class PathRule extends Rule {
         result.append("#");
         result.append(this.ruleId);
         result.append(": (");
-        if (this.lhs != null) {
-            result.append(this.lhs.ruleId);
+        boolean first = true;
+        for(PathRule pr : this.lhs) {
+            result.append(first ? "" : ",");
+            first = false;
+            result.append(pr.ruleId);
         }
         result.append(") -> ");
     }//toStringConf
@@ -106,6 +114,10 @@ public class PathRule extends Rule {
         if (! (obj instanceof PathRule)) return false;
         PathRule other = (PathRule) obj;
 
+        //See if we can save some time:
+        if (this.ruleId == other.ruleId) return true;
+
+        //If they match, consider them equal
         int matchLen = this.matchLen(other.lhs, other.rhs);
         return (matchLen == this.length());
     }
@@ -122,7 +134,17 @@ public class PathRule extends Rule {
         if (this.lhs == null) return 1;
 
         //Recursive Case
-        return 1 + this.lhs.length();
+        int bestLen = 0;
+        for(PathRule pr : this.lhs) {
+            int len = pr.length();
+            if (len > bestLen) {
+                bestLen = len;
+            }
+        }
+        return 1 + bestLen;
     }//size
+
+    /** get the final sensor data of this path */
+    public SensorData getRHSExternal() { return this.rhs.lastElement().getCurrExternal(); }
 
 }//class PathRule
