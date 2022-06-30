@@ -303,9 +303,6 @@ public class PhuJusAgent implements IAgent {
     //external sensors come from the environment
     private SensorData currExternal;
 
-    //sensor IDs of all of the used internal sensors
-    private HashSet<Integer> totalInternal;
-
     //sensor values from the previous timesteps
     private Vector<HashSet<Integer>> prevInternal = new Vector<>();
     private SensorData prevExternal = null;
@@ -708,7 +705,7 @@ public class PhuJusAgent implements IAgent {
 
                 addRule(bestMatch);
                 matches.add(bestMatch);
-                lengths.add(bestMatch.length());
+                lengths.add(bestMatch.getFlat().length());
             }
         }
 
@@ -867,13 +864,13 @@ public class PhuJusAgent implements IAgent {
                 }
             } else {
                 //The agent is now confused
-                this.confusion = this.pathTraversedSoFar.lastElement().getConfidence();
+                this.confusion += this.pathTraversedSoFar.lastElement().getConfidence();
+                if (this.confusion > 1.0) this.confusion = 1.0;
                 if (this.confusion > 0.0) {
                     this.confusionSteps = this.prevConfSteps + 1;
                 }
 
                 debugPrintln("Agent confusion: " + this.confusion + " for " + this.confusionSteps + " steps.");
-
             }
             this.currPathRandom = false;
 
