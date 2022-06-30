@@ -406,29 +406,17 @@ public class PhuJusAgent implements IAgent {
         }
 
         //DEBUG: breakpoint here to debug
-        if(this.stepsSinceGoal >= 50) {
+        if(this.stepsSinceGoal >= 20) {
             debugPrintln("");
         }
-        if (this.now >= 15) {
+        if (this.now >= 27) {
             debugPrintln("");
         }
-        if (this.now >= 200) {
-            debugPrintln("");
-        }
-        if(this.rules.values().size() > 25){
-            debugPrintln("");
-        }
-
-
 
         if(TFIDF) {
             //Calculate percentage that each sensor is on
             updateInternalPercents();
             updateExternalPercents();
-
-            //DEBUG
-            //printInternalPercents();
-            //printExternalPercents();
         }
 
         if (DEBUGPRINTSWITCH) {
@@ -674,7 +662,7 @@ public class PhuJusAgent implements IAgent {
      *
      * @return the matching path or null if not possible
      */
-    private Vector<PathRule> getOrCreateMatchingPathRules(Vector<TreeNode>  rhs, Vector<Integer> lengths) {
+    private Vector<PathRule> getOrCreateMatchingPathRules(Vector<TreeNode> rhs, Vector<Integer> lengths) {
         //bad input
         if (rhs.size() == 0) return new Vector<>();  //no match possible
 
@@ -685,30 +673,54 @@ public class PhuJusAgent implements IAgent {
         HashSet<PathRule> lhs = new HashSet<>();
         Vector<PathRule> matches = getAllMatchingPathRules(this.prevPRMatch, rhs, lengths);
 
-        //If none match, create a new matching PathRule
-        if (matches.size() == 0) {
-            PathRule bestMatch = new PathRule(this, null, rhs);
-            addRule(bestMatch);
-            matches.add(bestMatch);
-            lengths.add(bestMatch.length());
-        } else {
-            //If the best matches haven't been 100% reliable, then create a new PathRule that is.
-            Vector<Integer> tmpLengths = new Vector<>(lengths);
-            Vector<PathRule> bestMatches = getLongestMatchingPathRules(matches, tmpLengths);
-            PathRule worstBest = getWorstConfidence(bestMatches, tmpLengths);
-
-            if (worstBest.getConfidence() < 1.0) {
-                PathRule bestMatch = new PathRule(this, this.prevPRMatch, rhs);
-                //use worst-best confidence as a baseline.  This avoids loops
-                // caused by repeatedly creating new (wrong) rules with 1.0 confidence.
-                bestMatch.confidence.setConfidence(worstBest.getConfidence());
-
+        //The agent only creates new PathRules if the given RHS was incorrect.
+        // The hypothesis is that PathRules are the pessimist to counter the TFRules optimism.
+        //TODO:  This is still a somewhat open issue
+        boolean correctPredict = (rhs.lastElement().getCurrExternal().equals(this.currExternal));
+        if (! correctPredict ) {
+            //If none match, create a new matching PathRule
+            if (matches.size() == 0) {
+                PathRule bestMatch = new PathRule(this, null, rhs);
                 addRule(bestMatch);
                 matches.add(bestMatch);
-                lengths.add(bestMatch.getFlat().length());
+                lengths.add(bestMatch.length());
+            } else {
+                //If the best matches haven't been 100% reliable, then create a new PathRule that is.
+                Vector<Integer> tmpLengths = new Vector<>(lengths);
+                Vector<PathRule> bestMatches = getLongestMatchingPathRules(matches, tmpLengths);
+                PathRule worstBest = getWorstConfidence(bestMatches, tmpLengths);
+
+                if (worstBest.getConfidence() < 1.0) {
+
+                    //TODO:  Trying this out:  Only put one item on the LHS of a new PathRule
+                    //use the highest rule id in prevPRMatch as the LHS of this new rule
+                    PathRule highestPR = null;
+                    int highestId = -1;
+                    for(PathRule pr : this.prevPRMatch) {
+                        if (pr.getId() > highestId) {
+                            highestPR = pr;
+                        }
+                    }
+
+                    //Create the lhs using only that rule (or none if none)
+                    HashSet<PathRule> newLHS = null;
+                    if (highestPR != null) {
+                        newLHS = new HashSet<>();
+                        newLHS.add(highestPR);
+                    }
+
+                    //Create a new pathRule and add it to the agent's growing collection
+                    PathRule bestMatch = new PathRule(this, newLHS, rhs);
+                    //use worst-best confidence as a baseline.  This avoids loops
+                    // caused by repeatedly creating new (wrong) rules with 1.0 confidence.
+                    bestMatch.confidence.setConfidence(worstBest.getConfidence());
+
+                    addRule(bestMatch);
+                    matches.add(bestMatch);
+                    lengths.add(bestMatch.getFlat().length());
+                }
             }
         }
-
 
         return matches;
 
