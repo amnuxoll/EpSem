@@ -32,7 +32,7 @@ public class WFCAgent implements IAgent {
     private Vector<PathNode> realPathTraversedSoFar = new Vector<>();
 
     // The lists of rules that this agent is using
-    private Vector<WFCPathRule> wfcPathRules = new Vector<>();
+    private Vector<WFCPathRule> wfcPathRules  = new Vector<>();
     private Hashtable<Integer, WFCRule> rules = new Hashtable<>();
 
     // Random number generator with fixed seed to reproduce results
@@ -54,7 +54,6 @@ public class WFCAgent implements IAgent {
      * Calculates the next action the agent should take based on the given SensorData and previous experiences.
      * @param sensorData The {@link SensorData} from the current move.
      * @return the action taken
-     * @throws Exception
      */
     @Override
     public Action getNextAction(SensorData sensorData) throws Exception {
@@ -115,7 +114,7 @@ public class WFCAgent implements IAgent {
         }
         Vector<List<PathNode>> candidates = new Vector<>();
 
-        // Checking if the patternString is contained inside of the rule. If not, then there's no way this
+        // Checking if the patternString is contained inside the rule. If not, then there's no way this
         // pattern could be in the rule
         String patternString = WFCPathRule.toString(pattern);
         for (WFCPathRule rule : this.wfcPathRules) {
@@ -180,7 +179,7 @@ public class WFCAgent implements IAgent {
      *
      * TODO This method is too big
      */
-    private char getActionFromExperiences() {
+    public char getActionFromExperiences() {
         Vector<List<PathNode>> possiblePaths = matchPattern(this.realPathTraversedSoFar);
 
         if (possiblePaths == null || possiblePaths.size() == 0) {

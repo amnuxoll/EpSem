@@ -269,7 +269,7 @@ public class Runner {
         try {
             File outputDirectory = DirectoryUtils.generateCenekOutputDirectory();
             Runner.redirectOutput(outputDirectory);
-            Runner.WFC_SUITE.run(new FileResultCompiler(outputDirectory));
+            Runner.PJ_SUITE.run(new FileResultCompiler(outputDirectory));
         } catch (OutOfMemoryError mem) {
             mem.printStackTrace();
         } catch (Exception ex) {

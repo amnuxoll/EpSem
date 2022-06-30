@@ -9,11 +9,10 @@ import java.util.Random;
 import java.util.Vector;
 
 /**
- * class Rule
- *
+ * class WFCRule
+ * <p>
  * parent class of all rules used by the WFCAgent
  */
-
 public abstract class WFCRule {
 
     //region Instance Variables

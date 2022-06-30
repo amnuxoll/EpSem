@@ -3,6 +3,11 @@ package agents.wfc;
 import framework.Action;
 import framework.SensorData;
 
+/**
+ * class PathNode
+ * <p>
+ * Represents a node along an agent's path to the goal. Contains the external sensor and the action taken at that step.
+ */
 public class PathNode {
 
     private SensorData externalSensor;

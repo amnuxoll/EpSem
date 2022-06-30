@@ -3,6 +3,11 @@ package agents.wfc;
 
 import java.util.Vector;
 
+/**
+ * class WFCPathRule
+ * <p>
+ * Represents a series of TreeNodes which has led the agent to the goal.
+ */
 public class WFCPathRule extends WFCRule {
 
     private Vector<PathNode> nodes;
