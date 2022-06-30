@@ -9,6 +9,7 @@ import agents.marzrules.RulesAgentProvider;
 import agents.nsm.NSMAgentProvider;
 import agents.phujus.PhuJusAgentProvider;
 import agents.predr.PredrAgentProvider;
+import agents.wfc.WFCAgentProvider;
 import environments.fsm.FSMEnvironment;
 import environments.fsm.FSMEnvironmentProvider;
 import environments.meta.MetaConfiguration;
@@ -251,6 +252,16 @@ public class Runner {
             }
     );
 
+    private static TestSuite WFC_SUITE = new TestSuite(
+            TestSuiteConfiguration.ONCE,
+            new IEnvironmentProvider[] {
+                    new FSMEnvironmentProvider(new FSMTransitionTableBuilder(2, 6, Random.getFalse()), EnumSet.of(FSMEnvironment.Sensor.IS_ODD, FSMEnvironment.Sensor.WITHIN_1))
+            },
+            new IAgentProvider[] {
+                    new WFCAgentProvider()
+            }
+    );
+
     //endregion
 
     //region Main
@@ -258,7 +269,7 @@ public class Runner {
         try {
             File outputDirectory = DirectoryUtils.generateCenekOutputDirectory();
             Runner.redirectOutput(outputDirectory);
-            Runner.PJ_SUITE.run(new FileResultCompiler(outputDirectory));
+            Runner.WFC_SUITE.run(new FileResultCompiler(outputDirectory));
         } catch (OutOfMemoryError mem) {
             mem.printStackTrace();
         } catch (Exception ex) {
