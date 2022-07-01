@@ -1,9 +1,6 @@
 package agents.wfc;
 
-import framework.Action;
-import framework.IAgent;
-import framework.IIntrospector;
-import framework.SensorData;
+import framework.*;
 
 import java.util.*;
 
@@ -22,7 +19,18 @@ public class WFCAgent implements IAgent {
     // The number of timesteps the agent has been running in this FSM
     private int now;
 
-    public static final int EPSILON     = 250; // The duration (in timesteps) of the agent's exploration
+    // These keep track of the number of random actions which take us to the goal/haven't
+    private int totalRands     = 1;
+    private int succesfulRands = 1;
+
+    // Ratio of succesful random actions to total random actions
+    private double ratio           = 0d;
+    private double prevRatio       = 0d;
+    private double ratioDerivative = 1.0d;
+
+    private boolean tookRandomAction = false; // If we took a random action in the previous timestep
+
+    public static final int EPSILON     = 150; // The duration (in timesteps) of the agent's exploration
     public static final int MAXNUMRULES = -1; // The maximum number of rules (-1 if no cap)
 
     public static final boolean DEBUGPRINTSWITCH = true; // Turns on/off debugPrint()
@@ -66,6 +74,20 @@ public class WFCAgent implements IAgent {
 
         // Update realPathTraversedSoFar to contain the current external. Action is unknown at this point
         if (sensorData.isGoal()) {
+
+            if (tookRandomAction) {
+                succesfulRands++;
+                tookRandomAction = false;
+
+
+                this.prevRatio = this.ratio;
+                this.ratio = (double) succesfulRands / (double) totalRands;
+                this.ratioDerivative = (ratio - prevRatio);
+                debugPrintln("Success rand ratio: " + ratio);
+                debugPrintln("Derivative: " + ratioDerivative);
+            }
+            // Calculate derivative of rand ratio
+
             updatePathRules();
             this.realPathTraversedSoFar.clear();
         } else {
@@ -77,20 +99,39 @@ public class WFCAgent implements IAgent {
         }
 
         // Deciding on what action to take next
-        char action;
-        if (this.now <= EPSILON) {
-            action = getRandomAction();
-        } else {
-            action = getActionFromExperiences();
-        }
+        char action = calcAction();
 
         // We add the action to our current path once it's decided
         if (this.realPathTraversedSoFar.size() > 0) {
             this.realPathTraversedSoFar.lastElement().setAction(action);
         }
 
+
         return new Action(action + "");
     }//getNextAction
+
+    /**
+     * calcAction
+     * <p>
+     * Determines what acton the agent should take based on current information and previous experiences. Decides
+     * whether or not the agent should explore or exploit.
+     * @return the action
+     */
+    private char calcAction() {
+        char action;
+
+        // Random success based exploitation: If the derivative of the ratio of successful random actions to unsuccesful
+        // random actions is close to zero, use rules the agent has come up with.
+        if (Math.abs(this.ratioDerivative) > 0.0001) {
+            System.out.println("TAKING RAND");
+            action = getRandomAction();
+            totalRands++;
+            tookRandomAction = true;
+        } else {
+            action = getActionFromExperiences();
+        }
+        return action;
+    }//calcAction
 
     /**
      * matchPattern
