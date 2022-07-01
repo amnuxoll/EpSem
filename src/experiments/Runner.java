@@ -21,10 +21,10 @@ import environments.fsm.FSMTransitionTableBuilder;
 import agents.marzrules.Heuristic;
 import utils.Random;
 
-import java.io.Console;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.lang.reflect.Field;
 import java.util.EnumSet;
 
 public class Runner {
@@ -32,7 +32,7 @@ public class Runner {
     private static TestSuite JunoFSM = new TestSuite(
             TestSuiteConfiguration.MEDIUM,
             new IEnvironmentProvider[] {
-                new FSMEnvironmentProvider(new FSMTransitionTableBuilder(3, 50, Random.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN))
+                    new FSMEnvironmentProvider(new FSMTransitionTableBuilder(3, 50, Random.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN))
             },
             new IAgentProvider[] {
                     new JunoAgentProvider(new JunoConfiguration(true, .7, Double.MAX_VALUE))
@@ -163,8 +163,8 @@ public class Runner {
             TestSuiteConfiguration.MEDIUM,
             new IEnvironmentProvider[] {
                     new MetaEnvironmentProvider(
-                    new FSMEnvironmentProvider(new FSMTransitionTableBuilder(3,15, Random.getTrue()), FSMEnvironment.Sensor.NO_SENSORS), // 1 numswap
-                    MetaConfiguration.DEFAULT),
+                            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(3,15, Random.getTrue()), FSMEnvironment.Sensor.NO_SENSORS), // 1 numswap
+                            MetaConfiguration.DEFAULT),
             },
             new IAgentProvider[] {
                     new MaRzAgentProvider()
@@ -195,8 +195,8 @@ public class Runner {
             },
             new IAgentProvider[] {
                     new JunoAgentProvider(new JunoConfiguration(true, 0.7, Double.MAX_VALUE)
-        )
-    });
+                    )
+            });
 
     private static TestSuite TempExperiment = new TestSuite(
             TestSuiteConfiguration.QUICK,
@@ -266,10 +266,31 @@ public class Runner {
 
     //region Main
     public static void main(String[] args) {
+
+        // The suite that's used is fed in as a command line argument. If an invalid command line argument is given,
+        // it fails silently and uses the default suite instead. The name of the suite must match exactly.
+        TestSuite defaultSuite = PJ_SUITE;
+
+        if (args.length >= 1) {
+            String suiteName = args[0];
+            Class<Runner> runner = Runner.class;
+
+            try {
+                Field suite = runner.getDeclaredField(suiteName);
+                defaultSuite = (TestSuite) suite.get(defaultSuite);
+                System.out.println("Using TestSuite " + suiteName);
+            } catch (NoSuchFieldException e) {
+                System.err.println("Could not find TestSuite " + suiteName + "! Using default suite.");
+            } catch (IllegalAccessException e) {
+                System.err.println("Could not access " + suiteName + " in Runner!");
+            }
+        }
+
+
         try {
             File outputDirectory = DirectoryUtils.generateCenekOutputDirectory();
             Runner.redirectOutput(outputDirectory);
-            Runner.PJ_SUITE.run(new FileResultCompiler(outputDirectory));
+            defaultSuite.run(new FileResultCompiler(outputDirectory));
         } catch (OutOfMemoryError mem) {
             mem.printStackTrace();
         } catch (Exception ex) {
