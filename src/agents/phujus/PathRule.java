@@ -23,7 +23,7 @@ public class PathRule extends Rule {
      *  that all the lhs PathRules agree upon.  Notably if paths are different
      *  lengths, but otherwise match, the longer is used.
      *  Examples:
-     *          lhs            flat
+     *          lhs            flat    //TODO: add extern
      *          abaa, bbaa  -> baa
      *          abaab, a    -> abaab
      *          a, ba, baa  -> a
@@ -77,7 +77,14 @@ public class PathRule extends Rule {
      * Note: This method is public/static because it's also used by PJA.
      */
     public static String genFlat(HashSet<PathRule> lhs, Vector<TreeNode> rhs) {
-        String result = rhs.lastElement().getPathStr();
+        //TODO:  I don't like appending the final external sensors as I've
+        // done here as it means the agent will be brittle with random
+        // external sensors.  A TF-IDF partial matching is needed or, as
+        // per MaRz, just assume all paths go to a Goal/Reward state.
+        // I don't like the latter either since we will eventually be in FSMs
+        // that are large enough that you have to plan multiple paths to
+        // get to a goal. So...partial matching is the best solution I see atm.
+        String result = rhs.lastElement().getPathStr() + rhs.lastElement().getCurrExternal().toStringShort();
         if ((lhs != null) && (lhs.size() > 0)) {
 
             //Gather all the flats and find the longest (we need it below)

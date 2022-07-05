@@ -526,10 +526,8 @@ public class TreeNode {
             double confArr[] = predictExternalMark3(act, sdArr);
 
             for(int i = 0; i < sdArr.length; i++) {
-                //skip zero confidence
-                //TODO:  for even better efficiency: skip any node with confidence less
-                //       than best goal path found so far
-                if (confArr[i] <= 0.0) continue;
+                //agent must be more confident in this path than just taking a random action
+                if (confArr[i] <= this.agent.getRandSuccessRate()) continue;
 
                 //create a child for this action + ext sensor combo
                 TreeNode child = new TreeNode(this, act, sdArr[i], confArr[i]);

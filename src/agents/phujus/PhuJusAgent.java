@@ -343,6 +343,11 @@ public class PhuJusAgent implements IAgent {
     //This are the PathRules that matched at the end of the last path
     private HashSet<PathRule> prevPRMatch = null;
 
+    //These variables track the success rate of random actions
+    // (Using double instead of int so we can calc pct success)
+    private double numRand = 1.0;
+    private double numRandSuccess = 1.0;
+
 //endregion Instance Variables
 
     /**
@@ -395,7 +400,6 @@ public class PhuJusAgent implements IAgent {
 
         //Regular update to PathRules
         updatePathRules();
-
 
         //DEBUG:  Tell the human what time it is
         if (PhuJusAgent.DEBUGPRINTSWITCH) {
@@ -809,7 +813,7 @@ public class PhuJusAgent implements IAgent {
 
             //DEBUG
             if (this.pathToDo != null) {
-                debugPrintln("using non-goal path with greatest uncertainty: " + this.pathToDo.lastElement().getPathStr());
+                debugPrintln("using non-goal path with greatest uncertainty: " + this.pathToDo.lastElement());
             }
         }
 
@@ -864,6 +868,12 @@ public class PhuJusAgent implements IAgent {
             this.confusionSteps = 0;
             this.currPathRandom = false;
 
+            //Track random success
+            if (this.currPathRandom) {
+                this.numRand++;
+                this.numRandSuccess++;
+            }
+
         } else if ((this.pathToDo.size() == 0)) {
             //DEBUG
             debugPrintln("Current path failed.");
@@ -874,6 +884,10 @@ public class PhuJusAgent implements IAgent {
                 if (this.confusionSteps <= 0) {
                     this.confusion = 0.0;
                 }
+
+                //Track random success
+                this.numRand++;
+
             } else {
                 //The agent is now confused
                 this.confusion += this.pathTraversedSoFar.lastElement().getConfidence();
@@ -1653,10 +1667,8 @@ public class PhuJusAgent implements IAgent {
     public char getPrevAction() { return prevAction; }
     public HashMap<String, Tuple<Integer, Double>> getInternalPercents() {return this.internalPercents;}
     public HashMap<String, Tuple<Integer, Double>> getExternalPercents() {return this.externalPercents;}
-
-    public double getConfusion() {
-        return confusion;
-    }
+    public double getConfusion() { return confusion; }
+    public double getRandSuccessRate() { return this.numRandSuccess / this.numRand; }
     //endregion
 
 }//class PhuJusAgent
