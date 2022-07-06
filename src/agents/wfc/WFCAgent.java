@@ -30,7 +30,7 @@ public class WFCAgent implements IAgent {
 
     private boolean tookRandomAction = false; // If we took a random action in the previous timestep
 
-    public static final int EPSILON     = 150; // The duration (in timesteps) of the agent's exploration
+    public static final int EPSILON     = 10000; // The duration (in timesteps) of the agent's exploration
     public static final int MAXNUMRULES = -1; // The maximum number of rules (-1 if no cap)
 
     public static final boolean DEBUGPRINTSWITCH = true; // Turns on/off debugPrint()
@@ -120,18 +120,44 @@ public class WFCAgent implements IAgent {
     private char calcAction() {
         char action;
 
+        // EXPLORE CONDITION
         // Random success based exploitation: If the derivative of the ratio of successful random actions to unsuccesful
         // random actions is close to zero, use rules the agent has come up with.
+        //
+        // To use predicted success based, use the getLeastExploredAction() method when assigning 'action'.
+        // TODO smoother implementation of the different algorithms? Like changing an enum or writing new methods?
         if (Math.abs(this.ratioDerivative) > 0.0001) {
-            System.out.println("TAKING RAND");
+            debugPrintln("EXPLORING...");
             action = getRandomAction();
             totalRands++;
             tookRandomAction = true;
-        } else {
+        }
+        // EXPLOIT CONDITION
+        else {
             action = getActionFromExperiences();
         }
         return action;
     }//calcAction
+
+    /**
+     * getLeastExploredAction
+     * <p>
+     * Finds all paths which match the current experience and picks the outcome with the least number of votes.
+     * @return
+     */
+    private char getLeastExploredAction() {
+
+        if (this.realPathTraversedSoFar.size() == 0) { return getRandomAction(); }
+
+        Vector<List<PathNode>> matches = matchPattern(this.realPathTraversedSoFar);
+
+        if (matches == null || matches.size() == 0) { return getRandomAction(); }
+
+
+        HashMap<Action, Integer> votes = getPathVotes(matches);
+
+        return getLoserAction(votes).getName().charAt(0);
+    }//getLeastExploredAction
 
     /**
      * matchPattern
@@ -217,8 +243,6 @@ public class WFCAgent implements IAgent {
      * Determines what action the agent will take next based upon the current path and previous paths. It does this
      * by looking through its previous paths to find if it has travelled along this same path before, and then
      * using the information from those paths to determine what to do next.
-     *
-     * TODO This method is too big
      */
     public char getActionFromExperiences() {
         Vector<List<PathNode>> possiblePaths = matchPattern(this.realPathTraversedSoFar);
@@ -233,6 +257,22 @@ public class WFCAgent implements IAgent {
         // since those are closest to the goal
         // TODO other options for voting?
 
+        HashMap<Action, Integer> votes = getPathVotes(possiblePaths);
+
+        // Return the action with the most votes
+        Action returnAction = getElectedAction(votes);
+
+        return returnAction.getName().toCharArray()[0];
+    }//getActionFromExperiences
+
+    /**
+     * getPathVotes
+     * <p>
+     * Helper method which generates a HashMap of actions to integer votes based on the outcomes of the provided paths.
+     * @param possiblePaths
+     * @return
+     */
+    private HashMap<Action, Integer> getPathVotes(Vector<List<PathNode>> possiblePaths) {
         HashMap<Action, Integer> votes = new HashMap<>();
 
         for (Action a : this.actionList) {
@@ -258,9 +298,17 @@ public class WFCAgent implements IAgent {
                 votes.put(pathAct, prevVotes + 1);
             }
         }
+        return votes;
+    }//getPathVotes
 
-        // Return the action with the most votes
-        // TODO This is gross
+    /**
+     * getElectedAction
+     * <p>
+     * Helper method which returns the action with the highest number of votes.
+     * @param votes a mapping of actions to the number of votes they have
+     * @return the action with the most votes in the given set
+     */
+    public Action getElectedAction(HashMap<Action, Integer> votes) {
         int max = votes.get(this.actionList[0]);
         Action returnAction = this.actionList[0];
         for (Action a : this.actionList) {
@@ -269,10 +317,27 @@ public class WFCAgent implements IAgent {
                 returnAction = a;
             }
         }
+        return returnAction;
+    }//getElectedAction
 
-        // Also atrocious
-        return returnAction.getName().toCharArray()[0];
-    }//getActionFromExperiences
+    /**
+     * getLoserAction
+     * <p>
+     * Helper method which returns the action with the lowest number of votes.
+     * @param votes a mapping of actions to the number of votes they have
+     * @return the action with the least votes in the given set
+     */
+    public Action getLoserAction(HashMap<Action, Integer> votes) {
+        int min = votes.get(this.actionList[0]);
+        Action returnAction = this.actionList[0];
+        for (Action a : this.actionList) {
+            if (votes.get(a) < min) {
+                min = votes.get(a);
+                returnAction = a;
+            }
+        }
+        return returnAction;
+    }//getElectedAction
 
     /**
      * updatePathRules

@@ -9,6 +9,7 @@ import tests.Assertions;
 import tests.EpSemTest;
 import tests.EpSemTestClass;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Vector;
 
@@ -226,5 +227,27 @@ public class WFCAgentTest {
         agent.addRule(pathRule2);
         char act = agent.getActionFromExperiences();
         System.out.println("Here");
+    }
+
+    @EpSemTest
+    public void testGetMaxMinVotes() {
+        WFCAgent agent = quickAgentGen("ab");
+        initialize();
+
+        HashMap<Action, Integer> votes = new HashMap<>();
+
+        votes.put(new Action("a"), 10);
+        votes.put(new Action("b"), 5);
+
+        Assertions.assertTrue(agent.getElectedAction(votes).getName().equals("a"));
+        Assertions.assertTrue(agent.getLoserAction(votes).getName().equals("b"));
+
+        votes = new HashMap<>();
+
+        votes.put(new Action("a"), 5);
+        votes.put(new Action("b"), 10);
+
+        Assertions.assertTrue(agent.getElectedAction(votes).getName().equals("b"));
+        Assertions.assertTrue(agent.getLoserAction(votes).getName().equals("a"));
     }
 }
