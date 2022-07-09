@@ -30,7 +30,7 @@ public class WFCAgent implements IAgent {
 
     private boolean tookRandomAction = false; // If we took a random action in the previous timestep
 
-    public static final int EPSILON     = 10000; // The duration (in timesteps) of the agent's exploration
+    public static final int EPSILON     = 2500; // The duration (in timesteps) of the agent's exploration
     public static final int MAXNUMRULES = -1; // The maximum number of rules (-1 if no cap)
 
     public static final boolean DEBUGPRINTSWITCH = true; // Turns on/off debugPrint()
@@ -99,7 +99,7 @@ public class WFCAgent implements IAgent {
         }
 
         // Deciding on what action to take next
-        char action = calcAction();
+        char action = calcActionRSB();
 
         // We add the action to our current path once it's decided
         if (this.realPathTraversedSoFar.size() > 0) {
@@ -111,21 +111,45 @@ public class WFCAgent implements IAgent {
     }//getNextAction
 
     /**
-     * calcAction
+     * calcActionPSB
      * <p>
-     * Determines what acton the agent should take based on current information and previous experiences. Decides
-     * whether or not the agent should explore or exploit.
+     * Uses predicted success based exploitation to determine the exploration condition. This one is always
+     * worse than the random one.
      * @return the action
      */
-    private char calcAction() {
+    private char calcActionPSB() {
+        char action;
+
+        // EXPLORE CONDITION
+        // Predicted success based exploitation: Instead of using totally random actions, we use the least
+        // explored action (the one with the least number of votes from previous experiences). If the derivative of
+        // the ratio between successful least-explored actions and unsuccesful least-explored actions is 0, we
+        // take an action based on previous experiences.
+        if (Math.abs(this.ratioDerivative) > 0.0001) {
+            debugPrintln("EXPLORING...");
+            action = getLeastExploredAction();
+            totalRands++;
+            tookRandomAction = true;
+        }
+        // EXPLOIT CONDITION
+        else {
+            action = getActionFromExperiences();
+        }
+        return action;
+    }//calcActionPSB
+
+    /**
+     * calcActionRSB
+     * <p>
+     * Uses random success based exploitation to determine the exploration condition.
+     * @return the action
+     */
+    private char calcActionRSB() {
         char action;
 
         // EXPLORE CONDITION
         // Random success based exploitation: If the derivative of the ratio of successful random actions to unsuccesful
         // random actions is close to zero, use rules the agent has come up with.
-        //
-        // To use predicted success based, use the getLeastExploredAction() method when assigning 'action'.
-        // TODO smoother implementation of the different algorithms? Like changing an enum or writing new methods?
         if (Math.abs(this.ratioDerivative) > 0.0001) {
             debugPrintln("EXPLORING...");
             action = getRandomAction();
@@ -137,7 +161,32 @@ public class WFCAgent implements IAgent {
             action = getActionFromExperiences();
         }
         return action;
-    }//calcAction
+    }//calcActionRSB
+
+
+    /**
+     * calcActionEpsilon
+     * <p>
+     * If the number of time steps is less than EPSILON, take a random action. Else, take an action based on info
+     * gathered from previous experiences.
+     * @return the action
+     */
+    private char calcActionEpsilon() {
+        char action;
+
+        // EXPLORE CONDITION
+        if (this.now < EPSILON) {
+            debugPrintln("EXPLORING...");
+            action = getRandomAction();
+            totalRands++;
+            tookRandomAction = true;
+        }
+        // EXPLOIT CONDITION
+        else {
+            action = getActionFromExperiences();
+        }
+        return action;
+    }//calcActionEpsilon
 
     /**
      * getLeastExploredAction
@@ -165,6 +214,7 @@ public class WFCAgent implements IAgent {
      * Looks for where the given sequence of PathNodes is found in the agent's PathRules. Works similar to pattern
      * matching in grep.
      * TODO this method is also too big
+     * TODO put this method inside of WFCPathRule?
      * @param pattern the sequence of PathNodes that is matched
      * @return a list of every single sequence in every PathRule which matches the pattern in descending order (based
      * on length)
@@ -186,14 +236,14 @@ public class WFCAgent implements IAgent {
         String patternString = WFCPathRule.toString(pattern);
         for (WFCPathRule rule : this.wfcPathRules) {
 
-            if (!rule.toString().contains(patternString)) continue;
+            //if (!rule.toString().contains(patternString)) continue;
 
             Vector<PathNode> ruleNodes = rule.getNodes();
             for (int i = 0; i < ruleNodes.size(); i++) {
                 PathNode node = ruleNodes.get(i);
 
                 // If we've found a match for the first part of the pattern, add it to the candidates
-                if (node.equals(pattern.get(0))) {
+                if (node.partialEquals(pattern.get(0), true) > 0.0d) {
                     List<PathNode> candidate = ruleNodes.subList(i, ruleNodes.size());
                     candidates.add(candidate);
                     //System.out.println(candidate);
@@ -223,7 +273,7 @@ public class WFCAgent implements IAgent {
             for (int i = 0; i < pattern.size(); i++) {
                 PathNode pathChk = nodeList.get(i);
                 PathNode patternChk = pattern.get(i);
-                if (!pathChk.equals(patternChk)) {
+                if (pathChk.partialEquals(patternChk, true) == 0.0d) {
                     addFlag = false;
                     break;
                 }

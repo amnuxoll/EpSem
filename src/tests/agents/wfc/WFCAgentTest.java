@@ -250,4 +250,39 @@ public class WFCAgentTest {
         Assertions.assertTrue(agent.getElectedAction(votes).getName().equals("b"));
         Assertions.assertTrue(agent.getLoserAction(votes).getName().equals("a"));
     }
+
+    @EpSemTest
+    public void testPartialEquals() {
+        initialize();
+        PathNode n1 = new PathNode(data_00, 'b');
+        PathNode n2 = new PathNode(data_00, 'b');
+
+        Assertions.assertTrue(n1.partialEquals(n2, false) == 1.0d);
+
+        PathNode n3 = new PathNode(data_01, 'b');
+
+        Assertions.assertTrue(n1.partialEquals(n3, false) == 0.5d);
+        Assertions.assertTrue(n3.partialEquals(n1, false) == 0.5d);
+
+        Assertions.assertTrue(n1.partialEquals(n3, true) == 1.0d);
+        Assertions.assertTrue(n3.partialEquals(n1, true) == 1.0d);
+
+        PathNode n7 = new PathNode(data_10, 'b');
+
+        Assertions.assertTrue(n1.partialEquals(n7, false) == 0.5d);
+        Assertions.assertTrue(n7.partialEquals(n1, false) == 0.5d);
+
+        Assertions.assertTrue(n1.partialEquals(n7, true) == 0d);
+        Assertions.assertTrue(n7.partialEquals(n1, true) == 0d);
+
+        PathNode n4 = new PathNode(data_00, 'a');
+        Assertions.assertTrue(n1.partialEquals(n4, false) == 0.0d);
+        Assertions.assertTrue(n4.partialEquals(n1, false) == 0.0d);
+
+        PathNode n5 = new PathNode(data_00, '*');
+        Assertions.assertTrue(n1.partialEquals(n5, false) == 1.0d);
+        Assertions.assertTrue(n5.partialEquals(n1, false) == 1.0d);
+
+
+    }
 }

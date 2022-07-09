@@ -253,9 +253,19 @@ public class Runner {
     );
 
     private static TestSuite WFC_SUITE = new TestSuite(
-            TestSuiteConfiguration.QUICK,
+            TestSuiteConfiguration.ONCE,
             new IEnvironmentProvider[] {
                     new FSMEnvironmentProvider(new FSMTransitionTableBuilder(2, 6, Random.getFalse()), EnumSet.of(FSMEnvironment.Sensor.IS_ODD, FSMEnvironment.Sensor.WITHIN_1))
+            },
+            new IAgentProvider[] {
+                    new WFCAgentProvider()
+            }
+    );
+
+    private static TestSuite WFC_SUITE_NOISE = new TestSuite(
+            TestSuiteConfiguration.QUICK,
+            new IEnvironmentProvider[] {
+                    new FSMEnvironmentProvider(new FSMTransitionTableBuilder(2, 6, Random.getFalse()), EnumSet.of(FSMEnvironment.Sensor.IS_ODD, FSMEnvironment.Sensor.WITHIN_1, FSMEnvironment.Sensor.NOISE1, FSMEnvironment.Sensor.NOISE2))
             },
             new IAgentProvider[] {
                     new WFCAgentProvider()
