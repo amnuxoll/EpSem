@@ -14,6 +14,8 @@ import java.util.Vector;
  */
 public class PathRule extends Rule {
 
+//region Instance Variables
+
     private HashSet<PathRule> lhs = new HashSet<>();  //can be empty but not null
     private Vector<TreeNode> rhs;  //must contain at least one TreeNode
 
@@ -30,22 +32,40 @@ public class PathRule extends Rule {
      */
     private String flat;
 
-    /** ctor
-     *
-     * note:  initLHS may be null
-     * */
-    public PathRule(PhuJusAgent initAgent, Collection<PathRule> initLHS, Vector<TreeNode> initRHS) {
-        super(initAgent);
+    /** Each time this PathRule is used to evaluate a path a new PathRule may get
+     * created that is a more specific version of this one.  Such PathRules might
+     * remain "nascent" (i.e., not added to PJA.pathRules list for use right
+     * away) as long as this rule has been effective.  However, if this rule
+     * has mixed effectiveness, the nascent Rules can be activated to effectively
+     * override this one.  These "spawn" rules are stored in two sets (below)
+     * dpeending upon whether they are an example of this rule being correct
+     * or incorrect.  */
 
-        if (initLHS != null) {
-            this.lhs = new HashSet<>(initLHS);
-        }
+    //TODO:  The code for this is TBD
+    HashSet<PathRule> positive = new HashSet<>();
+    HashSet<PathRule> negative = new HashSet<>();
+    boolean isNascent = false;
+
+//endregion Instance Variables
+
+//region ctors and initialization
+
+    /** ctor for lhs init from given PathRule */
+    public PathRule(PhuJusAgent initAgent, PathRule initLHS, Vector<TreeNode> initRHS) {
+        super(initAgent);
+        if (initLHS != null) this.lhs.add(initLHS);
 
         //must make a copy because initRHS is often PJA.pathTraversedSoFar which changes
         this.rhs = new Vector<>(initRHS);
 
         updateFlat();
-    }//ctor
+    }
+
+
+
+//endregion ctors and initialization
+
+
 
     /** calculates how many chars of two given string match (counting from the end)
      * Examples:  overlap("fop", "bop") == 2
@@ -140,7 +160,7 @@ public class PathRule extends Rule {
      */
     public boolean rhsMatch(Vector<TreeNode> matRHS) {
         if (matRHS.size() != this.rhs.size()) return false;
-        for(int i = 0; i < this.rhs.size(); ++i) {
+        for(int i = this.rhs.size() - 1; i >= 0; --i) {
             TreeNode myNode = this.rhs.get(i);
             TreeNode otherNode = matRHS.get(i);
             //note:  a perfect match isn't required: nearEquals is used.
@@ -149,6 +169,40 @@ public class PathRule extends Rule {
 
         return true;
     }//rhsMatch
+
+    /** convenience overload for comparing to a rule */
+    public boolean rhsMatch(PathRule other) {
+        return rhsMatch(other.rhs);
+    }
+
+    /**
+     * lhsMatch
+     *
+     * compares the lhs of a given PathRule to this one
+     *
+     * @return a match score:
+     *              -1 (no match)
+     *               0 (wildcard match)
+     *              +N (this many PathRules in common)
+     */
+    public int lhsMatch(PathRule other) {
+        //empty LHS is treated as a wildcard (base PathRule)
+        if (this.lhs.size() == 0) return 0;
+        if (other.lhs.size() == 0) return 0;
+
+        //Any overlap is a match
+        int matches = 0;
+        for(PathRule thisPR : this.lhs) {
+            for(PathRule otherPR : other.lhs) {
+                if (thisPR.getId() == otherPR.getId()) matches++;
+            }
+        }
+
+        //if no matches, then they are incompatible
+        if (matches == 0) return -1;
+        return matches;
+    }//lhsMatch
+
 
     /**
      * matchLen
@@ -204,6 +258,7 @@ public class PathRule extends Rule {
         result.append(":");
         result.append(this.rhs.lastElement().getCurrExternal().toStringShort());
         result.append(String.format(" ^  conf=%.5f", getConfidence()).replaceAll("0+$", "0"));
+        result.append(" pos:" + this.positive.size() + " neg:" + this.negative.size());
 
         //now print the details
         result.append("  [");
@@ -264,7 +319,17 @@ public class PathRule extends Rule {
     }//size
 
     /** get the final sensor data of this path */
+    public Vector<TreeNode> cloneRHS() { return new Vector<>(this.rhs); }
+    public int lhsSize() { return this.lhs.size(); }
     public SensorData getRHSExternal() { return this.rhs.lastElement().getCurrExternal(); }
     public String getFlat() { return this.flat; }
+    public void addExample(PathRule pr, boolean correct) {
+        pr.isNascent = true;
+        if (correct) this.positive.add(pr);
+        else this.negative.add(pr);
+        //TODO: enforce a max size for this.positive and this.negative?
+        //      perhaps better to globally remove PRs that aren't getting used
+    }
+
 
 }//class PathRule

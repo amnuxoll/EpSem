@@ -888,6 +888,8 @@ public class TreeNode {
      * This method is like {@link #equals } but it only requires that the
      * other node have at least one LHS internal sensor in common.  This method
      * is used directly by {@link PathRule#matchLen}
+     *
+     * TODO:  should this be a partial match instead?
      */
     public boolean nearEquals(TreeNode other) {
 

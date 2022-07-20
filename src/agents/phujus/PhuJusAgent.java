@@ -341,7 +341,8 @@ public class PhuJusAgent implements IAgent {
     private int prevConfSteps = 0;
 
     //This are the PathRules that matched at the end of the last path
-    private HashSet<PathRule> prevPRMatch = null;
+    private HashSet<PathRule> old_prevPRMatch = null;
+    private PathRule prevPRMatch = null;
 
     //These variables track the success rate of random actions
     // (Using double instead of int so we can calc pct success)
@@ -406,14 +407,14 @@ public class PhuJusAgent implements IAgent {
             debugPrintln("TIME STEP: " + this.now);
             printInternalSensors(this.currInternal);
             printExternalSensors(this.currExternal);
-            printPrevMatchingPathRules(this.prevPRMatch);
+            printPrevMatchingPathRules(this.old_prevPRMatch);
         }
 
         //DEBUG: breakpoint here to debug
         if(this.stepsSinceGoal >= 20) {
             debugPrintln("");
         }
-        if (this.now >= 27) {
+        if (this.now >= 60) {
             debugPrintln("");
         }
 
@@ -524,6 +525,31 @@ public class PhuJusAgent implements IAgent {
     }//genNextInternal
 
     //region PathRule methods
+
+    /**
+     * getBestMatchingPathRule
+     *
+     * determines which PathRule in this.pathRule best matches a given rule
+     *
+     * @return the matching PR or null if not found
+     */
+    public PathRule getBestMatchingPathRule(PathRule compareMe) {
+        int bestScore = -1;
+        PathRule bestPR = null;
+        for (PathRule pr : this.pathRules) {
+            if (pr.rhsMatch(compareMe)) {
+                int score = pr.lhsMatch(compareMe);
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestPR = pr;
+                }
+            }
+        }
+
+        return bestPR;
+    }//getBestMatchingPathRule
+
+
 
     /**
      * getAllMatchingPathRules
@@ -641,7 +667,7 @@ public class PhuJusAgent implements IAgent {
     public double metaScorePath(Vector<TreeNode> path) {
         //Find the PathRule with the best match length and the lowest confidence
         Vector<Integer> lengths = new Vector<>();
-        Vector<PathRule> bestMatches = getLongestMatchingPathRules(this.prevPRMatch, path, lengths);
+        Vector<PathRule> bestMatches = getLongestMatchingPathRules(this.old_prevPRMatch, path, lengths);
         if (bestMatches.size() == 0) return 1.0; // no adjustment
         PathRule worstBest = getWorstConfidence(bestMatches, lengths);
 
@@ -675,7 +701,7 @@ public class PhuJusAgent implements IAgent {
             lengths = new Vector<>();
         }
         HashSet<PathRule> lhs = new HashSet<>();
-        Vector<PathRule> matches = getAllMatchingPathRules(this.prevPRMatch, rhs, lengths);
+        Vector<PathRule> matches = getAllMatchingPathRules(this.old_prevPRMatch, rhs, lengths);
 
         //The agent only creates new PathRules if the given RHS was incorrect.
         // The hypothesis is that PathRules are the pessimist to counter the TFRules optimism.
@@ -700,21 +726,14 @@ public class PhuJusAgent implements IAgent {
                     //use the highest rule id in prevPRMatch as the LHS of this new rule
                     PathRule highestPR = null;
                     int highestId = -1;
-                    for(PathRule pr : this.prevPRMatch) {
+                    for(PathRule pr : this.old_prevPRMatch) {
                         if (pr.getId() > highestId) {
                             highestPR = pr;
                         }
                     }
 
-                    //Create the lhs using only that rule (or none if none)
-                    HashSet<PathRule> newLHS = null;
-                    if (highestPR != null) {
-                        newLHS = new HashSet<>();
-                        newLHS.add(highestPR);
-                    }
-
-                    //Create a new pathRule and add it to the agent's growing collection
-                    PathRule bestMatch = new PathRule(this, newLHS, rhs);
+                    //Create the lhs using only that rule and add it to the agent's growing collection
+                    PathRule bestMatch = new PathRule(this, highestPR, rhs);
                     //use worst-best confidence as a baseline.  This avoids loops
                     // caused by repeatedly creating new (wrong) rules with 1.0 confidence.
                     bestMatch.confidence.setConfidence(worstBest.getConfidence());
@@ -723,8 +742,8 @@ public class PhuJusAgent implements IAgent {
                     matches.add(bestMatch);
                     lengths.add(bestMatch.getFlat().length());
                 }
-            }
-        }
+            }//else matching PathRule already exists
+        }//if incorrect prediction
 
         return matches;
 
@@ -735,7 +754,7 @@ public class PhuJusAgent implements IAgent {
      *
      * should be called each time step before the agent builds a new path
      */
-    private void updatePathRules() {
+    private void old_updatePathRules() {
         //log what just happened for future use by PathRules
         if (this.actualPath.size() > 0) {
             this.actualPath.add(new TreeNode(this.actualPath.lastElement(), this.prevAction, this.currExternal, 1.0));
@@ -760,7 +779,97 @@ public class PhuJusAgent implements IAgent {
         Vector<Integer> lengths = new Vector<>();
         Vector<PathRule> matches = getOrCreateMatchingPathRules(this.actualPath, lengths);
         matches = getLongestMatchingPathRules(matches, lengths);
-        this.prevPRMatch = new HashSet<>(matches);
+        this.old_prevPRMatch = new HashSet<>(matches);
+
+
+    }//updatePathRules
+
+    /**
+     * incorporateNewPathRule
+     *
+     * adds a new PathRule to the agent's database as either an active
+     * PathRule or a nascent rule in an existing PathRule.
+     *
+     * @param newbie  the new PR to incoporate
+     * @param prMatch the existing PR that newbie is an example for (or null)
+     * @param correctPredict  whether this PR reflects a path that was correct or not
+     */
+    private void incorporateNewPathRule(PathRule newbie, PathRule prMatch, boolean correctPredict) {
+
+        //If no existing pathRule matches the newbie then newbie becomes a new
+        // base PathRule for the agent
+        if (prMatch == null) {
+            //if the newbie has an empty LHS then it is already a base rule
+            if (newbie.lhsSize() == 0) {
+                prMatch = newbie;  //newbie is already a base rule so just use it
+            }
+
+            //otherwise, newbie becomes the first example for a new base rule
+            else {
+                prMatch = new PathRule(this, null, newbie.cloneRHS());
+                prMatch.addExample(newbie, correctPredict);
+            }
+
+            addRule(prMatch);
+
+        }//if
+
+        //newbie becomes an example for the existing match
+        else {
+            prMatch.addExample(newbie, correctPredict);
+
+            //TODO: split prMatch if it has conflicts?
+
+        }//existing match for newbie
+
+        //Adjust confidence of the active, matching rule
+        if (correctPredict) {
+            prMatch.increaseConfidence(1.0, 1.0);
+        } else {
+            prMatch.decreaseConfidence(1.0, 1.0);
+        }
+
+    }//incorporateNewPathRule
+
+    /**
+     * updatePathRules
+     *
+     * should be called each time step before the agent builds a new path to
+     * keep the agent's PathRule set up to date
+     */
+    private void updatePathRules() {
+        //log what just happened for future use by PathRules
+        if (this.actualPath.size() > 0) {
+            this.actualPath.add(new TreeNode(this.actualPath.lastElement(), this.prevAction, this.currExternal, 1.0));
+        }
+
+        //If the agent hasn't completed its current path then no work is to be done
+        if (this.pathToDo == null) return; //agent is not using a path atm
+        if (this.pathToDo.size() > 0) return; //agent is mid-path
+        if (this.pathTraversedSoFar.size() == 0) return;  //should not happen
+
+        //Create a new PathRule based upon the just-completed path
+        //Note:  this path may not match the agent's actual experience!
+        PathRule newbie = new PathRule(this, this.prevPRMatch, this.pathTraversedSoFar);
+        boolean correctPredict = (this.pathTraversedSoFar.lastElement().getCurrExternal().equals(this.currExternal));
+        PathRule prMatch = getBestMatchingPathRule(newbie);
+        incorporateNewPathRule(newbie, prMatch, correctPredict);
+
+        //If newbie was wrong, create a second PathRule to reflect what actually happened
+        this.actualPath.remove(0); //chop off the root TreeNode as it is not used
+        PathRule correctNewbie = new PathRule(this, this.prevPRMatch, this.actualPath);
+        PathRule correctPRMatch = getBestMatchingPathRule(correctNewbie);
+        if (! correctPredict) {
+            incorporateNewPathRule(correctNewbie, correctPRMatch, true);
+        }
+
+        //Log the PathRule that matched what actually occurred so we can
+        // use it as the LHS of the next PathRule
+        if (correctPRMatch == null) {
+            this.prevPRMatch = getBestMatchingPathRule(correctNewbie);
+        } else {
+            this.prevPRMatch = correctPRMatch;
+        }
 
 
     }//updatePathRules
@@ -824,7 +933,7 @@ public class PhuJusAgent implements IAgent {
 
             //TODO: this is expensive so remove if PathRules are working well
             Vector<Integer> lengths = new Vector<>();
-            Vector<PathRule> bestMatches = getLongestMatchingPathRules(this.prevPRMatch, this.pathToDo, lengths);
+            Vector<PathRule> bestMatches = getLongestMatchingPathRules(this.old_prevPRMatch, this.pathToDo, lengths);
             if (bestMatches.size() == 0) {
                 debugPrintln(" not adjusted by a PathRule");
             } else {
@@ -1394,8 +1503,14 @@ public class PhuJusAgent implements IAgent {
         }
 
         //DEBUG
-        debugPrintln("added: " + newRule);
-    }
+        if (DEBUGPRINTSWITCH) {
+            String prefix = "TF";
+            if (newRule instanceof PathRule) {
+                prefix = "PR";
+            }
+            debugPrintln("added " + prefix + ": " + newRule);
+        }
+    }//addRule
 
     /**
      * removeRule
