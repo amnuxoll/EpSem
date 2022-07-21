@@ -75,7 +75,7 @@ public class TreeNode {
     }
 
     /**
-     * constructs a treenode with given sensors and action
+     * constructs a TreeNode with given sensors and action
      * @param parent
      * @param action action taken to reach this node
      * @param newExternal predicted external sensors for this node
@@ -95,6 +95,23 @@ public class TreeNode {
         this.path.add(this);
         this.pathStr = parent.pathStr + action;
         this.confidence = parent.confidence * confidence;
+    }
+
+    /**
+     * copy ctor
+     */
+    public TreeNode(TreeNode orig) {
+        //initializing agent and its children
+        this.agent = orig.agent;
+        this.rules = orig.rules;
+        this.parent = orig.parent;
+        this.episodeIndex = orig.episodeIndex;
+        this.action = orig.action;
+        this.currInternal = new HashSet<>(orig.currInternal);
+        this.currExternal = new SensorData(orig.currExternal);
+        this.path = new Vector<>(orig.path);
+        this.pathStr = orig.pathStr;
+        this.confidence = orig.confidence;
     }
 
     /**

@@ -796,8 +796,8 @@ public class PhuJusAgent implements IAgent {
      */
     private void incorporateNewPathRule(PathRule newbie, PathRule prMatch, boolean correctPredict) {
 
-        //If no existing pathRule matches the newbie then newbie becomes a new
-        // base PathRule for the agent
+        //Case #1: If no existing pathRule matches the newbie then newbie becomes
+        // a new base PathRule for the agent
         if (prMatch == null) {
             //if the newbie has an empty LHS then it is already a base rule
             if (newbie.lhsSize() == 0) {
@@ -814,13 +814,23 @@ public class PhuJusAgent implements IAgent {
 
         }//if
 
-        //newbie becomes an example for the existing match
+        //Case #2: the existing match has already split so newbie is a new
+        // branch of that split
+        else if (prMatch.hasSplit()) {
+            prMatch.addExample(newbie, correctPredict);
+            addRule(newbie);
+        }
+
+        //Case #3: newbie becomes a new example for the existing match
         else {
             prMatch.addExample(newbie, correctPredict);
 
-            //TODO: split prMatch if it has conflicts?
+            //If this rule has a conflict then it needs to be split
+            if (prMatch.hasConflict()) {
+                prMatch.split();
+            }
 
-        }//existing match for newbie
+        }//else
 
         //Adjust confidence of the active, matching rule
         if (correctPredict) {
