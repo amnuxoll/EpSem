@@ -13,9 +13,30 @@ public class PathNode {
     private SensorData externalSensor;
     private Action     action;
 
+    private double     successes;
+    private double     fails;
+
     public PathNode(SensorData externalSensor, char action) {
         this.externalSensor = externalSensor;
         this.action = new Action("" + action);
+    }
+
+    public double updateQ(boolean success) {
+        if (success) {
+            this.successes++;
+        } else {
+            this.fails++;
+        }
+
+        return getQ();
+    }
+
+    public double getQ() {
+        if (successes == 0 || fails == 0) {
+            return 0;
+        }
+
+        return (successes + fails) / successes;
     }
 
     public SensorData getExternalSensor() {

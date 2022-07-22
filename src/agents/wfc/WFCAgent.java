@@ -1,5 +1,6 @@
 package agents.wfc;
 
+import agents.phujus.PhuJusAgent;
 import framework.*;
 
 import java.util.*;
@@ -30,7 +31,7 @@ public class WFCAgent implements IAgent {
 
     private boolean tookRandomAction = false; // If we took a random action in the previous timestep
 
-    public static final int EPSILON     = 2500; // The duration (in timesteps) of the agent's exploration
+    public static final int EPSILON     = 500; // The duration (in timesteps) of the agent's exploration
     public static final int MAXNUMRULES = -1; // The maximum number of rules (-1 if no cap)
 
     public static final boolean DEBUGPRINTSWITCH = true; // Turns on/off debugPrint()
@@ -42,6 +43,8 @@ public class WFCAgent implements IAgent {
     // The lists of rules that this agent is using
     private Vector<WFCPathRule> wfcPathRules  = new Vector<>();
     private Hashtable<Integer, WFCRule> rules = new Hashtable<>();
+    private Pair<SensorData, Action> prevPathData;
+    private List<PathNode>           prevPathRule;
 
     // Random number generator with fixed seed to reproduce results
     public static Random rand = new Random(2);
@@ -49,6 +52,44 @@ public class WFCAgent implements IAgent {
     // The list of actions the agent may take
     private Action[] actionList;
     //endregion InstanceVariables
+
+    //region InnerClasses
+
+    /**
+     * class Pair
+     * <p>
+     * Represents a pair of values.
+     * @param <T>
+     * @param <Y>
+     */
+    private static class Pair<T, Y> {
+
+        private T val1;
+        private Y val2;
+
+        public Pair(T val1, Y val2) {
+            this.val1 = val1;
+            this.val2 = val2;
+        }
+
+        public T getVal1() {
+            return val1;
+        }
+
+        public void setVal1(T val1) {
+            this.val1 = val1;
+        }
+
+        public Y getVal2() {
+            return val2;
+        }
+
+        public void setVal2(Y val2) {
+            this.val2 = val2;
+        }
+    }
+
+    //endregion InnerClasses
 
     @Override
     public void initialize(Action[] actions, IIntrospector introspector) {
@@ -71,6 +112,12 @@ public class WFCAgent implements IAgent {
         debugPrintln("Received SensorData: " + sensorData);
 
         printPathRules();
+
+        // Checking if the previously selected PathRule's prediction was correct
+        if (prevPathData != null && prevPathRule != null) {
+            boolean success = prevPathData.getVal1().equals(sensorData);
+            updatePathQValues(prevPathRule, success);
+        }
 
         // Update realPathTraversedSoFar to contain the current external. Action is unknown at this point
         if (sensorData.isGoal()) {
@@ -107,6 +154,7 @@ public class WFCAgent implements IAgent {
         }
 
 
+        debugPrintln("TIME: " + now);
         return new Action(action + "");
     }//getNextAction
 
@@ -154,6 +202,9 @@ public class WFCAgent implements IAgent {
             debugPrintln("EXPLORING...");
             action = getRandomAction();
             totalRands++;
+
+            this.prevPathRule = null;
+            this.prevPathData = null;
             tookRandomAction = true;
         }
         // EXPLOIT CONDITION
@@ -303,17 +354,67 @@ public class WFCAgent implements IAgent {
             return getRandomAction();
         }
 
+        // We find the list with the highest Q value (the one with the most amount of successes compared to fails)
+        // and take its action.
+        // TODO make these two algorithms different methods
+        List<PathNode> highestQValue = getHighestQValue(possiblePaths);
+        Pair<SensorData, Action> pathData = getPathData(possiblePaths.lastElement().size(), highestQValue);
+        this.prevPathData = pathData;
+        this.prevPathRule = highestQValue;
+
+        Action returnAction =  pathData.getVal2();
+
         // We've found matching previous experiences. We tally up the votes of the shortest matching ones,
         // since those are closest to the goal
-        // TODO other options for voting?
-
-        HashMap<Action, Integer> votes = getPathVotes(possiblePaths);
-
+        //HashMap<Action, Integer> votes = getPathVotes(possiblePaths);
         // Return the action with the most votes
-        Action returnAction = getElectedAction(votes);
+        //Action returnAction = getElectedAction(votes);
 
         return returnAction.getName().toCharArray()[0];
     }//getActionFromExperiences
+
+    /**
+     * getHighestQValue
+     * <p>
+     * Returns the List<PathNode> in the given parameter with the highest QValue. The QValue of a list of pathnodes
+     * is the average of the Q values of all of its nodes.
+     * @param ruleList
+     * @return
+     */
+    private List<PathNode> getHighestQValue(Vector<List<PathNode>> ruleList) {
+
+        List<PathNode> maxList = ruleList.get(0);
+        double maxQ = getQValue(maxList);
+        for (List<PathNode> list : ruleList) {
+            double qValue = getQValue(list);
+            if (qValue > maxQ) {
+                maxList = list;
+                maxQ = qValue;
+            }
+        }
+
+        return maxList;
+    }//getHighestQValue
+
+    /**
+     * getQValue
+     * <p>
+     * Returns the QValue of a list of path nodes based on the average of all the Q values of the path nodes in its list.
+     * @param ruleList
+     * @return
+     */
+    private double getQValue(List<PathNode> ruleList) {
+
+        double totalQ = 0.0d;
+        for (PathNode node : ruleList) {
+            totalQ += node.getQ();
+        }
+
+        if (totalQ == 0.0d) {
+            return 0.0d;
+        }
+        return ruleList.size() / totalQ;
+    }//getQValue
 
     /**
      * getPathVotes
@@ -336,12 +437,7 @@ public class WFCAgent implements IAgent {
             if (possiblePath.size() <= minSize) {
 
                 // TODO is this right??
-                Action pathAct;
-                if (minSize == 1) {
-                    pathAct = possiblePath.get(0).getAction();
-                } else {
-                    pathAct = possiblePath.get(realPathTraversedSoFar.size()-1).getAction();
-                }
+                Action pathAct = getPathData(minSize, possiblePath).getVal2();
 
                 // Add +1 to vote count
                 int prevVotes = votes.get(pathAct);
@@ -350,6 +446,35 @@ public class WFCAgent implements IAgent {
         }
         return votes;
     }//getPathVotes
+
+    /**
+     * getPathData
+     * <p>
+     * Returns the external sensor data and the action of the PathNode in a given List<PathNode> that corresponds
+     * to the current spot that's currently being explored. Should only be used on the output of matchPattern().
+     * @param minSize
+     * @param possiblePath
+     * @return
+     */
+    private Pair<SensorData, Action> getPathData(int minSize, List<PathNode> possiblePath) {
+
+        Action pathAct;
+        SensorData pathSens;
+        if (minSize == 1) {
+            pathAct  = possiblePath.get(0).getAction();
+            pathSens = possiblePath.get(0).getExternalSensor();
+        } else {
+            pathAct  = possiblePath.get(realPathTraversedSoFar.size()-1).getAction();
+            pathSens = possiblePath.get(realPathTraversedSoFar.size()-1).getExternalSensor();
+        }
+        return new Pair<>(pathSens, pathAct);
+    }//getPathData
+
+    private void updatePathQValues(List<PathNode> ruleList, boolean success) {
+        for (PathNode node : ruleList) {
+            node.updateQ(success);
+        }
+    }
 
     /**
      * getElectedAction

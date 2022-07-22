@@ -272,6 +272,17 @@ public class Runner {
             }
     );
 
+    private static TestSuite WfcVsNsm = new TestSuite(
+            TestSuiteConfiguration.ONCE,
+            new IEnvironmentProvider[] {
+                    new FSMEnvironmentProvider(new FSMTransitionTableBuilder(3, 30, Random.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
+            },
+            new IAgentProvider[] {
+                    new NSMAgentProvider(),
+                    new WFCAgentProvider()
+            }
+    );
+
     //endregion
 
     //region Main

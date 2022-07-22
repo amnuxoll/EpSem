@@ -12,6 +12,8 @@ public class WFCPathRule extends WFCRule {
 
     private Vector<PathNode> nodes;
 
+
+
     public WFCPathRule(WFCAgent agent, Vector<PathNode> nodes) {
         super(agent);
 
