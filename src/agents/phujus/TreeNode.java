@@ -557,35 +557,6 @@ public class TreeNode {
     }//expand
 
     /**
-     * findBestGoalPath
-     * <p>
-     * uses an iterative deepening search tree to find a path to the goal
-     *
-     * //TODO:  Could do A*Search instead if this is too slow
-     */
-    public Vector<TreeNode> findBestGoalPath() {
-        double bestScore = 0.0;
-        Vector<TreeNode> bestPath = null;
-        for(int max = 1; max <= PhuJusAgent.MAX_SEARCH_DEPTH; ++max) {
-            Vector<TreeNode> path = fbgpHelper(0, max);
-            if (path != null) {
-                double foundScore = path.lastElement().confidence;
-
-                //Adjust confidence based upon the PathRules eval
-                foundScore *= agent.metaScorePath(path);
-
-                if(foundScore > bestScore) {
-                    bestPath = path;
-                    bestScore = foundScore;
-                }
-            }
-        }
-
-        return bestPath;  //null if failed to find a path to goal
-    }//findBestGoalPath
-
-
-    /**
      * fbgpHelper
      *
      * recursive helper method for {@link #findBestGoalPath}
@@ -646,6 +617,34 @@ public class TreeNode {
     }//fbgpHelper
 
     /**
+     * findBestGoalPath
+     * <p>
+     * uses an iterative deepening search tree to find a path to the goal
+     *
+     * //TODO:  Could do A*Search instead if this is too slow
+     */
+    public Vector<TreeNode> findBestGoalPath() {
+        double bestScore = 0.0;
+        Vector<TreeNode> bestPath = null;
+        for(int max = 1; max <= PhuJusAgent.MAX_SEARCH_DEPTH; ++max) {
+            Vector<TreeNode> path = fbgpHelper(0, max);
+            if (path != null) {
+                double foundScore = path.lastElement().confidence;
+
+                //Adjust confidence based upon the PathRules eval
+                foundScore *= agent.metaScorePath(path);
+
+                if(foundScore > bestScore) {
+                    bestPath = path;
+                    bestScore = foundScore;
+                }
+            }
+        }
+
+        return bestPath;  //null if failed to find a path to goal
+    }//findBestGoalPath
+
+    /**
      * findMostUncertainPath
      *
      * is called on a completed tree in which no path to GOAL was found.
@@ -662,7 +661,7 @@ public class TreeNode {
      *                   ba->()|00	c0.005266
      *                   bb->(3, 15, 34, 35)|00	c0.670597
      *          Shouldn't path 'ba' be selected?  Some code below
-     *          attempted to that but has been commented out
+     *          attempted to do that but has been commented out
      * @return the path found
      */
     public Vector<TreeNode> findMostUncertainPath() {

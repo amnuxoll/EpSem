@@ -193,7 +193,7 @@ public class PathRule extends Rule {
     public int lhsMatch(PathRule other) {
         //empty LHS is treated as a wildcard (base PathRule)
         if (this.lhs.size() == 0) return 0;
-        if (other.lhs.size() == 0) return 0;
+        if ( (other == null) || (other.lhs.size() == 0) ) return 0;
 
         //Any overlap is a match
         int matches = 0;
