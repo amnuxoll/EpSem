@@ -36,8 +36,8 @@ public class TFRule extends Rule{
      * class TFData packages the data and method required to calculate Term Frequency
      */
     public static class TFData {
-        public double numMatches = 1.0;
-        public double numOn = 0.0;
+        public double numMatches;
+        public double numOn;
 
         public TFData(double numMatches, double numOn){
             this.numMatches = numMatches;
@@ -65,7 +65,6 @@ public class TFRule extends Rule{
             } else {
                 this.data = new TFData(1.0,0.0);
             }
-
         }
 
         /** Conds are equal if they have the same name.
@@ -101,6 +100,7 @@ public class TFRule extends Rule{
 
         @Override
         public int hashCode() { return Objects.hash(sName); }
+
     }//class Cond
 
     //endregion
@@ -109,14 +109,7 @@ public class TFRule extends Rule{
 
 
     //How similar two match scores need to be to each other to be "near"
-    public static final double MATCH_NEAR = 0.05;
-
-    //This min match score is given to ANY (wildcard).  Any actual
-    //match is given a score higher than this
-    public static final double MIN_MATCH = 0.1;
-
-    //A match score may not exceed this value to avoid greater than 100% confidence
-    public static final double MAX_MATCH = 0.5;
+    public static final double MATCH_NEAR = 0.2;
 
     //the action of the rule
     private char action;
@@ -128,6 +121,10 @@ public class TFRule extends Rule{
     private HashSet<Cond> lhsInternal;
     private HashSet<Cond> lhsExternal;
     private HashSet<Cond> rhsExternal;
+
+    //This is used to track a rolling average LHS match score
+    private static double avgLHSMatchScore = 1.0;
+    private static final int AVG_WINDOW = 300;  //arbitrary choice...
 
     //endregion
 
@@ -493,7 +490,7 @@ public class TFRule extends Rule{
      *
      * @param lhsExt the lhs external sensorData
      *
-     * @return  a match score from 0.0 to 1.0
+     * @return  a match score from -1.0 to 1.0
      */
     public double lhsExtMatchScore(SensorData lhsExt){
 
@@ -538,15 +535,16 @@ public class TFRule extends Rule{
      *
      * @param lhsInt a HashSet of integers containing the internal sensors that were on
      *
-     * @return  a match score from 0.0 to 1.0
+     * @return  a match score from -1.0 to 1.0
      */
     public double lhsIntMatchScore(HashSet<Integer> lhsInt){
 
+        //ALL operator rule receive a baseline score
         if(this.operator == RuleOperator.ALL)
-            return MIN_MATCH;
+            return 0.0;
 
         double score = 0.0;
-        int c = 0;
+        int c = 0;  //counts how many lhs internal conditions were factored in the match
         // Loops through all internal sensors of the rule and checks if the incoming
         // sensor data contains the internal sensor
         if(this.operator == RuleOperator.AND) {
@@ -560,19 +558,7 @@ public class TFRule extends Rule{
                     df = agent.getInternalPercents().get(cond.sName).getSecond();
                 }
                 boolean wasOn = lhsInt.contains(Integer.parseInt(cond.sName));
-
-                //To give actual matches an edge over wildcard matches we make
-                // sure they are higher than MIN_MATCH.  However we can't
-                // exceed MAX_MATCH or it will gum up subsequent calculations.
-                // Yes, this is awkward. :/
                 double tfidf = calculateTFIDF(tf, df, wasOn);
-                if (tfidf > 0.0) {
-                    tfidf += MIN_MATCH;
-                    if (tfidf > MAX_MATCH) {
-                        tfidf = MAX_MATCH;
-                    }
-                }
-
                 score += tfidf;
             }
         }
@@ -595,7 +581,11 @@ public class TFRule extends Rule{
         // no sensors so base match of 1.0
         if(c == 0)
             return lhsInt.size() == 0 ? 1.0 : 0.0;
-        return score/c;
+
+        //Use the final score to update the rolling average
+        double result = score/c;
+
+        return result;
     }//lhsIntMatchScore
 
     /**
@@ -608,7 +598,7 @@ public class TFRule extends Rule{
      * @param action the action made by the rule to compare against
      * @param lhsInt a HashSet of integers containing the internal sensors that were on
      * @param lhsExt the lhs external sensorData
-     * @return  a match score from 0.0 to 1.0
+     * @return  a match score from -1.0 to 1.0
      */
     public double lhsMatchScore(char action, HashSet<Integer> lhsInt, SensorData lhsExt){
 
@@ -616,15 +606,24 @@ public class TFRule extends Rule{
         if (action != this.action) return 0.0;
 
         double score = lhsExtMatchScore(lhsExt);
-        score *= lhsIntMatchScore(lhsInt);
+        score += lhsIntMatchScore(lhsInt);
+        score = Math.min(1.0, score);  //TODO:  could do an avg here?
+
         return score;
     }//lhsMatchScore
 
     /**
      * calculateTFIDF
      *
-     * helper method that calculates the TFIDF given the tf, df and whether
-     * the sensor was on
+     * helper method that calculates the TF-IDF given the tf, df and whether
+     * the sensor was on.  This is used to score partial matches.
+     *
+     * For our purposes:
+     *   Term-Frequency (TF) is how often the sensor is on when the rule matches
+     *   Document-Frequency (DF) is how often the sensor is on in general
+     *
+     * Note: We've strayed quite a bit from the canonical TF-IDF
+     *       formula:  tf * -log(df).  Nonetheless, the name has stuck.
      *
      * @param tf the term frequency of the sensor
      * @param df the document frequency of the sensor
@@ -632,18 +631,36 @@ public class TFRule extends Rule{
      * @return the tfidf
      */
     private double calculateTFIDF(double tf, double df, boolean wasOn) {
-        double tfidf = 0.0;
+        //Calculate a base match degree on the scale [-1.0..1.0]
+        double tfidf = wasOn ? tf : (1.0 - tf);
+        tfidf -= 0.5;
+        tfidf *= 2.0;
 
-        // Added 1 to the denominator to avoid Nan, Infinity and division by 0 errors
-        if (wasOn){
-            tfidf = tf / (1 + df);
-        } else {
-            tfidf = (1 - tf) / (2 - df);
-        }
+        //Adjust the score based on its relevance.
+        double relevance = Math.abs(tf - df);
+        tfidf *= relevance;
 
         return tfidf;
     }//calculateTFIDF
 
+    /**
+     * isExactMatchLHSExt
+     *
+     * Calculates whether this rule has exactly the same LHS ext sensor
+     * values and action as given
+     */
+    public boolean isExactMatchLHSExt(SensorData lhsExt, char action) {
+        if (this.action != action) return false;
+
+        // Checks all external sensors
+        for (Cond eCond : this.lhsExternal) {
+            if (! lhsExt.hasSensor(eCond.sName)) return false;
+        }
+
+        return true;
+    }//isExactMatchLHSExt
+
+    /** @return true if this rule has a given internal sensor on its LHS */
     public boolean testsIntSensor(int id){
         for(Cond cond: this.lhsInternal){
             if(Integer.parseInt(cond.sName)==id){
@@ -653,18 +670,24 @@ public class TFRule extends Rule{
         return false;
     }
 
-    public int removeIntSensor(int oldId, int newId){
-        int removeCount = 0;
-
+    /** replaces one internal sensor with another in this rule (for merging) */
+    public boolean replaceIntSensor(int oldId, int newId){
         for(Cond cond: this.lhsInternal){
             if(Integer.parseInt(cond.sName) == oldId){
                 this.lhsInternal.remove(cond);
-                removeCount++;
-                return removeCount;
+
+                //The tfdata of the old condition is relevant but has no
+                // guarantee of being precise.  So we start over with a new
+                // condition whose initial value is set based upon the old data.
+                // Is this the best approach?  I can't think of better atm.
+                boolean initVal = (cond.data.getTF() >= 0.5);
+                this.lhsInternal.add(new Cond("" + newId, initVal));
+
+                return true;
             }
         }
-        return 0;
-    }
+        return false;
+    }//replaceIntSensor
 
     /**
      * sortedConds
@@ -861,10 +884,6 @@ public class TFRule extends Rule{
             result.setSensor(cond.sName, cond.data.getTF() >= 0.5);
         }
         return result;
-    }
-
-    public HashSet<Cond> getLHSExternalRaw() {
-        return this.lhsExternal;
     }
 
     public HashSet<Cond> getLhsInternal() {

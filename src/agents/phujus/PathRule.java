@@ -157,6 +157,8 @@ public class PathRule extends Rule {
     }//updateFlat
 
 
+    //TODO:  Should rhsMatch and lhsMatch be doing partial matches??
+    // The nearEquals() method lets us dodge this for now but not sure we should.
 
     /**
      * rhsMatch

@@ -28,12 +28,18 @@ public abstract class Rule {
 
         private double conf = 1.0; //start will full confidence (optimistic)
 
-        public void increaseConfidence(double matchScore, double bestScore) {
-            this.conf += ((1.0 - this.conf) / 2.0) * (matchScore / bestScore);
-        }
-
-        public void decreaseConfidence(double matchScore, double bestScore) {
-           this.conf -= (this.conf / 2.0) * (matchScore / bestScore);
+        /**
+         * increases or decreases the this confidence value
+         *
+         * @param degree  how much to change the value on a scale: -1.0..1.0
+         */
+        public void adjustConfidence(double degree) {
+            if (degree == 0.0) return;
+            if (degree > 0.0) {
+                this.conf += ((1.0 - this.conf) / 2.0) * degree;
+            } else {
+                this.conf += (this.conf / 2.0) * degree;
+            }
         }
 
         public double getConfidence() {
@@ -151,12 +157,8 @@ public abstract class Rule {
 
     public double getConfidence() { return this.confidence.getConfidence(); }
 
-    public void increaseConfidence(double matchScore, double bestScore) {
-        this.confidence.increaseConfidence(matchScore, bestScore);
-    }
-
-    public void decreaseConfidence(double matchScore, double bestScore) {
-        this.confidence.decreaseConfidence(matchScore, bestScore);
+    public void adjustConfidence(double degree) {
+        this.confidence.adjustConfidence(degree);
     }
 
     //endregion

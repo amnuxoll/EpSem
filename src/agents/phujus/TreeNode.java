@@ -437,10 +437,9 @@ public class TreeNode {
         // Record the vote from each rule for each sensor
         Vector<TFRule> tfRules = this.agent.getTfRules();
         for (TFRule rule: tfRules) {
-            // Skip rules with zero match scores
             if (rule.getAction() != action) continue;
             double score = rule.lhsMatchScore(action, this.currInternal, this.currExternal);
-            if (score <= 0.0) continue;
+            if (score <= 0.0) continue;  //skip rules with unsupportive match scores
             //TODO:  should rule confidence really be factored in here?  Leave it in for now...
             score *= rule.getConfidence();
             if (score <= 0.0) continue;
@@ -602,6 +601,7 @@ public class TreeNode {
 
             if ( foundPath != null ) {
                 double confidence = foundPath.lastElement().confidence;
+                confidence *= agent.metaScorePath(foundPath);
 
                 //TODO: Braeden is unsatisfied with the 1/length , think about another metric?
                 double foundScore = (1.0 / (foundPath.size())) * confidence;
@@ -632,7 +632,8 @@ public class TreeNode {
                 double foundScore = path.lastElement().confidence;
 
                 //Adjust confidence based upon the PathRules eval
-                foundScore *= agent.metaScorePath(path);
+                //TODO: I moved this into fbgpHelper(); put this back later?
+                //foundScore *= agent.metaScorePath(path);
 
                 if(foundScore > bestScore) {
                     bestPath = path;

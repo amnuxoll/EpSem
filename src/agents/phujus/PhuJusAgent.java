@@ -411,10 +411,10 @@ public class PhuJusAgent implements IAgent {
         }
 
         //DEBUG: breakpoint here to debug
-        if(this.stepsSinceGoal >= 30) {
+        if(this.stepsSinceGoal >= 20) {
             debugPrintln("");
         }
-        if (this.now >= 3) {
+        if (this.now >= 286) {
             debugPrintln("");
         }
 
@@ -509,13 +509,16 @@ public class PhuJusAgent implements IAgent {
                 bestScore = allScores[i];
                 bestRule = r;
             }
-        }
+        }//for
+
+        //If best score is a mismatch then there will be no internal sensors
+        if (bestScore <= 0.0) return result;
 
         // Turn on internal sensors for all rules that are at or "near" the
         // highest match score.  "near" is currently hard-coded
         // TODO:  have agent adjust "near" based on its experience
         for (int i = 0; i < this.tfRules.size(); ++i) {
-            if (allScores[i] == 0.0) continue;
+            if (allScores[i] <= 0.0) continue;
             if (1.0 - (allScores[i] / bestScore )  <= TFRule.MATCH_NEAR){
                 int ruleId = this.tfRules.get(i).getId();
                 result.add(ruleId);
@@ -626,9 +629,9 @@ public class PhuJusAgent implements IAgent {
 
         //Adjust confidence of the active, matching rule
         if (correctPredict) {
-            prMatch.increaseConfidence(1.0, 1.0);
+            prMatch.adjustConfidence(1.0);
         } else {
-            prMatch.decreaseConfidence(1.0, 1.0);
+            prMatch.adjustConfidence(-1.0);
         }
 
     }//incorporateNewPathRule
@@ -726,8 +729,20 @@ public class PhuJusAgent implements IAgent {
 
         //DEBUG
         else {
-            debugPrint("found path: " + this.pathToDo.lastElement());
-            debugPrint(String.format(" (conf=%.3f)", this.pathToDo.lastElement().getConfidence()));
+            debugPrintln("found path: " + this.pathToDo.lastElement().getPathStr());
+            debugPrintln("\t" + root);
+            int count = 1;
+            for(TreeNode tn : this.pathToDo) {
+                for(Integer ruleId : tn.getCurrInternal()) {
+                    TFRule tfRule = (TFRule)getRuleById(ruleId);
+                    for(int i = 0; i < count; ++i) debugPrint("\t");
+                    debugPrintln("  " + tfRule.toString());
+                }
+                count++;
+                for(int i = 0; i < count; ++i) debugPrint("\t");
+                debugPrint(tn.toString(false));
+            }
+            debugPrintln(String.format("\t path confidence=%.3f", this.pathToDo.lastElement().getConfidence()));
 
             //TODO: this DEBUG code is expensive so remove if PathRules are working well
             //Use the PathRule that best matches the given path
@@ -744,9 +759,9 @@ public class PhuJusAgent implements IAgent {
             }
             //inform the human
             if (bestPR == null) {
-                debugPrintln(" not adjusted by a PathRule");
+                debugPrintln("\tnot adjusted by a PathRule");
             } else {
-                debugPrintln(" adj by PathRule " + bestPR);
+                debugPrintln("\tadj by PathRule " + bestPR);
             }
 
         }//else DEBUG
@@ -776,14 +791,6 @@ public class PhuJusAgent implements IAgent {
             String movingAvgStr = String.format("%.3f", movingAvg);
             System.out.println("Found GOAL No. " + numGoals + " in " + this.stepsSinceGoal + " steps (avg: " + avgStr +  "; moving avg: " + movingAvgStr + ")");
             rewardRulesForGoal();
-            this.stepsSinceGoal = 0;
-            buildNewPath();
-
-            //Track random success
-            if (this.currPathRandom) {
-                this.numRand++;
-                this.numRandSuccess++;
-            }
 
             //reset confusion info
             this.confusion = 0.0;
@@ -791,6 +798,16 @@ public class PhuJusAgent implements IAgent {
             this.confusionSteps = 0;
             this.currPathRandom = false;
 
+            //Track random success
+            if (this.currPathRandom) {
+                this.numRand++;
+                this.numRandSuccess++;
+            }
+
+
+            this.stepsSinceGoal = 0;
+
+            buildNewPath();
         } else if ((this.pathToDo.size() == 0)) {
             //DEBUG
             debugPrintln("Current path failed.");
@@ -811,8 +828,6 @@ public class PhuJusAgent implements IAgent {
                 if (this.confusion > 0.0) {
                     this.confusionSteps = this.prevConfSteps + 1;
                 }
-
-                debugPrintln("Agent confusion: " + this.confusion + " for " + this.confusionSteps + " steps.");
             }
             this.currPathRandom = false;
 
@@ -1030,46 +1045,13 @@ public class PhuJusAgent implements IAgent {
      *
      */
     public void updateTFRuleConfidences() {
-        //find the highest match score because the ration of a rule's match score
-        //to the best score affects the amount of increase/decrease in confidence
-        //NOTE:  Can't use this.bestPrevMatch for this because it rejects any rule
-        //       with mismatching RHS.
-        double bestScore = 0.0;
-        TFRule bestRule = null;  //not needed but useful for debugging
-        //Put all these scores in an array so we don't have to calc them twice (see next loop)
-        double[] scores = new double[this.tfRules.size()];
-        int scIndex = 0;
-        for (TFRule r : this.tfRules) {
-            double score = r.lhsMatchScore(this.prevAction, this.getPrevInternal(), this.prevExternal);
-            if (score > bestScore) {
-                bestScore = score;
-                bestRule = r;
-            }
-            scores[scIndex] = score;
-            scIndex++;
-        }
-
-        //Update confidences of all matching rules
-        scIndex = 0;
-        for(TFRule rule: this.tfRules) {
-            double score = scores[scIndex];
-            scIndex++;
-
-            if(score > 0.0) {  //TODO: should this be something like (score > bestScore/2) instead?
-                //For base-event rules, confidence is not adjusted unless it's a perfect match
-                if ( (rule.getOperator() == TFRule.RuleOperator.ALL)
-                        && (rule.lhsExtMatchScore(this.prevExternal) < TFRule.MAX_MATCH) ) {
-                    continue;
-                }
-
-                if (rule.isRHSMatch()) {
-                    rule.increaseConfidence(score, bestScore);
-                } else {
-                    rule.decreaseConfidence(score, bestScore);
-                }
+        for(TFRule tfRule : this.tfRules) {
+            double lhsScore = tfRule.lhsMatchScore(this.prevAction, this.getPrevInternal(), this.prevExternal);
+            if (lhsScore > 0.0) {
+                double rhsScore = tfRule.rhsMatchScore(this.currExternal);
+                tfRule.adjustConfidence(rhsScore);
             }
         }
-
     }//updateTFRuleConfidences
 
     /**
@@ -1349,46 +1331,16 @@ public class PhuJusAgent implements IAgent {
 
         // If any rule has a condition that test for 'removeMe' then that
         // condition must also be removed or replaced
-        Vector<TFRule> truncated = new Vector<>(); //stores rules that were truncated by this process
         for (Rule rule : this.rules.values()) {
             if(rule instanceof TFRule) {
                 TFRule r = (TFRule) rule;
                 if (r.testsIntSensor(removeMe.getId())) {
                     int replId = (replacement == null) ? -1 : replacement.getId();
-                    int ret = r.removeIntSensor(removeMe.getId(), replId);
-
-                    //if the rule was truncated we have to resolve that
-                    if (ret < 0) {
-                        truncated.add(r);
-                    }
+                    r.replaceIntSensor(removeMe.getId(), replId);
                 }
             }
         }
 
-        //Truncated rules are extra nasty to resolve well.  For now we're just going
-        // to remove them if they conflict with other rules in the ruleset.
-       /* // I'm sure this will come back and bite us later...
-        Vector<TFRule> removeThese = new Vector<>();
-        for(TFRule r : truncated) {
-            EpRuleMatchProfile prof = findMostSimilarRule(r);
-            if (prof.shortScore == 1.0) {
-                removeThese.add(r);
-            }
-        }
-        for(TFRule r : removeThese) {
-            removeRule(r, null);  //recursion here
-        }
-*/
-
-        /*//the replacement may also have to-be-removed rule in its sensor set
-        if (replacement != null) {
-            if(replacement instanceof TFRule) {
-                if (replacement.testsIntSensor(removeMe.getId())) {
-                    replacement.removeIntSensor(removeMe.getId(), replacement.getId());
-                }
-            }
-        }
-*/
         //If the removed rule was in the internal sensor set, it has to be fixed as well
         if (this.currInternal.contains(removeMe.getId())) {
             this.currInternal.remove(removeMe.getId());
