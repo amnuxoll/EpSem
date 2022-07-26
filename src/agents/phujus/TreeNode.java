@@ -698,6 +698,7 @@ public class TreeNode {
         for(int max = 1; max <= PhuJusAgent.MAX_SEARCH_DEPTH; ++max) {
             Vector<TreeNode> path = fbgpHelper(0, max);
             if (path != null) {
+                path.lastElement().pathRule = agent.getBestMatchingPathRule(path);
                 double foundScore = calcOverallScore(path);
                 if (foundScore < agent.getRandSuccessRate()) continue;
 

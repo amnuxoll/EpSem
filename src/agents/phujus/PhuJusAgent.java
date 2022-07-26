@@ -403,7 +403,7 @@ public class PhuJusAgent implements IAgent {
         }
 
         //DEBUG: breakpoint here to debug
-        if(this.stepsSinceGoal >= 30) {
+        if(this.stepsSinceGoal >= 20) {
             debugPrintln("");
         }
         if (this.now >= 286) {
@@ -631,36 +631,43 @@ public class PhuJusAgent implements IAgent {
      * keep the agent's PathRule set up to date
      */
     private void updatePathRules() {
+        //If the agent isn't on a path then there is nothing to do
+        if (this.pathTraversedSoFar.size() == 0) return;  //should only happen at this.now==1
+
         //log what just happened for future use by PathRules
-        if (this.actualPath.size() > 0) {
-            this.actualPath.add(new TreeNode(this.actualPath.lastElement(), this.prevAction, this.currExternal, 1.0));
+        TreeNode actualTN = new TreeNode(this.actualPath.lastElement(), this.prevAction, this.currExternal, 1.0);
+        this.actualPath.add(actualTN);
+
+        //The actualPath begins with the root note in place so it can be used
+        // by the TreeNode ctor.  Once it's been used, it is discarded so that
+        // actualPath and pathTraversedSoFar stay in sync
+        if (this.actualPath.firstElement().getParent() == null) {
+            this.actualPath.remove(0);
+        }
+        if (this.actualPath.size() != this.pathTraversedSoFar.size()) {
+            debugPrintln("ERROR: PJA.actualPath and  PJA.pathTraversedSoFar are not the same length!");
+            throw new java.lang.IllegalArgumentException();
         }
 
-        //If the agent hasn't completed its current path then no work is to be done
-        if (this.pathToDo == null) return; //agent is not using a path atm
-        if (this.pathToDo.size() > 0) return; //agent is mid-path
-        if (this.pathTraversedSoFar.size() == 0) return;  //should not happen
-
-        //Create a new PathRule based upon the just-completed path
-        //Note:  this path may not match the agent's actual experience!
+        //Create a new PathRule based upon the path steps taken so far
+        //Note:  these steps may not match the agent's actual experience!
         PathRule newbie = new PathRule(this, this.prevPRMatch, this.pathTraversedSoFar);
-        boolean correctPredict = (this.pathTraversedSoFar.lastElement().getCurrExternal().equals(this.currExternal));
         PathRule prMatch = getBestMatchingPathRule(newbie);
+        boolean correctPredict = (this.pathTraversedSoFar.lastElement().getCurrExternal().equals(this.currExternal));
         incorporateNewPathRule(newbie, prMatch, correctPredict);
 
         //If newbie was wrong, create a second PathRule to reflect what actually happened
-        this.actualPath.remove(0); //chop off the root TreeNode as it is not used
-        PathRule correctNewbie = new PathRule(this, this.prevPRMatch, this.actualPath);
-        PathRule correctPRMatch = getBestMatchingPathRule(correctNewbie);
-        if (! correctPredict) {
+        PathRule correctPRMatch = getBestMatchingPathRule(this.actualPath);
+        PathRule correctNewbie = null;
+        if (!correctPredict) {
+            correctNewbie = new PathRule(this, this.prevPRMatch, this.actualPath);
             incorporateNewPathRule(correctNewbie, correctPRMatch, true);
         }
 
-        //Log the PathRule that matched what actually occurred so we can
-        // use it as the LHS of the next PathRule
-        if (correctPRMatch == null) {
-            this.prevPRMatch = getBestMatchingPathRule(correctNewbie);
-        } else {
+        //Once the agent's path has been completed, then log the PathRule that
+        // matched what actually occurred so we can use it as the LHS of the
+        // next PathRule
+        if (this.pathToDo.size() == 0) {
             this.prevPRMatch = correctPRMatch;
         }
 
@@ -682,23 +689,13 @@ public class PhuJusAgent implements IAgent {
         //Reset the agent's log of the actual path and traversed path
         this.pathTraversedSoFar.clear();
         TreeNode root = new TreeNode(this);
+
+        //Reset the log of actual events that happen (compare to pathTraversedSoFar)
         this.actualPath.clear();
-        this.actualPath.add(root);
+        this.actualPath.add(root); //needed to create subsequent nodes
 
         //See if we can beat the baseline with the TFRules
         this.pathToDo = root.findBestGoalPath();
-
-        //TODO:  I've removed the use of confusion for now. Put this back in later?
-        //The agent will not use paths whose confidence is less than its confusion level
-//        if ((this.pathToDo != null) && (this.pathToDo.lastElement().getConfidence() <= this.confusion)) {
-//            if (DEBUGPRINTSWITCH) {
-//                debugPrint("I'm too confused for this path: ");
-//                debugPrint(this.pathToDo.lastElement().getPathStr());
-//                debugPrint(" (conf: " + this.pathToDo.lastElement().getConfidence());
-//                debugPrintln(" cfsn: " + this.confusion + " steps: " + this.confusionSteps + ")");
-//            }
-//            this.pathToDo = null;
-//        }
 
         //DEBUG
         if (PhuJusAgent.DEBUGPRINTSWITCH && PhuJusAgent.DEBUGTREESWITCH) {
@@ -745,7 +742,7 @@ public class PhuJusAgent implements IAgent {
             debugPrintln(tn.toString(false));
         }
         debugPrintln(String.format("\t path confidence=%.3f", path.lastElement().getConfidence()));
-        debugPrintln(String.format("\t adjusted by PathRule: ", path.lastElement().getPathRule()));
+        debugPrintln("\t adjusted by PathRule: " + path.lastElement().getPathRule());
     }//debugPathReport
 
     /**
