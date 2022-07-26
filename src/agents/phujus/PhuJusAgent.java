@@ -333,7 +333,6 @@ public class PhuJusAgent implements IAgent {
     private HashMap<String, Tuple<Integer, Double>> internalPercents = new HashMap<>();
 
     //This are the PathRules that matched at the end of the last path
-    private HashSet<PathRule> old_prevPRMatch = null;
     private PathRule prevPRMatch = null;
 
     //These variables track the success rate of random actions
@@ -546,14 +545,13 @@ public class PhuJusAgent implements IAgent {
     }//getBestMatchingPathRule
 
     /**
-     * metaScorePath
+     * getBestMatchingPathRule
      *
-     * provides an opinion about a given path based on the PathRule set
+     * determines which PathRule in this.pathRule best matches a given path
      *
-     * @return a double 0.0..1.0 scoring the agent's opinion
+     * @return the matching PR or null if not found
      */
-    public double metaScorePath(Vector<TreeNode> path) {
-        //Use the PathRule that best matches the given path
+    public PathRule getBestMatchingPathRule(Vector<TreeNode> path) {
         int bestScore = -1;
         PathRule bestPR = null;
         for (PathRule pr : this.pathRules) {
@@ -566,11 +564,8 @@ public class PhuJusAgent implements IAgent {
             }
         }
 
-        //If no match found then default to full confidence
-        if (bestPR == null) return 1.0;
-        else return bestPR.getConfidence();
-
-    }//metaScorePath
+        return bestPR;
+    }//getBestMatchingPathRule
 
     /**
      * incorporateNewPathRule
@@ -747,30 +742,11 @@ public class PhuJusAgent implements IAgent {
             }
             count++;
             for(int i = 0; i < count; ++i) debugPrint("\t");
-            debugPrint(tn.toString(false));
+            debugPrintln(tn.toString(false));
         }
         debugPrintln(String.format("\t path confidence=%.3f", path.lastElement().getConfidence()));
-
-        //TODO: this DEBUG code is expensive so remove if PathRules are working well
-        //Use the PathRule that best matches the given path
-        int bestScore = -1;
-        PathRule bestPR = null;
-        for (PathRule pr : this.pathRules) {
-            if (pr.rhsMatch(path)) {
-                int score = pr.lhsMatch(this.prevPRMatch);
-                if (score > bestScore) {
-                    bestScore = score;
-                    bestPR = pr;
-                }
-            }
-        }
-        //inform the human
-        if (bestPR == null) {
-            debugPrintln("\tnot adjusted by a PathRule");
-        } else {
-            debugPrintln("\tadj by PathRule " + bestPR);
-        }
-    }
+        debugPrintln(String.format("\t adjusted by PathRule: ", path.lastElement().getPathRule()));
+    }//debugPathReport
 
     /**
      * pathMaintenance

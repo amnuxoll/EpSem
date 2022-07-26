@@ -50,7 +50,11 @@ public class TreeNode {
 
     //A list of all possible external sensor combinations for this agent
     // e.g., 000, 001, 010, etc.
-    static String[] comboArr = null;  //init'd by 1st ctor call
+    private static String[] comboArr = null;  //init'd by 1st ctor call
+
+    //The PathRule best matches the path described by this TreeNode, presuming
+    // it is the last step in its path.  This is set to null by default.
+    private PathRule pathRule = null;
 
 
     /**
@@ -70,6 +74,7 @@ public class TreeNode {
         this.pathStr = "";
         //full confidence because drawn directly from agent's present sensing
         this.confidence = 1.0;
+        this.pathRule = null;
 
         if (TreeNode.comboArr == null) {
             TreeNode.initComboArr(this.currExternal.size());
@@ -97,7 +102,8 @@ public class TreeNode {
         this.path.add(this);
         this.pathStr = parent.pathStr + action;
         this.confidence = parent.confidence * confidence;
-    }
+        this.pathRule = null;
+    }//child ctor
 
     /**
      * copy ctor
@@ -114,7 +120,8 @@ public class TreeNode {
         this.path = new Vector<>(orig.path);
         this.pathStr = orig.pathStr;
         this.confidence = orig.confidence;
-    }
+        this.pathRule = orig.pathRule;
+    }//copy ctor
 
     /**
      * initComboArr
@@ -554,8 +561,67 @@ public class TreeNode {
             }
         }//for
 
-
     }//expand
+
+    /**
+     * cullWeakChildren
+     *
+     * remove any children from this node whose overall confidence (after adjustment by a PathRule)
+     */
+    private void cullWeakChildren() {
+        //Find the matching pathRule for each child and use it to calc overall conf
+        Vector<TreeNode> removeThese = new Vector<>();  //children to be removed
+        Vector<TreeNode> partialPath = new Vector<>();
+        TreeNode tmp = this;
+        while(tmp.parent != null) {
+            partialPath.add(tmp);
+            tmp = tmp.parent;
+        }
+        for(TreeNode child : this.children) {
+            //Find the matching pathrule
+            partialPath.add(child);
+            child.pathRule = agent.getBestMatchingPathRule(partialPath);
+            //note: don't use partialPath.remove(child) as it relies on equals()
+            double overallScore = calcOverallScore(partialPath);
+            partialPath.remove(partialPath.size() - 1);
+
+            //If the overall confidence is too low, mark the child for removal
+            if (overallScore < agent.getRandSuccessRate()) {
+                removeThese.add(child);
+            }
+        }//for
+
+        //Remove the too-weak children.  Gruesome, no?
+        for(TreeNode child : removeThese) {
+            this.children.remove(child);
+        }
+    }//cullWeakChildren
+
+    /**
+     * calcOverallScore
+     *
+     * A path has an overall score based on these factors:
+     * 1.  the path confidence (based on the TFRule confidences)
+     * 2.  the matching PathRule's confidence
+     * 3.  the path's length (longer paths are less certain)
+     *
+     */
+    private double calcOverallScore(Vector<TreeNode> foundPath) {
+        //the score starts with a base confidence
+        TreeNode lastEl = foundPath.lastElement();
+        double foundScore = lastEl.confidence;
+
+        //adjust score using the matching PathRule
+        if (lastEl.pathRule != null) {
+            foundScore *= lastEl.pathRule.getConfidence();
+        }
+
+        //Adjust based on path length.  This is based on the Sunrise problem in probability.
+        foundScore *= (1.0 / (foundPath.size()));
+
+        return foundScore;
+    }//calcOverallScore
+
 
     /**
      * fbgpHelper
@@ -597,16 +663,17 @@ public class TreeNode {
             }
         }
 
+        //Remove children that aren't better than random
+        cullWeakChildren();
+
         for(TreeNode child : this.children) {
             //Recursive case: test all children and return shortest path
             Vector<TreeNode> foundPath = child.fbgpHelper(depth + 1, maxDepth);
 
             if ( foundPath != null ) {
-                double confidence = foundPath.lastElement().confidence;
-                confidence *= agent.metaScorePath(foundPath);
+                double foundScore = calcOverallScore(foundPath);
 
-                //TODO: Braeden is unsatisfied with the 1/length , think about another metric?
-                double foundScore = (1.0 / (foundPath.size())) * confidence;
+                //best so far?
                 if (foundScore > bestScore) {
                     bestPath = foundPath;
                     bestScore = foundScore;
@@ -631,10 +698,7 @@ public class TreeNode {
         for(int max = 1; max <= PhuJusAgent.MAX_SEARCH_DEPTH; ++max) {
             Vector<TreeNode> path = fbgpHelper(0, max);
             if (path != null) {
-                double foundScore = path.lastElement().confidence;
-
-                //Ignore paths if a random action seems more likely to succeed
-                foundScore *= agent.metaScorePath(path);
+                double foundScore = calcOverallScore(path);
                 if (foundScore < agent.getRandSuccessRate()) continue;
 
                 if(foundScore > bestScore) {
@@ -957,6 +1021,7 @@ public class TreeNode {
     public SensorData getCurrExternal() { return this.currExternal; }
     public TreeNode getParent() { return this.parent; }
     public double getConfidence() { return this.confidence; }
+    public PathRule getPathRule() { return this.pathRule; }
 
 
 }//class TreeNode
