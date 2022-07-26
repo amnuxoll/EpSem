@@ -332,20 +332,13 @@ public class PhuJusAgent implements IAgent {
     private HashMap<String, Tuple<Integer, Double>> externalPercents = new HashMap<>();
     private HashMap<String, Tuple<Integer, Double>> internalPercents = new HashMap<>();
 
-    //Track the agent's current confusion level.  The agent will not
-    //trust paths in which its confidence in the path is lower
-    //than its confusion level.
-    private double confusion = 0.0;
-    private boolean currPathRandom = false;
-    private int confusionSteps = 0;  //how many steps until this confusion
-    private int prevConfSteps = 0;
-
     //This are the PathRules that matched at the end of the last path
     private HashSet<PathRule> old_prevPRMatch = null;
     private PathRule prevPRMatch = null;
 
     //These variables track the success rate of random actions
     // (Using double instead of int so we can calc pct success)
+    private boolean currPathRandom = false;
     private double numRand = 1.0;
     private double numRandSuccess = 1.0;
 
@@ -411,7 +404,7 @@ public class PhuJusAgent implements IAgent {
         }
 
         //DEBUG: breakpoint here to debug
-        if(this.stepsSinceGoal >= 20) {
+        if(this.stepsSinceGoal >= 30) {
             debugPrintln("");
         }
         if (this.now >= 286) {
@@ -716,6 +709,7 @@ public class PhuJusAgent implements IAgent {
         if (PhuJusAgent.DEBUGPRINTSWITCH && PhuJusAgent.DEBUGTREESWITCH) {
             root.printTree();
         }
+        debugPrintln("random action success rate: " + this.getRandSuccessRate());
 
         if (this.pathToDo == null) {
             debugPrintln("no path found");
@@ -729,44 +723,54 @@ public class PhuJusAgent implements IAgent {
 
         //DEBUG
         else {
-            debugPrintln("found path: " + this.pathToDo.lastElement().getPathStr());
-            debugPrintln("\t" + root);
-            int count = 1;
-            for(TreeNode tn : this.pathToDo) {
-                for(Integer ruleId : tn.getCurrInternal()) {
-                    TFRule tfRule = (TFRule)getRuleById(ruleId);
-                    for(int i = 0; i < count; ++i) debugPrint("\t");
-                    debugPrintln("  " + tfRule.toString());
-                }
-                count++;
-                for(int i = 0; i < count; ++i) debugPrint("\t");
-                debugPrint(tn.toString(false));
-            }
-            debugPrintln(String.format("\t path confidence=%.3f", this.pathToDo.lastElement().getConfidence()));
-
-            //TODO: this DEBUG code is expensive so remove if PathRules are working well
-            //Use the PathRule that best matches the given path
-            int bestScore = -1;
-            PathRule bestPR = null;
-            for (PathRule pr : this.pathRules) {
-                if (pr.rhsMatch(this.pathToDo)) {
-                    int score = pr.lhsMatch(this.prevPRMatch);
-                    if (score > bestScore) {
-                        bestScore = score;
-                        bestPR = pr;
-                    }
-                }
-            }
-            //inform the human
-            if (bestPR == null) {
-                debugPrintln("\tnot adjusted by a PathRule");
-            } else {
-                debugPrintln("\tadj by PathRule " + bestPR);
-            }
+            debugPathReport(root, this.pathToDo);
 
         }//else DEBUG
 
     }//buildNewPath
+
+    /**
+     * debugPathReport
+     *
+     * provides detailed information about a given path.  This method is
+     * used to help humans debug and does nothing for the agent.
+     */
+    public void debugPathReport(TreeNode root, Vector<TreeNode> path) {
+        debugPrintln("found path: " + path.lastElement().getPathStr());
+        debugPrintln("\t" + root);
+        int count = 1;
+        for(TreeNode tn : path) {
+            for(Integer ruleId : tn.getCurrInternal()) {
+                TFRule tfRule = (TFRule)getRuleById(ruleId);
+                for(int i = 0; i < count; ++i) debugPrint("\t");
+                debugPrintln("  " + tfRule.toString());
+            }
+            count++;
+            for(int i = 0; i < count; ++i) debugPrint("\t");
+            debugPrint(tn.toString(false));
+        }
+        debugPrintln(String.format("\t path confidence=%.3f", path.lastElement().getConfidence()));
+
+        //TODO: this DEBUG code is expensive so remove if PathRules are working well
+        //Use the PathRule that best matches the given path
+        int bestScore = -1;
+        PathRule bestPR = null;
+        for (PathRule pr : this.pathRules) {
+            if (pr.rhsMatch(path)) {
+                int score = pr.lhsMatch(this.prevPRMatch);
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestPR = pr;
+                }
+            }
+        }
+        //inform the human
+        if (bestPR == null) {
+            debugPrintln("\tnot adjusted by a PathRule");
+        } else {
+            debugPrintln("\tadj by PathRule " + bestPR);
+        }
+    }
 
     /**
      * pathMaintenance
@@ -792,18 +796,13 @@ public class PhuJusAgent implements IAgent {
             System.out.println("Found GOAL No. " + numGoals + " in " + this.stepsSinceGoal + " steps (avg: " + avgStr +  "; moving avg: " + movingAvgStr + ")");
             rewardRulesForGoal();
 
-            //reset confusion info
-            this.confusion = 0.0;
-            this.prevConfSteps = 0;
-            this.confusionSteps = 0;
-            this.currPathRandom = false;
 
             //Track random success
             if (this.currPathRandom) {
                 this.numRand++;
                 this.numRandSuccess++;
+                this.currPathRandom = false;
             }
-
 
             this.stepsSinceGoal = 0;
 
@@ -812,24 +811,12 @@ public class PhuJusAgent implements IAgent {
             //DEBUG
             debugPrintln("Current path failed.");
 
+            //Track random action count
             if (this.currPathRandom) {
-                this.confusionSteps --;
-                this.prevConfSteps ++;
-                if (this.confusionSteps <= 0) {
-                    this.confusion = 0.0;
-                }
-
-                //Track random action count
                 this.numRand++;
-            } else {
-                //The agent is now confused
-                this.confusion += this.pathTraversedSoFar.lastElement().getConfidence();
-                if (this.confusion > 1.0) this.confusion = 1.0;
-                if (this.confusion > 0.0) {
-                    this.confusionSteps = this.prevConfSteps + 1;
-                }
+                this.currPathRandom = false;
             }
-            this.currPathRandom = false;
+
 
             buildNewPath();
         } else {

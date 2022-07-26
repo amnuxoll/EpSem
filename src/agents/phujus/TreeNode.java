@@ -51,6 +51,8 @@ public class TreeNode {
     //A list of all possible external sensor combinations for this agent
     // e.g., 000, 001, 010, etc.
     static String[] comboArr = null;  //init'd by 1st ctor call
+
+
     /**
      * This root node constructor is built from the agent.
      *
@@ -631,9 +633,9 @@ public class TreeNode {
             if (path != null) {
                 double foundScore = path.lastElement().confidence;
 
-                //Adjust confidence based upon the PathRules eval
-                //TODO: I moved this into fbgpHelper(); put this back later?
-                //foundScore *= agent.metaScorePath(path);
+                //Ignore paths if a random action seems more likely to succeed
+                foundScore *= agent.metaScorePath(path);
+                if (foundScore < agent.getRandSuccessRate()) continue;
 
                 if(foundScore > bestScore) {
                     bestPath = path;
