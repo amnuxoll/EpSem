@@ -3,6 +3,8 @@ package agents.wfc;
 import framework.Action;
 import framework.SensorData;
 
+import java.util.Scanner;
+
 /**
  * class PathNode
  * <p>
@@ -13,30 +15,23 @@ public class PathNode {
     private SensorData externalSensor;
     private Action     action;
 
-    private double     successes;
-    private double     fails;
-
     public PathNode(SensorData externalSensor, char action) {
         this.externalSensor = externalSensor;
         this.action = new Action("" + action);
     }
 
-    public double updateQ(boolean success) {
-        if (success) {
-            this.successes++;
-        } else {
-            this.fails++;
-        }
-
-        return getQ();
-    }
-
-    public double getQ() {
-        if (successes == 0 || fails == 0) {
-            return 0;
-        }
-
-        return (successes + fails) / successes;
+    /**
+     * pathNode
+     * <p>
+     * Creates a new PathNode based on a given string, such as (00)a. Called by the WFCPathRule constructor of the same
+     * type.
+     * @param nodeStr
+     */
+    public PathNode(String nodeStr) {
+        // ASSUMES 2 SENSORS AND 1 ACTION!!
+        this.action = new Action(nodeStr.charAt(4) + "");
+        this.externalSensor = new SensorData(false);
+        this.externalSensor.setSensor("IS_ODD", nodeStr.charAt(1) == '1');
     }
 
     public SensorData getExternalSensor() {

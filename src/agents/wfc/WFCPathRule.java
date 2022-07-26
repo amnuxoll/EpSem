@@ -1,6 +1,7 @@
 package agents.wfc;
 
 
+import java.util.Scanner;
 import java.util.Vector;
 
 /**
@@ -18,6 +19,31 @@ public class WFCPathRule extends WFCRule {
         super(agent);
 
         this.nodes = new Vector<>(nodes);
+    }
+
+    /**
+     * WFCPathRule
+     * <p>
+     * Creates a new WFCPathRule from a given String representation. Used by importPathRules() in
+     * WFCAgent. The strings are in the format (extSensor)action -> (extSensor)action ...
+     * @param agent
+     * @param rule
+     */
+    public WFCPathRule(WFCAgent agent, String rule) {
+        super(agent);
+
+        this.nodes = new Vector<>();
+
+        Scanner sc = new Scanner(rule);
+        sc.useDelimiter(" -> ");
+        while (sc.hasNext()) {
+            String nodeStr = sc.next();
+            if (nodeStr.startsWith("GOAL")) {
+                continue;
+            }
+
+            this.nodes.add(new PathNode(nodeStr));
+        }
     }
 
     public Vector<PathNode> getNodes() {

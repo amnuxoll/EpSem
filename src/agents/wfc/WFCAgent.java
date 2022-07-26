@@ -3,6 +3,10 @@ package agents.wfc;
 import agents.phujus.PhuJusAgent;
 import framework.*;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.*;
 
 /**
@@ -34,7 +38,12 @@ public class WFCAgent implements IAgent {
     public static final int EPSILON     = 500; // The duration (in timesteps) of the agent's exploration
     public static final int MAXNUMRULES = -1; // The maximum number of rules (-1 if no cap)
 
-    public static final boolean DEBUGPRINTSWITCH = true; // Turns on/off debugPrint()
+    public static final boolean DEBUGPRINTSWITCH = false; // Turns on/off debugPrint()
+    public static final boolean OUTPUT_PATHRULES = false; // Whether or not the agent exports PathRules on goal
+    public static final boolean INPUT_PATHRULES  = false; // Whether or not the agent imports PathRules
+
+    public static final File OUTPUT_FILE = new File("C:\\Users\\sirma\\fsm_output\\00logs\\wfc_pathrule_output.txt");
+    public static final File INPUT_FILE = new File("C:\\Users\\sirma\\fsm_output\\00logs\\wfc_pathrule_input.txt");
     // TODO Agent should automatically decide when to explore and when to exploit
 
     // The path that the agent has travelled along since reaching the goal
@@ -43,8 +52,6 @@ public class WFCAgent implements IAgent {
     // The lists of rules that this agent is using
     private Vector<WFCPathRule> wfcPathRules  = new Vector<>();
     private Hashtable<Integer, WFCRule> rules = new Hashtable<>();
-    private Pair<SensorData, Action> prevPathData;
-    private List<PathNode>           prevPathRule;
 
     // Random number generator with fixed seed to reproduce results
     public static Random rand = new Random(2);
@@ -109,15 +116,20 @@ public class WFCAgent implements IAgent {
 
         this.now++;
 
+        if (this.now == 1) {
+
+            if (OUTPUT_PATHRULES && OUTPUT_FILE.exists()) {
+                OUTPUT_FILE.delete();
+            }
+
+            if (INPUT_PATHRULES) {
+                importPathRules(INPUT_FILE);
+            }
+        }
+
         debugPrintln("Received SensorData: " + sensorData);
 
         printPathRules();
-
-        // Checking if the previously selected PathRule's prediction was correct
-        if (prevPathData != null && prevPathRule != null) {
-            boolean success = prevPathData.getVal1().equals(sensorData);
-            updatePathQValues(prevPathRule, success);
-        }
 
         // Update realPathTraversedSoFar to contain the current external. Action is unknown at this point
         if (sensorData.isGoal()) {
@@ -125,7 +137,6 @@ public class WFCAgent implements IAgent {
             if (tookRandomAction) {
                 succesfulRands++;
                 tookRandomAction = false;
-
 
                 this.prevRatio = this.ratio;
                 this.ratio = (double) succesfulRands / (double) totalRands;
@@ -142,11 +153,15 @@ public class WFCAgent implements IAgent {
                     sensorData,
                     '*'
             ));
-            System.out.println("Here");
         }
 
-        // Deciding on what action to take next
-        char action = calcActionRSB();
+        // Deciding on what acion to take next
+        char action;
+        if (INPUT_PATHRULES) {
+            action = getActionFromExperiences();
+        } else {
+            action = calcActionRSB();
+        }
 
         // We add the action to our current path once it's decided
         if (this.realPathTraversedSoFar.size() > 0) {
@@ -157,6 +172,58 @@ public class WFCAgent implements IAgent {
         debugPrintln("TIME: " + now);
         return new Action(action + "");
     }//getNextAction
+
+    /**
+     * importPathRules
+     * <p>
+     * Imports a set of WFCPathRules from a given file.
+     * @param input
+     * @throws IOException
+     */
+    private void importPathRules(File input) throws IOException {
+        if (!input.exists()) {
+            return;
+        }
+
+        // Every line is a different rule
+        try (Scanner sc = new Scanner(input)) {
+            while (sc.hasNextLine()) {
+                String line = sc.nextLine();
+                addRule(new WFCPathRule(this, line));
+            }
+        }
+        debugPrintln("Done");
+    }//importPathRules
+
+    /**
+     * exportPathRules
+     * <p>
+     * Exports all of the PathRules currently generated so far to the given output file. This method is called
+     * everytime a new rule is added, so it probably bogs down the performance quite a bit when OUTPUT_PATHRULES is
+     * set to true.
+     * @param output
+     * @throws IOException
+     */
+    private void exportPathRules(File output) throws IOException {
+
+        if (this.wfcPathRules.size() == 0) {
+            return;
+        }
+
+        if (!output.exists()) {
+            output.createNewFile();
+        }
+
+        // Output all string representations of the rules to the file
+        StringBuilder sb = new StringBuilder();
+        for (WFCPathRule rule : this.wfcPathRules) {
+            sb.append(rule.toString(false) + "\n");
+        }
+
+        FileWriter writer = new FileWriter(output);
+        writer.write(sb.toString());
+        writer.close();
+    }//exportPathRules
 
     /**
      * calcActionPSB
@@ -203,8 +270,6 @@ public class WFCAgent implements IAgent {
             action = getRandomAction();
             totalRands++;
 
-            this.prevPathRule = null;
-            this.prevPathData = null;
             tookRandomAction = true;
         }
         // EXPLOIT CONDITION
@@ -354,67 +419,17 @@ public class WFCAgent implements IAgent {
             return getRandomAction();
         }
 
-        // We find the list with the highest Q value (the one with the most amount of successes compared to fails)
-        // and take its action.
-        // TODO make these two algorithms different methods
-        List<PathNode> highestQValue = getHighestQValue(possiblePaths);
-        Pair<SensorData, Action> pathData = getPathData(possiblePaths.lastElement().size(), highestQValue);
-        this.prevPathData = pathData;
-        this.prevPathRule = highestQValue;
-
-        Action returnAction =  pathData.getVal2();
-
         // We've found matching previous experiences. We tally up the votes of the shortest matching ones,
         // since those are closest to the goal
-        //HashMap<Action, Integer> votes = getPathVotes(possiblePaths);
+        // TODO other options for voting?
+
+        HashMap<Action, Integer> votes = getPathVotes(possiblePaths);
+
         // Return the action with the most votes
-        //Action returnAction = getElectedAction(votes);
+        Action returnAction = getElectedAction(votes);
 
         return returnAction.getName().toCharArray()[0];
     }//getActionFromExperiences
-
-    /**
-     * getHighestQValue
-     * <p>
-     * Returns the List<PathNode> in the given parameter with the highest QValue. The QValue of a list of pathnodes
-     * is the average of the Q values of all of its nodes.
-     * @param ruleList
-     * @return
-     */
-    private List<PathNode> getHighestQValue(Vector<List<PathNode>> ruleList) {
-
-        List<PathNode> maxList = ruleList.get(0);
-        double maxQ = getQValue(maxList);
-        for (List<PathNode> list : ruleList) {
-            double qValue = getQValue(list);
-            if (qValue > maxQ) {
-                maxList = list;
-                maxQ = qValue;
-            }
-        }
-
-        return maxList;
-    }//getHighestQValue
-
-    /**
-     * getQValue
-     * <p>
-     * Returns the QValue of a list of path nodes based on the average of all the Q values of the path nodes in its list.
-     * @param ruleList
-     * @return
-     */
-    private double getQValue(List<PathNode> ruleList) {
-
-        double totalQ = 0.0d;
-        for (PathNode node : ruleList) {
-            totalQ += node.getQ();
-        }
-
-        if (totalQ == 0.0d) {
-            return 0.0d;
-        }
-        return ruleList.size() / totalQ;
-    }//getQValue
 
     /**
      * getPathVotes
@@ -437,7 +452,12 @@ public class WFCAgent implements IAgent {
             if (possiblePath.size() <= minSize) {
 
                 // TODO is this right??
-                Action pathAct = getPathData(minSize, possiblePath).getVal2();
+                Action pathAct;
+                if (minSize == 1) {
+                    pathAct = possiblePath.get(0).getAction();
+                } else {
+                    pathAct = possiblePath.get(realPathTraversedSoFar.size()-1).getAction();
+                }
 
                 // Add +1 to vote count
                 int prevVotes = votes.get(pathAct);
@@ -446,35 +466,6 @@ public class WFCAgent implements IAgent {
         }
         return votes;
     }//getPathVotes
-
-    /**
-     * getPathData
-     * <p>
-     * Returns the external sensor data and the action of the PathNode in a given List<PathNode> that corresponds
-     * to the current spot that's currently being explored. Should only be used on the output of matchPattern().
-     * @param minSize
-     * @param possiblePath
-     * @return
-     */
-    private Pair<SensorData, Action> getPathData(int minSize, List<PathNode> possiblePath) {
-
-        Action pathAct;
-        SensorData pathSens;
-        if (minSize == 1) {
-            pathAct  = possiblePath.get(0).getAction();
-            pathSens = possiblePath.get(0).getExternalSensor();
-        } else {
-            pathAct  = possiblePath.get(realPathTraversedSoFar.size()-1).getAction();
-            pathSens = possiblePath.get(realPathTraversedSoFar.size()-1).getExternalSensor();
-        }
-        return new Pair<>(pathSens, pathAct);
-    }//getPathData
-
-    private void updatePathQValues(List<PathNode> ruleList, boolean success) {
-        for (PathNode node : ruleList) {
-            node.updateQ(success);
-        }
-    }
 
     /**
      * getElectedAction
@@ -556,6 +547,13 @@ public class WFCAgent implements IAgent {
 
         //DEBUG
         debugPrintln("added: " + newRule);
+        if (OUTPUT_PATHRULES) {
+            try {
+                exportPathRules(OUTPUT_FILE);
+            } catch (IOException e) {
+                // Don't care
+            }
+        }
     }
 
     /** Only used for unit tests! Will break stuff if you use it incorrectly! */
