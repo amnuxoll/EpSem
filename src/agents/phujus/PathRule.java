@@ -508,6 +508,7 @@ public class PathRule extends Rule {
     /** get the final sensor data of this path */
     public Vector<TreeNode> cloneRHS() { return new Vector<>(this.rhs); }
     public int lhsSize() { return this.lhs.size(); }
+    public boolean lhsContains(PathRule other) { return this.lhs.contains(other); }
     public SensorData getRHSExternal() { return this.rhs.lastElement().getCurrExternal(); }
     public String getFlat() { return this.flat; }
     public void addExample(PathRule pr, boolean correct) {

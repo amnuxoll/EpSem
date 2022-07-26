@@ -406,7 +406,7 @@ public class PhuJusAgent implements IAgent {
         if(this.stepsSinceGoal >= 20) {
             debugPrintln("");
         }
-        if (this.now >= 286) {
+        if (this.now >= 96) {
             debugPrintln("");
         }
 
@@ -556,7 +556,12 @@ public class PhuJusAgent implements IAgent {
         PathRule bestPR = null;
         for (PathRule pr : this.pathRules) {
             if (pr.rhsMatch(path)) {
-                int score = pr.lhsMatch(this.prevPRMatch);
+                int score = -1;
+                if (pr.lhsSize() == 0) {
+                    score = 0;
+                } else if (pr.lhsContains(this.prevPRMatch)) {
+                    score = 1;
+                }
                 if (score > bestScore) {
                     bestScore = score;
                     bestPR = pr;
