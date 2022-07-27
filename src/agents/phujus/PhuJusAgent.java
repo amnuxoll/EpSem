@@ -1314,20 +1314,11 @@ public class PhuJusAgent implements IAgent {
             }
         }
 
-        //TODO: update PathRules that used this rule (old version below)
-//        Vector<PathRule> toChange = new Vector<>();
-//        for(PathRule pr : this.pathRules) {
-//            if (pr.uses(removeMe)) {
-//                toChange.add(pr);
-//            }
-//        }
-//        for(PathRule changeMe : toChange) {
-//            if (replacement == null) {
-//                this.pathRules.remove(changeMe);
-//            } else {
-//                changeMe.replace(removeMe, replacement);
-//            }
-//        }
+        //update PathRules that used this rule (old version below)
+        Vector<PathRule> toChange = new Vector<>();
+        for(PathRule pr : this.pathRules) {
+            pr.replaceAll(removeMe, replacement);
+        }
 
         //TODO:  remove from all levels in this.prevInternal as well?
 

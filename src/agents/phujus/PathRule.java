@@ -211,6 +211,38 @@ public class PathRule extends Rule {
     }//lhsMatch
 
     /**
+     * replaceAll
+     *
+     * replaces all uses of one TFRule in this PathRule with another
+     *
+     */
+    public void replaceAll(TFRule removeMe, TFRule replacement) {
+        //Replace all uses on the RHS
+        for(TreeNode tn : this.rhs) {
+            if (tn.getCurrInternal().contains(removeMe.ruleId)) {
+                tn.getCurrInternal().remove(removeMe.ruleId);
+                if (replacement != null) {
+                    if (! tn.getCurrInternal().contains(removeMe.ruleId)) {
+                        tn.getCurrInternal().add(ruleId);
+                    }
+                }
+            }
+        }
+
+        //replace all uses in nascent rules
+        if (!this.isNascent  && !this.hasSplit) {
+            for(PathRule pr : this.positive) {
+                pr.replaceAll(removeMe, replacement);
+            }
+            for(PathRule pr : this.negative) {
+                pr.replaceAll(removeMe, replacement);
+            }
+        }
+
+    }//replaceAll
+
+
+    /**
      * insertIntoCategoryList
      *
      * is a helper for {@link #lhsCategories(HashSet)} that adds a PathRule to a category.
