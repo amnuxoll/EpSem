@@ -1012,10 +1012,8 @@ public class PhuJusAgent implements IAgent {
     public void updateTFRuleConfidences() {
         for(TFRule tfRule : this.tfRules) {
             double lhsScore = tfRule.lhsMatchScore(this.prevAction, this.getPrevInternal(), this.prevExternal);
-            if (lhsScore > 0.0) {
-                double rhsScore = tfRule.rhsMatchScore(this.currExternal);
-                tfRule.adjustConfidence(rhsScore);
-            }
+            double rhsScore = tfRule.rhsMatchScore(this.currExternal);
+            tfRule.adjustConfidence(lhsScore * rhsScore );
         }
     }//updateTFRuleConfidences
 

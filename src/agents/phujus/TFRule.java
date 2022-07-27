@@ -109,7 +109,7 @@ public class TFRule extends Rule{
 
 
     //How similar two match scores need to be to each other to be "near"
-    public static final double MATCH_NEAR = 0.2;
+    public static final double MATCH_NEAR = 0.1;
 
     //the action of the rule
     private char action;
