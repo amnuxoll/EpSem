@@ -53,14 +53,6 @@ public class TFRuleTest {
         // Will need to check initInternal and initExternal are being properly set
     }
 
-    @EpSemTest
-    public void testTFData() throws Exception {
-        TFRule.TFData tfd = new TFRule.TFData(3.0, 2.0);
-
-        Assertions.assertEquals(tfd.numMatches, 3.0, 0.01);
-        Assertions.assertEquals(tfd.numOn, 2.0, 0.01);
-        Assertions.assertEquals(tfd.getTF(), 0.66, 0.01);
-    }
 
     @EpSemTest
     public void testCond() throws Exception {
@@ -70,16 +62,16 @@ public class TFRuleTest {
 
         // The data of Cond with an initial value of true should match corresponding TFData
         Assertions.assertEquals(c1.sName, "1");
-        Assertions.assertTrue(c1.data.numMatches == 1.0);
-        Assertions.assertTrue(c1.data.numOn == 1.0);
+        Assertions.assertTrue(c1.numMatches == 1.0);
+        Assertions.assertTrue(c1.numOn == 1.0);
 
         // testing equals
         TFRule.Cond c2 = new TFRule.Cond("1", false);
 
 
         // The data of Cond with an initial value of false should match corresponding TFData
-        Assertions.assertTrue(c2.data.numMatches == 1.0);
-        Assertions.assertTrue(c2.data.numOn == 0.0);
+        Assertions.assertTrue(c2.numMatches == 1.0);
+        Assertions.assertTrue(c2.numOn == 0.0);
 
         // should be false because c1 tfData has a differnt numOn than c2
         Assertions.assertTrue(!(c1.equals(c2)));
@@ -138,13 +130,13 @@ public class TFRuleTest {
 
         for(TFRule.Cond cond : lhsInt){
             Assertions.assertTrue(cond.sName.length() > 0);
-            Assertions.assertTrue(cond.data.getTF() >= 0);
+            Assertions.assertTrue(cond.getTF() >= 0);
         }
 
         Assertions.assertTrue(!lhsInt.isEmpty());
         TFRule.Cond[] carr = lhsInt.toArray(new TFRule.Cond[0]);
-        Assertions.assertTrue(carr[0].data.numMatches == 1);
-        Assertions.assertTrue(carr[0].data.numOn == 0);
+        Assertions.assertTrue(carr[0].numMatches == 1);
+        Assertions.assertTrue(carr[0].numOn == 0);
         Assertions.assertTrue(carr.length == 1);
 
     }
@@ -165,7 +157,7 @@ public class TFRuleTest {
         //a quick precursor check to make sure there is no error initializing
         for(TFRule.Cond cond : rhsExt){
             Assertions.assertTrue(cond.sName.length() > 0);
-            Assertions.assertTrue(cond.data.getTF() >= 0);
+            Assertions.assertTrue(cond.getTF() >= 0);
         }
 
         //we should have 6 external sensors in our rhsexternal with these values
@@ -193,27 +185,27 @@ public class TFRuleTest {
         TFRule tfr1 = new TFRule(agent);
         agent.getNextAction(sd);
 
-        tfr1.updateTFVals();
+        tfr1.updateTFVals(agent.getPrevInternal());
 
         //the rule was created and updated once, it should have matched so num on should increase
         TFRule.Cond[] carr = tfr1.getLhsInternal().toArray(new TFRule.Cond[0]);
-        Assertions.assertTrue(carr[0].data.numMatches == 2);
-        Assertions.assertTrue(carr[0].data.numOn == 1);
+        Assertions.assertTrue(carr[0].numMatches == 2);
+        Assertions.assertTrue(carr[0].numOn == 1);
         Assertions.assertTrue(carr.length == 1);
 
-        tfr1.updateTFVals();
+        tfr1.updateTFVals(agent.getPrevInternal());
         //the rule should have matched again so num on and matches should increase again
         carr = tfr1.getLhsInternal().toArray(new TFRule.Cond[0]);
-        Assertions.assertTrue(carr[0].data.numMatches == 3);
-        Assertions.assertTrue(carr[0].data.numOn == 2);
+        Assertions.assertTrue(carr[0].numMatches == 3);
+        Assertions.assertTrue(carr[0].numOn == 2);
         Assertions.assertTrue(carr.length == 1);
 
         agent.getNextAction(sd2);
-        tfr1.updateTFVals();
+        tfr1.updateTFVals(agent.getPrevInternal());
         //the rule should have matched again but this time it was not correct so num on should be the same
         carr = tfr1.getLhsInternal().toArray(new TFRule.Cond[0]);
-        Assertions.assertTrue(carr[0].data.numMatches == 4);
-        Assertions.assertTrue(carr[0].data.numOn == 2);
+        Assertions.assertTrue(carr[0].numMatches == 4);
+        Assertions.assertTrue(carr[0].numOn == 2);
         Assertions.assertTrue(carr.length == 1);
 
 

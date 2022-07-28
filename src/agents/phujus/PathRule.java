@@ -1,8 +1,5 @@
 package agents.phujus;
 
-import framework.SensorData;
-
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Vector;
@@ -17,37 +14,27 @@ public class PathRule extends Rule {
 
 //region Instance Variables
 
+    /** lhs is a set of existing PathRules.  One of which must precede this one */
     private HashSet<PathRule> lhs = new HashSet<>();  //can be empty but not null
-    private Vector<TreeNode> rhs;  //must contain at least one TreeNode
+    /** rhs is a path */
+    private final Vector<TreeNode> rhs;  //must contain at least one TreeNode
 
-    /** This variable contains a list of actions that this PathRule represents.
-     *  Since a PathRule's LHS has multiple PathRules, it actually represents
-     *  multiple paths.  This variable stores only the portion of the path
-     *  that all the lhs PathRules agree upon.  Notably if paths are different
-     *  lengths, but otherwise match, the longer is used.
-     *  Examples:
-     *          lhs            flat    //TODO: add extern
-     *          abaa, bbaa  -> baa
-     *          abaab, a    -> abaab
-     *          a, ba, baa  -> a
-     */
-    private String flat;
-
-    /** Each time this PathRule is used to evaluate a path a new PathRule may get
-     * created that is a more specific version of this one.  Such PathRules might
-     * remain "nascent" (i.e., not added to PJA.pathRules list for use right
+    /** Each time the agent follows a path that matches this one new PathRule may get
+     * created that is a more specific version of this one.  Such PathRules are
+     * initially "nascent" (i.e., not added to PJA.pathRules list for use right
      * away) as long as this rule has been effective.  However, if this rule
      * has mixed effectiveness, the nascent Rules can be activated to effectively
-     * override this one.  These "spawn" rules are stored in two sets (below)
+     * override this one.  Nascent rules are stored in two sets (below)
      * dpeending upon whether they are an example of this rule being correct
      * or incorrect.  */
-
     HashSet<PathRule> positive = new HashSet<>();
     HashSet<PathRule> negative = new HashSet<>();
+
     /** a nascent rule is only being used as an example and is not in PJA.pathRules */
     boolean isNascent = false;
+
     /** a rule that comes into conflict (both positive and negative examples) is
-     * "split", meaning it's example rules are merged and added to PJA.pathRules.
+     * "split", meaning it's nascent, example rules are added to PJA.pathRules.
      */
     private boolean hasSplit = false;
 
@@ -62,100 +49,11 @@ public class PathRule extends Rule {
 
         //must make a copy because initRHS is often PJA.pathTraversedSoFar which changes
         this.rhs = new Vector<>(initRHS);
-
-        updateFlat();
     }
 
 
 
 //endregion ctors and initialization
-
-
-
-    /** calculates how many chars of two given string match (counting from the end)
-     * Examples:  overlap("fop", "bop") == 2
-     *            overlap("pof", "pob") == 0;
-     */
-    public static int overlapLen(String s1, String s2) {
-        int s1len = s1.length();
-        int s2len = s2.length();
-        int shortest = Math.min(s1len, s2len);
-        int pos = 1;
-        int result = 0;
-        while(pos <= shortest) {
-            char c1 = s1.charAt(s1len - pos);
-            char c2 = s2.charAt(s2len - pos);
-            if (c1 != c2) break;
-            result++;
-            pos++;
-        }//while
-
-        return result;
-    }//overlapLen
-
-    /**
-     * genFlat
-     *
-     * generates the flat version of a given lhs and rhs of a PathRule.
-     * See the comment above this.flat for details.
-
-     * Note: This method is public/static because it's also used by PJA.
-     */
-    public static String genFlat(HashSet<PathRule> lhs, Vector<TreeNode> rhs) {
-        //TODO:  I don't like appending the final external sensors as I've
-        // done here as it means the agent will be brittle with random
-        // external sensors.  A TF-IDF partial matching is needed or, as
-        // per MaRz, just assume all paths go to a Goal/Reward state.
-        // I don't like the latter either since we will eventually be in FSMs
-        // that are large enough that you have to plan multiple paths to
-        // get to a goal. So...partial matching is the best solution I see atm.
-        String result = rhs.lastElement().getPathStr() + rhs.lastElement().getCurrExternal().toStringShort();
-        if ((lhs != null) && (lhs.size() > 0)) {
-
-            //Gather all the flats and find the longest (we need it below)
-            String longest = "";
-            int llen = 0;
-            String[] flats = new String[lhs.size()];
-            int i = 0;
-            for(PathRule pr : lhs) {
-                flats[i] = pr.getFlat();
-                int flen = flats[i].length();
-                if (flen > llen) {
-                    longest = flats[i];
-                    llen = flen;
-                }
-                i++;
-            }
-
-            //Generate a string from the intersection of lhs PathRules
-            StringBuilder combo = new StringBuilder(longest);
-            for (String flat : flats) {
-                int overlap = overlapLen(combo.toString(), flat);
-                if ( (overlap < combo.length()) && (overlap < flat.length()) ) {
-                    combo.delete(0, combo.length() - overlap);
-                    if (combo.length() == 0) break;
-                }
-            }//for
-
-            result = combo + result;
-        }//if
-
-        return result;
-    }//genFlat
-
-    /**
-     * updateFlat
-     *
-     * should be called each time a PathRule is modified so that the flat
-     * representation is kept up to date.
-     *
-     * @return the new flat
-     */
-    public String updateFlat() {
-        this.flat = genFlat(this.lhs, this.rhs);
-        return this.flat;
-    }//updateFlat
-
 
     //TODO:  Should rhsMatch and lhsMatch be doing partial matches??
     // The nearEquals() method lets us dodge this for now but not sure we should.
@@ -229,7 +127,7 @@ public class PathRule extends Rule {
             }
         }
 
-        //replace all uses in nascent rules
+        //replace all uses in nascent rules' rhs
         if (!this.isNascent  && !this.hasSplit) {
             for(PathRule pr : this.positive) {
                 pr.replaceAll(removeMe, replacement);
@@ -248,11 +146,11 @@ public class PathRule extends Rule {
      * is a helper for {@link #lhsCategories(HashSet)} that adds a PathRule to a category.
      */
     private void insertIntoCategoryList(HashMap<Integer, HashSet<PathRule>> result, PathRule pr, int id) {
-        HashSet<PathRule> val = null;
+        HashSet<PathRule> val;
         if (result.containsKey(id)) {
             val = result.get(id);
         } else {
-            val = new HashSet<PathRule>();
+            val = new HashSet<>();
         }
         val.add(pr);
         result.put(id, val);
@@ -261,12 +159,12 @@ public class PathRule extends Rule {
     /**
      * lhsCategories
      *
-     * groups a given set of PathRules by by LHS items they have in common
+     * groups a given set of PathRules by LHS items that they have in common
      *
      *
      */
     private HashMap<Integer, HashSet<PathRule> > lhsCategories(HashSet<PathRule> list) {
-        HashMap<Integer, HashSet<PathRule> > result = new HashMap<Integer, HashSet<PathRule> >();
+        HashMap<Integer, HashSet<PathRule> > result = new HashMap<>();
 
         for(PathRule pr : list) {
             if (pr.lhs.size() == 0) {
@@ -276,8 +174,7 @@ public class PathRule extends Rule {
                 //For each PathRule that is in the LHS of the given list:
                 //add an entry to 'result' to record that
                 for (PathRule lhsItem : pr.lhs) {
-                    int id = lhsItem.ruleId;
-                    insertIntoCategoryList(result, pr, id);
+                    insertIntoCategoryList(result, pr, lhsItem.ruleId);
                 }
             }
         }//for
@@ -285,6 +182,76 @@ public class PathRule extends Rule {
 
         return result;
     }//lhsCategories
+
+    /** merges all the rules in a specified category to create a single PathRule
+     * that is consistent with them all */
+    private PathRule mergeCategory(HashSet<PathRule> cat) {
+        PathRule result;
+        //If there is only one rule in a category then no merging needed
+        if (cat.size() == 1) {
+            result = (PathRule) cat.toArray()[0];
+            result.isNascent = false;
+        }
+        //If there are 2+ PathRules then they need to be merged
+        else {
+            //Create a new LHS that is the union of all the LHS of the category
+            HashSet<PathRule> unionLHS = new HashSet<>();
+            for (PathRule pr : cat) {
+                unionLHS.addAll(pr.lhs);
+            }
+
+            //Because they share a common ancestor, the RHS path of all these
+            // rules must be the same.  However, the internal sensors in the
+            // path can be different. Create a new RHS that has the intersection
+            // of internal sensors in each TreeNode of the path
+            Vector<TreeNode> intersectRHS = null;
+            for (PathRule pr : cat) {
+                //Initialize at first iteration as it's tricky to do before the loop starts
+                if (intersectRHS == null) {
+                    intersectRHS = new Vector<>(pr.rhs);
+                    continue;
+                }
+
+                //Update the intersection with this PR.  I.e., any internal
+                // sensor missing in pr is removed from intersectRHS.
+                for (int i = 0; i < intersectRHS.size(); ++i) {
+                    TreeNode intersectTN = intersectRHS.get(i);
+                    TreeNode prTN = pr.rhs.get(i);
+                    intersectTN.getCurrInternal().retainAll(prTN.getCurrInternal());
+                }
+            }//for
+
+            //Now create the merged PathRule
+            result = new PathRule(this.agent, null, intersectRHS);
+            result.lhs = unionLHS;
+            result.positive = cat;
+        }//else (merge required)
+        return result;
+    }//mergeCategory
+
+    /** removes all the PathRules from a given category list that are in a
+     * given category */
+    private void removeCategory(HashMap<Integer, HashSet<PathRule>> cats, Integer catKey) {
+        HashSet<PathRule> toRemove = cats.get(catKey);
+        cats.remove(catKey);
+        for(PathRule largePR : toRemove) {
+            for(HashSet<PathRule> cat : cats.values()) {
+                cat.remove(largePR);
+            }
+        }
+
+        //Clean up any empty categories
+        Vector<Integer> removeMe = new Vector<>();
+        for(Integer catId : cats.keySet()) {
+            if (cats.get(catId).size() == 0) {
+                removeMe.add(catId);
+            }
+        }
+        for(Integer catId : removeMe) {
+            cats.remove(catId);
+        }
+    }//removeCategory
+
 
     /**
      * mergeByCategory
@@ -303,78 +270,26 @@ public class PathRule extends Rule {
         if (cats.size() == 0) return null; //base case
 
         //Find the largest category
-        HashSet<PathRule> largest = null;
+        HashSet<PathRule> largestCat = null;
         int largestSize = -1;
         Integer largestKey = -1;
         for(Integer key : cats.keySet()) {
             HashSet<PathRule> cat = cats.get(key);
             if (cat.size() > largestSize) {
                 largestSize = cat.size();
-                largest = cat;
+                largestCat = cat;
                 largestKey = key;
             }
         }
 
-        //If there are 2+ PathRules then they need to be merged
-        PathRule merged = null;
-        if (largestSize == 1) {
-            merged = (PathRule)largest.toArray()[0];  // no merging necessary
-            merged.isNascent = false;
-        } else {
-            //Create a new LHS that is the union of all the LHS of the category
-            HashSet<PathRule> unionLHS = new HashSet<>();
-            for (PathRule pr : largest) {
-                unionLHS.addAll(pr.lhs);
-            }
-
-            //Because they share a common ancestor, the RHS path of all these
-            // rules must be the same.  However, the internal sensors in the
-            // path can be different. Create a new RHS that has the intersection
-            // of internal sensors in each TreeNode of the path
-            Vector<TreeNode> intersectRHS = null;
-            for (PathRule pr : largest) {
-                //Initialize at first iteration as it's tricky to do before the loop starts
-                if (intersectRHS == null) {
-                    intersectRHS = new Vector<>(pr.rhs);
-                    continue;
-                }
-
-                //Update the intersection with this PR.  I.e., any internal
-                // sensor missing in pr is removed from intersectRHS.
-                for (int i = 0; i < intersectRHS.size(); ++i) {
-                    TreeNode intersectTN = intersectRHS.get(i);
-                    TreeNode prTN = pr.rhs.get(i);
-                    intersectTN.getCurrInternal().retainAll(prTN.getCurrInternal());
-                }
-            }//for
-
-            //Now create the merged PathRule
-            merged = new PathRule(this.agent, null, intersectRHS);
-            merged.lhs = unionLHS;
-            merged.positive = largest;
-        }//else (merge required)
+        //Merge this largest category
+        PathRule merged = mergeCategory(largestCat);
 
         //Add this merged rule to the agent
         this.agent.addRule(merged);
 
         //Remove all the newly merged rules from the categories
-        cats.remove(largestKey);
-        for(PathRule largePR : largest) {
-            for(HashSet<PathRule> cat : cats.values()) {
-                if (cat.contains(largePR)) cat.remove(largePR);
-            }
-        }
-
-        //Clean up any empty categories
-        Vector<Integer> removeMe = new Vector<>();
-        for(Integer catId : cats.keySet()) {
-            if (cats.get(catId).size() == 0) {
-                removeMe.add(catId);
-            }
-        }
-        for(Integer catId : removeMe) {
-            cats.remove(catId);
-        }
+        removeCategory(cats, largestKey);
 
         //Now make a recursive call (yikes!) to get the remaining merged rules
         HashSet<PathRule> result = mergeByCategory(cats);
@@ -387,8 +302,6 @@ public class PathRule extends Rule {
 
     }//mergeByCategory
 
-
-
     /**
      * split
      *
@@ -398,7 +311,7 @@ public class PathRule extends Rule {
         HashMap<Integer, HashSet<PathRule> > posCats = lhsCategories(this.positive);
         HashMap<Integer, HashSet<PathRule> > negCats = lhsCategories(this.negative);
 
-        //If any ids appearin both positive & negative then omit it
+        //If any ids appear in both positive & negative then omit them
         Vector<Integer> dups = new Vector<>();
         for(int posId : posCats.keySet()) {
             for(int negId : negCats.keySet()) {
@@ -418,8 +331,8 @@ public class PathRule extends Rule {
         }
 
         //merge rules that have overlap to create as few new rules as possible
-        HashSet<PathRule> mergedPos = mergeByCategory(posCats);
-        HashSet<PathRule> mergedNeg = mergeByCategory(negCats);
+        mergeByCategory(posCats);
+        mergeByCategory(negCats);
         this.hasSplit = true;
     }//split
 
@@ -477,7 +390,10 @@ public class PathRule extends Rule {
         result.append(":");
         result.append(this.rhs.lastElement().getCurrExternal().toStringShort());
         result.append(String.format(" ^  conf=%.5f", getConfidence()).replaceAll("0+$", "0"));
-        result.append(" pos:" + this.positive.size() + " neg:" + this.negative.size());
+        result.append(" pos:");
+        result.append(this.positive.size());
+        result.append(" neg:");
+        result.append(this.negative.size());
 
         //now print the details
         result.append("  [");
@@ -511,6 +427,7 @@ public class PathRule extends Rule {
         if (this.ruleId == other.ruleId) return true;
 
         //If they match, consider them equal
+        //TODO:  Is this really necessary?  Perhaps ok just to check lhs and rhs match?
         int matchLen = this.matchLen(other.lhs, other.rhs);
         return (matchLen == this.length());
     }
@@ -541,8 +458,6 @@ public class PathRule extends Rule {
     public Vector<TreeNode> cloneRHS() { return new Vector<>(this.rhs); }
     public int lhsSize() { return this.lhs.size(); }
     public boolean lhsContains(PathRule other) { return this.lhs.contains(other); }
-    public SensorData getRHSExternal() { return this.rhs.lastElement().getCurrExternal(); }
-    public String getFlat() { return this.flat; }
     public void addExample(PathRule pr, boolean correct) {
         pr.isNascent = true;
         if (correct) this.positive.add(pr);

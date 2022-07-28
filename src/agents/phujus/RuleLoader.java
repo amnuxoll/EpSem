@@ -14,13 +14,13 @@ import java.util.*;
  */
 public class RuleLoader {
 
-    private PhuJusAgent agent;
+    private final PhuJusAgent agent;
 
     //the first time rules are loaded Rule.nextRuleId == 1.
     //but if rules are reloaded it can be different and internal
     //sensors references needed to be adjusted.  This variable
     //records the first rule id for each load for that purpose.
-    private int ruleIdOffset = 1;
+    private final int ruleIdOffset;
 
     public RuleLoader(PhuJusAgent agent) {
         this.agent = agent;
@@ -30,7 +30,6 @@ public class RuleLoader {
     /**
      * Loads a set of rules from a .csv file as a vector of TFRule objects
      * @param path the path to the csv file
-     * @return vector containing all rules in the file
      */
     public void loadRules(String path) {
 
@@ -41,7 +40,7 @@ public class RuleLoader {
             return;
         }
 
-        Scanner sc = null;
+        Scanner sc;
         try {
             sc = new Scanner(ruleFile);
         } catch (FileNotFoundException e) {
@@ -65,10 +64,10 @@ public class RuleLoader {
             }
 
             TFRule tfNewbie = null;
-            PathRule pathNewbie = null;
             // PathRules start with a ~/= to indicate that they are pathrules
             if (readLine.startsWith("&")) {
                 //TODO:  Fix the PathRule loading code
+                agent.debugPrintln("PathRule loading code not implemented.");
                 //pathNewbie = createPathRuleFromLine(readLine);
             }
             else {
@@ -76,85 +75,7 @@ public class RuleLoader {
                 System.out.println("Loading rule " + readLine);
             }
             if (tfNewbie != null)   agent.addRule(tfNewbie);
-            if (pathNewbie != null) agent.addRule(pathNewbie);
         }
-    }
-
-    /**
-     * createPathRuleFromLine
-     *
-     * This method generates a PathRule object from a given String token. The token should
-     * be in the format:
-     *<p>
-     * &X,&Y,??,?.?
-     * <p>
-     * It's important to note that PathRules are essentially: rule1 + rule2 -> sensors.
-     * <p>
-     * The & represents the ID of a rule. The integers X and Y represent the ID number of the rule being referenced.
-     * The ?? represents a set of external sensors that the rule predicts will be true given the LHS rule conditions
-     * are confirmed. The final value, ?.?, represents confidence.
-     * <p>
-     * e.g &3,&1,01,1.0
-     * <p>
-     * Represents a PathRule which predicts that if Rule 3 and Rule 1 are activated, the outcome will
-     * be external sensors of 01 with a confidence of 1.0.
-     * @param line The string representing the PathRule in the form &X,&Y,??,?.?
-     * @return a new PathRule generated from the line
-     */
-    public PathRule createPathRuleFromLine(String line) {
-
-        line = removeTailComment(line);
-
-        line = line.trim();
-
-        try (Scanner rowScanner = new Scanner(line)) {
-            rowScanner.useDelimiter(",");
-
-            System.out.println("PATHRULE:");
-
-            // PathRules are in the format: rule1 + rule2 -> action
-            // [~X],~Y,??,?.?
-            String next = rowScanner.next().trim();
-            Rule rule1 = getRuleFromLHS(next);
-
-            // ~X,[~Y],??,?.?
-            next = rowScanner.next().trim();
-            Rule rule2 = getRuleFromLHS(next);
-
-            // ~X,~Y,[??],?.?
-            next = rowScanner.next().trim();
-            SensorData exSensor = getSDFromString(next);
-
-            // ~X,~Y,??,[?.?]
-            // TODO Should we add confidence as an init value for PathRules?
-            double conf = rowScanner.nextDouble();
-
-            return null;  //TODO: for now
-            //return new PathRule(agent, rule1, rule2, exSensor);
-        }
-    }//createPathRuleFromLine
-
-    /**
-     * getRuleFromLHS
-     *
-     * Should only be called by createPathRuleFromLine. Returns the rule referenced by a given token
-     * in the format [~=]X.
-     * <p>
-     * e.g ~3 gives a TFRule with ID 3.
-     * <p>
-     * e.g =4 gives a PathRule with ID 4.
-     * @param next
-     * @return
-     */
-    private Rule getRuleFromLHS(String next) {
-        Rule rule;
-        String ruleToken = next.substring(1);
-        int ruleID = Integer.parseInt(ruleToken);
-
-        // The ~X ~Y values in the PathRule string indicate rule numbers. An = indicates a PathRule ID number,
-        // and a ~ indicates a normal rule ID number.
-        rule = agent.getRules().get(ruleID + ruleIdOffset);
-        return rule;
     }
 
     /**
@@ -164,7 +85,7 @@ public class RuleLoader {
      * <p>
      * If there are no LHSInt, then leave the field as zero.
      * <p>
-     * e.g, 0,10,a,00,1.0 or 3;7,00,b,01,0.7
+     * e.g, 0,10,c,00,1.0 or 3;7,00,b,01,0.7
      * @param line string representation of a TFRule
      * @return a TFRule created from the given line
      */
@@ -182,7 +103,7 @@ public class RuleLoader {
             SensorData rhsExt = null;
 
             String[] lhsInt = null;
-            String action = null;
+            String action = "\0";
 
             double conf = -1.0;
 
@@ -209,9 +130,8 @@ public class RuleLoader {
      *
      * Removes a comment at the end of a line, such as
      * <p>
-     * *,00,a,10,0.33,#0a->3
-     * @param line
-     * @return The given String without the tail comment.
+     *      input:  *,00,b,10,0.33,#0a->3
+     *      output: *,00,b,10,0.33
      */
     private String removeTailComment(String line) {
         //remove any comment from this line
@@ -224,8 +144,6 @@ public class RuleLoader {
 
     /**
      * Helper method for getting the operator of the rule (*[any], /[andor], ;[and])
-     * @param token
-     * @return
      */
     private TFRule.RuleOperator getRuleOperatorFromString(String token) {
 
@@ -252,7 +170,6 @@ public class RuleLoader {
      * TFRule constructor.
      * <p>
      * e.g 3;7 -> ["3","7"]
-     * @param token
      * @return an array of strings that represent the LHSInt values or null if there are none
      */
     private String[] getLHSIntFromString(String token, TFRule.RuleOperator operator) {
@@ -298,17 +215,22 @@ public class RuleLoader {
     }//getLHSIntFromString
 
     /**
-     * Helper method that Instantiates a SensorData object from a given string representation. Token should be
-     * in a binary form. It's not very clear how this works so I'll do my best to explain:
+     * Helper method that Instantiates a SensorData object from a given string
+     * representation. Token should be in a binary form. It's not very clear how
+     * this works, so I'll do my best to explain:
      * <p>
-     * SensorData contains an instance variable called 'data', which is a HashMap of String keys
-     * to Object values. In our case, we're mapping String keys to boolean values. Currently,
-     * a sensor really only has two values: "GOAL" and "IS_ODD". In the future, however, this could
-     * definitely change. Every index in the given token represents a boolean value for one of these
-     * String keys in the SensorData. For example, the token '10' represents a SensorData where the
-     * "IS_ODD" value is true and the "GOAL" value is false. This method maps tokens to SensorData
-     * for any number of slots in the SensorData (beyond just IS_ODD or GOAL). It knows which values
-     * to map to by referencing the SensorData values that the agent is currently using.
+     * SensorData contains an instance variable called 'data', which is a
+     * HashMap of String keys to Object values. In our case, we're mapping
+     * String keys to boolean values. Currently, a sensor really only has two
+     * values: "GOAL" and "IS_ODD". In the future, however, this could
+     * definitely change. Every index in the given token represents a boolean
+     * value for one of these String keys in the SensorData. For example, the
+     * token '10' represents a SensorData where the "IS_ODD" value is true and
+     * the "GOAL" value is false. This method maps tokens to SensorData for any
+     * number of slots in the SensorData (beyond just IS_ODD or GOAL). It knows
+     * which values to map to by referencing the SensorData values that the
+     * agent is currently using.
+     *
      * @param token binary representation of a SensorData object
      * @return the SensorData object that the token represents
      */

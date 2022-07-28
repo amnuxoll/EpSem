@@ -275,9 +275,11 @@ public class Runner {
     );
 
     private static TestSuite PJ_SUITE = new TestSuite(
-            TestSuiteConfiguration.VERY_QUICK,
+            TestSuiteConfiguration.QUICK,
             new IEnvironmentProvider[] {
-                    new FSMEnvironmentProvider(new FSMTransitionTableBuilder(2, 6, Random.getFalse()), EnumSet.of(FSMEnvironment.Sensor.IS_ODD, FSMEnvironment.Sensor.WITHIN_1))
+                    new FSMEnvironmentProvider(
+                            new FSMTransitionTableBuilder(2, 6, Random.getFalse()),
+                            EnumSet.of(FSMEnvironment.Sensor.IS_ODD, FSMEnvironment.Sensor.WITHIN_1))
             },
             new IAgentProvider[] {
                     new PhuJusAgentProvider()

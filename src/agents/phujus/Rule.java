@@ -1,13 +1,5 @@
 package agents.phujus;
 
-import framework.SensorData;
-import tests.agents.phujus.PhuJusAgentTest;
-
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Random;
-import java.util.Vector;
-
 /**
  * class Rule
  *
@@ -29,7 +21,7 @@ public abstract class Rule {
         private double conf = 1.0; //start will full confidence (optimistic)
 
         /**
-         * increases or decreases the this confidence value
+         * increases or decreases this confidence value
          *
          * @param degree  how much to change the value on a scale: -1.0..1.0
          */
@@ -47,11 +39,6 @@ public abstract class Rule {
         }
 
         public void setConfidence(double conf) { this.conf = conf; }
-
-        //In some cases a Confidence object needs to be set to min instead of max (default)
-        public void minConfidence() {
-            this.conf = 0.0;
-        }
 
     }//class Confidence
 
@@ -86,7 +73,7 @@ public abstract class Rule {
 
     public Rule(PhuJusAgent agent) {
         this.agent = agent;
-        this.ruleId = this.nextRuleId++;
+        this.ruleId = Rule.nextRuleId++;
     }
 
     /** a shorter string format designed to be used inline */

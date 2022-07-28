@@ -24,17 +24,17 @@ public class TreeNode {
     private final int episodeIndex;
 
     //the action that led to this node
-    private char action;
+    private final char action;
 
     //sensor values for this node
     private final HashSet<Integer> currInternal;
     private final SensorData currExternal;
 
-    //This is the parent node
+    //The TreeNode that preceded this one in time
     private final TreeNode parent;
 
     //child nodes
-    private final Vector<TreeNode> children = new Vector<>();;
+    private final Vector<TreeNode> children = new Vector<>();
 
     //bool for if tree has children or not
     private boolean isLeaf = false;
@@ -46,15 +46,15 @@ public class TreeNode {
     private final String pathStr;
 
     //A measure from 0.0 to 1.0 of how confident the agent is that this path is correct
-    private double confidence;
+    private final double confidence;
 
     //A list of all possible external sensor combinations for this agent
     // e.g., 000, 001, 010, etc.
     private static String[] comboArr = null;  //init'd by 1st ctor call
 
     //The PathRule best matches the path described by this TreeNode, presuming
-    // it is the last step in its path.  This is set to null by default.
-    private PathRule pathRule = null;
+    // it is the last step in its path.  This can be 'null' if no PathRule applies.
+    private PathRule pathRule;
 
 
     /**
@@ -83,7 +83,7 @@ public class TreeNode {
 
     /**
      * constructs a TreeNode with given sensors and action
-     * @param parent
+     * @param parent the TreeNode that precedes this one in a path
      * @param action action taken to reach this node
      * @param newExternal predicted external sensors for this node
      * @param confidence confidence in newExternal
@@ -135,179 +135,13 @@ public class TreeNode {
         int numCombos = (int)Math.pow(2, numExt);
         TreeNode.comboArr = new String[numCombos];
         for(int i = 0; i < numCombos; ++i) {
-            String combo = Integer.toBinaryString(i);
+            StringBuilder combo = new StringBuilder(Integer.toBinaryString(i));
             while (combo.length() < numExt) {
-                combo = "0" + combo;
+                combo.insert(0, "0");
             }
-            TreeNode.comboArr[i] = combo;
+            TreeNode.comboArr[i] = combo.toString();
         }
     }//initComboArr
-
-    /**
-     * predicts what the externals sensors will be for a child node of this one
-     *
-     * TODO:  remove?  Currently this is replaced by the bloc-voting method but
-     *        not sure it's better.  So we're keeping this method here for now.
-     *
-     * @param action  the action taken to reach the child
-     * @param predicted  this object should have the desired external sensors
-     *                   names.  The values will changed by the method based
-     *                   on the rule votes.  (Note:  Probably just pass in
-     *                   currExternal from an existing node.)
-     * @return how confident we are in this prediction
-     */
-    public double predictExternalByVote(char action, SensorData predicted) {
-        int numExtSensors = predicted.size();
-        String[] sensorNames = predicted.getSensorNames().toArray(new String[0]);
-        //first index: which sensor; second index: false/true
-        double[][] votes = new double[numExtSensors][2];
-
-        //Let each rule vote based on its match score
-        for(TFRule rule: this.agent.getTfRules()) {
-            if(rule.getAction() != action) continue;
-
-            double score = rule.lhsMatchScore(action,this.currInternal, this.currExternal);
-
-            for(int j = 0; j < sensorNames.length; j++){
-                boolean on = (boolean) rule.getRHSExternal().getSensor(sensorNames[j]);
-                votes[j][on ? 1 : 0] += score;
-            }
-        }
-
-        //Calculate external values based on votes (winner take all)
-        double confidence = 1.0;  //let's be optimistic to start...
-        for(int j = 0; j < numExtSensors; j++) {
-            predicted.setSensor(sensorNames[j], (votes[j][0] <= votes[j][1]));
-
-            //indiv sensor confidence is based on fraction of votes received for
-            // that sensor value (e.g., 3.61 "no" votes and 19.3 "yes" votes
-            // = 0.84 confidence in "yes")
-            //overall confidence is the product of confidence in each indiv sensor
-            //TODO:  should we use an average instead of a product??
-            double totalVotes = (votes[j][0] + votes[j][1]);
-            if (totalVotes > 0.0) {
-                confidence *= Math.max(votes[j][0], votes[j][1]) / totalVotes;
-            } else {
-                confidence = 0.0;  // no votes == no confidence
-            }
-        }
-
-        return confidence;
-    }//predictExternalByVote
-
-
-    /**
-     * predictExternalByBloc
-     *
-     * predicts what the externals sensors will be for a child node of this one
-     * by going through the rule list and summing up each bloc's votes for external
-     * sensors. The highest voted state for each sensor will be selected. A bloc is
-     * determined by external sensors and action for a given rule. ie: 00a -> 01
-     * and 00a -> 10 will be in the same bloc
-     *
-     * @param action  the action taken to reach the child
-     * @param predicted  this object should have the desired external sensors
-     *                   names.  The values will be changed by the method based
-     *                   on the rule votes.  (Note:  Probably just pass in
-     *                   currExternal from an existing node.)
-     * @return how confident we are in this prediction
-     */
-    public double predictExternalByBloc(char action, SensorData predicted) {
-        int numExtSensors = this.currExternal.size();
-
-        // String is a String representation of a bloc (i.e "a00" or "b01")
-        // TODO: Consider creating a BlocData object to make cleaner?
-        HashMap<String, double[]> blocData = new HashMap<>();
-
-        String[] sensorNames = predicted.getSensorNames().toArray(new String[0]);
-
-        Vector<TFRule> tfRules = this.agent.getTfRules();
-
-        // Go through each rule and add its vote to the blocData
-        for (TFRule rule: tfRules) {
-            // Ignore the rule if the action doesn't match
-            if(rule.getAction() != action) continue;
-
-            double score = rule.lhsMatchScore(action, this.currInternal,this.currExternal);
-            if (score <= 0.0) continue;
-            score *= rule.getConfidence();
-            if (score <= 0.0) continue;
-
-            String lhsKey = ""; // HashMap key String
-
-            // Array containing data about the bloc in the following order:
-            //first sensor on, first sensor off, second sensor on, second sensor off, bloc size
-            //TODO:  this should not be hard-coded for two external sensors.
-            double[] predictedExternal = new double[5];
-
-            // Creates the key String for indexing into the HashMap and adds the rule's
-            // vote for each lhs external sensor
-            for(int j = 0; j < numExtSensors; j++){
-
-                // Gets the value of the lhs external sensor
-                boolean on = (boolean) rule.getLHSExternal().getSensor(sensorNames[j]);
-
-                // Adds "1" or "0" to the key String depending on the sensor value
-                lhsKey += on ? "1" : "0";
-
-                // Gets the value of the prediction for the sensor
-                on = (boolean) rule.getRHSExternal().getSensor(sensorNames[j]);
-
-                // Adds the vote
-                // Use a negative score for off and positive score for on to make summing the
-                // total easier... maybe :)  //TODO:  negative score?
-                predictedExternal[on ? 2 * j : 2 * j + 1] += score;
-            }
-
-            // Set the bloc size to one, which is used to increment in later function calls
-            predictedExternal[4] = 1.0;
-
-            // If the bloc is already created, we update it with the new vote of the current rule
-            if (blocData.containsKey(lhsKey)){
-                double[] old = blocData.get(lhsKey);    // Gets the old data
-                for(int i = 0; i < old.length; i++){
-
-                    // Updates the data
-                    // This also increments the bloc size by 1
-                    predictedExternal[i] += old[i];
-                }
-            }
-            // Puts the updated data back into the HashMap with the new value
-            blocData.put(lhsKey, predictedExternal);
-
-        }//for each tf rule
-
-        // Go through the hashMap and calculate the highest vote for each action
-        double confidence = 1.0;
-
-        double[] totalVotes = new double[4];  //TODO:  shouldn't be hardcoded for two ext sensors
-
-        // Counts up all the votes across the blocs, factoring in the size of the bloc
-        for(double[] d: blocData.values()) {
-
-            // Each sensor vote total is divided by the size of the bloc to ensure each
-            // bloc has a single vote
-            totalVotes[0] += d[0] / d[4];
-            totalVotes[1] += d[1] / d[4];
-            totalVotes[2] += d[2] / d[4];
-            totalVotes[3] += d[3] / d[4];
-        }
-
-        //Construct the predicted SensorData
-        for(int i = 0; i < numExtSensors; i++) {
-            predicted.setSensor(sensorNames[i], totalVotes[2*i] >= totalVotes [2*i+1]);
-
-            //calculate confidence in this sensor value
-            double max = Math.max(totalVotes[2*i],totalVotes[2*i+1]);
-            if(max > 0.0){
-                confidence *= max / (totalVotes[2*i] + totalVotes[2*i+1]);
-            } else {
-                confidence = 0.0;
-            }
-        }
-
-        return confidence;
-    }
 
     /**
      * class BlocData
@@ -316,7 +150,7 @@ public class TreeNode {
      * external sensor array.  It tracks the total votes from each voting
      * bloc as well as the max voter from each block.
      */
-    public class BlocData {
+    public static class BlocData {
         public String sensorName;
 
         //Each bloc (e.g., 00a, 10b, 11a, etc.) its most confident constituent's vote stored here
@@ -375,7 +209,7 @@ public class TreeNode {
          */
         public double[] getOutcomes() {
             //0=off confidence,  1=on confidence
-            double outArr[] = new double[2];
+            double[] outArr = new double[2];
 
             //Calculate the vote totals and max vote for on and off
             double onVotes = 0.0;
@@ -416,11 +250,10 @@ public class TreeNode {
     /**
      * predictExternalMark3
      *
-     * This is a re-revised version of predictExternalByBloc that weights the votes and
-     * an exponential scale and then further weights the final confidence by the
-     * match score of the best matching voter.  Rather than pick the winner (highest
-     * confidence) it calculates the confidence for all possible ext sensor combos
-     * as defined in TreeNode.comboArray.  This method is super complicated but I think
+     * This is a re-revised version of a method to predict the external sensors
+     * that will result from taking a selected action.  It calculates the
+     * confidence for all possible ext sensor combos as defined in
+     * TreeNode.comboArray.  This method is super complicated, but I think
      * it provides the best confidence calculation (at least until Mark 4...)
      *
      * CAVEAT:  The sensor combos are based on the sensor names in alphabetical
@@ -434,7 +267,6 @@ public class TreeNode {
      */
     public double[] predictExternalMark3(char action, SensorData[] predicted) {
         //Get a list of external sensor names
-        int numExtSensors = this.currExternal.size();
         String[] sensorNames = currExternal.getSensorNames().toArray(new String[0]);
 
         //Create a BlocData object to track the votes for each sensor
@@ -461,10 +293,9 @@ public class TreeNode {
         }//for
 
         //Create an array to store a confidence value for each possible sensor combination
-        double confArr[] = new double[TreeNode.comboArr.length];
-        for(int i = 0; i < confArr.length; ++i) {
-            confArr[i] = 1.0;  //start with max conf and whittle it down
-        }
+        double[] confArr = new double[TreeNode.comboArr.length];
+        //start with max conf and whittle it down
+        Arrays.fill(confArr, 1.0);
 
         //Calculate the confidence in each combo.  This feels a bit bass-ackwards
         //because we want to iterate over sensor names first rather than
@@ -474,7 +305,7 @@ public class TreeNode {
             //get the confidences in this sensor's values
             String sName = sensorNames[sId];
             BlocData bd = votingData.get(sName);
-            double outcomes[] = bd.getOutcomes();
+            double[] outcomes = bd.getOutcomes();
 
             //Update all sensor combos for this sensor
             for (int i = 0; i < confArr.length; ++i) {
@@ -547,8 +378,8 @@ public class TreeNode {
             char act = agent.getActionList()[actId].getName().charAt(0);
 
             //Calculate the confidence in each combination
-            SensorData sdArr[] = new SensorData[TreeNode.comboArr.length];
-            double confArr[] = predictExternalMark3(act, sdArr);
+            SensorData[] sdArr = new SensorData[TreeNode.comboArr.length];
+            double[] confArr = predictExternalMark3(act, sdArr);
 
             for(int i = 0; i < sdArr.length; i++) {
                 //agent must be more confident in this path than just taking a random action

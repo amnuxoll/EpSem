@@ -44,20 +44,17 @@ public class PhuJusAgent implements IAgent {
     public static final boolean TFIDF = true;
 
     // FLAG variabale to toggle rule generation
-    // if this is false, addPredeterminedRules will be called at
-    // timestep 0
+    // if this is false, addPredeterminedRules will be called at timestep 0
     public static final boolean GENERATERULES = true;
-
-
 
 //region InnerClasses
 
     /**
      * class Tuple describes a Tuple object for storing three values of different type
-     * modified from the following sources:
+     * modified from:
      * https://commons.apache.org/proper/commons-lang/apidocs/org/apache/commons/lang3/tuple/Triple.html
      */
-    public class Tuple<F, S> {
+    public static class Tuple<F, S> {
         private F first;
         private S second;
 
@@ -70,7 +67,7 @@ public class PhuJusAgent implements IAgent {
         public S getSecond() { return second; }
         public void setFirst(F newFirst) { this.first = newFirst; }
         public void setSecond(S newSecond) { this.second = newSecond; }
-    }//class Triple
+    }//class Tuple
 
     /**
      * class MergeQueue
@@ -85,10 +82,10 @@ public class PhuJusAgent implements IAgent {
     public static class MergeQueue {
 
         //Each array is length==2 with the number of two rules that are candidates for merging
-        private Vector<Integer[]> queue;
+        private final Vector<Integer[]> queue;
 
         //Pairs of rules that have demonstated they are distinct and should not be merged
-        private Vector<Integer[]> blacklist;
+        private final Vector<Integer[]> blacklist;
 
         public MergeQueue() {
             this.queue = new Vector<>();
@@ -97,32 +94,6 @@ public class PhuJusAgent implements IAgent {
 
         public boolean hasNext() {
             return this.queue.size() > 0;
-        }
-
-        /**
-         * getMinimumIdx
-         *
-         * Helper method for getting the index of the minimum value in the array.
-         * @param arr
-         * @return Index of min value
-         */
-        private int getMinimumIdx(Integer[] arr) {
-
-            if (arr.length <= 0) {
-                return 0;
-            }
-
-            int min = arr[0];
-            int minIdx = 0;
-
-            for (int i = 0; i < arr.length; i++) {
-                if (arr[i] < min) {
-                    min = arr[i];
-                    minIdx = i;
-                }
-            }
-
-            return minIdx;
         }
 
         /**
@@ -155,7 +126,7 @@ public class PhuJusAgent implements IAgent {
                 //      necessary since the first element most likely is
                 for (int i = 1; i < convertedSet.length; i++) {
 
-                    if (convertedSet[i] == convertedSet[0]) continue;
+                    if (Objects.equals(convertedSet[i], convertedSet[0])) continue;
 
                     Integer[] newPair = new Integer[] {convertedSet[0], convertedSet[i]};
 
@@ -168,11 +139,10 @@ public class PhuJusAgent implements IAgent {
             } else {
                 this.queue.add(convertedSet);
             }
-        }
+        }//add
 
         /**
          * Removes the entry from the start of the queue and returns it (FIFO)
-         * @return
          */
         public Integer[] pop() {
             if (this.queue.size() == 0) return null;
@@ -180,163 +150,76 @@ public class PhuJusAgent implements IAgent {
         }
 
         /**
-         * Reveals the entry at the beginning of the queue without removing it.
-         * @return
-         */
-        public Integer[] peek() {
-            if (this.queue.size() == 0) return null;
-            return this.queue.get(0);
-        }
-
-        /**
          * Adds a set of ruleIDs to be blocked from being added to the queue.
-         * @param block
          */
         public void blacklist(Integer[] block) {
             this.blacklist.add(block);
         }
     }//class MergeQueue
 
-    /**
-     * class RuleMatrix describes an adjacency matrix for storing pairs of internal sensors which fire simultaneously.
-     * TODO Look at other data structures for this (the current implementation could be very expensive)
-     */
-    public class RuleMatrix {
-
-        private int[][] adjMatrix; // Keeps track of rules when they fire together
-        private int[][] disjMatrix; // Keeps track of times when rules that usually fire together don't
-                                    // Do we care when they fire, or how many times they don't fire? (For both)
-
-        public RuleMatrix(int size) {
-            this.adjMatrix = new int[size][size];
-            this.disjMatrix = new int[size][size];
-        }
-
-        public void updateConnections(HashSet<Integer> sensor) {
-
-            for (Integer i : sensor) {
-                for (TFRule r : tfRules) {
-                    if (r.getId() == i) continue;
-                    // if r is in sensor, it fired so we increment adj Mat
-                    if (sensor.contains(r.getId())) {
-                        adjMatrix[i][r.getId()]++;
-                    }
-                    else {
-                        // otherwise we increment disjMat
-                        disjMatrix[i][r.getId()]++;
-                        disjMatrix[r.getId()][i]++;
-                    }
-                }
-
-            }
-        }
-
-        public int getConnections(int rule1, int rule2) {
-            return adjMatrix[rule1][rule2];
-        }
-
-        /**
-         * getRulesThatFireTogether
-         *
-         * Returns a list of all the rules which have fired with this rule 'connections' # of times
-         * TODO This matrix could break once the rules start exceeding the maximum or when rules start to merge, since
-         *      a rule's index in the matrix is based on its rule ID.
-         *      A different implementation of this concept could fix this issue.
-         *
-         * @param ruleNum ID of the rule
-         * @param connections number of times a rule has to have fired with this one
-         * @return
-         */
-        public Vector<TFRule> getSimilarRules(int ruleNum, int connections) {
-
-            Vector<TFRule> broRules = new Vector<>();
-            TFRule rule = (TFRule) rules.get(ruleNum);
-
-            // We go through all of the rules which have fired with this rule. If the number of times that these
-            // two rules have fired is greater than 'connections', then it is a potential candidate to be merged.
-            for (int i = 0; i < tfRules.get(tfRules.size()-1).ruleId + 1; i++) {
-
-                if (rules.containsKey(i)) {
-                    if (adjMatrix[ruleNum][i] >= connections) {
-
-                        if (i == ruleNum) {
-                            continue;
-                        }
-
-                        TFRule broRule = (TFRule) rules.get(i); // <- Merge candidate
-
-                        // Checking that the candidate has the same external sensors, action, and similar confidences
-                        // before confirming its selection
-                        if (broRule.isExtMatch(rule.getAction(), rule.getLHSExternal(), rule.getRHSExternal())) {
-                            if (Math.abs(rule.getConfidence() - broRule.getConfidence()) <= 0.02) {
-                                broRules.add((TFRule) rules.get(i));
-                            }
-                        }
-                    }
-                }
-            }
-
-            return broRules;
-        }
-
-        public int[][] getAdjMatrix() {
-            return adjMatrix;
-        }
-    }//class RuleMatrix
-
-//endregion
+//endregion Inner Classes
 
 //region Instance Variables
+
+    /**
+     * Always use this generator for any random numbers used by this agent.
+     * By doing so, any output is reproducible with the same seed.
+     */
+    public static Random rand = new Random(2);
+
+    /** list of available actions in current FSM */
+    private Action[] actionList;
+
+    /** current timestep 't' */
+    private int now = 0;
+
     //The agent keeps lists of the rules it is using
-    private Vector<PathRule> pathRules = new Vector<>();
-    private Vector<TFRule> tfRules = new Vector<>();
-    private Hashtable<Integer, Rule> rules = new Hashtable<>();
-    private MergeQueue mergeQueue = new MergeQueue();
+    private final Vector<PathRule> pathRules = new Vector<>();
+    private final Vector<TFRule> tfRules = new Vector<>();
+    private final Hashtable<Integer, Rule> rules = new Hashtable<>();  //all rules
 
-    private int now = 0; //current timestep 't'
+    /** this tracks rules that "fire together" and therefore may need
+     *  to be merged (i.e., "wire together")
+     */
+    private final MergeQueue mergeQueue = new MergeQueue();
 
-    private Action[] actionList;  //list of available actions in current FSM
-
-    //internal sensors are rule ids of rules that fired in the prev time step
+    /** internal sensors are rule ids of rules that fired in the prev time step */
     private HashSet<Integer> currInternal = new HashSet<>();
 
-    //external sensors come from the environment
+    /** external sensors come from the environment */
     private SensorData currExternal;
 
-    //sensor values from the previous timesteps
-    private Vector<HashSet<Integer>> prevInternal = new Vector<>();
+    /** sensor values from the previous timesteps */
+    private final Vector<HashSet<Integer>> prevInternal = new Vector<>();
     private SensorData prevExternal = null;
-    private char prevAction = '\0';
+    private char prevAction = '\0';  //last action the agent took
 
+    /** This is the PathRule that best matched at the end of the last completed path */
+    private PathRule prevPRMatch = null;
 
-    //The agent's current selected path to goal (a sequence of nodes in the search tree)
-    private Vector<TreeNode> pathToDo = null;
-    private final Vector<TreeNode> pathTraversedSoFar = new Vector<>();
+    //These variables track the agent's progress along its currently selected
+    // path to goal.  A path is a sequence of TreeNode objs.
+    private Vector<TreeNode> pathToDo = null;  //steps yet to take
+    private final Vector<TreeNode> pathTraversedSoFar = new Vector<>();  //steps taken
 
-    //Log the actual path the agent followed (which can differ from above)
-    private Vector<TreeNode> actualPath = new Vector<>();
-
+    /** Log the actual path the agent experienced (which can differ from above) */
+    private final Vector<TreeNode> actualPath = new Vector<>();
 
     //Tracks agent performance for debugging  (DEBUG)
     private int stepsSinceGoal = 0;
     private int numGoals = 0;
     Vector<Integer> last10Goals = new Vector<>();
 
-    //"random" numbers are useful sometimes (use a hardcoded seed for debugging)
-    //Important:  Always use this generator so that output is reproducible
-    // with the same seed.  Don't create your own elsewhere in the agent.
-    public static Random rand = new Random(2);
-
     //Stores the percentage that each sensor is on and relative info to calculate it.
-    //HashMap maps sensor name (String) to Tuple containing creation time step (Integer) and percentage (Double)
-    private HashMap<String, Tuple<Integer, Double>> externalPercents = new HashMap<>();
-    private HashMap<String, Tuple<Integer, Double>> internalPercents = new HashMap<>();
-
-    //This are the PathRules that matched at the end of the last path
-    private PathRule prevPRMatch = null;
+    //HashMap maps sensor name (String) to Tuple containing creation
+    // time step (Integer) and percentage (Double).  This is the 'df' for
+    // a TFRule's tf-idf calculation.
+    private final HashMap<String, Tuple<Integer, Double>> externalPercents = new HashMap<>();
+    private final HashMap<String, Tuple<Integer, Double>> internalPercents = new HashMap<>();
 
     //These variables track the success rate of random actions
-    // (Using double instead of int so we can calc pct success)
+    // (Using double instead of int, so we can calc pct success).
+    // The agent uses the percentage to avoid following "hopeless" paths.
     private boolean currPathRandom = false;
     private double numRand = 1.0;
     private double numRandSuccess = 1.0;
@@ -369,12 +252,8 @@ public class PhuJusAgent implements IAgent {
         this.now++;
         this.currExternal = sensorData;
 
-        if (this.rules.size() > 0) {  //can't update if no rules yet
-            this.currInternal = genNextInternal(this.prevAction,
-                                                this.getPrevInternal(),
-                                                this.prevExternal,
-                                                this.currExternal);
-        }
+        //Calculate the internal sensors based upon what the agent just experienced
+        this.currInternal = genNextInternal();
 
         this.stepsSinceGoal++;
 
@@ -388,13 +267,13 @@ public class PhuJusAgent implements IAgent {
             updateExternalPercents();
         }
 
-        // If multiple sensors are fired, they are added to the merge queue.
+        // If multiple rules fired together, they are added to the merge queue.
         this.mergeQueue.add(this.currInternal);
 
-        //Regular update to PathRules
+        //Regular update to the PathRules
         updatePathRules();
 
-        //DEBUG:  Tell the human what time it is
+        //DEBUG:  Tell the human what the agent is feeling
         if (PhuJusAgent.DEBUGPRINTSWITCH) {
             debugPrintln("TIME STEP: " + this.now);
             printInternalSensors(this.currInternal);
@@ -402,7 +281,7 @@ public class PhuJusAgent implements IAgent {
             printPrevMatchingPathRules(this.prevPRMatch);
         }
 
-        //DEBUG: breakpoint here to debug
+        //DEBUG: put breakpoints here to debug
         if(this.stepsSinceGoal >= 20) {
             debugPrintln("");
         }
@@ -416,29 +295,15 @@ public class PhuJusAgent implements IAgent {
             updateExternalPercents();
         }
 
-        if (DEBUGPRINTSWITCH) {
-            if (this.now > 2) {
-                debugPrintln("TF Rules:");
-                for (int i = 0; i < tfRules.size(); i++) {
-                    debugPrintln("" + tfRules.get(i));
-                }
-
-                debugPrintln("Path Rules:");
-                for (PathRule pr : this.pathRules) {
-                    debugPrintln("" + pr);
-                }
-                debugPrintln("NUM RULES: " + tfRules.size());
-            }
-        }
+        if (DEBUGPRINTSWITCH) printAllRules();
 
         //Update the agent's current path
         pathMaintenance(sensorData.isGoal());
 
-
-        //extract next action
+        //extract next action from current path
         char action = calcAction();
 
-        //Use the selcted action to setup values for the next iteration
+        //Use the selected action to set up values for the next iteration
         updateSensors(action);
 
         //DEBUG
@@ -447,6 +312,25 @@ public class PhuJusAgent implements IAgent {
         return new Action(action + "");
     }//getNextAction
 
+    /**
+     * printAllRules
+     *
+     * is a DEBUG method to print all the rules the agent has
+     */
+    private void printAllRules() {
+        if (this.now > 2) {
+            debugPrintln("TF Rules:");
+            for (TFRule tfRule : tfRules) {
+                debugPrintln("" + tfRule);
+            }
+
+            debugPrintln("Path Rules:");
+            for (PathRule pr : this.pathRules) {
+                debugPrintln("" + pr);
+            }
+            debugPrintln("NUM RULES: " + tfRules.size());
+        }
+    }//printAllRules
 
     /**
      * addPredeterminedRules
@@ -481,13 +365,13 @@ public class PhuJusAgent implements IAgent {
                                             SensorData prevExt,
                                             SensorData currExt) {
         HashSet<Integer> result = new HashSet<>();
+        if (this.rules.size() == 0) return result; //no rules yet
 
         // find the TFRule that best matches the given sensors/actions
         // IMPORTANT:  You can't use this.prevBestScore/Match for this because
         //             genNextInternal is also used extensively by TreeNode
         double bestScore = 0.0;
-        TFRule bestRule = null; //useful for debugging but not strictly needed
-        // Put all the scores in an array so we don't have to calc them twice (see next loop)
+        // Put all the scores in an array, so we don't have to calc them twice (see next loop)
         double[] allScores = new double[this.tfRules.size()];
         for (int i = 0; i < this.tfRules.size(); ++i) {
             TFRule r = tfRules.get(i);
@@ -499,7 +383,6 @@ public class PhuJusAgent implements IAgent {
             allScores[i] = r.lhsMatchScore(action, prevInt, prevExt);
             if (allScores[i] > bestScore) {
                 bestScore = allScores[i];
-                bestRule = r;
             }
         }//for
 
@@ -518,6 +401,48 @@ public class PhuJusAgent implements IAgent {
         }
         return result;
     }//genNextInternal
+
+    /** convenience version that uses the agent's action + sensors */
+    public HashSet<Integer> genNextInternal() {
+        HashSet<Integer> result = new HashSet<>();
+        if (this.rules.size() == 0) return result; //no rules yet
+
+        return genNextInternal(this.prevAction,
+                               this.getPrevInternal(),
+                               this.prevExternal,
+                               this.currExternal);
+    }//genNextInternal
+
+    /**
+     * calcAction
+     *
+     * determines what action the agent will take next based upon the current path
+     */
+    private char calcAction() {
+        char action;
+        if (pathToDo != null) {
+            action = this.pathToDo.get(0).getAction();
+
+            //DEBUG
+            debugPrint("Selecting next action: " + action + " from path: ");
+            if (this.pathTraversedSoFar.size() > 0) {
+                debugPrint(this.pathTraversedSoFar.lastElement().getPathStr());
+                debugPrint(".");
+            }
+            for(TreeNode node : this.pathToDo) {
+                debugPrint("" + node.getAction());
+            }
+            debugPrintln("");
+
+            this.pathTraversedSoFar.add(this.pathToDo.remove(0));
+        } else {
+            //random action
+            action = actionList[rand.nextInt(actionList.length)].getName().charAt(0);
+            debugPrintln("random action: " + action);
+        }
+
+        return action;
+    }//calcAction
 
     //region PathRule methods
 
@@ -643,7 +568,7 @@ public class PhuJusAgent implements IAgent {
         TreeNode actualTN = new TreeNode(this.actualPath.lastElement(), this.prevAction, this.currExternal, 1.0);
         this.actualPath.add(actualTN);
 
-        //The actualPath begins with the root note in place so it can be used
+        //The actualPath begins with the root note in place, so it can be used
         // by the TreeNode ctor.  Once it's been used, it is discarded so that
         // actualPath and pathTraversedSoFar stay in sync
         if (this.actualPath.firstElement().getParent() == null) {
@@ -663,23 +588,22 @@ public class PhuJusAgent implements IAgent {
 
         //If newbie was wrong, create a second PathRule to reflect what actually happened
         PathRule correctPRMatch = getBestMatchingPathRule(this.actualPath);
-        PathRule correctNewbie = null;
         if (!correctPredict) {
-            correctNewbie = new PathRule(this, this.prevPRMatch, this.actualPath);
+            PathRule correctNewbie = new PathRule(this, this.prevPRMatch, this.actualPath);
             incorporateNewPathRule(correctNewbie, correctPRMatch, true);
         }
 
         //Once the agent's path has been completed, then log the PathRule that
-        // matched what actually occurred so we can use it as the LHS of the
+        // matched what actually occurred, so we can use it as the LHS of the
         // next PathRule
         if (this.pathToDo.size() == 0) {
             this.prevPRMatch = correctPRMatch;
         }
-
-
     }//updatePathRules
 
     //endregion PathRule Methods
+
+    //region Path Maintenance Methods
 
     /**
      * buildNewPath
@@ -774,7 +698,6 @@ public class PhuJusAgent implements IAgent {
             System.out.println("Found GOAL No. " + numGoals + " in " + this.stepsSinceGoal + " steps (avg: " + avgStr +  "; moving avg: " + movingAvgStr + ")");
             rewardRulesForGoal();
 
-
             //Track random success
             if (this.currPathRandom) {
                 this.numRand++;
@@ -797,56 +720,31 @@ public class PhuJusAgent implements IAgent {
 
 
             buildNewPath();
-        } else {
+        }
+        //else {
             //If we reach this point we're partway through a path and no maint is needed
 
             //TODO: path validation?
             //If the agent is partway through a path but the predicted outcome
             //of it's most recent step has already not been met, then it may
-            //make sense to abort the path now and build a new one.  We've tried
-            //this before and the downside to this is that the agent misses out
-            //on some nifty exploratory options and is more vulnerable to getting
-            //into loops.  If we can avoid that issue, then this is  the right
-            // thing to do.
-        }
-
-
+            //make sense to abort the path now and build a new one.  There are two
+            //big hurdles for this:
+            // 1.  We've tried this before with other agent it caused the agent
+            //     to miss some key exploratory experiences and, thus, made it
+            //     more vulnerable to getting into loops.
+            // 2.  How to be sure a path has failed?  I don't want to rely on
+            //     any external sensor being 100% accurate except, perhaps,
+            //     the goal sensor.
+            //
+            // If we can address these issues, then this is the right thing to
+            // do.
+        //}
 
     }//pathMaintenance
 
+//endregion Path Maintenance Methods
 
-
-    /**
-     * calcAction
-     *
-     * determines what action the agent will take next based upon the current path
-     */
-    private char calcAction() {
-        char action;
-        if (pathToDo != null) {
-            action = this.pathToDo.get(0).getAction();
-
-            //DEBUG
-            debugPrint("Selecting next action: " + action + " from path: ");
-            if (this.pathTraversedSoFar.size() > 0) {
-                debugPrint(this.pathTraversedSoFar.lastElement().getPathStr());
-                debugPrint(".");
-            }
-            for(TreeNode node : this.pathToDo) {
-                debugPrint("" + node.getAction());
-            }
-            debugPrintln("");
-
-            this.pathTraversedSoFar.add(this.pathToDo.remove(0));
-        } else {
-            //random action
-            action = actionList[rand.nextInt(actionList.length)].getName().charAt(0);
-            debugPrintln("random action: " + action);
-        }
-
-        return action;
-    }//calcAction
-
+    //region Sensor Update Methods
     /**
      * calcPrunedInternal
      *
@@ -908,17 +806,16 @@ public class PhuJusAgent implements IAgent {
 
             String[] nameArr = this.currExternal.getSensorNames().toArray(new String[0]);
 
-            for(int i = 0; i < nameArr.length; i++){
-                boolean sensorVal = (Boolean) this.currExternal.getSensor(nameArr[i]);
-                Tuple<Integer, Double> sensorTuple = this.externalPercents.get(nameArr[i]);
+            for (String s : nameArr) {
+                boolean sensorVal = (Boolean) this.currExternal.getSensor(s);
+                Tuple<Integer, Double> sensorTuple = this.externalPercents.get(s);
 
-                if(sensorTuple != null){ //We need to adjust the old percent value
+                if (sensorTuple != null) { //We need to adjust the old percent value
                     double newPercent = calculateSensorPercent(sensorTuple.first, sensorTuple.second, sensorVal);
                     sensorTuple.setSecond(newPercent);
-                }
-                else { //We just set the percent to either 1.0 or 0 and set the current time
+                } else { //We just set the percent to either 1.0 or 0 and set the current time
                     double percentage = sensorVal ? 1.0 : 0.0;
-                    externalPercents.put(nameArr[i], new Tuple<Integer, Double>(this.now, percentage));
+                    externalPercents.put(s, new Tuple<>(this.now, percentage));
                 }
             }
         }
@@ -942,7 +839,7 @@ public class PhuJusAgent implements IAgent {
                     sensorTuple.setSecond(newPercent);
                 } else { //We just set the percent to either 1.0 or 0 and set the current time
                     double percentage = wasActive ? 1.0 : 0.0;
-                    internalPercents.put(Integer.toString(rule.ruleId), new Tuple<Integer, Double>(this.now, percentage));
+                    internalPercents.put(Integer.toString(rule.ruleId), new Tuple<>(this.now, percentage));
                 }
             }
 
@@ -974,7 +871,7 @@ public class PhuJusAgent implements IAgent {
      * @return the newly calculated percentage
      */
     private double calculateSensorPercent(int creationTimeStep, double currPercent, boolean on) {
-        double newPercentage = 0;
+        double newPercentage;
 
         //Number of instances the sensor is on
         double onInstances = currPercent * (this.now - creationTimeStep);
@@ -990,14 +887,6 @@ public class PhuJusAgent implements IAgent {
 
         return newPercentage;
     }//calculateSensorPercent
-
-    /** @return a rule with a given id (or null if not found) */
-    public Rule getRuleById(int id) {
-
-        return this.rules.get(id);
-
-    }//getRuleById
-
 
     /**
      * updateTFRuleConfidences
@@ -1017,6 +906,10 @@ public class PhuJusAgent implements IAgent {
         }
     }//updateTFRuleConfidences
 
+    //endregion Sensor Update Methods
+
+    //region Rule Maintenance
+
     /**
      * cullRules
      *
@@ -1024,10 +917,12 @@ public class PhuJusAgent implements IAgent {
      * by removing the worst rules.
      *
      * a rules score is calculated by multiplying its activation with its accuracy
-     * TODO delete cullRules()?
+     *
      */
     private void cullRules() {
         mergeRules();
+
+        //TODO:  code here to remove rules if there are still too many
     }
 
     /**
@@ -1041,7 +936,7 @@ public class PhuJusAgent implements IAgent {
      * [3,16,8,19] would turn into -> [3,16] [3,8] [3,19]
      * <p>
      * The first rule in the pair is determined by whichever rule in the set has the lowest number of internal
-     * sensors. The first rule is what all of the other rules will merge into if they qualify.
+     * sensors. The first rule is what all the other rules will merge into if they qualify.
      * <p>
      * Whenever the agent reaches a goal, or the number of rules is too high, every pair of rules in the queue is
      * checked. If their externals match with the first number in the pair, then they're merged.
@@ -1067,7 +962,7 @@ public class PhuJusAgent implements IAgent {
             if (mergeThese[0].getOperator() == TFRule.RuleOperator.ALL) continue;
             if (mergeThese[1].getOperator() == TFRule.RuleOperator.ALL) continue;
 
-            // We merge all of the rules into the rule with the smallest number of internal sensors, since it's
+            // We merge all the rules into the rule with the smallest number of internal sensors, since it's
             // the simplest rule. This is an extra sanity check that could probably be removed.
             // Remember: The sets of potential merges are kept in pairs! e.g. [3,4] , [3,5], [3,17], etc...
             TFRule mergeParent = mergeThese[0];
@@ -1081,7 +976,7 @@ public class PhuJusAgent implements IAgent {
             if (checkThis.isExtMatch(mergeParent.getAction(), mergeParent.getLHSExternal(), mergeParent.getRHSExternal())) {
                 merge(mergeParent, checkThis);
             }
-            // If they don't match, add them to the blacklist so they don't get checked again
+            // If they don't match, add them to the blacklist, so they don't get checked again
             else {
                 this.mergeQueue.blacklist(poppedPair);
             }
@@ -1108,33 +1003,6 @@ public class PhuJusAgent implements IAgent {
         // Also do this with the blacklist
         mergeDuplicates(rule1, rule2, this.mergeQueue.blacklist);
 
-        // TODO remove? This code handles gentle merging (internal sensors are combined). Doesn't seem to improve
-        //      the performance of the agent. Might be useful in the future, though.
-        /*
-        // This part of the code merges the internal sensors from rule2 into the internal sensors of rule1.
-        // Also switches the rule operator for rule1 to be ANDOR
-
-        boolean switchOperatorFlag = false; // <- If there are sensors to be combined, then we switch the operator
-                                            //    to ANDOR
-
-        System.out.println("Rule #" + rule2.getId() + " internal sensors:");
-        for (TFRule.Cond iSensor : rule2.getLhsInternal()) {
-
-            // Ignore sensors which aren't relevant
-            if (iSensor.data.getTF() == 0) {
-                continue;
-            }
-
-            // Check if the sensor is already inside of rule1 before adding it
-            if (!rule1.hasInternalSensor(iSensor.sName)) {
-                rule1.getLhsInternal().add(iSensor);
-                switchOperatorFlag = true;
-            }
-            System.out.println(iSensor);
-        }
-
-        if (switchOperatorFlag) rule1.setOperator(TFRule.RuleOperator.ANDOR);
-*/
         removeRule(rule2, rule1);
     }//merge
 
@@ -1142,14 +1010,11 @@ public class PhuJusAgent implements IAgent {
      * mergeDuplicates
      *
      * Helper method for merge() which replaces all instances of rule2 in an Integer[] list with rule1.
-     * @param rule1
-     * @param rule2
-     * @param list
      */
     private void mergeDuplicates(TFRule rule1, TFRule rule2, Vector<Integer[]> list) {
         for (Integer[] ruleSet : list) {
 
-            // If any of the sets of rules contain rule2, we replace the Id with rule1's id
+            // If any of the sets of rules contain rule2, we replace its id with rule1's id
             for (int i = 0; i < ruleSet.length; i++) {
                 if (ruleSet[i] == rule2.getId()) {
                     ruleSet[i] = rule1.getId();
@@ -1158,14 +1023,11 @@ public class PhuJusAgent implements IAgent {
         }
     }//mergeDuplicates
 
-
     /**
      * updateRuleSet
      *
      * replaces current rules with low activation with new rules that might
      * be more useful.
-     *
-     * @return the new EpRule added to this.rules (or null if none added)
      */
     public void updateRuleSet() {
         //Can't do anything in the first timestep because there is no previous timestep
@@ -1183,8 +1045,7 @@ public class PhuJusAgent implements IAgent {
         //       not be created until their confidence drops.
 
         //Create new TF Rule(s) for this latest experience
-        // Sometimes, new rules are added which are identical to the previous one. This check is in place to prevent
-        // this from happening.
+        // Prevent a new rule being added which is identical to a previous one.
         TFRule newRule = new TFRule(this);
         if (tfRules.size() > 0 && !tfRules.lastElement().isExtMatch(newRule.getAction(), newRule.getLHSExternal(), newRule.getRHSExternal())) {
             addRule(newRule);
@@ -1216,7 +1077,7 @@ public class PhuJusAgent implements IAgent {
         boolean wasMatch = false;
         for(TFRule rule : this.tfRules) {
             if (rule.isExtMatch()) {
-                rule.updateTFVals();
+                rule.updateTFVals(this.getPrevInternal());
                 if (rule.getOperator() == TFRule.RuleOperator.ALL) {
                     wasMatch = true;
                 }
@@ -1236,7 +1097,7 @@ public class PhuJusAgent implements IAgent {
      */
     public void addRule(Rule newRule) {
         if (rules.size() >= MAXNUMRULES) {
-            //System.err.println("ERROR: Exceeded MAXNUMRULES!");
+            System.err.println("ERROR: Exceeded MAXNUMRULES!");
         }
 
         rules.put(newRule.ruleId,newRule);
@@ -1278,16 +1139,12 @@ public class PhuJusAgent implements IAgent {
      * @param replacement (can be null) the rule that will be replacing this one
      */
     public void removeRule(TFRule removeMe, TFRule replacement) {
-        boolean removed = rules.remove(removeMe.ruleId ,removeMe);
-        //rules.remove
         tfRules.remove(removeMe);
-        //tfRules.removeElement(removeMe);
 
 
         //DEBUGGING
         if (replacement == null) debugPrint("removed: ");
         else debugPrint("replaced: ");
-        //debugPrintln(removeMe.toString());
 
         //Removes the data from the sensor percentage HashMap
         removeInternalSensorPercent(removeMe.getId());
@@ -1313,7 +1170,6 @@ public class PhuJusAgent implements IAgent {
         }
 
         //update PathRules that used this rule (old version below)
-        Vector<PathRule> toChange = new Vector<>();
         for(PathRule pr : this.pathRules) {
             pr.replaceAll(removeMe, replacement);
         }
@@ -1332,20 +1188,10 @@ public class PhuJusAgent implements IAgent {
     private void rewardRulesForGoal() {
         //reward the rules in reverse order
         //TODO:  This needs to be revised
-//        double reward = 1.0;
-//        int time = this.now;
-//        for(int i = this.pathTraversedSoFar.size() - 1; i >= 0; --i) {
-//            TreeNode node = this.pathTraversedSoFar.get(i);
-//            TFRule tr = node.getTermRule();
-//            if (tr != null) {
-//                tr.addActivation(time, reward);
-//                System.out.println("current activation: " + tr.calculateActivation(this.now));
-//            }
-//            time--;
-//            reward *= TFRule.DECAY_RATE;
-//        }
 
     }//rewardRulesForGoal
+
+//endregion Rule Maintenance
 
     //region Debug Printing Methods
 
@@ -1405,46 +1251,6 @@ public class PhuJusAgent implements IAgent {
         }
     }
 
-    /** DEBUG: prints the sequence of actions discovered by a path */
-    public String pathToString(Vector<TreeNode> path) {
-        if (path == null) return "<null path>";
-        StringBuilder sbResult = new StringBuilder();
-        for(TreeNode node : path) {
-            sbResult.append(node.getAction());
-        }
-        return sbResult.toString();
-    }//pathToString
-
-    /** DEBUG: prints internal sensor percentages */
-    public void printInternalPercents(){
-        String[] names = internalPercents.keySet().toArray(new String[0]);
-
-        System.out.print("Internal sensor activation percentages:");
-        if (names.length != 0) {
-            System.out.print("\n");
-            for (String name : names) {
-                System.out.println("\t" + name + ":\t\t" + this.internalPercents.get(name).getSecond());
-            }
-        } else {
-            System.out.println(" none");
-        }
-    }//printExternalPercents
-
-    /** DEBUG: prints external sensor percentages */
-    public void printExternalPercents() {
-        String[] names = externalPercents.keySet().toArray(new String[0]);
-
-        System.out.print("External sensor activation percentages:");
-        if (names.length != 0) {
-            System.out.print("\n");
-            for (String name : names) {
-                System.out.println("\t" + name + ":\t\t" + this.externalPercents.get(name).getSecond());
-            }
-        } else {
-            System.out.println(" none");
-        }
-    }//printExternalPercents
-
     /**
      * debugPrintln
      *
@@ -1474,13 +1280,12 @@ public class PhuJusAgent implements IAgent {
     //region Getters and Setters
 
     public Hashtable<Integer, Rule> getRules() { return this.rules; }
+    public Rule getRuleById(int id) { return this.rules.get(id); }
     public Vector<TFRule> getTfRules() { return tfRules; }
     public int getNow() { return now; }
     public HashSet<Integer> getCurrInternal() { return this.currInternal; }
     /** returns the most recent */
     public HashSet<Integer> getPrevInternal() { return this.prevInternal.lastElement(); }
-    /** return all prev internal in short term memory */
-    public Vector<HashSet<Integer>> getAllPrevInternal() { return this.prevInternal; }
     public SensorData getCurrExternal() { return this.currExternal; }
     public void setCurrExternal(SensorData curExtern) { this.currExternal = curExtern; }
     public SensorData getPrevExternal() { return this.prevExternal; }

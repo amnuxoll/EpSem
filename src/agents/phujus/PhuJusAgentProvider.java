@@ -1,9 +1,7 @@
 package agents.phujus;
 
-import agents.phujus.PhuJusAgent;
 import framework.IAgent;
 import framework.IAgentProvider;
-import utils.Random;
 
 public class PhuJusAgentProvider implements IAgentProvider {
     @Override
