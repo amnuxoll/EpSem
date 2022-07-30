@@ -14,7 +14,6 @@ import java.util.Random;
  * A rule based episodic memory learner
  * <p>
  * TODO code maint items
- * > Profiling (timing the code)
  * > add a toString() to PJA
  * > increase code coverage and thoroughness of unit tests
  * > add levels to the debug logging system so we can turn on/off various
@@ -30,7 +29,7 @@ import java.util.Random;
  *   (frequency and recency of correctness)
  */
 public class PhuJusAgent implements IAgent {
-    public static final int MAXNUMRULES = 400; //10 to 100 for testing
+    public static final int MAXNUMRULES = 4000;
     public static final int MAX_SEARCH_DEPTH = 5; //TODO: get the search to self prune again
     public static final int MAX_TIME_DEPTH = 7;  //size of short term memory
 
@@ -164,6 +163,12 @@ public class PhuJusAgent implements IAgent {
     /**
      * Always use this generator for any random numbers used by this agent.
      * By doing so, any output is reproducible with the same seed.
+     *
+     * Note:  If you wish to change the FSM you have to change the seed
+     * in src/utils/Random.java not here.  Notable seeds:
+     *   13 - we've used this to develop PhuJusAgent
+     *   14 - used for presentation slides
+     *   21 - particularly nasty
      */
     public static Random rand = new Random(2);
 
@@ -216,6 +221,13 @@ public class PhuJusAgent implements IAgent {
     // a TFRule's tf-idf calculation.
     private final HashMap<String, Tuple<Integer, Double>> externalPercents = new HashMap<>();
     private final HashMap<String, Tuple<Integer, Double>> internalPercents = new HashMap<>();
+    /**
+     * It turns out that getting the DF value for an internal sensor is
+     * where the agent was spending about 50% of total computing time.
+     * So we cache those values in this array for quick access.
+     */
+    public double[] intPctCache = new double[Rule.getNextRuleId()];
+
 
     //These variables track the success rate of random actions
     // (Using double instead of int, so we can calc pct success).
@@ -282,7 +294,7 @@ public class PhuJusAgent implements IAgent {
         }
 
         //DEBUG: put breakpoints here to debug
-        if(this.stepsSinceGoal >= 20) {
+        if(this.stepsSinceGoal >= 40) {
             debugPrintln("");
         }
         if (this.now >= 96) {
@@ -829,6 +841,10 @@ public class PhuJusAgent implements IAgent {
     private void updateInternalPercents() {
         if(this.currInternal != null){ //we have internal sensor data to track
 
+            //This cache is used to speedup lookup
+            //TODO:  If this works better to replace the entire HashSet with an array?
+            intPctCache = new double[Rule.getNextRuleId()];
+
             for(Rule rule: rules.values()){
                 boolean wasActive = this.currInternal.contains(rule.ruleId);
 
@@ -837,13 +853,16 @@ public class PhuJusAgent implements IAgent {
                 if (sensorTuple != null) { //We need to adjust the old percent value
                     double newPercent = calculateSensorPercent(sensorTuple.first, sensorTuple.second, wasActive);
                     sensorTuple.setSecond(newPercent);
+                    intPctCache[rule.ruleId] = newPercent;
                 } else { //We just set the percent to either 1.0 or 0 and set the current time
                     double percentage = wasActive ? 1.0 : 0.0;
                     internalPercents.put(Integer.toString(rule.ruleId), new Tuple<>(this.now, percentage));
+                    intPctCache[rule.ruleId] = percentage;
                 }
             }
 
         }
+
     }//updateInternalPercents
 
     /**

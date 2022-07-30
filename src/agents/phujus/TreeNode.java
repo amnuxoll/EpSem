@@ -246,7 +246,6 @@ public class TreeNode {
 
     }//Class BlocData
 
-
     /**
      * predictExternalMark3
      *

@@ -143,23 +143,6 @@ public class RuleLoader {
     }
 
     /**
-     * Helper method for getting the operator of the rule (*[any], /[andor], ;[and])
-     */
-    private TFRule.RuleOperator getRuleOperatorFromString(String token) {
-
-        TFRule.RuleOperator operator = TFRule.RuleOperator.AND;
-
-        if(token.contains("/")) {
-            operator = TFRule.RuleOperator.ANDOR;
-        }
-        else if (token.contains("*")) {
-            operator = TFRule.RuleOperator.ALL;
-        }
-
-        return operator;
-    }
-
-    /**
      * Helper method for retrieving the LHSInt values from a string. The token provided
      * should be in the format <LHSInt[/*;]LHSInt[/*;]...>
      * <p>
@@ -172,6 +155,7 @@ public class RuleLoader {
      * e.g 3;7 -> ["3","7"]
      * @return an array of strings that represent the LHSInt values or null if there are none
      */
+    //TODO:  Change this to turn int[] instead of String[].  Then you can remove extraneous ctor and initInternal methods in TFRule
     private String[] getLHSIntFromString(String token, TFRule.RuleOperator operator) {
 
         if (token == null) {
@@ -213,6 +197,23 @@ public class RuleLoader {
 
         return lhsIntArr;
     }//getLHSIntFromString
+
+    /**
+     * Helper method for getting the operator of the rule (*[any], /[andor], ;[and])
+     */
+    private TFRule.RuleOperator getRuleOperatorFromString(String token) {
+
+        TFRule.RuleOperator operator = TFRule.RuleOperator.AND;
+
+        if(token.contains("/")) {
+            operator = TFRule.RuleOperator.ANDOR;
+        }
+        else if (token.contains("*")) {
+            operator = TFRule.RuleOperator.ALL;
+        }
+
+        return operator;
+    }
 
     /**
      * Helper method that Instantiates a SensorData object from a given string

@@ -458,14 +458,40 @@ public class PathRule extends Rule {
     public Vector<TreeNode> cloneRHS() { return new Vector<>(this.rhs); }
     public int lhsSize() { return this.lhs.size(); }
     public boolean lhsContains(PathRule other) { return this.lhs.contains(other); }
+    public boolean hasConflict() { return ((this.positive.size() > 0) && (this.negative.size() > 0)); }
+    public boolean hasSplit() { return this.hasSplit; }
+
     public void addExample(PathRule pr, boolean correct) {
         pr.isNascent = true;
-        if (correct) this.positive.add(pr);
-        else this.negative.add(pr);
+        if (correct) {
+            this.positive.add(pr);
+            //Keep to a max size (arbitrarily 10)
+            while (this.positive.size() > 10) {
+                PathRule oldest = null;
+                for(PathRule ex : this.positive) {
+                    if ((oldest == null) || (oldest.ruleId > ex.ruleId)) {
+                        oldest = ex;
+                    }
+                }
+                this.positive.remove(oldest);
+            }
+        }
+        else {
+            this.negative.add(pr);
+            //Keep to a max size (arbitrarily 10)
+            while (this.negative.size() > 10) {
+                PathRule oldest = null;
+                for(PathRule ex : this.negative) {
+                    if ((oldest == null) || (oldest.ruleId > ex.ruleId)) {
+                        oldest = ex;
+                    }
+                }
+                this.negative.remove(oldest);
+            }
+        }
         //TODO: enforce a max size for this.positive and this.negative?
         //      perhaps better to globally remove PRs that aren't getting used
     }
-    public boolean hasConflict() { return ((this.positive.size() > 0) && (this.negative.size() > 0)); }
-    public boolean hasSplit() { return this.hasSplit; }
+
 
 }//class PathRule

@@ -42,13 +42,21 @@ public class TFRule extends Rule {
      */
     public static class Cond implements Comparable<Cond> {
         public String sName;  //sensor name
+        public int sId;       //sensor id #
         public double numMatches;
         public double numOn;
 
         public Cond(String initSName, boolean initVal) {
             this.sName = initSName;
+            this.sId = -1; //only set for internal sensors
             this.numMatches = 1.0;
             this.numOn = initVal ? 1.0 : 0.0;
+        }
+
+        //internal sensors have a sensor id instead of a name
+        public Cond(int initSId, boolean initVal) {
+            this("" + initSId, initVal);
+            this.sId = initSId;
         }
 
         public double getTF() {
@@ -167,30 +175,26 @@ public class TFRule extends Rule {
         // Gets the previous internal sensors that were on
         HashSet<Integer> prevInternal = agent.getPrevInternal();
 
-        // For now, use the ids from BaseRule and EpRule objects
-        // which atm (Feb 2022) is all that is in the PJA.rules list
-        // Later this will just be the TFRules
-        Collection<Rule> combinedSet = agent.getRules().values();
-
-
         //Add a condition to this rule for each sensor
         HashSet<Cond> set = new HashSet<>();
-        for(Rule rule : combinedSet){
-            boolean on = prevInternal.contains(rule.ruleId);
-            //TODO:                should this just be true for internal sensors?
-            set.add(new Cond(Integer.toString(rule.ruleId), on));
+        for(TFRule tf : agent.getTfRules()){
+            boolean on = prevInternal.contains(tf.ruleId);
+            //TODO:  should this just be true for internal sensors?
+            set.add(new Cond(tf.ruleId, on));
         }
 
         return set;
     }//initInternal
 
+    //TODO:  this method should take an int[] not a String[]
     private HashSet<Cond> initInternal(String[] in) {
         HashSet<Cond> set = new HashSet<>();
         if(in == null)
             return set;
 
         for(String s: in){
-            set.add(new Cond(s, true));
+            int sId = Integer.parseInt(s);
+            set.add(new Cond(sId, true));
         }
 
         return set;
@@ -431,45 +435,26 @@ public class TFRule extends Rule {
             return 0.0;
 
         double score = 0.0;
-        int c = 0;  //counts how many lhs internal conditions were factored in the match
-        // Loops through all internal sensors of the rule and checks if the incoming
-        // sensor data contains the internal sensor
-        if(this.operator == RuleOperator.AND) {
-            for (Cond cond : this.lhsInternal) {
-                c++;
+        for (Cond cond : this.lhsInternal) {
+            // Calculates the TF and DF values, and if the sensor values are the same
+            double tf = cond.getTF();
+            double df = agent.intPctCache[cond.sId];
+            boolean wasOn = lhsInt.contains(Integer.parseInt(cond.sName));
+            double tfidf = calculateTFIDF(tf, df, wasOn);
 
-                // Calculates the TF and DF values, and if the sensor values are the same
-                double tf = cond.getTF();
-                double df = 0.0;
-                if (agent.getInternalPercents().containsKey(cond.sName)) {
-                    df = agent.getInternalPercents().get(cond.sName).getSecond();
-                }
-                boolean wasOn = lhsInt.contains(Integer.parseInt(cond.sName));
-                double tfidf = calculateTFIDF(tf, df, wasOn);
+            if(this.operator == RuleOperator.AND) {
                 score += tfidf;
+            } else if (this.operator == RuleOperator.ANDOR) {
+                if(tfidf >= score) score = tfidf;
             }
         }
-        else if (this.operator == RuleOperator.ANDOR) {
-            c = 1;
-            for (Cond cond : this.lhsInternal) {
-                // Calculates the TF and DF values, and if the sensor values are the same
-                double tf = cond.getTF();
-                double df = 0.0;
-                if (agent.getInternalPercents().containsKey(cond.sName)) {
-                    df = agent.getInternalPercents().get(cond.sName).getSecond();
-                }
-                boolean wasOn = lhsInt.contains(Integer.parseInt(cond.sName));
 
-                double val = calculateTFIDF(tf, df, wasOn);
-                if(val >= score)
-                    score = val;
-            }
-        }
         // no sensors so base match of 1.0
-        if(c == 0) return lhsInt.size() == 0 ? 1.0 : 0.0;
-
-        return score/c;
+        if(score == 0.0) return lhsInt.size() == 0 ? 1.0 : 0.0;
+        if (this.operator == RuleOperator.ANDOR) return score;
+        return score/this.lhsInternal.size();  //AND operator
     }//lhsIntMatchScore
+
 
     /**
      * lhsMatchScore
@@ -484,7 +469,6 @@ public class TFRule extends Rule {
      * @return  a match score from -1.0 to 1.0
      */
     public double lhsMatchScore(char action, HashSet<Integer> lhsInt, SensorData lhsExt){
-
         // Immediately return 0.0 if the actions don't match
         if (action != this.action) return 0.0;
 
@@ -552,7 +536,7 @@ public class TFRule extends Rule {
             // condition whose initial value is set based upon the old data.
             // Is this the best approach?  I can't think of better atm.
             boolean initVal = (cond.getTF() >= 0.5);
-            this.lhsInternal.add(new Cond("" + newId, initVal));
+            this.lhsInternal.add(new Cond(newId, initVal));
         }
     }//replaceIntSensor
 
