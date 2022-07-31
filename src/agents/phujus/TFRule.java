@@ -212,6 +212,24 @@ public class TFRule extends Rule {
     }//initExternal
 
     /**
+     * hasOneLHSMatch
+     *
+     * determines if one or more of the LHS internal conditions actually matches
+     * a given set of sensor values.  Rules that use the ALL operator won't
+     * trigger a positive response from this method.
+     *
+     * @return true if a match is found, false otherwise
+     */
+    public boolean hasOneLHSMatch(HashSet<Integer> lhsInt) {
+        for(Cond cond : this.lhsInternal) {
+            if (cond.numMatches == 0) continue;
+            if (lhsInt.contains(cond.sId))
+                return true;
+        }
+        return false;
+    }
+
+    /**
      * isExtMatch
      *
      * Checks if this rule matches the agent's most recent experience.
@@ -256,6 +274,7 @@ public class TFRule extends Rule {
      * Helper function for checking whether the conditions of the TFRule match the
      * current or previous SensorData of the agent. This is done by checking if the
      * SensorData (converted to HashSet<Cond>) contains each condition of the rule.
+     * This is a helper for {@link #isExtMatch}.
      *
      * @param conditions the external conditions of the TFRule
      * @param sensors the current or previous SensorData

@@ -276,8 +276,10 @@ public class TreeNode {
 
         // Record the vote from each rule for each sensor
         Vector<TFRule> tfRules = this.agent.getTfRules();
+        boolean sensorMatchFound = false;  //did any rule have a non-wildcard match?
         for (TFRule rule: tfRules) {
             if (rule.getAction() != action) continue;
+            if (rule.hasOneLHSMatch(this.currInternal)) sensorMatchFound = true;
             double score = rule.lhsMatchScore(action, this.currInternal, this.currExternal);
             if (score <= 0.0) continue;  //skip rules with unsupportive match scores
             //TODO:  should rule confidence really be factored in here?  Leave it in for now...
@@ -289,6 +291,7 @@ public class TreeNode {
                 BlocData bd = votingData.get(sName);
                 bd.vote(rule, score);
             }
+
         }//for
 
         //Create an array to store a confidence value for each possible sensor combination
@@ -313,6 +316,21 @@ public class TreeNode {
                 } else {
                     confArr[i] *= outcomes[1];
                 }
+            }//for
+
+
+            //If none of the non-wildcard rules has an actual match to this
+            // TreeNode then that means that no rule exists that really predicts
+            // anything about this action.  To encourage curiosity, set 1.0
+            // confidence in any goal outcome.
+            //Note: could integrate this into the loop above if this code ends
+            //      up being a performance bottleneck.
+            if ( (! sensorMatchFound) && (sName.equals(SensorData.goalSensor)) ) {
+                for (int i = 0; i < confArr.length; ++i) {
+                    if (TreeNode.comboArr[i].charAt(sId) == '1') {
+                        confArr[i] = 1.0;
+                    }
+                }
             }
         }//for
 
@@ -332,6 +350,7 @@ public class TreeNode {
         }
 
         //Populate the given SensorData array (predicted)
+        //TODO:  re-test this theory once agent is performing well overall
         for(int sdIndex = 0; sdIndex < predicted.length; ++sdIndex) {
             predicted[sdIndex] = new SensorData(false); //set GOAL to false for now
 

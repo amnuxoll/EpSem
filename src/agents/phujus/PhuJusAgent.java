@@ -297,7 +297,7 @@ public class PhuJusAgent implements IAgent {
         if(this.stepsSinceGoal >= 40) {
             debugPrintln("");
         }
-        if (this.now >= 96) {
+        if (this.now >= 89) {
             debugPrintln("");
         }
 
@@ -914,15 +914,41 @@ public class PhuJusAgent implements IAgent {
      * matched correctly in the prev timestep and decreases the rules that
      * didn't match correctly
      *
-     * Caveat:  this.prevBestScore should be set correctly before this is called
+     * This method makes an earnest effort only to adjust rules that really
+     * matched.  See the steps below.
+     *
+     * TODO:  Could be even more aggressive via  self-tuning hyper-param for
+     *        min match score.  Not sure how.
      *
      */
     public void updateTFRuleConfidences() {
         for(TFRule tfRule : this.tfRules) {
-            double lhsScore = tfRule.lhsMatchScore(this.prevAction, this.getPrevInternal(), this.prevExternal);
+            //actions must match, of course
+            if (tfRule.getAction() != this.prevAction) continue;
+
+            //there has to be some sort of match on the LHS
+            if ((tfRule.getOperator() != TFRule.RuleOperator.ALL)
+                    && (! tfRule.hasOneLHSMatch(this.getPrevInternal())) ) {
+                continue;
+            }
+
+            //Calculate the match score for each component of the match and
+            //make sure they all agree
+            double lhsIntScore = tfRule.lhsIntMatchScore(this.getPrevInternal());
+            double lhsExtScore = tfRule.lhsExtMatchScore(this.prevExternal);
             double rhsScore = tfRule.rhsMatchScore(this.currExternal);
-            tfRule.adjustConfidence(lhsScore * rhsScore );
-        }
+            boolean agree = false;
+            if ( (lhsIntScore > 0.0) && (lhsExtScore > 0.0) && (rhsScore > 0.0)) {
+                agree = true;
+            }
+            if ( (lhsIntScore < 0.0) && (lhsExtScore < 0.0) && (rhsScore < 0.0)) {
+                agree = true;
+            }
+            if (!agree) continue;
+
+            //All tests pass:  adjust this rule's confidence
+            tfRule.adjustConfidence(lhsIntScore * lhsExtScore * rhsScore);
+        }//for
     }//updateTFRuleConfidences
 
     //endregion Sensor Update Methods
