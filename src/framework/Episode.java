@@ -48,7 +48,7 @@ public class Episode {
      * purposes this is fine. If ever we should want to treat a given sensor value as mutable then this
      * should be revisited.
      *
-     * @param 0 the {@link Episode} to copy.
+     * @param orig the {@link Episode} to copy.
      */
     public Episode(Episode orig) {
         if (orig == null)
@@ -87,6 +87,38 @@ public class Episode {
     public boolean hitGoal() {
         return this.sensorData.isGoal();
     }
+
+    /**
+     * partialEquals
+     * <p>
+     * Returns a value from 0 to 1.0 of how much this episode matches the given episode. If the actions don't match,
+     * it's a zero.
+     * @param e the other episode being compared
+     * @return
+     */
+    public double partialEquals(Episode e) {
+
+        double score = 0.0d;
+
+        if (this.sensorData == null || e.sensorData == null) {
+            return score;
+        }
+
+        if (!this.action.equals(e.action)) {
+            return score;
+        }
+
+        int numMatches = 0;
+
+        for (String sensorName : this.sensorData.getSensorNames()) {
+
+            if (this.sensorData.getSensor(sensorName).equals(e.sensorData.getSensor(sensorName))) {
+                numMatches++;
+            }
+        }
+
+        return ((double) numMatches  / ((double) this.sensorData.size()));
+    }//partialEquals
     //endregion
 
     //region Object Overrides

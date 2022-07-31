@@ -16,7 +16,7 @@ import java.util.*;
  */
 public class NSMAgent implements IAgent {
     //region Static Variables
-    private static Random random = new Random();
+    private static Random random = new Random(5910283102983L);
     //endregion
 
     //region Class Variables

@@ -9,6 +9,8 @@ import tests.Assertions;
 import tests.EpSemTest;
 import tests.EpSemTestClass;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Vector;
@@ -199,6 +201,24 @@ public class WFCAgentTest {
         Vector<List<PathNode>> matching = agent.matchPattern(pattern);
         System.out.println("Done");
         //Assertions.assertTrue(matching.size() == 4);
+    }
+
+    @EpSemTest
+    public void testMatchPattern3() throws IOException {
+        WFCAgent agent = quickAgentGen("abc");
+        initialize();
+        agent.importPathRules(new File("C:\\Users\\sirma\\fsm_output\\00logs\\test.txt"));
+
+        Vector<PathNode> pattern = new Vector<>();
+
+        pattern.add(new PathNode(data_00, 'a'));
+        Vector<List<PathNode>> result = agent.matchPattern(pattern);
+
+        HashMap<Action, Integer> votes = agent.getPathVotes(result);
+
+        Action resultAction = agent.getElectedAction(votes);
+
+        System.out.println("Hello");
     }
 
     @EpSemTest

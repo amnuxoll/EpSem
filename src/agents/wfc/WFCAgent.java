@@ -41,6 +41,7 @@ public class WFCAgent implements IAgent {
     public static final boolean DEBUGPRINTSWITCH = false; // Turns on/off debugPrint()
     public static final boolean OUTPUT_PATHRULES = false; // Whether or not the agent exports PathRules on goal
     public static final boolean INPUT_PATHRULES  = false; // Whether or not the agent imports PathRules
+    public static final boolean PARTIAL_MATCHING = true;
 
     public static final File OUTPUT_FILE = new File("C:\\Users\\sirma\\fsm_output\\00logs\\wfc_pathrule_output.txt");
     public static final File INPUT_FILE = new File("C:\\Users\\sirma\\fsm_output\\00logs\\wfc_pathrule_input.txt");
@@ -180,7 +181,7 @@ public class WFCAgent implements IAgent {
      * @param input
      * @throws IOException
      */
-    private void importPathRules(File input) throws IOException {
+    public void importPathRules(File input) throws IOException {
         if (!input.exists()) {
             return;
         }
@@ -359,10 +360,18 @@ public class WFCAgent implements IAgent {
                 PathNode node = ruleNodes.get(i);
 
                 // If we've found a match for the first part of the pattern, add it to the candidates
-                if (node.partialEquals(pattern.get(0), true) > 0.0d) {
-                    List<PathNode> candidate = ruleNodes.subList(i, ruleNodes.size());
-                    candidates.add(candidate);
-                    //System.out.println(candidate);
+                if (PARTIAL_MATCHING) {
+                    if (node.partialEquals(pattern.get(0), true) > 0.0d) {
+                        List<PathNode> candidate = ruleNodes.subList(i, ruleNodes.size());
+                        candidates.add(candidate);
+                        //System.out.println(candidate);
+                    }
+                } else {
+                    if (node.equals(pattern.get(0))) {
+                        List<PathNode> candidate = ruleNodes.subList(i, ruleNodes.size());
+                        candidates.add(candidate);
+                        //System.out.println(candidate);
+                    }
                 }
             }
         }//for
@@ -389,9 +398,16 @@ public class WFCAgent implements IAgent {
             for (int i = 0; i < pattern.size(); i++) {
                 PathNode pathChk = nodeList.get(i);
                 PathNode patternChk = pattern.get(i);
-                if (pathChk.partialEquals(patternChk, true) == 0.0d) {
-                    addFlag = false;
-                    break;
+                if (PARTIAL_MATCHING) {
+                    if (pathChk.partialEquals(patternChk, true) == 0.0d) {
+                        addFlag = false;
+                        break;
+                    }
+                } else {
+                    if (pathChk.equals(patternChk)) {
+                        addFlag = false;
+                        break;
+                    }
                 }
             }
 
@@ -438,7 +454,7 @@ public class WFCAgent implements IAgent {
      * @param possiblePaths
      * @return
      */
-    private HashMap<Action, Integer> getPathVotes(Vector<List<PathNode>> possiblePaths) {
+    public HashMap<Action, Integer> getPathVotes(Vector<List<PathNode>> possiblePaths) {
         HashMap<Action, Integer> votes = new HashMap<>();
 
         for (Action a : this.actionList) {
@@ -570,6 +586,9 @@ public class WFCAgent implements IAgent {
     //region PrintMethods
     private void printPathRules() {
 
+        if (!DEBUGPRINTSWITCH) {
+            return;
+        }
         System.out.println("WFCPathRules: ");
         for (WFCPathRule pr : this.wfcPathRules) {
             System.out.println(pr);
