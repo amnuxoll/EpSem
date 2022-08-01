@@ -16,15 +16,15 @@ import java.util.*;
  */
 public class NSMAgent implements IAgent {
     //region Static Variables
-    private static Random random = new Random(5910283102983L);
+    private static Random random = new Random();
     //endregion
 
     //region Class Variables
     private NHood selectedNHood;
     private double randChance;  //how frequently the agent make a random move
-    private QEpisodicMemory episodicMemory;
+    protected QEpisodicMemory episodicMemory;
     private int Successes = 0;
-    private Action[] actions;
+    protected Action[] actions;
     private QLearningConfiguration qLearningConfiguration;
     //endregion
 

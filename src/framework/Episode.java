@@ -17,10 +17,10 @@ public class Episode {
     //region Class Variables
 
     /** the {@link SensorData} for this {@link Episode}. */
-    private SensorData sensorData;
+    protected SensorData sensorData;
 
     /** the {@link Action} for this {@link Episode}. */
-    private Action action;
+    protected Action action;
 
     //endregion
 
@@ -88,37 +88,6 @@ public class Episode {
         return this.sensorData.isGoal();
     }
 
-    /**
-     * partialEquals
-     * <p>
-     * Returns a value from 0 to 1.0 of how much this episode matches the given episode. If the actions don't match,
-     * it's a zero.
-     * @param e the other episode being compared
-     * @return
-     */
-    public double partialEquals(Episode e) {
-
-        double score = 0.0d;
-
-        if (this.sensorData == null || e.sensorData == null) {
-            return score;
-        }
-
-        if (!this.action.equals(e.action)) {
-            return score;
-        }
-
-        int numMatches = 0;
-
-        for (String sensorName : this.sensorData.getSensorNames()) {
-
-            if (this.sensorData.getSensor(sensorName).equals(e.sensorData.getSensor(sensorName))) {
-                numMatches++;
-            }
-        }
-
-        return ((double) numMatches  / ((double) this.sensorData.size()));
-    }//partialEquals
     //endregion
 
     //region Object Overrides
