@@ -104,9 +104,6 @@ public class TFRule extends Rule {
     //region Instance Variables
 
 
-    //How similar two match scores need to be to each other to be "near"
-    public static final double MATCH_NEAR = 0.1;
-
     //the action of the rule
     private final char action;
 
@@ -363,7 +360,7 @@ public class TFRule extends Rule {
 
         for(Cond cond: this.lhsInternal){
             cond.numMatches++;
-            if(previnternal.contains(Integer.parseInt(cond.sName))) {
+            if(previnternal.contains(cond.sId)) {
                 cond.numOn++;
             }
         }
@@ -466,11 +463,13 @@ public class TFRule extends Rule {
 
         double score = 0.0;
         double overallRelevance = 0.0;
+
+        //Increase the score for each condition it has that matches the given LHS
         for (Cond cond : this.lhsInternal) {
             // Calculates the TF and DF values, and if the sensor values are the same
             double tf = cond.getTF();
             double df = agent.intPctCache[cond.sId];
-            boolean wasOn = lhsInt.contains(Integer.parseInt(cond.sName));
+            boolean wasOn = lhsInt.contains(cond.sId);
             double[] result = calculateTFIDF(tf, df, wasOn);
             double tfidf = result[0];
 
@@ -482,17 +481,17 @@ public class TFRule extends Rule {
             }
         }
 
-        //Special Case:  if there are no relevant matches look to see if any
-        //               of the conditions has a non-zero Condition
-        if (overallRelevance == 0.0) {
-            for (Cond cond : this.lhsInternal) {
-                if (cond.numOn > 0.0) {
-                    return -1.0;  //actual mismatch
-                }
+        //Penalize the score for each given LHS entry that it does not expect
+        for(int sId : lhsInt) {
+            if (! testsIntSensor(sId)) {
+                overallRelevance += agent.intPctCache[sId];
             }
-            //having no postive conditions is a perfect match for there being
-            // no sensors but it's a mismatch if any internal sensors are present
-            return (lhsInt.size() == 0) ? 1.0 : -1.0;
+        }
+
+        //Special Case:  if there are no relevant matches then the
+        //               rule and given LHS sensor list must be empty to match
+        if (overallRelevance == 0.0) {
+            return lhsInt.size() == 0 ? 1.0 : -1.0;
         }
 
         //Calc the score based on operator
@@ -528,6 +527,10 @@ public class TFRule extends Rule {
         return score;
     }//lhsMatchScore
 
+    //pre-allocating this array speeds up calculateTFIDF() but at the cost
+    //of being thread-unsafe.  Ok for now.
+    private static double[] ctfidfResult = new double[2];
+
     /**
      * calculateTFIDF
      *
@@ -553,19 +556,18 @@ public class TFRule extends Rule {
         double tfidf = wasOn ? tf : (1.0 - tf);
         tfidf -= 0.5;
         tfidf *= 2.0;
+        ctfidfResult[0] = tfidf;
 
         //Calculate its relevance.
-        double relevance = Math.abs(tf - df);
+        ctfidfResult[1] = Math.abs(tf - df);
 
-
-        double[] result = {tfidf, relevance};
-        return result;
+        return ctfidfResult;
     }//calculateTFIDF
 
     /** @return true if this rule has a given internal sensor on its LHS */
     public boolean testsIntSensor(int id){
         for(Cond cond: this.lhsInternal){
-            if(Integer.parseInt(cond.sName)==id){
+            if(cond.sId==id){
                 return true;
             }
         }
@@ -576,7 +578,7 @@ public class TFRule extends Rule {
     public void replaceIntSensor(int oldId, int newId){
         Vector<Cond> toRemove = new Vector<>();
         for(Cond cond: this.lhsInternal) {
-            if (Integer.parseInt(cond.sName) == oldId) {
+            if (cond.sId == oldId) {
                 toRemove.add(cond);
             }
         }

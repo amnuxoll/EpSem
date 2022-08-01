@@ -29,9 +29,24 @@ import java.util.Random;
  *   (frequency and recency of correctness)
  */
 public class PhuJusAgent implements IAgent {
+
+    //-----------------------------//
+    //===== Hyper-Parameters ===== //   <-- we hate these :@
+    //-----------------------------//
     public static final int MAXNUMRULES = 4000;
     public static final int MAX_SEARCH_DEPTH = 5; //TODO: get the search to self prune again
     public static final int MAX_TIME_DEPTH = 7;  //size of short term memory
+
+    /** How similar two match scores need to be to each other to be "near."
+     * Some prelimiary research shows that the best value for this parameter
+     * varies from FSM to FSM, from run to run in the same FSM, and even
+     * during a single run on a single FSM. MATCH_NEAR badly needs to be
+     * replaced with some sort of self-tuning mechanism. */
+    public static final double MATCH_NEAR = 0.1;
+
+    //-----------------------------//
+    //=====   DEBUG FLAGS    ===== //
+    //-----------------------------//
 
     // DEBUG variable to toggle println statements (on/off = true/false)
     public static final boolean DEBUGPRINTSWITCH = true;
@@ -236,6 +251,9 @@ public class PhuJusAgent implements IAgent {
     private double numRand = 1.0;
     private double numRandSuccess = 1.0;
 
+    //Used to track the total time the agent spends calculating
+    private static long totalTime = 0L;
+
 //endregion Instance Variables
 
     /**
@@ -261,6 +279,7 @@ public class PhuJusAgent implements IAgent {
      */
     @Override
     public Action getNextAction(SensorData sensorData) throws Exception {
+        long startTime = System.currentTimeMillis();  //to monitor total calc time
         this.now++;
         this.currExternal = sensorData;
 
@@ -296,7 +315,7 @@ public class PhuJusAgent implements IAgent {
         if(this.stepsSinceGoal >= 40) {
             debugPrintln("");
         }
-        if (this.now >= 409) {
+        if (this.now >= 400) {
             debugPrintln("");
         }
 
@@ -319,6 +338,16 @@ public class PhuJusAgent implements IAgent {
 
         //DEBUG
         debugPrintln("----------------------------------------------------------------------");
+
+        //report time spent every 10 goals
+        PhuJusAgent.totalTime += System.currentTimeMillis() - startTime;
+        if( (stepsSinceGoal == 0) && (numGoals % 10 == 0) ) {
+            long hours = PhuJusAgent.totalTime / 3600000;
+            long mins = (PhuJusAgent.totalTime % 3600000) / 60000;
+            long secs = (PhuJusAgent.totalTime % 60000) / 1000;
+            System.out.print("elapsed time: " + totalTime + "ms ");
+            System.out.println(hours + ":" + mins + ":" + secs);
+        }
 
         return new Action(action + "");
     }//getNextAction
@@ -405,7 +434,7 @@ public class PhuJusAgent implements IAgent {
         // TODO:  have agent adjust "near" based on its experience
         for (int i = 0; i < this.tfRules.size(); ++i) {
             if (allScores[i] <= 0.0) continue;
-            if (1.0 - (allScores[i] / bestScore )  <= TFRule.MATCH_NEAR){
+            if (1.0 - (allScores[i] / bestScore )  <= PhuJusAgent.MATCH_NEAR){
                 int ruleId = this.tfRules.get(i).getId();
                 result.add(ruleId);
             }
