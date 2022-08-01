@@ -221,11 +221,19 @@ public class TFRule extends Rule {
      * @return true if a match is found, false otherwise
      */
     public boolean hasOneLHSMatch(HashSet<Integer> lhsInt) {
+        //wildcard lhs doesn't count
+        if (this.operator == RuleOperator.ALL) return false;
+
+        //Check all positive conditions
         for(Cond cond : this.lhsInternal) {
-            if (cond.numMatches == 0) continue;
+            if (cond.numOn == 0.0) continue;
             if (lhsInt.contains(cond.sId))
                 return true;
         }
+
+        //Special case:  both empty lhs
+        if (lhsInt.size() == 0) return true;
+
         return false;
     }
 
@@ -368,16 +376,15 @@ public class TFRule extends Rule {
      * calculates how closely this rule matches a given rhs sensor set
      *
      * @param rhsExt the rhs external sensorData
-     * @return  a match score from 0.0 to 1.0
+     * @return  a match score from -1.0 to 1.0
      */
     public double rhsMatchScore(SensorData rhsExt) {
         double score = 0.0;
 
         // Loops through all external sensors of the rule and checks if the incoming
         // sensor data contains the external sensor
-        int c = 0;
+        double overallRelevance = 0.0;
         for (Cond eCond : this.rhsExternal) {
-            c++;
             // If so, then we calculate the TF/DF value to be added to the score
             if (rhsExt.hasSensor(eCond.sName)) {
 
@@ -386,11 +393,13 @@ public class TFRule extends Rule {
                 double dfValue = agent.getExternalPercents().get(eCond.sName).getSecond();
                 Boolean sVal = (Boolean) rhsExt.getSensor(eCond.sName);
 
-                score += calculateTFIDF(tfValue, dfValue, sVal);
+                double[] result = calculateTFIDF(tfValue, dfValue, sVal);
+                score += result[0] * result[1];
+                overallRelevance += result[1];      //score relevance
             }
         }
 
-        return score/c;
+        return score/overallRelevance;
     }//rhsMatchScore
 
     /**
@@ -405,36 +414,38 @@ public class TFRule extends Rule {
     public double lhsExtMatchScore(SensorData lhsExt){
 
         double score = 0.0;
-        int c = 0;
+        double overallRelevance = 0.0;
+        if (! PhuJusAgent.TFIDF) overallRelevance = lhsExt.size();
         // Loops through all external sensors of the rule and checks if the incoming
         // sensor data contains the external sensor
         for (Cond eCond : this.lhsExternal) {
-            c++;
             // If so, then we calculate the TF/DF value to be added to the score
             if (lhsExt.hasSensor(eCond.sName)) {
 
                 // Calculates the TF and DF values, and if the sensor values are the same
                 double tfValue = eCond.getTF();
-                double dfValue = 0;
+                double dfValue = 0.0;
 
                 // Sometimes, when loading rules from a file, this can be null. This check helps
                 // prevent that
                 if (agent.getExternalPercents().containsKey(eCond.sName)) {
                     dfValue = agent.getExternalPercents().get(eCond.sName).getSecond();
                 }
-                Boolean sVal = (Boolean) lhsExt.getSensor(eCond.sName);
+                Boolean wasOn = (Boolean) lhsExt.getSensor(eCond.sName);
 
                 if (PhuJusAgent.TFIDF) {
                     // Adds the TF/DF to the current score
-                    score += calculateTFIDF(tfValue, dfValue, sVal);
+                    double[] result = calculateTFIDF(tfValue, dfValue, wasOn);
+                    score += result[0] * result[1];  //tfidf score
+                    overallRelevance += result[1];  //relevance of score
                 } else {
-                    score += 0.5;  //hard-coded max possible tf-idf val
+                    score += 1.0;
                 }
             }
         }
         // no sensors so can't match
-        if(c == 0) return 0;
-        return score/c;
+        if(overallRelevance == 0.0) return 0.0;
+        return score/overallRelevance;
     }//lhsExtMatchScore
 
 
@@ -449,29 +460,44 @@ public class TFRule extends Rule {
      */
     public double lhsIntMatchScore(HashSet<Integer> lhsInt){
 
-        //ALL operator rule receive a baseline score
+        //ALL operator rule receives a baseline score based on number of sensors
         if(this.operator == RuleOperator.ALL)
-            return 0.0;
+            return 1.0 / (1.0 + lhsInt.size());
 
         double score = 0.0;
+        double overallRelevance = 0.0;
         for (Cond cond : this.lhsInternal) {
             // Calculates the TF and DF values, and if the sensor values are the same
             double tf = cond.getTF();
             double df = agent.intPctCache[cond.sId];
             boolean wasOn = lhsInt.contains(Integer.parseInt(cond.sName));
-            double tfidf = calculateTFIDF(tf, df, wasOn);
+            double[] result = calculateTFIDF(tf, df, wasOn);
+            double tfidf = result[0];
 
             if(this.operator == RuleOperator.AND) {
-                score += tfidf;
+                score += tfidf * result[1];
+                overallRelevance += result[1];
             } else if (this.operator == RuleOperator.ANDOR) {
                 if(tfidf >= score) score = tfidf;
             }
         }
 
-        // no sensors so base match of 1.0
-        if(score == 0.0) return lhsInt.size() == 0 ? 1.0 : 0.0;
+        //Special Case:  if there are no relevant matches look to see if any
+        //               of the conditions has a non-zero Condition
+        if (overallRelevance == 0.0) {
+            for (Cond cond : this.lhsInternal) {
+                if (cond.numOn > 0.0) {
+                    return -1.0;  //actual mismatch
+                }
+            }
+            //having no postive conditions is a perfect match for there being
+            // no sensors but it's a mismatch if any internal sensors are present
+            return (lhsInt.size() == 0) ? 1.0 : -1.0;
+        }
+
+        //Calc the score based on operator
         if (this.operator == RuleOperator.ANDOR) return score;
-        return score/this.lhsInternal.size();  //AND operator
+        return score/overallRelevance;  //AND operator
     }//lhsIntMatchScore
 
 
@@ -491,9 +517,13 @@ public class TFRule extends Rule {
         // Immediately return 0.0 if the actions don't match
         if (action != this.action) return 0.0;
 
-        double score = lhsExtMatchScore(lhsExt);
-        score += lhsIntMatchScore(lhsInt);
-        score = Math.min(1.0, score);  //TODO:  could do an avg here?
+        double extScore = lhsExtMatchScore(lhsExt);
+        double intScore = lhsIntMatchScore(lhsInt);
+        double score = extScore * intScore;
+        //double negative should stay negative
+        if ( (extScore < 0.0) && (intScore < 0.0) ) {
+                score *= -1.0;
+        }
 
         return score;
     }//lhsMatchScore
@@ -514,19 +544,22 @@ public class TFRule extends Rule {
      * @param tf the term frequency of the sensor
      * @param df the document frequency of the sensor
      * @param wasOn whether the sensor was on
-     * @return the tfidf
+     * @return two values in an array:
+     *         0 - the tfidf match score [-1.0..1.0]
+     *         1 - the relevance of this score [0.0..1.0]
      */
-    private double calculateTFIDF(double tf, double df, boolean wasOn) {
+    private double[] calculateTFIDF(double tf, double df, boolean wasOn) {
         //Calculate a base match degree on the scale [-1.0..1.0]
         double tfidf = wasOn ? tf : (1.0 - tf);
         tfidf -= 0.5;
         tfidf *= 2.0;
 
-        //Adjust the score based on its relevance.
+        //Calculate its relevance.
         double relevance = Math.abs(tf - df);
-        tfidf *= relevance;
 
-        return tfidf;
+
+        double[] result = {tfidf, relevance};
+        return result;
     }//calculateTFIDF
 
     /** @return true if this rule has a given internal sensor on its LHS */
@@ -703,7 +736,7 @@ public class TFRule extends Rule {
         //note:  replaceAll call removes extra trailing 0's to improve readability
         result.append(String.format(" ^  conf=%.5f", getConfidence()).replaceAll("0+$", "0"));
         double matchScore = lhsMatchScore(this.action, agent.getCurrInternal() , agent.getCurrExternal());
-        result.append(String.format(" Score: %.3f\t|| ", matchScore).replaceAll("0+$","0"));
+        result.append(String.format(" Score: %7.3f\t|| ", matchScore).replaceAll("0+$","0"));
         result.append(toStringLongLHS(this.lhsInternal));
         return result.toString();
     }

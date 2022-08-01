@@ -197,7 +197,7 @@ public class PhuJusAgent implements IAgent {
     /** sensor values from the previous timesteps */
     private final Vector<HashSet<Integer>> prevInternal = new Vector<>();
     private SensorData prevExternal = null;
-    private char prevAction = '\0';  //last action the agent took
+    private char prevAction = '?';  //last action the agent took
 
     /** This is the PathRule that best matched at the end of the last completed path */
     private PathRule prevPRMatch = null;
@@ -288,16 +288,15 @@ public class PhuJusAgent implements IAgent {
         //DEBUG:  Tell the human what the agent is feeling
         if (PhuJusAgent.DEBUGPRINTSWITCH) {
             debugPrintln("TIME STEP: " + this.now);
-            printInternalSensors(this.currInternal);
-            printExternalSensors(this.currExternal);
-            printPrevMatchingPathRules(this.prevPRMatch);
+            printPrevCurrEpisode();
+            printPrevMatchingPathRules();
         }
 
-        //DEBUG: put breakpoints here to debug
+        //DEBUG: put breakpoints below to debug
         if(this.stepsSinceGoal >= 40) {
             debugPrintln("");
         }
-        if (this.now >= 89) {
+        if (this.now >= 409) {
             debugPrintln("");
         }
 
@@ -908,46 +907,59 @@ public class PhuJusAgent implements IAgent {
     }//calculateSensorPercent
 
     /**
+     * calcAdjustmentScore
+     *
+     * compares a given rule to the episode the agent just completed to see if
+     * it is "close enough" of a match that it should be adjusted as a result.
+     *
+     * There are series of tests this method tries see inline comments.
+     *
+     * TODO:  Not sure if this is too aggressive or not enough.  Could be even
+     *        more aggressive via a self-tuning hyper-param for min match score.
+     *        Not sure how to self-tune.
+     *
+     * @return a confidence score [-1.0..1.0] of how right/wrong this rule is.
+     *         A 0.0 return value means that no adjustment is recommended.
+     */
+    private double calcAdjustmentScore(TFRule tfRule) {
+        //actions must match, of course
+        if (tfRule.getAction() != this.prevAction) return 0.0;
+
+        //there has to be some sort of match on the LHS
+        if ((tfRule.getOperator() != TFRule.RuleOperator.ALL)
+                && (! tfRule.hasOneLHSMatch(this.getPrevInternal())) ) {
+            return 0.0;
+        }
+
+        //Calculate the match score for each component of the match and
+        //make sure they all agree
+        double lhsIntScore = tfRule.lhsIntMatchScore(this.getPrevInternal());
+        double lhsExtScore = tfRule.lhsExtMatchScore(this.prevExternal);
+        double rhsScore = tfRule.rhsMatchScore(this.currExternal);
+        if ( (lhsIntScore > 0.0) && (lhsExtScore > 0.0) && (rhsScore > 0.0)) {
+            return lhsIntScore * lhsExtScore * rhsScore; //all positive
+        }
+        if ( (lhsIntScore < 0.0) && (lhsExtScore < 0.0) && (rhsScore < 0.0)) {
+            return lhsIntScore * lhsExtScore * rhsScore; //all negative
+        }
+
+        return 0.0;
+    }//calcAdjustmentScore
+
+    /**
      * updateTFRuleConfidences
      *
      * updates the accuracy (called confidence) of the tfrules that
      * matched correctly in the prev timestep and decreases the rules that
      * didn't match correctly
      *
-     * This method makes an earnest effort only to adjust rules that really
-     * matched.  See the steps below.
-     *
-     * TODO:  Could be even more aggressive via  self-tuning hyper-param for
-     *        min match score.  Not sure how.
-     *
      */
     public void updateTFRuleConfidences() {
         for(TFRule tfRule : this.tfRules) {
-            //actions must match, of course
-            if (tfRule.getAction() != this.prevAction) continue;
-
-            //there has to be some sort of match on the LHS
-            if ((tfRule.getOperator() != TFRule.RuleOperator.ALL)
-                    && (! tfRule.hasOneLHSMatch(this.getPrevInternal())) ) {
-                continue;
+            double adjAmount = calcAdjustmentScore(tfRule);
+            if (adjAmount != 0.0) {
+                tfRule.adjustConfidence(adjAmount);
             }
-
-            //Calculate the match score for each component of the match and
-            //make sure they all agree
-            double lhsIntScore = tfRule.lhsIntMatchScore(this.getPrevInternal());
-            double lhsExtScore = tfRule.lhsExtMatchScore(this.prevExternal);
-            double rhsScore = tfRule.rhsMatchScore(this.currExternal);
-            boolean agree = false;
-            if ( (lhsIntScore > 0.0) && (lhsExtScore > 0.0) && (rhsScore > 0.0)) {
-                agree = true;
-            }
-            if ( (lhsIntScore < 0.0) && (lhsExtScore < 0.0) && (rhsScore < 0.0)) {
-                agree = true;
-            }
-            if (!agree) continue;
-
-            //All tests pass:  adjust this rule's confidence
-            tfRule.adjustConfidence(lhsIntScore * lhsExtScore * rhsScore);
         }//for
     }//updateTFRuleConfidences
 
@@ -1082,7 +1094,7 @@ public class PhuJusAgent implements IAgent {
         updateTFRuleConfidences();
 
         //Update the TF values for all extant TFRules
-        boolean wasMatch = updateAllTFValues();
+        updateAllTFValues();
 
         //TODO:  consider this revision to how TFRules are created and used:
         //       Trust Operator.ALL TFRules until their confidence drops. Such rules
@@ -1095,8 +1107,9 @@ public class PhuJusAgent implements IAgent {
         if (tfRules.size() > 0 && !tfRules.lastElement().isExtMatch(newRule.getAction(), newRule.getLHSExternal(), newRule.getRHSExternal())) {
             addRule(newRule);
         }
-        if(!wasMatch) {
+        if(! baseRuleExists()) {
             //create a base-event rule
+            //TODO: review if these are still needed
             TFRule baseRule = new TFRule(this, this.prevAction, new String[]{"-1"},
                     this.getPrevExternal(), this.getCurrExternal(), 1.0, TFRule.RuleOperator.ALL);
             addRule(baseRule);
@@ -1116,20 +1129,28 @@ public class PhuJusAgent implements IAgent {
      * updates the TF values of every condition of every TFRule based
      * on the agent's most recently completed experience
      *
-     * @return whether a base-event rule exists for the experience
      */
-    private boolean updateAllTFValues() {
-        boolean wasMatch = false;
+    private void updateAllTFValues() {
+        for(TFRule rule : this.tfRules) {
+            double adjScore = calcAdjustmentScore(rule);
+            if (adjScore != 0.0) {
+                rule.updateTFVals(this.getPrevInternal());
+            }
+        }
+    }//updateAllTFValues
+
+    /** @return whether a base-event rule exists for the agent's most
+     * recently completed experience */
+    private boolean baseRuleExists() {
         for(TFRule rule : this.tfRules) {
             if (rule.isExtMatch()) {
-                rule.updateTFVals(this.getPrevInternal());
                 if (rule.getOperator() == TFRule.RuleOperator.ALL) {
-                    wasMatch = true;
+                    return true;
                 }
             }
         }
-        return wasMatch;
-    }//updateAllTFValues
+        return false;
+    }//baseRuleExists
 
 
     /**
@@ -1240,27 +1261,34 @@ public class PhuJusAgent implements IAgent {
 
     //region Debug Printing Methods
 
-    /** DEBUG: prints internal sensors */
-    private void printInternalSensors(HashSet<Integer> printMe) {
-        debugPrint("Internal Sensors: ");
+    /** helper method for {@link #printPrevCurrEpisode} */
+    private void printIntHelper(HashSet<Integer> printMe, StringBuilder sb) {
         int count = 0;
         for (Integer i : printMe) {
-            if (count > 0) debugPrint(", ");
-            debugPrint("" + i);
+            if (count > 0) sb.append(", ");
+            sb.append(i);
             count++;
         }
-
-        if (count == 0) {
-            debugPrint("none");
-        }
-
-        debugPrintln("");
     }
 
-    /** DEBUG: prints external sensors */
-    public void printExternalSensors(SensorData sensorData) {
-        //Sort sensor names alphabetical order with GOAL last
-        Vector<String> sNames = new Vector<>(sensorData.getSensorNames());
+    /** prints the agent's previous (just completed) and current (in progress)
+     * episode to help the human better understand what's going on. */
+    private void printPrevCurrEpisode() {
+        StringBuilder sbPrev = new StringBuilder();
+        sbPrev.append("  Completed Episode: ");
+
+        //prev internal
+        sbPrev.append("(");
+        if (this.prevInternal.size() > 0) {
+            printIntHelper(getPrevInternal(), sbPrev);
+        }
+        sbPrev.append(")");
+        int lhsBarPos = sbPrev.length();
+        sbPrev.append("|");
+
+
+        //Sort external sensor names alphabetical order with GOAL last
+        Vector<String> sNames = new Vector<>(this.currExternal.getSensorNames());
         Collections.sort(sNames);
         int i = sNames.indexOf(SensorData.goalSensor);
         if (i > -1) {
@@ -1268,31 +1296,80 @@ public class PhuJusAgent implements IAgent {
             sNames.add(SensorData.goalSensor);
         }
 
-        //print sensor values as bit string
-        System.out.print("External Sensors: ");
+        //prev external
+        if (this.prevExternal != null) {
+            for (String sName : sNames) {
+                int val = ((Boolean) this.prevExternal.getSensor(sName)) ? 1 : 0;
+                sbPrev.append(val);
+            }
+        } else {
+            sbPrev.append("xx");
+        }
+
+        //action
+        sbPrev.append(this.prevAction);
+        sbPrev.append(" -> ");
+        int lhsLen = sbPrev.length();  //save this so we can line up the two eps
+
+        //curr external
         for (String sName : sNames) {
-            int val = ((Boolean)sensorData.getSensor(sName)) ? 1 : 0;
-            System.out.print(val);
+            int val = ((Boolean)this.currExternal.getSensor(sName)) ? 1 : 0;
+            sbPrev.append(val);
         }
 
         //print sensor names after
-        System.out.print("  (");
+        sbPrev.append("\t\t");
         boolean comma = false;
         for (String sName : sNames) {
-            if (comma) System.out.print(", ");
+            if (comma) sbPrev.append(", ");
             comma = true;
-            System.out.print(sName);
+            sbPrev.append(sName);
         }
-        System.out.println(")");
-    }//printExternalSensors
+
+        StringBuilder sbCurr = new StringBuilder();
+        sbCurr.append("Episode in Progress: ");
+
+        //curr internal
+        sbCurr.append("(");
+        printIntHelper(this.currInternal, sbCurr);
+        sbCurr.append(")");
+
+        //Lineup the '|' chars on the LHS
+        while(sbCurr.length() < lhsBarPos) sbCurr.append(" ");
+        while(sbCurr.length() > lhsBarPos) {
+            sbPrev.insert(lhsBarPos, " ");
+            lhsBarPos++;
+        }
+        sbCurr.append("|");
+
+        //curr external
+        for (String sName : sNames) {
+            int val = ((Boolean)this.currExternal.getSensor(sName)) ? 1 : 0;
+            sbCurr.append(val);
+        }
+
+        //action
+        sbCurr.append("? -> ");
+
+        //make the arrows line up
+        while(sbCurr.length() < lhsLen) {
+            sbCurr.insert(21, " ");
+        }
+
+        debugPrintln(sbPrev.toString());
+        debugPrintln(sbCurr.toString());
+
+
+    }//printPrevCurrEpisode
+
 
     /** DEBUG: prints the matching PathRule */
-    private void printPrevMatchingPathRules (PathRule printMe) {
-        debugPrint("Matching PathRule: ");
-        if (printMe == null) {
+    private void printPrevMatchingPathRules () {
+        debugPrint("  Matching PathRule: ");
+        if (this.prevPRMatch == null) {
             debugPrintln("none");
         } else {
-            debugPrintln("" + printMe.getId());
+            debugPrintln("" + this.prevPRMatch.getId());
         }
     }
 
@@ -1336,7 +1413,6 @@ public class PhuJusAgent implements IAgent {
     public SensorData getPrevExternal() { return this.prevExternal; }
     public Action[] getActionList() { return actionList; }
     public char getPrevAction() { return prevAction; }
-    public HashMap<String, Tuple<Integer, Double>> getInternalPercents() {return this.internalPercents;}
     public HashMap<String, Tuple<Integer, Double>> getExternalPercents() {return this.externalPercents;}
     public double getRandSuccessRate() { return this.numRandSuccess / this.numRand; }
     //endregion

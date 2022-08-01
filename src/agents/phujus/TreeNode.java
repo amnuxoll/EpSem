@@ -506,14 +506,14 @@ public class TreeNode {
         //Create the child nodes if they don't exist yet
         if (this.children.size() == 0) {
             expand();
+            //Remove children that aren't better than random
+            cullWeakChildren();
         } else {
             for (TreeNode child : this.children) {
                 child.isLeaf = false; //reset from any prev use of this child
             }
         }
 
-        //Remove children that aren't better than random
-        cullWeakChildren();
 
         for(TreeNode child : this.children) {
             //Recursive case: test all children and return shortest path
