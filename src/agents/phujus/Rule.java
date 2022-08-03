@@ -67,7 +67,8 @@ public abstract class Rule {
     protected int nextActPos = 0;
     protected double activationLevel;  //CAVEAT:  this value may not be correct!  Call calculateActivation() to update it.
     protected int lastActCalcTime = -1;  //the last timestep when activation for which activation was calculated
-    public static final double DECAY_RATE = 0.99999;  //activation decays exponentially over time
+    public static final double DECAY_RATE = 0.95;  //activation decays exponentially over time
+    public static final double ACT_BOOST = 1.0;  //base amount to boost a rule's activation
 
     //endregion
 

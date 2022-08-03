@@ -1241,7 +1241,7 @@ public class PhuJusAgent implements IAgent {
         // I'm assuming we don't want to add activations to pre-set rules. Could totally be wrong
         // about this
         if (!GENERATERULES) {
-            newRule.addActivation(this.now, 1.0);
+            newRule.addActivation(this.now, Rule.ACT_BOOST);
         }
 
         if (newRule instanceof TFRule) {
@@ -1322,7 +1322,7 @@ public class PhuJusAgent implements IAgent {
      * ala reinforcement learning.
      */
     private void rewardRulesForGoal() {
-        double actBoost = 1.0;
+        double actBoost = Rule.ACT_BOOST;
         for(int i = this.pathTraversedSoFar.size() - 1; i >= 0; --i) {
             TreeNode tn = this.pathTraversedSoFar.get(i);
             for(TFRule r : tn.getSupporters()) {
