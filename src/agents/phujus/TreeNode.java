@@ -52,6 +52,9 @@ public class TreeNode {
     // e.g., 000, 001, 010, etc.
     private static String[] comboArr = null;  //init'd by 1st ctor call
 
+    //These are TFRules which most strongly supported the existence of this TreeNode
+    private HashSet<TFRule> supporters;
+
     //The PathRule best matches the path described by this TreeNode, presuming
     // it is the last step in its path.  This can be 'null' if no PathRule applies.
     private PathRule pathRule;
@@ -74,6 +77,7 @@ public class TreeNode {
         this.pathStr = "";
         //full confidence because drawn directly from agent's present sensing
         this.confidence = 1.0;
+        supporters = new HashSet<>(); //none
         this.pathRule = null;
 
         if (TreeNode.comboArr == null) {
@@ -87,9 +91,14 @@ public class TreeNode {
      * @param action action taken to reach this node
      * @param newExternal predicted external sensors for this node
      * @param confidence confidence in newExternal
+     * @param initSupporters  which TFRules strongly support this TreeNode
      *
      */
-    public TreeNode(TreeNode parent, char action, SensorData newExternal, double confidence) {
+    public TreeNode(TreeNode parent,
+                    char action,
+                    SensorData newExternal,
+                    double confidence,
+                    HashSet<TFRule> initSupporters) {
         //initializing agent and its children
         this.agent = parent.agent;
         this.rules = parent.rules;
@@ -102,8 +111,14 @@ public class TreeNode {
         this.path.add(this);
         this.pathStr = parent.pathStr + action;
         this.confidence = parent.confidence * confidence;
+        this.supporters = initSupporters;
         this.pathRule = null;
     }//child ctor
+
+    /** convenience version of the child ctor that fills in some default values */
+    public TreeNode(TreeNode parent,  char action, SensorData newExternal) {
+        this(parent, action, newExternal, 1.0, new HashSet<>());
+    }
 
     /**
      * copy ctor
@@ -120,6 +135,7 @@ public class TreeNode {
         this.path = new Vector<>(orig.path);
         this.pathStr = orig.pathStr;
         this.confidence = orig.confidence;
+        this.supporters = new HashSet<>(orig.supporters);
         this.pathRule = orig.pathRule;
     }//copy ctor
 
@@ -143,6 +159,7 @@ public class TreeNode {
         }
     }//initComboArr
 
+
     /**
      * class BlocData
      *
@@ -160,6 +177,10 @@ public class TreeNode {
 
         public int offVoteCount = 0;
         public int onVoteCount = 0;
+
+        //The TFRule with the best match score voting for on and off respectively
+        public TFRule maxOnVoter = null;
+        public TFRule maxOffVoter = null;
 
         public BlocData(String initName) {
             this.sensorName = initName;
@@ -195,11 +216,20 @@ public class TreeNode {
             HashMap<String, Double> ballotBox = on ? this.onVotes : this.offVotes;
             if (on) { this.onVoteCount++; } else { this.offVoteCount++; }
             double oldVal = 0.0;
+
+            //is the new match score the best yet?
+            boolean replace = true;
             if (ballotBox.containsKey(bloc)) {
                 oldVal = ballotBox.get(bloc);
+                if (weight < oldVal) replace = false;
             }
-            double newVal = Math.max(oldVal,weight);
-            ballotBox.put(bloc, newVal);
+
+            //Put the new max vote in
+            if (replace) {
+                if (on) {maxOnVoter = voter;} else {maxOffVoter = voter;}
+                ballotBox.put(bloc, weight);
+            }
+
         }//BlocData.vote
 
 
@@ -244,8 +274,19 @@ public class TreeNode {
         }//BlocData.getOutcomes
 
 
-
     }//Class BlocData
+
+    /**
+     * class VoteOutcome
+     *
+     * is a tiny public class to describe the outcome of a TFRules voting for
+     * the predicted external sensor values in {@link #predictExternalMark3 }
+     */
+    private class VoteOutcome {
+        public SensorData ext = new SensorData(false);  //the predicted data
+        public double confidence = 1.0;                       //how confident the agent should be in this
+        public HashSet<TFRule> supporters = new HashSet<>();     //The TFRules that most strongly supported this
+    }
 
     /**
      * predictExternalMark3
@@ -260,12 +301,10 @@ public class TreeNode {
      *          order so GOAL may not be the last sensor as it appears in the toString
      *
      * @param action  the action taken to reach the child
-     * @param predicted  an emtpy array whose length == TreeNode.comboArray.length.
-     *                   This will be filled in with appropriate SensorData objects
-     *                   that are in the same order as comboArray
-     * @return how confident we are in the prediction for each SensorData
+     * @return an array of {@link VoteOutcome} objects for each candidate
+     *         external sensor combo
      */
-    public double[] predictExternalMark3(char action, SensorData[] predicted) {
+    public VoteOutcome[] predictExternalMark3(char action) {
         //Get a list of external sensor names
         String[] sensorNames = currExternal.getSensorNames().toArray(new String[0]);
 
@@ -296,14 +335,12 @@ public class TreeNode {
         }//for
 
         //Create an array to store a confidence value for each possible sensor combination
-        double[] confArr = new double[TreeNode.comboArr.length];
-        //start with max conf and whittle it down
-        Arrays.fill(confArr, 1.0);
+        VoteOutcome[] confArr = new VoteOutcome[TreeNode.comboArr.length];
+        for(int i = 0; i < confArr.length; ++i) {
+            confArr[i] = new VoteOutcome();
+        }
 
-        //Calculate the confidence in each combo.  This feels a bit bass-ackwards
-        //because we want to iterate over sensor names first rather than
-        //iterating over each combination first so that getOutcomes only
-        //gets called once per sensor for max efficiency.
+        //Create a VoteOutcome object for each external sensor combination
         for (int sId = 0; sId < sensorNames.length; ++sId) {
             //get the confidences in this sensor's values
             String sName = sensorNames[sId];
@@ -313,9 +350,13 @@ public class TreeNode {
             //Update all sensor combos for this sensor
             for (int i = 0; i < confArr.length; ++i) {
                 if (TreeNode.comboArr[i].charAt(sId) == '0') {
-                    confArr[i] *= outcomes[0];
+                    confArr[i].ext.setSensor(sName, false);
+                    confArr[i].confidence *= outcomes[0];
+                    confArr[i].supporters.add(bd.maxOffVoter);
                 } else {
-                    confArr[i] *= outcomes[1];
+                    confArr[i].ext.setSensor(sName, true);
+                    confArr[i].confidence *= outcomes[1];
+                    confArr[i].supporters.add(bd.maxOffVoter);
                 }
             }//for
 
@@ -326,10 +367,11 @@ public class TreeNode {
             // confidence in any goal outcome.
             //Note: could integrate this into the loop above if this code ends
             //      up being a performance bottleneck.
+            //TODO:  revisit this when agent is performing well to confirm it's worthwile
             if ( (! sensorMatchFound) && (sName.equals(SensorData.goalSensor)) ) {
                 for (int i = 0; i < confArr.length; ++i) {
-                    if (TreeNode.comboArr[i].charAt(sId) == '1') {
-                        confArr[i] = 1.0;
+                    if (confArr[i].ext.isGoal()) {
+                        confArr[i].confidence = 1.0;
                     }
                 }
             }
@@ -338,28 +380,16 @@ public class TreeNode {
         //Scale the confidence values to the range [0.0..1.0]
         //This makes the agent more likely to consider longer paths
         //which ends up being an important nudge toward learning.
+        //TODO:  re-test this theory once agent is performing well overall
         double max = 0.0;
-        for(double conf : confArr) {
-            max = Math.max(max, conf);
+        for(VoteOutcome outcome : confArr) {
+            max = Math.max(max, outcome.confidence);
         }
         for(int i = 0; i < confArr.length; ++i) {
             if (max == 0) {
-                confArr[i] = 0;
+                confArr[i].confidence = 0.0;
             } else {
-                confArr[i] /= max;
-            }
-        }
-
-        //Populate the given SensorData array (predicted)
-        //TODO:  re-test this theory once agent is performing well overall
-        for(int sdIndex = 0; sdIndex < predicted.length; ++sdIndex) {
-            predicted[sdIndex] = new SensorData(false); //set GOAL to false for now
-
-            //set the sensor valus for each SensorData object
-            for (int sId = 0; sId < sensorNames.length; ++sId) {
-                String sName = sensorNames[sId];
-                boolean val = TreeNode.comboArr[sdIndex].charAt(sId) == '1';
-                predicted[sdIndex].setSensor(sName, val);
+                confArr[i].confidence /= max;
             }
         }
 
@@ -397,18 +427,17 @@ public class TreeNode {
             char act = agent.getActionList()[actId].getName().charAt(0);
 
             //Calculate the confidence in each combination
-            SensorData[] sdArr = new SensorData[TreeNode.comboArr.length];
-            double[] confArr = predictExternalMark3(act, sdArr);
+            VoteOutcome[] voteOutcomes = predictExternalMark3(act);
 
-            for(int i = 0; i < sdArr.length; i++) {
+            for(VoteOutcome outcome : voteOutcomes) {
                 //agent must be more confident in this path than just taking a random action
-                if (confArr[i] <= this.agent.getRandSuccessRate()) continue;
+                if (outcome.confidence <= this.agent.getRandSuccessRate()) continue;
 
                 //create a child for this action + ext sensor combo
-                TreeNode child = new TreeNode(this, act, sdArr[i], confArr[i]);
-                if (child.confidence > 0.00001)
-                    this.children.add(child);
-            }
+                TreeNode child = new TreeNode(this, act, outcome.ext,
+                                               outcome.confidence, outcome.supporters);
+                this.children.add(child);
+            }//for
         }//for
 
     }//expand
@@ -585,7 +614,7 @@ public class TreeNode {
 
         int i = PhuJusAgent.rand.nextInt(agent.getActionList().length);
         char action = agent.getActionList()[i].getName().charAt(0);
-        TreeNode random = new TreeNode(this, action, this.currExternal, 0.0);
+        TreeNode random = new TreeNode(this, action, this.currExternal);
         return random.path;
 
 //        //pick the action (depth 1) with the greatest uncertainty
@@ -860,6 +889,7 @@ public class TreeNode {
     public SensorData getCurrExternal() { return this.currExternal; }
     public TreeNode getParent() { return this.parent; }
     public double getConfidence() { return this.confidence; }
+    public HashSet<TFRule> getSupporters() { return this.supporters; }
     public PathRule getPathRule() { return this.pathRule; }
 
 

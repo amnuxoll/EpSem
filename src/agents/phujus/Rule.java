@@ -67,7 +67,7 @@ public abstract class Rule {
     protected int nextActPos = 0;
     protected double activationLevel;  //CAVEAT:  this value may not be correct!  Call calculateActivation() to update it.
     protected int lastActCalcTime = -1;  //the last timestep when activation for which activation was calculated
-    public static final double DECAY_RATE = 0.95;  //activation decays exponentially over time
+    public static final double DECAY_RATE = 0.99999;  //activation decays exponentially over time
 
     //endregion
 
@@ -109,27 +109,27 @@ public abstract class Rule {
     }//addActivation
 
     /**
-     * calculateActivation
+     * calcActivation
      *
      * calculates the activation of the rule atm.  Activation is increased
      * by fixed amounts and each increase decays over time.
      * The sum of these values is the total activation.
      */
-    public double calculateActivation(int now) {
+    public double calcActivation() {
         //If we've already updated the activation level used that value
-        if (lastActCalcTime == now) return this.activationLevel;
+        if (lastActCalcTime == agent.getNow()) return this.activationLevel;
 
         double result = 0.0;
         for(int j=0; j < lastActTimes.length; ++j) {
             if(lastActTimes[j] != 0) {
-                double decayAmount = Math.pow(DECAY_RATE, now-lastActTimes[j]);
+                double decayAmount = Math.pow(DECAY_RATE, agent.getNow()-lastActTimes[j]);
                 result += lastActAmount[j]*decayAmount;
             }
         }
 
         this.activationLevel = result;
         return this.activationLevel;
-    }//calculateActivation
+    }//calcActivation
 
     //endregion
 

@@ -640,7 +640,9 @@ public class PhuJusAgent implements IAgent {
         if (this.pathTraversedSoFar.size() == 0) return;  //should only happen at this.now==1
 
         //log what just happened for future use by PathRules
-        TreeNode actualTN = new TreeNode(this.actualPath.lastElement(), this.prevAction, this.currExternal, 1.0);
+        TreeNode actualTN = new TreeNode(this.actualPath.lastElement(),
+                                         this.prevAction,
+                                         this.currExternal);
         this.actualPath.add(actualTN);
 
         //The actualPath begins with the root note in place, so it can be used
@@ -1320,9 +1322,14 @@ public class PhuJusAgent implements IAgent {
      * ala reinforcement learning.
      */
     private void rewardRulesForGoal() {
-        //reward the rules in reverse order
-        //TODO:  This needs to be revised
-
+        double actBoost = 1.0;
+        for(int i = this.pathTraversedSoFar.size() - 1; i >= 0; --i) {
+            TreeNode tn = this.pathTraversedSoFar.get(i);
+            for(TFRule r : tn.getSupporters()) {
+                r.addActivation(this.now, actBoost);
+            }
+            actBoost *= Rule.DECAY_RATE;
+        }
     }//rewardRulesForGoal
 
 //endregion Rule Maintenance

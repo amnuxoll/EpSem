@@ -493,12 +493,13 @@ public class TFRule extends Rule {
             }
         }
 
+        //TODO:  I took this out again.  It seems to be hurting us and I don't understand why.  Investigation needed.
         //Penalize the score for each given LHS entry that it does not expect
-        for(int sId : lhsInt) {
-            if (! testsIntSensor(sId)) {
-                overallRelevance += agent.intPctCache[sId];
-            }
-        }
+//        for(int sId : lhsInt) {
+//            if (! testsIntSensor(sId)) {
+//                overallRelevance += agent.intPctCache[sId];
+//            }
+//        }
 
         //Special Case:  if there are no relevant matches then the
         //               rule and given LHS sensor list must be empty to match
@@ -749,6 +750,7 @@ public class TFRule extends Rule {
         result.append(toStringShortRHS(this.rhsExternal));
         //note:  replaceAll call removes extra trailing 0's to improve readability
         result.append(String.format(" ^  conf=%.5f", getConfidence()).replaceAll("0+$", "0"));
+        result.append(String.format(" act=%.5f", calcActivation()).replaceAll("0+$", "0"));
         double matchScore = lhsMatchScore(this.action, agent.getCurrInternal() , agent.getCurrExternal());
         result.append(String.format(" Score: %7.3f\t|| ", matchScore).replaceAll("0+$","0"));
         result.append(toStringLongLHS(this.lhsInternal));
