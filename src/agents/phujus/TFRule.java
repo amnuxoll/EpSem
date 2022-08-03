@@ -370,7 +370,10 @@ public class TFRule extends Rule {
     /**
      * rhsMatchScore
      *
-     * calculates how closely this rule matches a given rhs sensor set
+     * calculates how closely this rule matches a given rhs sensor set.
+     *
+     * Note that if the GOAL sensor is on, then the other sensors don't matter.
+     * This is only true on the RHS match!
      *
      * @param rhsExt the rhs external sensorData
      * @return  a match score from -1.0 to 1.0
@@ -389,6 +392,15 @@ public class TFRule extends Rule {
                 double tfValue = eCond.getTF();
                 double dfValue = agent.getExternalPercents().get(eCond.sName).getSecond();
                 Boolean sVal = (Boolean) rhsExt.getSensor(eCond.sName);
+
+                //Special case:  GOAL=true for both sensors and rule is always a full match
+                //               and the other sensors are ignored
+                if ( (eCond.sName.equals(SensorData.goalSensor))
+                        && (sVal) && (tfValue > 0.5)) {
+                    score = tfValue;
+                    overallRelevance = tfValue;
+                    break;
+                }
 
                 double[] result = calculateTFIDF(tfValue, dfValue, sVal);
                 score += result[0] * result[1];

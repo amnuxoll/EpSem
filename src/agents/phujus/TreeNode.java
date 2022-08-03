@@ -167,6 +167,7 @@ public class TreeNode {
 
         /** scales a vote's weight on an exponential scale so that (near)
          * perfect match scores get much more weight than partial matches */
+        //TODO:  revisit this.  Given the new match method it may be extraneous or even harmful.
         public double scale(double matchScore) {
             //We want higher math scores to have exponentially higher weight so
             //that a (near-)perfect match will outweigh many partial matches but
@@ -514,7 +515,6 @@ public class TreeNode {
             }
         }
 
-
         for(TreeNode child : this.children) {
             //Recursive case: test all children and return shortest path
             Vector<TreeNode> foundPath = child.fbgpHelper(depth + 1, maxDepth);
@@ -822,15 +822,23 @@ public class TreeNode {
      * other node have at least one LHS internal sensor in common.  This method
      * is used directly by {@link PathRule#matchLen}
      *
-     * TODO:  should this be a partial match instead?
+     * @param other  TreeNode obj to compare to this one
+     *
+     * TODO:  should this be a tfidf-style partial match instead?
      */
     public boolean nearEquals(TreeNode other) {
 
         //compare actions
         if (! this.pathStr.equals(other.pathStr)) return false;
 
-        //compare external sensors
-        if (! other.currExternal.equals(this.currExternal)) return false;
+        //compare external sensors.
+        // Note: if they are both goal nodes, the other ext sensors don't
+        //       need to match.
+        if ( (!other.isGoalNode()) || (!this.isGoalNode()) ) {
+            if (!other.currExternal.equals(this.currExternal)) {
+                return false;
+            }
+        }
 
         //An empty internal set is treated as a wildcard match
         //(not 100% sure about this)
@@ -845,25 +853,6 @@ public class TreeNode {
         return false; //no luck
 
     }//nearEquals
-
-
-
-    /**
-     * equals
-     *
-     * method is overridden to only compare sensors and actions
-     */
-    @Override
-    public boolean equals(Object obj) {
-        if (! (obj instanceof TreeNode) ) return false;
-        TreeNode other = (TreeNode)obj;
-
-        if (nearEquals(other)) {
-            return (other.currInternal.equals(this.currInternal));
-        }
-
-        return false;
-    }//equals
 
     public char getAction() { return this.pathStr.charAt(this.pathStr.length() - 1); }
     public String getPathStr() { return this.pathStr; }

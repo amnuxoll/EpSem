@@ -229,6 +229,10 @@ public class PhuJusAgent implements IAgent {
     private int stepsSinceGoal = 0;
     private int numGoals = 0;
     Vector<Integer> last10Goals = new Vector<>();
+    private String goalPath = ""; //The path the agent has taken since the last goal
+    private static long totalTime = 0L;  //track the total time the agent spends calculating
+
+
 
     //Stores the percentage that each sensor is on and relative info to calculate it.
     //HashMap maps sensor name (String) to Tuple containing creation
@@ -250,9 +254,6 @@ public class PhuJusAgent implements IAgent {
     private boolean currPathRandom = false;
     private double numRand = 1.0;
     private double numRandSuccess = 1.0;
-
-    //Used to track the total time the agent spends calculating
-    private static long totalTime = 0L;
 
 //endregion Instance Variables
 
@@ -315,7 +316,7 @@ public class PhuJusAgent implements IAgent {
         if(this.stepsSinceGoal >= 40) {
             debugPrintln("");
         }
-        if (this.now >= 400) {
+        if (this.now >= 800) {
             debugPrintln("");
         }
 
@@ -385,6 +386,32 @@ public class PhuJusAgent implements IAgent {
     }
 
     /**
+     * getBestMatchingWildcardTFRule
+     *
+     * determines which Operator.ALL TFRule best matches the episode that
+     * the agent just completed
+     */
+    private TFRule getBestMatchingWildcardTFRule() {
+        double bestScore = -2.0; //impossibly low score serves as -infinity
+        TFRule bestRule = null;
+        for(TFRule r : this.tfRules) {
+            if (r.getOperator() != TFRule.RuleOperator.ALL) continue;
+            double rhsScore = r.rhsMatchScore(this.currExternal);
+            if (rhsScore < 0.0) continue;
+            //Note:  an empty lhs internal parameter is fine since this is a wildcard rule
+            double lhsScore = r.lhsMatchScore(this.prevAction, new HashSet<>(), this.prevExternal);
+            double score = rhsScore * lhsScore;
+            if (score > bestScore) {
+                bestScore = score;
+                bestRule = r;
+            }
+        }
+
+        return bestRule;
+
+    }//getBestMatchingWildcardTFRule
+
+    /**
      * genNextInternal
      * <p>
      * calculates what the internal sensors will be on for the next timestep
@@ -408,14 +435,15 @@ public class PhuJusAgent implements IAgent {
         if (this.rules.size() == 0) return result; //no rules yet
 
         // find the TFRule that best matches the given sensors/actions
-        // IMPORTANT:  You can't use this.prevBestScore/Match for this because
-        //             genNextInternal is also used extensively by TreeNode
         double bestScore = 0.0;
         // Put all the scores in an array, so we don't have to calc them twice (see next loop)
         double[] allScores = new double[this.tfRules.size()];
         for (int i = 0; i < this.tfRules.size(); ++i) {
             TFRule r = tfRules.get(i);
             // ignore rules that didn't predict external sensors correctly
+            // TODO:  I don't like using isExtMatch.  This should be a regular
+            //        match scoreso that random external sensors can be handled.
+            //        Leave it in for now.
             if (!r.isExtMatch(action, prevExt, currExt)) {
                 allScores[i] = 0.0;
                 continue;
@@ -439,6 +467,13 @@ public class PhuJusAgent implements IAgent {
                 result.add(ruleId);
             }
         }
+
+        //If possible least one wildcard rule should be in each internal set
+        TFRule bestWildcard = getBestMatchingWildcardTFRule();
+        if (bestWildcard != null) {
+            result.add(bestWildcard.getId());
+        }
+
         return result;
     }//genNextInternal
 
@@ -723,6 +758,8 @@ public class PhuJusAgent implements IAgent {
      * @param isGoal  did the agent just reach a goal?
      */
     private void pathMaintenance(boolean isGoal) {
+        //DEBUG: keep track of agent's steps
+        this.goalPath += this.prevAction + "->" + this.currExternal.toStringShort();
 
         if (isGoal) {
             numGoals++;
@@ -736,6 +773,8 @@ public class PhuJusAgent implements IAgent {
             movingAvg /= last10Goals.size();
             String movingAvgStr = String.format("%.3f", movingAvg);
             System.out.println("Found GOAL No. " + numGoals + " in " + this.stepsSinceGoal + " steps (avg: " + avgStr +  "; moving avg: " + movingAvgStr + ")");
+            System.out.println("Goal Path: " + this.goalPath);
+            this.goalPath = "";
             rewardRulesForGoal();
 
             //Track random success
