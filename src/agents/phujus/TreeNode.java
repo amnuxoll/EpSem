@@ -349,14 +349,14 @@ public class TreeNode {
 
             //Update all sensor combos for this sensor
             for (int i = 0; i < confArr.length; ++i) {
-                if (TreeNode.comboArr[i].charAt(sId) == '0') {
+                if (TreeNode.comboArr[i].charAt(sId) == '0') { //false
                     confArr[i].ext.setSensor(sName, false);
                     confArr[i].confidence *= outcomes[0];
-                    confArr[i].supporters.add(bd.maxOffVoter);
-                } else {
+                    if (bd.maxOffVoter != null) confArr[i].supporters.add(bd.maxOffVoter);
+                } else {  //true
                     confArr[i].ext.setSensor(sName, true);
                     confArr[i].confidence *= outcomes[1];
-                    confArr[i].supporters.add(bd.maxOffVoter);
+                    if (bd.maxOnVoter != null) confArr[i].supporters.add(bd.maxOnVoter);
                 }
             }//for
 
