@@ -115,6 +115,11 @@ public class TFRule extends Rule {
     private final HashSet<Cond> lhsExternal;
     private final HashSet<Cond> rhsExternal;
 
+    // The internal sensor which MUST match in order for it to match with something else.
+    private Cond primaryInternal;
+    // The time depth of the primaryInternal sensor (max number of steps to get to base rules from internal sensors)
+    private int  timeDepth = 0;
+
     //endregion
 
     /** ctor initializes this rule from the agents current state */
@@ -125,6 +130,8 @@ public class TFRule extends Rule {
         this.lhsExternal = initExternal(agent.getPrevExternal());
         this.rhsExternal = initExternal(agent.getCurrExternal());
         this.lhsInternal = initInternal();
+
+        this.primaryInternal = getMostImportantRule(this.lhsInternal);
     }//TFRule
 
     /**
@@ -139,13 +146,15 @@ public class TFRule extends Rule {
         this.lhsExternal = initExternal(lhsExt);
         this.rhsExternal = initExternal(rhsExt);
 
+        this.primaryInternal = getMostImportantRule(this.lhsInternal);
+
         this.confidence.setConfidence(conf);
     }//TFRule
 
     /**
      * ctor to initalize a tf rule given an action, LHSInt, LHSExt, RHSExt, confidence, and operator
      */
-    public TFRule(PhuJusAgent agent, char action, String[] lhsInt, SensorData lhsExt, SensorData rhsExt, double conf, RuleOperator operator) {
+    public TFRule(PhuJusAgent agent, char action, String[] lhsInt, SensorData lhsExt, SensorData rhsExt, double conf, RuleOperator operator, boolean assignImportant) {
         super(agent);
 
         this.action = action;
@@ -153,6 +162,11 @@ public class TFRule extends Rule {
         this.lhsInternal = initInternal(lhsInt);
         this.lhsExternal = initExternal(lhsExt);
         this.rhsExternal = initExternal(rhsExt);
+
+        // For unit testing
+        if (assignImportant) {
+            this.primaryInternal = getMostImportantRule(this.lhsInternal);
+        }
 
         this.confidence.setConfidence(conf);
 
@@ -172,6 +186,7 @@ public class TFRule extends Rule {
         // Gets the previous internal sensors that were on
         HashSet<Integer> prevInternal = agent.getPrevInternal();
 
+        // TODO why not just loop through prevInternal instead of every single rule?
         //Add a condition to this rule for each sensor
         HashSet<Cond> set = new HashSet<>();
         for(TFRule tf : agent.getTfRules()){
@@ -340,6 +355,126 @@ public class TFRule extends Rule {
         return sameAction && sameRhsExt && sameLhsExt;
 
     }//isMatch
+
+    /**
+     * getMostImportantRules
+     * <p>
+     * Returns the most important rule in a HashSet<Cond>. Should really only be used in the constructor for assigning
+     * the primaryInternal from the lhsInternal values. The most important rule is the one with the highest confidence
+     * and TF value.
+     * @param rules the LHS internal sensors
+     * @return the rule with the highest confidence and TF value
+     */
+    private Cond getMostImportantRule(HashSet<Cond> rules) {
+
+        // Guard clauses
+        if (rules == null || rules.size() == 0) {
+            return null;
+        }
+
+        Cond[] ruleArr = rules.toArray(new Cond[]{});
+        if (ruleArr.length == 1) {
+
+            // Wildcard rules have -1 as an LHS int sensor
+            if (ruleArr[0].sId == -1) {
+                this.timeDepth = 0;
+                return null;
+            }
+            return ruleArr[0];
+        }
+
+        // Looping through all the rules associated with our lhsInternal and looking for the rule with the greatest
+        // importance. TF values are used as a tie breaker for rules with equal confidence.
+        // TODO Importance is ranked as the rule with the highest confidence, but this could be wrong.
+        Hashtable<Integer, Rule> agentRules = agent.getRules();
+
+        Cond impCond = null;
+        Rule impRule = null;
+        for (Cond ruleCond : ruleArr) {
+
+            // Ignore irrelevant conditions
+            if (ruleCond.getTF() < 0.001) {
+                continue;
+            }
+
+            Rule currRule = agentRules.get(ruleCond.sId);
+
+            if (impCond == null || impRule == null) {
+                impRule = currRule;
+                impCond = ruleCond;
+            }
+
+            double currRuleConf = currRule.confidence.getConfidence();
+            double impRuleConf  = impRule.confidence.getConfidence();
+            if (currRuleConf > impRuleConf ) {
+                impRule = currRule;
+                impCond = ruleCond;
+            }
+            // If their confidences are equal, use TF value as a tiebreaker
+            else if (currRuleConf == impRuleConf) {
+
+                if (ruleCond.getTF() > impCond.getTF()) {
+                    impRule = currRule;
+                    impCond = ruleCond;
+                }
+            }
+
+        }
+
+        // Removing the most important condition from our list. The most important condition gets assigned to the
+        // primaryInternal instance variable.
+        // TODO should we be doing this?
+        if (impCond != null) {
+            rules.remove(impCond);
+            this.timeDepth = calcTimeDepth((TFRule) impRule);
+        }
+
+
+        return impCond;
+    }//getMostImportantRule
+
+    /**
+     * calcTimeDepth
+     * <p>
+     * Calculates the time depth of a rule. Time depth is calculated as the maximum number of steps it takes to get to
+     * a base rule from a rule's set of internal sensors.
+     * IMPORTANT: this method is recursive!
+     * TODO needs tests!
+     * @param rule
+     * @return
+     */
+    private int calcTimeDepth(TFRule rule) {
+
+        HashSet<Cond> lhsInt = rule.getLhsInternal();
+
+        // Base case
+        if (lhsInt.size() == 0 || rule.operator == RuleOperator.ALL) {
+            return 1;
+        }
+
+        Hashtable<Integer, Rule> agentRules = this.agent.getRules();
+
+        int depth = 1;
+        int maxDepth = 0;
+        for (Cond cond : lhsInt) {
+            if (cond.getTF() < 0.001) {
+                continue;
+            }
+
+            TFRule checkingRule = (TFRule) agentRules.get(cond.sId);
+
+            // Recursive case
+            int timeDepth = calcTimeDepth(checkingRule);
+
+            // Since rules can have multiple internal sensors, we want the one with the maximum distance
+            if (timeDepth > maxDepth) {
+                maxDepth = timeDepth;
+            };
+        }//for
+        return (depth + maxDepth) - 1;
+    }//calcTimeDepth
+
+
 
     /**
      * updateTFVals
@@ -676,6 +811,10 @@ public class TFRule extends Rule {
             resultStr += ")";
         }
 
+        if (this.primaryInternal != null) {
+            resultStr += primaryInternal.sName;
+        }
+
         return resultStr;
     }//toStringShortINT
 
@@ -795,6 +934,14 @@ public class TFRule extends Rule {
 
     public HashSet<Cond> getLhsInternal() {
         return this.lhsInternal;
+    }
+
+    public int getTimeDepth() {
+        return timeDepth;
+    }
+
+    public Cond getPrimaryInternal() {
+        return primaryInternal;
     }
 
     public RuleOperator getOperator() { return this.operator; }

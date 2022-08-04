@@ -313,7 +313,7 @@ public class PhuJusAgent implements IAgent {
         }
 
         //DEBUG: put breakpoints below to debug
-        if(this.stepsSinceGoal >= 40) {
+        if(this.stepsSinceGoal >= 5) {
             debugPrintln("");
         }
         if (this.now >= 800) {
@@ -789,7 +789,7 @@ public class PhuJusAgent implements IAgent {
             this.stepsSinceGoal = 0;
 
             buildNewPath();
-        } else if ((this.pathToDo.size() == 0)) {
+        } else if ( this.pathToDo == null || (this.pathToDo.size() == 0)) {
             //DEBUG
             debugPrintln("Current path failed.");
 
@@ -1181,7 +1181,7 @@ public class PhuJusAgent implements IAgent {
             //create a base-event rule
             //TODO: review if these are still needed
             TFRule baseRule = new TFRule(this, this.prevAction, new String[]{"-1"},
-                    this.getPrevExternal(), this.getCurrExternal(), 1.0, TFRule.RuleOperator.ALL);
+                    this.getPrevExternal(), this.getCurrExternal(), 1.0, TFRule.RuleOperator.ALL, true);
             addRule(baseRule);
 
         }

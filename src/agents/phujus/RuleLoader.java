@@ -121,7 +121,7 @@ public class RuleLoader {
                 System.err.println("oh no!");
             }
 
-            return new TFRule(this.agent, action.charAt(0), lhsInt, lhsExt, rhsExt, conf, operator);
+            return new TFRule(this.agent, action.charAt(0), lhsInt, lhsExt, rhsExt, conf, operator, false);
         }
     }
 
