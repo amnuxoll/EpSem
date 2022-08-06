@@ -329,7 +329,7 @@ public class PhuJusAgent implements IAgent {
         if(this.stepsSinceGoal >= 20) {
             debugPrintln("");
         }
-        if (this.now >= 3) {
+        if (this.now >= 300) {
             debugPrintln("");
         }
 
@@ -556,7 +556,8 @@ public class PhuJusAgent implements IAgent {
         //log what just happened for future use by PathRules
         TreeNode actualTN = new TreeNode(this.actualPath.lastElement(),
                                          this.prevAction,
-                                         this.currExternal);
+                                         this.currExternal,
+                                         this.actualPath.size() + 1);
         this.actualPath.add(actualTN);
 
         //The actualPath begins with the root note in place, so it can be used

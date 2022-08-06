@@ -82,7 +82,7 @@ public class TreeNode {
         this.confidence = 1.0;
         supporters = new HashSet<>(); //none
         this.pathRule = null;
-        this.timeDepth = 0;  //this is a root node
+        this.timeDepth = -1;  //root node has no set time depth
 
         if (TreeNode.comboArr == null) {
             TreeNode.initComboArr(this.currExternal.size());
@@ -96,13 +96,12 @@ public class TreeNode {
      * @param newExternal predicted external sensors for this node
      * @param confidence confidence in newExternal
      * @param initSupporters  which TFRules strongly support this TreeNode
+     * @param initDepth  the depth of this TreeNode
      *
      */
-    public TreeNode(TreeNode parent,
-                    char action,
-                    SensorData newExternal,
-                    double confidence,
-                    HashSet<TFRule> initSupporters) {
+    public TreeNode(TreeNode parent, char action, SensorData newExternal,
+                    double confidence, HashSet<TFRule> initSupporters,
+                    int initDepth) {
         //initializing agent and its children
         this.agent = parent.agent;
         this.rules = parent.rules;
@@ -117,12 +116,12 @@ public class TreeNode {
         this.confidence = parent.confidence * confidence;
         this.supporters = initSupporters;
         this.pathRule = null;
-        this.timeDepth = parent.timeDepth + 1;
+        this.timeDepth = initDepth;
     }//child ctor
 
     /** convenience version of the child ctor that fills in some default values */
-    public TreeNode(TreeNode parent,  char action, SensorData newExternal) {
-        this(parent, action, newExternal, 1.0, new HashSet<>());
+    public TreeNode(TreeNode parent,  char action, SensorData newExternal, int initDepth) {
+        this(parent, action, newExternal, 1.0, new HashSet<>(), initDepth);
     }
 
     /**
@@ -289,7 +288,7 @@ public class TreeNode {
      * class VoteOutcome
      *
      * is a tiny public class to describe the outcome of a TFRules voting for
-     * the predicted external sensor values in {@link #predictExternalMark3 }
+     * the predicted external sensor values in {@link #predictExternal }
      */
     private class VoteOutcome {
         public SensorData ext = new SensorData(false);  //the predicted data
@@ -301,7 +300,7 @@ public class TreeNode {
      * castVotes
      *
      * casts votes for various possible external sensor combinations given
-     * an action and a required rule depth
+     * an action and a required rule depth.
      *
      */
     private HashMap<String, BlocData> castVotes(char action, int depth) {
@@ -407,15 +406,37 @@ public class TreeNode {
      * Note:  This method assumes at least one rule exists at the current time depth
      *
      * @param action  the action taken to reach the child
-     * @return an array of {@link VoteOutcome} objects for each candidate
-     *         external sensor combo
+     * @return a 2D array of {@link VoteOutcome} objects indexed by time depth
+     *         and then for each candidate external sensor combo.
+     *         Note!  Some internal 1D arrays can be null for depths that
+     *                don't apply for this TreeNode
      */
-    public VoteOutcome[] predictExternalMark3(char action) {
-        // Record the vote from each matching rule at this depth for each sensor
-        HashMap<String, BlocData> votingData = castVotes(action, this.timeDepth);
+    public VoteOutcome[][] predictExternal(char action) {
+
+        //init an empty array
+        VoteOutcome[][] result = new VoteOutcome[PhuJusAgent.MAX_TIME_DEPTH + 1][0];
+        for(int depth = 0; depth <= PhuJusAgent.MAX_TIME_DEPTH; ++depth) {
+            result[depth] = null;
+        }
+
+        //for root notes, all the time depths
+        if (this.timeDepth == -1) {
+            for (int depth = 0; depth <= PhuJusAgent.MAX_TIME_DEPTH; ++depth) {
+                if (agent.getTfRules().size() <= depth) break;  //no rules to vote
+
+                HashMap<String, BlocData> voteData = castVotes(action, depth);
+                result[depth] = getVoteOutcomes(voteData);
+            }
+        } else {
+            //For non-root nodes, stick to a consistent depth
+            HashMap<String, BlocData> voteData = castVotes(action, this.timeDepth);
+            result[this.timeDepth] = getVoteOutcomes(voteData);
+
+            //TODO:  If no votes were cast, try depth 0 rules?
+        }
 
         //Generate a summary of the outcome
-        return getVoteOutcomes(votingData);
+        return result;
 
     }//predictExternalMark3
 
@@ -452,16 +473,20 @@ public class TreeNode {
             char act = agent.getActionList()[actId].getName().charAt(0);
 
             //Calculate the confidence in each combination
-            VoteOutcome[] voteOutcomes = predictExternalMark3(act);
+            VoteOutcome[][] voteOutcomes = predictExternal(act);
 
-            for(VoteOutcome outcome : voteOutcomes) {
-                //agent must be more confident in this path than just taking a random action
-                if (outcome.confidence <= this.agent.getRandSuccessRate()) continue;
+            for(int depth = 0; depth <= PhuJusAgent.MAX_TIME_DEPTH; ++depth) {
+                if (voteOutcomes[depth] == null) continue;
+                for (VoteOutcome outcome : voteOutcomes[depth]) {
+                    //agent must be more confident in this path than just taking a random action
+                    if (outcome.confidence <= this.agent.getRandSuccessRate())
+                        continue;
 
-                //create a child for this action + ext sensor combo
-                TreeNode child = new TreeNode(this, act, outcome.ext,
-                                               outcome.confidence, outcome.supporters);
-                this.children.add(child);
+                    //create a child for this action + ext sensor combo
+                    TreeNode child = new TreeNode(this, act, outcome.ext,
+                            outcome.confidence, outcome.supporters, depth + 1);
+                    this.children.add(child);
+                }//for
             }//for
         }//for
 
@@ -639,7 +664,7 @@ public class TreeNode {
 
         int i = PhuJusAgent.rand.nextInt(agent.getActionList().length);
         char action = agent.getActionList()[i].getName().charAt(0);
-        TreeNode random = new TreeNode(this, action, this.currExternal);
+        TreeNode random = new TreeNode(this, action, this.currExternal, 1);
         return random.path;
 
 //        //pick the action (depth 1) with the greatest uncertainty
