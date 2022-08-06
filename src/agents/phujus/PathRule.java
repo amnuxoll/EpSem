@@ -117,12 +117,13 @@ public class PathRule extends Rule {
     public void replaceAll(TFRule removeMe, TFRule replacement) {
         //Replace all uses on the RHS
         for(TreeNode tn : this.rhs) {
-            if (tn.getCurrInternal().contains(removeMe.ruleId)) {
-                tn.getCurrInternal().remove(removeMe.ruleId);
-                if (replacement != null) {
-                    if (! tn.getCurrInternal().contains(removeMe.ruleId)) {
-                        tn.getCurrInternal().add(ruleId);
+            for(HashSet<TFRule> subset : tn.getCurrInternal()) {
+                if (subset.contains(removeMe)) {
+                    subset.remove(removeMe);
+                    if (replacement != null) {
+                        subset.add(replacement);
                     }
+                    break;  //a rule shouldn't appear at more than 1 time depth
                 }
             }
         }
@@ -217,7 +218,11 @@ public class PathRule extends Rule {
                 for (int i = 0; i < intersectRHS.size(); ++i) {
                     TreeNode intersectTN = intersectRHS.get(i);
                     TreeNode prTN = pr.rhs.get(i);
-                    intersectTN.getCurrInternal().retainAll(prTN.getCurrInternal());
+                    int shallowest = Math.min(intersectTN.getCurrInternal().size(),
+                                              prTN.getCurrInternal().size());
+                    for(int depth = 0; depth < shallowest; ++depth) {
+                        intersectTN.getCurrInternal(depth).retainAll(prTN.getCurrInternal(depth));
+                    }
                 }
             }//for
 

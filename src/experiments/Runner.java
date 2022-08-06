@@ -275,7 +275,7 @@ public class Runner {
     );
 
     private static TestSuite PJ_SUITE = new TestSuite(
-            TestSuiteConfiguration.QUICK,
+            TestSuiteConfiguration.ONCE,
             new IEnvironmentProvider[] {
                     new FSMEnvironmentProvider(
                             new FSMTransitionTableBuilder(2, 6, Random.getFalse()),

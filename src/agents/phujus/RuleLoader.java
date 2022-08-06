@@ -102,16 +102,15 @@ public class RuleLoader {
             SensorData lhsExt = null;
             SensorData rhsExt = null;
 
-            String[] lhsInt = null;
+            int[] lhsInt = null;
             String action = "\0";
 
             double conf = -1.0;
 
             String lhsIntData = rowScanner.next().trim();
 
-            TFRule.RuleOperator operator = getRuleOperatorFromString(lhsIntData);
             try {
-                lhsInt = getLHSIntFromString(lhsIntData, operator);
+                lhsInt = getLHSIntFromString(lhsIntData);
                 lhsExt = getSDFromString(rowScanner.next().trim());
                 action = rowScanner.next().trim();
                 rhsExt = getSDFromString(rowScanner.next().trim());
@@ -121,7 +120,7 @@ public class RuleLoader {
                 System.err.println("oh no!");
             }
 
-            return new TFRule(this.agent, action.charAt(0), lhsInt, lhsExt, rhsExt, conf, operator, false);
+            return new TFRule(this.agent, action.charAt(0), lhsInt, lhsExt, rhsExt, conf);
         }
     }
 
@@ -156,7 +155,7 @@ public class RuleLoader {
      * @return an array of strings that represent the LHSInt values or null if there are none
      */
     //TODO:  Change this to turn int[] instead of String[].  Then you can remove extraneous ctor and initInternal methods in TFRule
-    private String[] getLHSIntFromString(String token, TFRule.RuleOperator operator) {
+    private int[] getLHSIntFromString(String token) {
 
         if (token == null) {
             return null;
@@ -166,14 +165,10 @@ public class RuleLoader {
             return null;
         }
 
-        if(operator == TFRule.RuleOperator.ALL){
-            return new String[]{"-1"};
-        }
-
         Vector<String> lhsInt = new Vector<>();
 
         try (Scanner colonScanner = new Scanner(token)) {
-            colonScanner.useDelimiter(operator.character);
+            colonScanner.useDelimiter(";");
 
             while (colonScanner.hasNext()) {
                 String next = colonScanner.next();
@@ -184,36 +179,22 @@ public class RuleLoader {
                 lhsInt.add(next);
             }
         }
-        String[] lhsIntArr = lhsInt.toArray(new String[0]);
+
+        //Convert to array of int
+        int[] lhsIntArr = new int[lhsInt.size()];
+        for(int i = 0; i < lhsIntArr.length; ++i) {
+            lhsIntArr[i] = Integer.parseInt(lhsInt.get(i));
+        }
 
         //If these rules are being reloaded, the LHS int values need to be adjusted
         if (this.ruleIdOffset > 0) {
             for(int i = 0; i < lhsIntArr.length; ++i) {
-                int tmp = Integer.parseInt(lhsIntArr[i]);
-                tmp += this.ruleIdOffset;
-                lhsIntArr[i] = "" + tmp;
+                lhsIntArr[i] += this.ruleIdOffset;
             }
         }
 
         return lhsIntArr;
     }//getLHSIntFromString
-
-    /**
-     * Helper method for getting the operator of the rule (*[any], /[andor], ;[and])
-     */
-    private TFRule.RuleOperator getRuleOperatorFromString(String token) {
-
-        TFRule.RuleOperator operator = TFRule.RuleOperator.AND;
-
-        if(token.contains("/")) {
-            operator = TFRule.RuleOperator.ANDOR;
-        }
-        else if (token.contains("*")) {
-            operator = TFRule.RuleOperator.ALL;
-        }
-
-        return operator;
-    }
 
     /**
      * Helper method that Instantiates a SensorData object from a given string

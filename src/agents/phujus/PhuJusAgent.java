@@ -35,7 +35,7 @@ public class PhuJusAgent implements IAgent {
     //-----------------------------//
     public static final int MAXNUMRULES = 4000;
     public static final int MAX_SEARCH_DEPTH = 5; //TODO: get the search to self prune again
-    public static final int MAX_TIME_DEPTH = 7;  //size of short term memory
+    public static final int MAX_TIME_DEPTH = 3;  //size of short term memory
 
     /** How similar two match scores need to be to each other to be "near."
      * Some prelimiary research shows that the best value for this parameter
@@ -193,26 +193,44 @@ public class PhuJusAgent implements IAgent {
     /** current timestep 't' */
     private int now = 0;
 
-    //The agent keeps lists of the rules it is using
-    private final Vector<PathRule> pathRules = new Vector<>();
-    private final Vector<TFRule> tfRules = new Vector<>();
+    /** a list of all the rules of any type the agent is using.  These are
+     * indexed by id for fast lookup.
+     */
     private final Hashtable<Integer, Rule> rules = new Hashtable<>();  //all rules
+
+    /** a list of all the PathRules the agent is using */
+    private final Vector<PathRule> pathRules = new Vector<>();
+
+    /** a list of all the TFRules the agent is using.  These are separated into
+     * sub-lists: one for each time depth. */
+    private final Vector<Vector<TFRule>> tfRules = new Vector<>();
 
     /** this tracks rules that "fire together" and therefore may need
      *  to be merged (i.e., "wire together")
      */
     private final MergeQueue mergeQueue = new MergeQueue();
 
-    /** internal sensors are rule ids of rules that fired in the prev time step */
-    private HashSet<Integer> currInternal = new HashSet<>();
+    /** internal sensors are TFRules that fired in the prev time step.
+     * These are sorted into sub-sets by depth. */
+    private Vector<HashSet<TFRule>> currInternal = new Vector<>();
 
     /** external sensors come from the environment */
     private SensorData currExternal;
 
     /** sensor values from the previous timesteps */
-    private final Vector<HashSet<Integer>> prevInternal = new Vector<>();
+    private final Vector<Vector<HashSet<TFRule>>> prevInternal = new Vector<>();
     private SensorData prevExternal = null;
+
+    /** for efficiency in some operations (particularly matching and printing),
+     * a "flat" version of the internal sensors is created that is just a set
+     * of rule ids that were in the set.
+     */
+    private HashSet<Integer> flatCurrInternal = new HashSet<>();
+    private HashSet<Integer> flatPrevInternal = new HashSet<>();
+
+    /** current and previous action */
     private char prevAction = '?';  //last action the agent took
+    private char currAction = '?';  //action the agent has selected this step
 
     /** This is the PathRule that best matched at the end of the last completed path */
     private PathRule prevPRMatch = null;
@@ -282,10 +300,8 @@ public class PhuJusAgent implements IAgent {
     public Action getNextAction(SensorData sensorData) throws Exception {
         long startTime = System.currentTimeMillis();  //to monitor total calc time
         this.now++;
-        this.currExternal = sensorData;
-
-        //Calculate the internal sensors based upon what the agent just experienced
-        this.currInternal = genNextInternal();
+        //Setup the sensors for the next iteration
+        updateSensors(sensorData);
 
         this.stepsSinceGoal++;
 
@@ -299,9 +315,6 @@ public class PhuJusAgent implements IAgent {
             updateExternalPercents();
         }
 
-        // If multiple rules fired together, they are added to the merge queue.
-        this.mergeQueue.add(this.currInternal);
-
         //Regular update to the PathRules
         updatePathRules();
 
@@ -313,10 +326,10 @@ public class PhuJusAgent implements IAgent {
         }
 
         //DEBUG: put breakpoints below to debug
-        if(this.stepsSinceGoal >= 5) {
+        if(this.stepsSinceGoal >= 20) {
             debugPrintln("");
         }
-        if (this.now >= 800) {
+        if (this.now >= 3) {
             debugPrintln("");
         }
 
@@ -332,10 +345,7 @@ public class PhuJusAgent implements IAgent {
         pathMaintenance(sensorData.isGoal());
 
         //extract next action from current path
-        char action = calcAction();
-
-        //Use the selected action to set up values for the next iteration
-        updateSensors(action);
+        this.currAction = calcAction();
 
         //DEBUG
         debugPrintln("----------------------------------------------------------------------");
@@ -350,7 +360,7 @@ public class PhuJusAgent implements IAgent {
             System.out.println(hours + ":" + mins + ":" + secs);
         }
 
-        return new Action(action + "");
+        return new Action(this.currAction + "");
     }//getNextAction
 
     /**
@@ -359,18 +369,25 @@ public class PhuJusAgent implements IAgent {
      * is a DEBUG method to print all the rules the agent has
      */
     private void printAllRules() {
-        if (this.now > 2) {
-            debugPrintln("TF Rules:");
-            for (TFRule tfRule : tfRules) {
-                debugPrintln("" + tfRule);
+        if (this.now <= 2) return;  //no rules to print
+        int depth = 0;
+        int tfCount = 0;
+        for(Vector<TFRule> subList : this.tfRules) {
+            debugPrintln("Depth " + depth + " TF Rules (" + subList.size() + "):");
+            for (TFRule tfRule : subList) {
+                debugPrintln("  " + tfRule);
+                tfCount++;
             }
-
-            debugPrintln("Path Rules:");
-            for (PathRule pr : this.pathRules) {
-                debugPrintln("" + pr);
-            }
-            debugPrintln("NUM RULES: " + tfRules.size());
+            depth++;
         }
+        debugPrintln("Total TF Rules: " + tfCount);
+
+        debugPrintln("Path Rules:");
+        for (PathRule pr : this.pathRules) {
+            debugPrintln("  " + pr);
+        }
+        debugPrintln("Total Path Rules: " + this.pathRules.size());
+
     }//printAllRules
 
     /**
@@ -384,109 +401,6 @@ public class PhuJusAgent implements IAgent {
         RuleLoader loader = new RuleLoader(this);
         loader.loadRules("./src/agents/phujus/res/rule_merge_testing.csv");
     }
-
-    /**
-     * getBestMatchingWildcardTFRule
-     *
-     * determines which Operator.ALL TFRule best matches the episode that
-     * the agent just completed
-     */
-    private TFRule getBestMatchingWildcardTFRule() {
-        double bestScore = -2.0; //impossibly low score serves as -infinity
-        TFRule bestRule = null;
-        for(TFRule r : this.tfRules) {
-            if (r.getOperator() != TFRule.RuleOperator.ALL) continue;
-            double rhsScore = r.rhsMatchScore(this.currExternal);
-            if (rhsScore < 0.0) continue;
-            //Note:  an empty lhs internal parameter is fine since this is a wildcard rule
-            double lhsScore = r.lhsMatchScore(this.prevAction, new HashSet<>(), this.prevExternal);
-            double score = rhsScore * lhsScore;
-            if (score > bestScore) {
-                bestScore = score;
-                bestRule = r;
-            }
-        }
-
-        return bestRule;
-
-    }//getBestMatchingWildcardTFRule
-
-    /**
-     * genNextInternal
-     * <p>
-     * calculates what the internal sensors will be on for the next timestep
-     * by seeing which rules have a sufficient match score and correctly
-     * predicted the current external sensors
-     *
-     * Caveat: At the moment, "sufficient" is any rule that exceeds the
-     *         match cutoff.
-     *
-     * <p>
-     * @param action  selected action to match LHS
-     * @param prevInt internal sensors to match LHS
-     * @param prevExt external sensors to match LHS
-     * @param currExt external sensors to match RHS
-     */
-    public HashSet<Integer> genNextInternal(char action,
-                                            HashSet<Integer> prevInt,
-                                            SensorData prevExt,
-                                            SensorData currExt) {
-        HashSet<Integer> result = new HashSet<>();
-        if (this.rules.size() == 0) return result; //no rules yet
-
-        // find the TFRule that best matches the given sensors/actions
-        double bestScore = 0.0;
-        // Put all the scores in an array, so we don't have to calc them twice (see next loop)
-        double[] allScores = new double[this.tfRules.size()];
-        for (int i = 0; i < this.tfRules.size(); ++i) {
-            TFRule r = tfRules.get(i);
-            // ignore rules that didn't predict external sensors correctly
-            // TODO:  I don't like using isExtMatch.  This should be a regular
-            //        match scoreso that random external sensors can be handled.
-            //        Leave it in for now.
-            if (!r.isExtMatch(action, prevExt, currExt)) {
-                allScores[i] = 0.0;
-                continue;
-            }
-            allScores[i] = r.lhsMatchScore(action, prevInt, prevExt);
-            if (allScores[i] > bestScore) {
-                bestScore = allScores[i];
-            }
-        }//for
-
-        //If best score is a mismatch then there will be no internal sensors
-        if (bestScore <= 0.0) return result;
-
-        // Turn on internal sensors for all rules that are at or "near" the
-        // highest match score.  "near" is currently hard-coded
-        // TODO:  have agent adjust "near" based on its experience
-        for (int i = 0; i < this.tfRules.size(); ++i) {
-            if (allScores[i] <= 0.0) continue;
-            if (1.0 - (allScores[i] / bestScore )  <= PhuJusAgent.MATCH_NEAR){
-                int ruleId = this.tfRules.get(i).getId();
-                result.add(ruleId);
-            }
-        }
-
-        //If possible least one wildcard rule should be in each internal set
-        TFRule bestWildcard = getBestMatchingWildcardTFRule();
-        if (bestWildcard != null) {
-            result.add(bestWildcard.getId());
-        }
-
-        return result;
-    }//genNextInternal
-
-    /** convenience version that uses the agent's action + sensors */
-    public HashSet<Integer> genNextInternal() {
-        HashSet<Integer> result = new HashSet<>();
-        if (this.rules.size() == 0) return result; //no rules yet
-
-        return genNextInternal(this.prevAction,
-                               this.getPrevInternal(),
-                               this.prevExternal,
-                               this.currExternal);
-    }//genNextInternal
 
     /**
      * calcAction
@@ -738,10 +652,12 @@ public class PhuJusAgent implements IAgent {
         debugPrintln("\t" + root);
         int count = 1;
         for(TreeNode tn : path) {
-            for(Integer ruleId : tn.getCurrInternal()) {
-                TFRule tfRule = (TFRule)getRuleById(ruleId);
-                for(int i = 0; i < count; ++i) debugPrint("\t");
-                debugPrintln("  " + tfRule.toString());
+            for(int depth = 0; depth < tn.getCurrInternal().size(); ++depth) {
+                HashSet<TFRule> subset = tn.getCurrInternal(depth);
+                for (TFRule tfRule  : subset) {
+                    for (int i = 0; i < count; ++i) debugPrint("\t");
+                    debugPrintln("  " + tfRule.toString());
+                }
             }
             count++;
             for(int i = 0; i < count; ++i) debugPrint("\t");
@@ -826,50 +742,120 @@ public class PhuJusAgent implements IAgent {
 //endregion Path Maintenance Methods
 
     //region Sensor Update Methods
+
     /**
-     * calcPrunedInternal
+     * genNextInternal
+     * <p>
+     * calculates what the internal sensors should be on for a given action
+     * and sensors by seeing which rules have a sufficient match score.
      *
-     * When the rule associated with an internal sensor failed to predict the
-     * agent's subsequent sensing it should not be included in new rules.
-     * This method prunes such issues from a current set of internal
-     *  sensors. This is called on agent.currInternal before it is added
-     *  to the this.prevInternal set
-     *  
-     *  This is a helper method for {@link #updateSensors(char)}.
+     * Caveat: At the moment, "sufficient" is any rule that exceeds the
+     *         match cutoff.
+     *
+     * <p>
+     * @param action  selected action to match LHS
+     * @param prevInt internal sensors to match LHS
+     * @param prevExt external sensors to match LHS
+     * @param currExt external sensors to match RHS
      */
-    private HashSet<Integer> calcPrunedInternal() {
-        HashSet<Integer> result = new HashSet<>();
+    public Vector<HashSet<TFRule>> genNextInternal(char action,
+                                                   Vector<HashSet<TFRule>> prevInt,
+                                                   SensorData prevExt,
+                                                   SensorData currExt) {
+        Vector<HashSet<TFRule>> result = new Vector<>();
+        if (this.rules.size() == 0) return result; //no rules yet
 
-        for(int i : this.currInternal) {
-            //ok to type cast since all internal sensors are TFRules
-            TFRule cand = (TFRule) getRuleById(i);
-            if (cand == null) continue;
+        //For rule matching, we need a flat version of the given prevInt
+        HashSet<Integer> flatPrevInt = flattenRuleSet(prevInt);
 
-            if(cand.isExtMatch()){
-                result.add(cand.ruleId);
+        //Iterate over each rule depth
+        for(Vector<TFRule> ruleSubList : this.tfRules) {
+
+            //setup a container for the matches
+            HashSet<TFRule> currIntSubList = new HashSet<>();
+            result.add(currIntSubList);
+
+            // find the TFRule at this depth that best matches the given sensors/actions
+            double bestScore = 0.0;
+            // Cache all the scores in an array, so we don't have to calc them twice (see next loop)
+            double[] allScores = new double[ruleSubList.size()];
+            for (int i = 0; i < ruleSubList.size(); ++i) {
+                TFRule r = ruleSubList.get(i);
+                double rhsScore = r.rhsMatchScore(currExt);
+                double lhsScore = r.lhsMatchScore(action, flatPrevInt, prevExt);
+                //both scores must be positive
+                if ((rhsScore <= 0.0) || (lhsScore <= 0.0)) continue;
+
+                allScores[i] = rhsScore * lhsScore;
+                if (allScores[i] > bestScore) {
+                    bestScore = allScores[i];
+                }
+            }//for
+
+            //If best score is a mismatch then there will be no internal
+            //sensors at this depth
+            if (bestScore <= 0.0) continue;
+
+            // Turn on internal sensors for all rules that are at or "near" the
+            // highest match score.  "near" is currently hard-coded
+            // TODO:  have agent adjust "near" based on its experience
+            for (int i = 0; i < ruleSubList.size(); ++i) {
+                if (allScores[i] <= 0.0) continue;
+                if (1.0 - (allScores[i] / bestScore) <= PhuJusAgent.MATCH_NEAR) {
+                    currIntSubList.add(ruleSubList.get(i));
+                }
             }
-
-        }//for each internal sensor
+        }//for each depth
 
         return result;
-    }//calcPrunedInternal
+    }//genNextInternal
+
+    /**
+     * flattenRuleSet
+     *
+     * given a set of TFRule objects indexed by depth this method flattens it
+     * into a HashSet of rule id numbers.
+     */
+    public static HashSet<Integer> flattenRuleSet(Vector<HashSet<TFRule>> set) {
+        HashSet<Integer> result = new HashSet<>();
+        for (HashSet<TFRule> subset : set) {
+            for (TFRule r : subset) {
+                result.add(r.getId());
+            }
+        }
+        return result;
+    }//flattenRuleSet
 
     /**
      * updateSensors
      *
-     * calculates the correct values for the agent's next internal sensors and
-     * logs the current sensor values for use in rule creation
+     * called at the start of each time step the update the instance variables
+     * that track what the agent's sensors feel.
      *
-     * @param action  the action that the agent selected for this timestep
+     * @param newExt the outcome of the just-executed action
      */
-    private void updateSensors(char action) {
+    private void updateSensors(SensorData newExt) {
 
-        this.prevInternal.add(calcPrunedInternal());
+        //The action has now been taken
+        this.prevAction = this.currAction;
+
+        //Record the new external sensors
+        this.prevExternal = this.currExternal;
+        this.currExternal = newExt;
+
+        //Update the internal sensors based on what just happened
+        this.prevInternal.add(this.currInternal);
         while (prevInternal.size() > MAX_TIME_DEPTH) {
             prevInternal.remove(0);
         }
-        this.prevExternal = this.currExternal;
-        this.prevAction = action;
+        this.currInternal =
+                genNextInternal(this.prevAction, this.getPrevInternal(),
+                        this.prevExternal, this.currExternal);
+
+        //Update the flat versions of the above
+        this.flatPrevInternal = this.flatCurrInternal;
+        this.flatCurrInternal = flattenRuleSet(this.currInternal);
+
     }//updateSensors
 
     /**
@@ -908,14 +894,18 @@ public class PhuJusAgent implements IAgent {
      * Updates our internal sensor percentage data with the latest activations of the internal rules
      */
     private void updateInternalPercents() {
-        if(this.currInternal != null){ //we have internal sensor data to track
+        if(this.currInternal.size() == 0) return;
 
-            //This cache is used to speedup lookup
-            //TODO:  If this works better to replace the entire HashSet with an array?
-            intPctCache = new double[Rule.getNextRuleId()];
+        //This cache is used to speedup lookup
+        //TODO:  If this works better to replace the entire HashSet with an array?
+        intPctCache = new double[Rule.getNextRuleId()];
 
-            for(Rule rule: rules.values()){
-                boolean wasActive = this.currInternal.contains(rule.ruleId);
+        for(int depth = 0; depth < this.currInternal.size(); ++depth) {
+            HashSet<TFRule> intSubset = getCurrInternal(depth);
+            Vector<TFRule> ruleSubset = this.tfRules.get(depth);
+
+            for (TFRule rule : ruleSubset) {
+                boolean wasActive = intSubset.contains(rule);
 
                 Tuple<Integer, Double> sensorTuple = this.internalPercents.get(Integer.toString(rule.ruleId));
 
@@ -929,7 +919,6 @@ public class PhuJusAgent implements IAgent {
                     intPctCache[rule.ruleId] = percentage;
                 }
             }
-
         }
 
     }//updateInternalPercents
@@ -988,6 +977,8 @@ public class PhuJusAgent implements IAgent {
      *        more aggressive via a self-tuning hyper-param for min match score.
      *        Not sure how to self-tune.
      *
+     * @param tfRule  the rule to calc the score for
+     *
      * @return a confidence score [-1.0..1.0] of how right/wrong this rule is.
      *         A 0.0 return value means that no adjustment is recommended.
      */
@@ -995,23 +986,26 @@ public class PhuJusAgent implements IAgent {
         //actions must match, of course
         if (tfRule.getAction() != this.prevAction) return 0.0;
 
-        //there has to be some sort of match on the LHS
-        if ((tfRule.getOperator() != TFRule.RuleOperator.ALL)
-                && (! tfRule.hasOneLHSMatch(this.getPrevInternal())) ) {
-            return 0.0;
-        }
-
         //Calculate the match score for each component of the match and
         //make sure they all agree
-        double lhsIntScore = tfRule.lhsIntMatchScore(this.getPrevInternal());
-        double lhsExtScore = tfRule.lhsExtMatchScore(this.prevExternal);
+        double lhsIntScore = tfRule.lhsIntMatchScore(this.flatPrevInternal);
+
+        //TODO:  for now I'm requiring an exact match for LHSext.  We should
+        //       eventually use soft matches as per the commented out line
+        //double lhsExtScore = tfRule.lhsExtMatchScore(this.prevExternal);
+        double lhsExtScore = -1.0;
+        if (tfRule.isLHSExtMatch(this.prevAction, this.prevExternal)) {
+            lhsExtScore = 1.0;
+
+        }
         double rhsScore = tfRule.rhsMatchScore(this.currExternal);
-        if ( (lhsIntScore > 0.0) && (lhsExtScore > 0.0) && (rhsScore > 0.0)) {
+        if ((lhsIntScore > 0.0) && (lhsExtScore > 0.0) && (rhsScore > 0.0)) {
             return lhsIntScore * lhsExtScore * rhsScore; //all positive
         }
-        if ( (lhsIntScore < 0.0) && (lhsExtScore < 0.0) && (rhsScore < 0.0)) {
+        if ((lhsIntScore < 0.0) && (lhsExtScore < 0.0) && (rhsScore < 0.0)) {
             return lhsIntScore * lhsExtScore * rhsScore; //all negative
         }
+
 
         return 0.0;
     }//calcAdjustmentScore
@@ -1025,11 +1019,13 @@ public class PhuJusAgent implements IAgent {
      *
      */
     public void updateTFRuleConfidences() {
-        for(TFRule tfRule : this.tfRules) {
-            double adjAmount = calcAdjustmentScore(tfRule);
-            if (adjAmount != 0.0) {
-                tfRule.adjustConfidence(adjAmount);
-            }
+        for(Vector<TFRule> ruleSubList : this.tfRules) {
+            for(TFRule tfRule : ruleSubList) {
+                double adjAmount = calcAdjustmentScore(tfRule);
+                if (adjAmount != 0.0) {
+                    tfRule.adjustConfidence(adjAmount);
+                }
+            }//for
         }//for
     }//updateTFRuleConfidences
 
@@ -1084,10 +1080,6 @@ public class PhuJusAgent implements IAgent {
             mergeThese[1] = (TFRule) this.rules.get(poppedPair[1]);
 
             if (mergeThese[0] == mergeThese[1]) continue;
-
-            // Wildcard rules should never be merged into
-            if (mergeThese[0].getOperator() == TFRule.RuleOperator.ALL) continue;
-            if (mergeThese[1].getOperator() == TFRule.RuleOperator.ALL) continue;
 
             // We merge all the rules into the rule with the smallest number of internal sensors, since it's
             // the simplest rule. This is an extra sanity check that could probably be removed.
@@ -1153,8 +1145,7 @@ public class PhuJusAgent implements IAgent {
     /**
      * updateRuleSet
      *
-     * replaces current rules with low activation with new rules that might
-     * be more useful.
+     * updates all rules to reflect this agent's latest episode
      */
     public void updateRuleSet() {
         //Can't do anything in the first timestep because there is no previous timestep
@@ -1166,32 +1157,40 @@ public class PhuJusAgent implements IAgent {
         //Update the TF values for all extant TFRules
         updateAllTFValues();
 
-        //TODO:  consider this revision to how TFRules are created and used:
-        //       Trust Operator.ALL TFRules until their confidence drops. Such rules
-        //       would not be limited to MIN_MATCH.  Competing Operator.ANDOR rules would also
-        //       not be created until their confidence drops.
-
-        //Create new TF Rule(s) for this latest experience
-        // Prevent a new rule being added which is identical to a previous one.
-        TFRule newRule = new TFRule(this);
-        if (tfRules.size() > 0 && !tfRules.lastElement().isExtMatch(newRule.getAction(), newRule.getLHSExternal(), newRule.getRHSExternal())) {
-            addRule(newRule);
-        }
-        if(! baseRuleExists()) {
-            //create a base-event rule
-            //TODO: review if these are still needed
-            TFRule baseRule = new TFRule(this, this.prevAction, new String[]{"-1"},
-                    this.getPrevExternal(), this.getCurrExternal(), 1.0, TFRule.RuleOperator.ALL, true);
+        //if it doesn't exist yet, create a base rule based on this experience
+        TFRule match = findRule(this.prevAction, this.prevExternal,
+                this.currExternal, null);
+        if (match == null) {
+            TFRule baseRule = new TFRule(this, null);
             addRule(baseRule);
-
         }
-        
+
+        //Create new TFRule(s) for this latest experience.  One rule is
+        //create for each LHS internal sensor with that sensor as its primary.
+        for(int depth = 0; depth < getPrevInternal().size(); ++depth) {
+            //Don't create any rules that exceed the max time depth
+            if (depth >= MAX_TIME_DEPTH) break;
+
+            HashSet<TFRule> prevIntSubList = getPrevInternal().get(depth);
+            for (TFRule r : prevIntSubList) {
+                //See if a rule already exists that has these properties
+                match = findRule(this.prevAction, this.prevExternal,
+                                        this.currExternal, r);
+                if (match == null) {
+                    TFRule newRule = new TFRule(this, r);
+                    addRule(newRule);
+                }
+            }//for
+        }//for
+
         //See if we need to cull rule(s) to stay below max
         cullRules();
 
+        //Re-generate currInternal now that new, matching rules are present
+        this.currInternal = genNextInternal(this.prevAction, this.getPrevInternal(), this.prevExternal, this.currExternal);
+        this.flatCurrInternal = flattenRuleSet(this.currInternal);
+
     }//updateRuleSet
-
-
 
     /**
      * updateAllTFValues
@@ -1201,35 +1200,58 @@ public class PhuJusAgent implements IAgent {
      *
      */
     private void updateAllTFValues() {
-        for(TFRule rule : this.tfRules) {
-            double adjScore = calcAdjustmentScore(rule);
-            if (adjScore != 0.0) {
-                rule.updateTFVals(this.getPrevInternal());
+        //Call updateTFVals on the rules that match the agent's latest episode.
+        for(Vector<TFRule> ruleSubList : this.tfRules) {
+            for(TFRule rule : ruleSubList) {
+                double adjScore = calcAdjustmentScore(rule);
+                if (adjScore != 0.0) {
+                    rule.updateTFVals(this.flatPrevInternal, this.prevExternal, this.currExternal);
+                }
             }
         }
     }//updateAllTFValues
 
-    /** @return whether a base-event rule exists for the agent's most
-     * recently completed experience */
-    private boolean baseRuleExists() {
-        for(TFRule rule : this.tfRules) {
-            if (rule.isExtMatch()) {
-                if (rule.getOperator() == TFRule.RuleOperator.ALL) {
-                    return true;
+    /**
+     * findRule
+     *
+     * searches the agent's tfRules list to find a rule that matches the
+     * given criteria.
+     *
+     * @return a reference to the duplicate if found (null otherwise)
+     */
+    private TFRule findRule(char action, SensorData prevExt,
+                            SensorData currExt, TFRule primary) {
+        //Get a list of rules at the proper time depth
+        int depth = (primary == null) ? 0 : primary.getTimeDepth() + 1;
+        if (this.tfRules.size() <= depth) return null; // no rules at this depth
+        Vector<TFRule> sublist = this.tfRules.get(depth);
+
+        //Search for a match
+        for (TFRule r : sublist) {
+            if (r.isExtMatch(action, prevExt, currExt)) {
+                //for base rules, this is all that is required
+                if (depth == 0) return r;
+
+                //for non-base compare the primary internal sensors
+                if (r.getPrimaryInternal().sId == primary.ruleId) {
+                    return r;
                 }
             }
         }
-        return false;
-    }//baseRuleExists
+
+        return null;
+    }//findRule
+
 
 
     /**
      * addRule
      *
      * adds a given {@link Rule} to the agent's repertoire.  This method will
-     * fail silently if you try to exceed {@link #MAXNUMRULES}.  This method
-     * will also assign an internal sensor to the new rule if one is
-     * available.
+     * fail silently if the new rule can't be added:
+     *  - because you try to exceed {@link #MAXNUMRULES} <-- currently disabled
+     *  - because an existing rule is a duplicate of the given one
+     *
      */
     public void addRule(Rule newRule) {
         if (rules.size() >= MAXNUMRULES) {
@@ -1238,14 +1260,20 @@ public class PhuJusAgent implements IAgent {
 
         rules.put(newRule.ruleId,newRule);
 
-        // I'm assuming we don't want to add activations to pre-set rules. Could totally be wrong
-        // about this
-        if (!GENERATERULES) {
-            newRule.addActivation(this.now, Rule.ACT_BOOST);
-        }
+        newRule.addActivation(this.now, Rule.ACT_BOOST);
 
         if (newRule instanceof TFRule) {
-            this.tfRules.add((TFRule) newRule);
+            TFRule r = (TFRule)newRule;
+            int depth = r.getTimeDepth();
+
+            //If this is the first rule at this depth we have to add a list for it
+            while (this.tfRules.size() <= depth) {
+                this.tfRules.add(new Vector<>());
+            }
+
+            //Add the new rule
+            Vector<TFRule> tfRuleSubList = this.tfRules.get(depth);
+            tfRuleSubList.add(r);
         }
         else if (newRule instanceof PathRule) {
             this.pathRules.add((PathRule) newRule);
@@ -1259,6 +1287,7 @@ public class PhuJusAgent implements IAgent {
             }
             debugPrintln("added " + prefix + ": " + newRule);
         }
+
     }//addRule
 
     /**
@@ -1275,8 +1304,8 @@ public class PhuJusAgent implements IAgent {
      * @param replacement (can be null) the rule that will be replacing this one
      */
     public void removeRule(TFRule removeMe, TFRule replacement) {
-        tfRules.remove(removeMe);
-
+        //Most importantly...
+        this.tfRules.get(removeMe.getTimeDepth()).remove(removeMe);
 
         //DEBUGGING
         if (replacement == null) debugPrint("removed: ");
@@ -1287,9 +1316,8 @@ public class PhuJusAgent implements IAgent {
 
         // If any rule has a condition that test for 'removeMe' then that
         // condition must also be removed or replaced
-        for (Rule rule : this.rules.values()) {
-            if(rule instanceof TFRule) {
-                TFRule r = (TFRule) rule;
+        for (Vector<TFRule> subList : this.tfRules) {
+            for (TFRule r : subList) {
                 if (r.testsIntSensor(removeMe.getId())) {
                     int replId = (replacement == null) ? -1 : replacement.getId();
                     r.replaceIntSensor(removeMe.getId(), replId);
@@ -1298,10 +1326,11 @@ public class PhuJusAgent implements IAgent {
         }
 
         //If the removed rule was in the internal sensor set, it has to be fixed as well
-        if (this.currInternal.contains(removeMe.getId())) {
-            this.currInternal.remove(removeMe.getId());
+        HashSet<TFRule> subset = getCurrInternal(removeMe.getTimeDepth());
+        if (subset.contains(removeMe)) {
+            subset.remove(removeMe);
             if (replacement != null) {
-                this.currInternal.add(replacement.getId());
+                subset.add(replacement);
             }
         }
 
@@ -1337,12 +1366,14 @@ public class PhuJusAgent implements IAgent {
     //region Debug Printing Methods
 
     /** helper method for {@link #printPrevCurrEpisode} */
-    private void printIntHelper(HashSet<Integer> printMe, StringBuilder sb) {
+    private void printIntHelper(Vector<HashSet<TFRule>> printMe, StringBuilder sb) {
         int count = 0;
-        for (Integer i : printMe) {
-            if (count > 0) sb.append(", ");
-            sb.append(i);
-            count++;
+        for(HashSet<TFRule> subSet : printMe) {
+            for (TFRule r : subSet) {
+                if (count > 0) sb.append(", ");
+                sb.append(r.getId());
+                count++;
+            }
         }
     }
 
@@ -1477,12 +1508,17 @@ public class PhuJusAgent implements IAgent {
     //region Getters and Setters
 
     public Hashtable<Integer, Rule> getRules() { return this.rules; }
-    public Rule getRuleById(int id) { return this.rules.get(id); }
-    public Vector<TFRule> getTfRules() { return tfRules; }
+    public Vector<Vector<TFRule>> getTfRules() { return tfRules; }
     public int getNow() { return now; }
-    public HashSet<Integer> getCurrInternal() { return this.currInternal; }
+    public Vector<HashSet<TFRule>> getCurrInternal() { return this.currInternal; }
+    public HashSet<TFRule> getCurrInternal(int timeDepth) {
+        if (this.currInternal.size() > timeDepth) {
+            return this.currInternal.get(timeDepth);
+        }
+        return new HashSet<>();
+    }
     /** returns the most recent */
-    public HashSet<Integer> getPrevInternal() { return this.prevInternal.lastElement(); }
+    public Vector<HashSet<TFRule>> getPrevInternal() { return this.prevInternal.lastElement(); }
     public SensorData getCurrExternal() { return this.currExternal; }
     public void setCurrExternal(SensorData curExtern) { this.currExternal = curExtern; }
     public SensorData getPrevExternal() { return this.prevExternal; }
@@ -1490,6 +1526,8 @@ public class PhuJusAgent implements IAgent {
     public char getPrevAction() { return prevAction; }
     public HashMap<String, Tuple<Integer, Double>> getExternalPercents() {return this.externalPercents;}
     public double getRandSuccessRate() { return this.numRandSuccess / this.numRand; }
+    public HashSet<Integer> getFlatCurrInternal() { return this.flatCurrInternal; }
+    public HashSet<Integer> getFlatPrevInternal() { return this.flatPrevInternal; }
     //endregion
 
 }//class PhuJusAgent

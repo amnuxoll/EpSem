@@ -52,24 +52,24 @@ public class RuleLoaderTest {
         };
 
         TFRule rule = loader.createTFRuleFromLine(tokens[0]);
-        Assertions.assertTrue(rule.isMatch(
+        Assertions.assertTrue(rule.isExtMatch(
                 new TFRule(agent, 'a', null, data_10, data_00, 1.0d)
         ));
 
         rule = loader.createTFRuleFromLine(tokens[1]);
-        Assertions.assertTrue(rule.isMatch(
-                new TFRule(agent, 'a', new String[]{"1"}, data_10, data_10, 0.66d)
+        Assertions.assertTrue(rule.isExtMatch(
+                new TFRule(agent, 'a', new int[]{1}, data_10, data_10, 0.66d)
         ));
 
         rule = loader.createTFRuleFromLine(tokens[2]);
-        Assertions.assertTrue(rule.isMatch(
-                new TFRule(agent, 'b', new String[]{"3", "7"}, data_00, data_01, 0.7d)
+        Assertions.assertTrue(rule.isExtMatch(
+                new TFRule(agent, 'b', new int[]{3, 7}, data_00, data_01, 0.7d)
         ));
 
 
         rule = loader.createTFRuleFromLine(tokens[3]);
-        Assertions.assertTrue(rule.isMatch(
-                new TFRule(agent, 'a', new String[]{"4", "10", "22"}, data_01, data_00, 0.9d)
+        Assertions.assertTrue(rule.isExtMatch(
+                new TFRule(agent, 'a', new int[]{4, 10, 22}, data_01, data_00, 0.9d)
         ));
     }
 }

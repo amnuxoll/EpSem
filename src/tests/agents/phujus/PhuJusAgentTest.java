@@ -71,7 +71,7 @@ public class PhuJusAgentTest {
         agent.getNextAction(sd);
 
         // Creates and adds a new TFRule
-        TFRule tfr = new TFRule(agent);
+        TFRule tfr = new TFRule(agent, null);
         agent.addRule(tfr);
 
         // The agent should have the new rule
@@ -86,7 +86,7 @@ public class PhuJusAgentTest {
         PhuJusAgent agent = quickAgentGen("abcde", "1101010");
 
         // Creates and adds a new TFRule
-        TFRule tfr = new TFRule(agent);
+        TFRule tfr = new TFRule(agent, null);
         agent.addRule(tfr);
 
 

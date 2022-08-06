@@ -27,7 +27,7 @@ public class TreeNode {
     private final char action;
 
     //sensor values for this node
-    private final HashSet<Integer> currInternal;
+    private final Vector<HashSet<TFRule>> currInternal;
     private final SensorData currExternal;
 
     //The TreeNode that preceded this one in time
@@ -59,6 +59,9 @@ public class TreeNode {
     // it is the last step in its path.  This can be 'null' if no PathRule applies.
     private PathRule pathRule;
 
+    //The time depth of this tree node is determined by the rules used to create it
+    private int timeDepth;
+
 
     /**
      * This root node constructor is built from the agent.
@@ -79,6 +82,7 @@ public class TreeNode {
         this.confidence = 1.0;
         supporters = new HashSet<>(); //none
         this.pathRule = null;
+        this.timeDepth = 0;  //this is a root node
 
         if (TreeNode.comboArr == null) {
             TreeNode.initComboArr(this.currExternal.size());
@@ -113,6 +117,7 @@ public class TreeNode {
         this.confidence = parent.confidence * confidence;
         this.supporters = initSupporters;
         this.pathRule = null;
+        this.timeDepth = parent.timeDepth + 1;
     }//child ctor
 
     /** convenience version of the child ctor that fills in some default values */
@@ -130,13 +135,17 @@ public class TreeNode {
         this.parent = orig.parent;
         this.episodeIndex = orig.episodeIndex;
         this.action = orig.action;
-        this.currInternal = new HashSet<>(orig.currInternal);
+        this.currInternal = new Vector<>();
+        for(int depth = 0; depth < orig.currInternal.size(); ++depth) {
+            this.currInternal.add(new HashSet<>(orig.getCurrInternal(depth)));
+        }
         this.currExternal = new SensorData(orig.currExternal);
         this.path = new Vector<>(orig.path);
         this.pathStr = orig.pathStr;
         this.confidence = orig.confidence;
         this.supporters = new HashSet<>(orig.supporters);
         this.pathRule = orig.pathRule;
+        this.timeDepth = orig.timeDepth;
     }//copy ctor
 
     /**
@@ -300,6 +309,8 @@ public class TreeNode {
      * CAVEAT:  The sensor combos are based on the sensor names in alphabetical
      *          order so GOAL may not be the last sensor as it appears in the toString
      *
+     * Note:  This method assumes at least one rule exists at the current time depth
+     *
      * @param action  the action taken to reach the child
      * @return an array of {@link VoteOutcome} objects for each candidate
      *         external sensor combo
@@ -314,24 +325,20 @@ public class TreeNode {
             votingData.put(sName, new BlocData(sName));
         }
 
-        // Record the vote from each rule for each sensor
-        Vector<TFRule> tfRules = this.agent.getTfRules();
-        boolean sensorMatchFound = false;  //did any rule have a non-wildcard match?
-        for (TFRule rule: tfRules) {
+        // Record the vote from each matching rule at this depth for each sensor
+        Vector<Vector<TFRule>> tfRules = this.agent.getTfRules();
+        Vector<TFRule> ruleSubList = tfRules.get(this.timeDepth);
+        for (TFRule rule : ruleSubList) {
             if (rule.getAction() != action) continue;
-            if (rule.hasOneLHSMatch(this.currInternal)) sensorMatchFound = true;
-            double score = rule.lhsMatchScore(action, this.currInternal, this.currExternal);
-            if (score <= 0.0) continue;  //skip rules with unsupportive match scores
-            //TODO:  should rule confidence really be factored in here?  Leave it in for now...
+            double score = rule.lhsMatchScore(action, agent.getFlatCurrInternal(), this.currExternal);
             score *= rule.getConfidence();
-            if (score <= 0.0) continue;
+            if (score <= 0.0) continue;  //skip rules with unsupportive match scores
 
             //Record this rule's vote for each sensor
             for (String sName : sensorNames) {
                 BlocData bd = votingData.get(sName);
                 bd.vote(rule, score);
             }
-
         }//for
 
         //Create an array to store a confidence value for each possible sensor combination
@@ -360,21 +367,10 @@ public class TreeNode {
                 }
             }//for
 
+            //TODO:  experiment with giving a 1.0 score to nodes for which
+            //       only base rules have voted to encourage curiosity
 
-            //If none of the non-wildcard rules has an actual match to this
-            // TreeNode then that means that no rule exists that really predicts
-            // anything about this action.  To encourage curiosity, set 1.0
-            // confidence in any goal outcome.
-            //Note: could integrate this into the loop above if this code ends
-            //      up being a performance bottleneck.
-            //TODO:  revisit this when agent is performing well to confirm it's worthwile
-            if ( (! sensorMatchFound) && (sName.equals(SensorData.goalSensor)) ) {
-                for (int i = 0; i < confArr.length; ++i) {
-                    if (confArr[i].ext.isGoal()) {
-                        confArr[i].confidence = 1.0;
-                    }
-                }
-            }
+
         }//for
 
         //Scale the confidence values to the range [0.0..1.0]
@@ -414,7 +410,8 @@ public class TreeNode {
         //check:  already expanded
         if (this.children.size() != 0) return;
 
-        if (agent.getTfRules().size() < 1) return;
+        //check: no rules available at this depth
+        if (agent.getTfRules().size() <= this.timeDepth) return;
 
         int numActions = agent.getActionList().length;
 
@@ -710,10 +707,13 @@ public class TreeNode {
     /**
      * sortedKeys
      *
-     * @return a sorted Vector of the Integer keys in an internal sensor HashMap
+     * @return a sorted sorted Vector of the rule ids of a given set of TFRules
      */
-    private Vector<Integer> sortedKeys(HashSet<Integer> internal) {
-        Vector<Integer> result = new Vector<>(internal);
+    private Vector<Integer> sortedKeys(HashSet<TFRule> internal) {
+        Vector<Integer> result = new Vector<>();
+        for(TFRule r : internal) {
+            result.add(r.getId());
+        }
         Collections.sort(result);
         return result;
     }
@@ -766,12 +766,15 @@ public class TreeNode {
         //Internal Sensors
         result.append("(");
         int count = 0;
-        for (Integer i : sortedKeys(this.currInternal)) {
-            if (count > 0) {
-                result.append(", ");
+        for(int depth = 0; depth < this.currInternal.size(); ++depth) {
+            HashSet<TFRule> subSet = getCurrInternal(depth);
+            for (int i : sortedKeys(subSet)) {
+                if (count > 0) {
+                    result.append(", ");
+                }
+                count++;
+                result.append(i);
             }
-            count++;
-            result.append(i);
         }
         result.append(")|");
 
@@ -876,8 +879,12 @@ public class TreeNode {
         }
 
         //look for one internal sensor in common
-        for(Integer i : this.currInternal) {
-            if (other.currInternal.contains(i)) return true;
+        for(int depth = 0; depth < this.currInternal.size(); ++depth) {
+            HashSet<TFRule> subset = getCurrInternal(depth);
+            HashSet<TFRule> otherSubSet = other.getCurrInternal(depth);
+            for (TFRule r : subset) {
+                if (otherSubSet.contains(r)) return true;
+            }
         }
         return false; //no luck
 
@@ -885,7 +892,13 @@ public class TreeNode {
 
     public char getAction() { return this.pathStr.charAt(this.pathStr.length() - 1); }
     public String getPathStr() { return this.pathStr; }
-    public HashSet<Integer> getCurrInternal() { return this.currInternal; }
+    public Vector<HashSet<TFRule>> getCurrInternal() { return this.currInternal; }
+    public HashSet<TFRule> getCurrInternal(int timeDepth) {
+        if (this.currInternal.size() > timeDepth) {
+            return this.currInternal.get(timeDepth);
+        }
+        return new HashSet<>();
+    }
     public SensorData getCurrExternal() { return this.currExternal; }
     public TreeNode getParent() { return this.parent; }
     public double getConfidence() { return this.confidence; }
