@@ -429,12 +429,7 @@ public class PathRule extends Rule {
         PathRule other = (PathRule) obj;
 
         //See if we can save some time:
-        if (this.ruleId == other.ruleId) return true;
-
-        //If they match, consider them equal
-        //TODO:  Is this really necessary?  Perhaps ok just to check lhs and rhs match?
-        int matchLen = this.matchLen(other.lhs, other.rhs);
-        return (matchLen == this.length());
+        return (this.ruleId == other.ruleId);
     }
 
     /**

@@ -511,7 +511,9 @@ public class TFRule extends Rule {
      *
      * calculates how closely this rule matches a given action and lhs sensors
      *
-     * TODO:  I've noticed this method gets called A LOT.  Should we cache results for a speedup?
+     * TODO:  I've noticed this method gets called A LOT.  Should we cache
+     *        results for a speedup?  It's not clear how to do this efficiently
+     *        or even if it would help.  Investigation and consideration needed.
      *
      * @param action the action made by the rule to compare against
      * @param lhsInt a HashSet of integers containing the internal sensors that were on
@@ -526,7 +528,7 @@ public class TFRule extends Rule {
         if (! isLHSExtMatch(action, lhsExt)) return -1.0;
         double extScore = 1.0;
 
-        //TODO: find a way to use soft matches again
+        //TODO: someday use soft matches again
         //double extScore = lhsExtMatchScore(lhsExt);
         double intScore = lhsIntMatchScore(lhsInt);
         double score = extScore * intScore;
