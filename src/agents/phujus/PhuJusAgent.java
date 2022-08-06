@@ -989,25 +989,23 @@ public class PhuJusAgent implements IAgent {
         //Calculate the match score for each component of the match and
         //make sure they all agree
         double lhsIntScore = tfRule.lhsIntMatchScore(this.flatPrevInternal);
+        if (lhsIntScore <= 0.0) return 0.0;
 
         //TODO:  for now I'm requiring an exact match for LHSext.  We should
         //       eventually use soft matches as per the commented out line
         //double lhsExtScore = tfRule.lhsExtMatchScore(this.prevExternal);
-        double lhsExtScore = -1.0;
-        if (tfRule.isLHSExtMatch(this.prevAction, this.prevExternal)) {
-            lhsExtScore = 1.0;
-
+        double lhsExtScore = 1.0;
+        if (! tfRule.isLHSExtMatch(this.prevAction, this.prevExternal)) {
+            return 0.0;
         }
+
+        //If we reach this point then the LHS matched so, if the rule is
+        // correct, the RHS should match too
         double rhsScore = tfRule.rhsMatchScore(this.currExternal);
-        if ((lhsIntScore > 0.0) && (lhsExtScore > 0.0) && (rhsScore > 0.0)) {
-            return lhsIntScore * lhsExtScore * rhsScore; //all positive
-        }
-        if ((lhsIntScore < 0.0) && (lhsExtScore < 0.0) && (rhsScore < 0.0)) {
-            return lhsIntScore * lhsExtScore * rhsScore; //all negative
-        }
+        //This will penalize rhs mismatch and reward rhs match proportionally
+        //to the strength of the mis/match.
+        return lhsIntScore * lhsExtScore * rhsScore;
 
-
-        return 0.0;
     }//calcAdjustmentScore
 
     /**
@@ -1219,7 +1217,7 @@ public class PhuJusAgent implements IAgent {
      *
      * @return a reference to the duplicate if found (null otherwise)
      */
-    private TFRule findRule(char action, SensorData prevExt,
+    public TFRule findRule(char action, SensorData prevExt,
                             SensorData currExt, TFRule primary) {
         //Get a list of rules at the proper time depth
         int depth = (primary == null) ? 0 : primary.getTimeDepth() + 1;

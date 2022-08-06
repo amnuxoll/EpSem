@@ -298,24 +298,13 @@ public class TreeNode {
     }
 
     /**
-     * predictExternalMark3
+     * castVotes
      *
-     * This is a re-revised version of a method to predict the external sensors
-     * that will result from taking a selected action.  It calculates the
-     * confidence for all possible ext sensor combos as defined in
-     * TreeNode.comboArray.  This method is super complicated, but I think
-     * it provides the best confidence calculation (at least until Mark 4...)
+     * casts votes for various possible external sensor combinations given
+     * an action and a required rule depth
      *
-     * CAVEAT:  The sensor combos are based on the sensor names in alphabetical
-     *          order so GOAL may not be the last sensor as it appears in the toString
-     *
-     * Note:  This method assumes at least one rule exists at the current time depth
-     *
-     * @param action  the action taken to reach the child
-     * @return an array of {@link VoteOutcome} objects for each candidate
-     *         external sensor combo
      */
-    public VoteOutcome[] predictExternalMark3(char action) {
+    private HashMap<String, BlocData> castVotes(char action, int depth) {
         //Get a list of external sensor names
         String[] sensorNames = currExternal.getSensorNames().toArray(new String[0]);
 
@@ -325,12 +314,13 @@ public class TreeNode {
             votingData.put(sName, new BlocData(sName));
         }
 
-        // Record the vote from each matching rule at this depth for each sensor
         Vector<Vector<TFRule>> tfRules = this.agent.getTfRules();
-        Vector<TFRule> ruleSubList = tfRules.get(this.timeDepth);
+        Vector<TFRule> ruleSubList = tfRules.get(depth);
+        //The flat version is needed for matching
+        HashSet<Integer> flatCurrInt = PhuJusAgent.flattenRuleSet(this.currInternal);
         for (TFRule rule : ruleSubList) {
             if (rule.getAction() != action) continue;
-            double score = rule.lhsMatchScore(action, agent.getFlatCurrInternal(), this.currExternal);
+            double score = rule.lhsMatchScore(action, flatCurrInt, this.currExternal);
             score *= rule.getConfidence();
             if (score <= 0.0) continue;  //skip rules with unsupportive match scores
 
@@ -341,6 +331,16 @@ public class TreeNode {
             }
         }//for
 
+        return votingData;
+    }//castVotes
+
+    /**
+     * getVoteOutcomes
+     *
+     * examines the voting data from {@link #castVotes} and creates a resulting
+     * array of VoteOutcome objects
+     */
+    private VoteOutcome[] getVoteOutcomes(HashMap<String, BlocData> votingData) {
         //Create an array to store a confidence value for each possible sensor combination
         VoteOutcome[] confArr = new VoteOutcome[TreeNode.comboArr.length];
         for(int i = 0; i < confArr.length; ++i) {
@@ -348,6 +348,7 @@ public class TreeNode {
         }
 
         //Create a VoteOutcome object for each external sensor combination
+        String[] sensorNames = currExternal.getSensorNames().toArray(new String[0]);
         for (int sId = 0; sId < sensorNames.length; ++sId) {
             //get the confidences in this sensor's values
             String sName = sensorNames[sId];
@@ -388,9 +389,36 @@ public class TreeNode {
                 confArr[i].confidence /= max;
             }
         }
-
         return confArr;
+    }//getVoteOutcomes
+
+    /**
+     * predictExternalMark3
+     *
+     * This is a re-revised version of a method to predict the external sensors
+     * that will result from taking a selected action.  It calculates the
+     * confidence for all possible ext sensor combos as defined in
+     * TreeNode.comboArray.  This method is super complicated, but I think
+     * it provides the best confidence calculation (at least until Mark 4...)
+     *
+     * CAVEAT:  The sensor combos are based on the sensor names in alphabetical
+     *          order so GOAL may not be the last sensor as it appears in the toString
+     *
+     * Note:  This method assumes at least one rule exists at the current time depth
+     *
+     * @param action  the action taken to reach the child
+     * @return an array of {@link VoteOutcome} objects for each candidate
+     *         external sensor combo
+     */
+    public VoteOutcome[] predictExternalMark3(char action) {
+        // Record the vote from each matching rule at this depth for each sensor
+        HashMap<String, BlocData> votingData = castVotes(action, this.timeDepth);
+
+        //Generate a summary of the outcome
+        return getVoteOutcomes(votingData);
+
     }//predictExternalMark3
+
 
 
     /**
