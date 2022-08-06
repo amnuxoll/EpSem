@@ -82,7 +82,11 @@ public class TreeNode {
         this.confidence = 1.0;
         supporters = new HashSet<>(); //none
         this.pathRule = null;
-        this.timeDepth = -1;  //root node has no set time depth
+
+        //Note:  if you set timeDepth to -1 that causes the TreeNode to search
+        //       all rules instead of just depth 1 (for root notes only)
+        //       See the Aug 06 journal entry for more about this.
+        this.timeDepth = 0;
 
         if (TreeNode.comboArr == null) {
             TreeNode.initComboArr(this.currExternal.size());
@@ -314,10 +318,21 @@ public class TreeNode {
         }
 
         Vector<Vector<TFRule>> tfRules = this.agent.getTfRules();
-        Vector<TFRule> ruleSubList = tfRules.get(depth);
         //The flat version is needed for matching
         HashSet<Integer> flatCurrInt = PhuJusAgent.flattenRuleSet(this.currInternal);
-        for (TFRule rule : ruleSubList) {
+
+        //Depending on the depth, extract a list of rules allowed to vote
+        Vector<TFRule> voters = new Vector<>();
+        if (depth > 0) {
+            for(TFRule r : this.getCurrInternal(depth)) {
+                voters.addAll(agent.findRules(action, this.currExternal, r));
+            }
+        } else {  //depth 0
+            voters = tfRules.get(depth);
+        }
+
+        //Record the votes
+        for (TFRule rule : voters) {
             if (rule.getAction() != action) continue;
             double score = rule.lhsMatchScore(action, flatCurrInt, this.currExternal);
             score *= rule.getConfidence();

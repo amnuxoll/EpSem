@@ -1213,13 +1213,50 @@ public class PhuJusAgent implements IAgent {
     /**
      * findRule
      *
+     * searches the agent's tfRules list to find all rules that match the
+     * given criteria.
+     *
+     * @param action must be set
+     * @param lhsExt must be set
+     * @param primary must be set.  If null, indicates a base rule
+     *
+     * @return a reference to the duplicate if found (null otherwise)
+     */
+    public Vector<TFRule> findRules(char action, SensorData lhsExt,
+                                    TFRule primary) {
+        Vector<TFRule> result = new Vector<>();
+        //Get a list of rules at the proper time depth
+        int depth = (primary == null) ? 0 : primary.getTimeDepth() + 1;
+        if (this.tfRules.size() <= depth) return result; // no rules at this depth
+        Vector<TFRule> sublist = this.tfRules.get(depth);
+
+        //Search for a match
+        for (TFRule r : sublist) {
+            if (r.isLHSExtMatch(action, lhsExt)) {
+                //for base rules, this is all that is required
+                if (depth == 0) result.add(r);
+
+                //for non-base compare the primary internal sensors
+                if (r.getPrimaryInternal().sId == primary.ruleId) {
+                    result.add(r);
+                }
+            }
+        }
+
+        return result;
+    }//findRules
+
+
+    /**
+     * findRule
+     *
      * searches the agent's tfRules list to find a rule that matches the
      * given criteria.
      *
      * @return a reference to the duplicate if found (null otherwise)
      */
-    public TFRule findRule(char action, SensorData prevExt,
-                            SensorData currExt, TFRule primary) {
+    public TFRule findRule(char action, SensorData lhsExt,
+                            SensorData rhsExt, TFRule primary) {
         //Get a list of rules at the proper time depth
         int depth = (primary == null) ? 0 : primary.getTimeDepth() + 1;
         if (this.tfRules.size() <= depth) return null; // no rules at this depth
@@ -1227,7 +1264,7 @@ public class PhuJusAgent implements IAgent {
 
         //Search for a match
         for (TFRule r : sublist) {
-            if (r.isExtMatch(action, prevExt, currExt)) {
+            if (r.isExtMatch(action, lhsExt, rhsExt)) {
                 //for base rules, this is all that is required
                 if (depth == 0) return r;
 
@@ -1240,7 +1277,6 @@ public class PhuJusAgent implements IAgent {
 
         return null;
     }//findRule
-
 
 
     /**
