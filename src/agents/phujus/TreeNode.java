@@ -271,18 +271,6 @@ public class TreeNode {
     }//Class BlocData
 
     /**
-     * class VoteOutcome
-     *
-     * is a tiny public class to describe the outcome of a TFRules voting for
-     * the predicted external sensor values in {@link #predictExternal }
-     */
-    private class VoteOutcome {
-        public SensorData ext = new SensorData(false);  //the predicted data
-        public double confidence = 1.0;                       //how confident the agent should be in this
-        public HashSet<TFRule> supporters = new HashSet<>();     //The TFRules that most strongly supported this
-    }
-
-    /**
      * castVotes
      *
      * casts votes for various possible external sensor combinations given
@@ -331,6 +319,18 @@ public class TreeNode {
     }//castVotes
 
     /**
+     * class VoteOutcome
+     *
+     * is a tiny public class to describe the outcome of a TFRules voting for
+     * the predicted external sensor values in {@link #predictExternal }
+     */
+    private class VoteOutcome {
+        public SensorData ext = new SensorData(false);  //the predicted data
+        public double confidence = 1.0;                       //how confident the agent should be in this
+        public HashSet<TFRule> supporters = new HashSet<>();  //The TFRules that most strongly supported this
+    }
+
+    /**
      * getVoteOutcomes
      *
      * examines the voting data from {@link #castVotes} and creates a resulting
@@ -343,7 +343,7 @@ public class TreeNode {
             confArr[i] = new VoteOutcome();
         }
 
-        //Create a VoteOutcome object for each external sensor combination
+        //Calculate the results for each VoteOutcome object
         String[] sensorNames = currExternal.getSensorNames().toArray(new String[0]);
         for (int sId = 0; sId < sensorNames.length; ++sId) {
             //get the confidences in this sensor's values
@@ -363,17 +363,12 @@ public class TreeNode {
                     if (bd.maxOnVoter != null) confArr[i].supporters.add(bd.maxOnVoter);
                 }
             }//for
-
-            //TODO:  experiment with giving a 1.0 score to nodes for which
-            //       only base rules have voted to encourage curiosity
-
-
         }//for
 
         //Scale the confidence values to the range [0.0..1.0]
         //This makes the agent more likely to consider longer paths
         //which ends up being an important nudge toward learning.
-        //TODO:  re-test this theory once agent is performing well overall
+        //Note:  this was retested in Aug 2022 and it still helps
         double max = 0.0;
         for(VoteOutcome outcome : confArr) {
             max = Math.max(max, outcome.confidence);
@@ -429,8 +424,9 @@ public class TreeNode {
             HashMap<String, BlocData> voteData = castVotes(action, this.timeDepth);
             result[this.timeDepth] = getVoteOutcomes(voteData);
 
-            //TODO:  If no votes were cast, try depth 0 rules?
-        }
+            //Note:  you may be tempted to use the depth 0 rules if no votes
+            // were cast.  I tried this (Aug 2022) and it made it worse. -Nux
+        }//else (timeDepth != -1)
 
         //Generate a summary of the outcome
         return result;

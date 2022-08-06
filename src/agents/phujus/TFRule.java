@@ -486,13 +486,12 @@ public class TFRule extends Rule {
             }
         }
 
-        //TODO:  I took this out again.  It seems to be hurting us and I don't understand why.  Investigation needed.
         //Penalize the score for each given LHS entry that it does not expect
-//        for(int sId : lhsInt) {
-//            if (! testsIntSensor(sId)) {
-//                overallRelevance += agent.intPctCache[sId];
-//            }
-//        }
+        for(int sId : lhsInt) {
+            if (! testsIntSensor(sId)) {
+                overallRelevance += agent.intPctCache[sId];
+            }
+        }
 
         //When relevance is zero we have to avoid a div-by-zero.
         //To do this, we detect possible reasons for the situation
