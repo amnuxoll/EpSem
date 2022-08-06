@@ -18,15 +18,19 @@ import java.util.Random;
  * > increase code coverage and thoroughness of unit tests
  * > add levels to the debug logging system so we can turn on/off various
  *   types of debug info on the console
- * > fix all warnings
  * > review long methods and break into main + helper methods
  *
  * TODO research items
+ * > Partial matching ext sensors. I envision that there would be primary and secondary ext sensors just like with internal.  However, all ext sensors in a rule would begin as primary and then, via rule merging, some could become secondary.
  * > Rules refine/generalize themselves based on experience.  Rules should be able to:
  *    - merge when they become very similar
  *    - split when it will improve the activation of both progeny
- * > Rule accurancy should be tracked using the same mechanism as confidence
- *   (frequency and recency of correctness)
+ * > Rule culling.
+ * > self-tuning MATCH_NEAR.
+ * > A*Search with self-pruning.
+ * > Path validation: Agent can detect a selected path is not going as planned and aborts early
+ * > Experiment with PJA.calcAdjustmentScore().  Should the amount of adjustment just be based on match score?  Or are there other factors such as rule's age?  Or perhaps track the amount of "confusion" the agent has over time and only adjust rules that are more confused than average?
+ * > Find a way to self-tune MAX_TIME_DEPTH rather than a hyper-param
  */
 public class PhuJusAgent implements IAgent {
 
