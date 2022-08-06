@@ -499,8 +499,7 @@ public class TFRule extends Rule {
         if (overallRelevance == 0.0) {
             //Possible cause #1:  tf == df for all matches
             if (lhsInt.contains(this.primaryInternal.sId)) return 1.0;
-
-            //We shouldn't reach this point...
+            //We shouldn't ever reach this point...
             return -1.0;
         }
 
@@ -588,7 +587,7 @@ public class TFRule extends Rule {
     }
 
     /** replaces one internal sensor with another in this rule (for merging) */
-    //TODO:  %%% use rule refs not ids; also may not replace primary!
+    //TODO:  may not replace primary?
     public void replaceIntSensor(int oldId, int newId){
         Vector<Cond> toRemove = new Vector<>();
         for(Cond cond: this.lhsInternal) {

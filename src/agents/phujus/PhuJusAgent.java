@@ -35,7 +35,7 @@ public class PhuJusAgent implements IAgent {
     //-----------------------------//
     public static final int MAXNUMRULES = 4000;
     public static final int MAX_SEARCH_DEPTH = 5; //TODO: get the search to self prune again
-    public static final int MAX_TIME_DEPTH = 3;  //size of short term memory
+    public static final int MAX_TIME_DEPTH = 4;  //size of short term memory
 
     /** How similar two match scores need to be to each other to be "near."
      * Some prelimiary research shows that the best value for this parameter

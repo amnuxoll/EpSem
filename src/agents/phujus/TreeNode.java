@@ -198,27 +198,9 @@ public class TreeNode {
             this.sensorName = initName;
         }
 
-        /** scales a vote's weight on an exponential scale so that (near)
-         * perfect match scores get much more weight than partial matches */
-        //TODO:  revisit this.  Given the new match method it may be extraneous or even harmful.
-        public double scale(double matchScore) {
-            //We want higher math scores to have exponentially higher weight so
-            //that a (near-)perfect match will outweigh many partial matches but
-            //partial matches can still have enough weight to make a difference
-            //The formula 2^(2*r) - 1 gives an appropriately steep curve that
-            // starts at zero.
-            double result = matchScore * 2.0;  //doing this makes the max resulting score 1.0
-            result = Math.pow(2.0, result);
-            result -= 1.0;  //This makes min score 0.0
-            return result;
-        }//BlocData.scale
-
         /** registers one vote */
         public void vote(TFRule voter, double matchScore) {
             if (matchScore <= 0.0) return;  //ignore weightless vote
-
-            //scale the score for a vote weight
-            double weight = scale(matchScore);
 
             //Calculate the voting bloc this rule is in
             String bloc = voter.getLHSExternal().toString(false);
@@ -233,13 +215,13 @@ public class TreeNode {
             boolean replace = true;
             if (ballotBox.containsKey(bloc)) {
                 oldVal = ballotBox.get(bloc);
-                if (weight < oldVal) replace = false;
+                if (matchScore < oldVal) replace = false;
             }
 
             //Put the new max vote in
             if (replace) {
                 if (on) {maxOnVoter = voter;} else {maxOffVoter = voter;}
-                ballotBox.put(bloc, weight);
+                ballotBox.put(bloc, matchScore);
             }
 
         }//BlocData.vote
