@@ -1345,6 +1345,7 @@ public class PhuJusAgent implements IAgent {
     public void removeRule(TFRule removeMe, TFRule replacement) {
         //Most importantly...
         this.tfRules.get(removeMe.getTimeDepth()).remove(removeMe);
+        this.rules.remove(removeMe.getId());
 
         //DEBUGGING
         if (replacement == null) debugPrint("removed: ");
