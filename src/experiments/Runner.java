@@ -171,16 +171,6 @@ public class Runner {
             }
     );
 
-    private static TestSuite Suite2 = new TestSuite(
-            TestSuiteConfiguration.FULL,
-            new IEnvironmentProvider[] {
-                    new MetaEnvironmentProvider(new FSMEnvironmentProvider(new FSMTransitionTableBuilder(2, 5, Random.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)), MetaConfiguration.DEFAULT),
-            },
-            new IAgentProvider[] {
-                    new NSMAgentProvider()
-            }
-    );
-
     private static TestSuite HAndPMasterSuite = new TestSuite(
             TestSuiteConfiguration.FULL,
             new IEnvironmentProvider[]{
@@ -274,12 +264,24 @@ public class Runner {
             }
     );
 
-    private static TestSuite PJ_SUITE = new TestSuite(
-            TestSuiteConfiguration.ONCE,
+    private static TestSuite NSM_SUITE = new TestSuite(
+            TestSuiteConfiguration.MEDIUM,
             new IEnvironmentProvider[] {
                     new FSMEnvironmentProvider(
                             new FSMTransitionTableBuilder(2, 6, Random.getFalse()),
-                            EnumSet.of(FSMEnvironment.Sensor.IS_ODD, FSMEnvironment.Sensor.WITHIN_1))
+                            EnumSet.of(FSMEnvironment.Sensor.NOISE1, FSMEnvironment.Sensor.IS_ODD, FSMEnvironment.Sensor.WITHIN_1))
+            },
+            new IAgentProvider[] {
+                    new NSMAgentProvider()
+            }
+    );
+
+    private static TestSuite PJ_SUITE = new TestSuite(
+            TestSuiteConfiguration.MEDIUM,
+            new IEnvironmentProvider[] {
+                    new FSMEnvironmentProvider(
+                            new FSMTransitionTableBuilder(2, 6, Random.getFalse()),
+                            EnumSet.of(FSMEnvironment.Sensor.NOISE1, FSMEnvironment.Sensor.IS_ODD, FSMEnvironment.Sensor.WITHIN_1))
             },
             new IAgentProvider[] {
                     new PhuJusAgentProvider()
