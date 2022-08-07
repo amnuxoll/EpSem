@@ -37,7 +37,7 @@ public class TFRule extends Rule {
             switch(name) {
                 case "GOAL": return 0;
                 case "IS_ODD": return -1;
-                case "RANDOM": return -2;
+                case "NOISE1": return -2;
                 default: throw new IllegalArgumentException();
             }
         }
