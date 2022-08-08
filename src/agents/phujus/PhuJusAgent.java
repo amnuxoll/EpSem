@@ -21,12 +21,12 @@ import java.util.Random;
  * > review long methods and break into main + helper methods
  *
  * TODO research items
+ * > Explore GOAL-only FSM.  Why is it doing worse here?  I suspect PathRule eval could be improved to fix this.
  * > Partial matching ext sensors. I envision that there would be primary and secondary ext sensors just like with internal.  However, all ext sensors in a rule would begin as primary and then, via rule merging, some could become secondary.
  * > Rules refine/generalize themselves based on experience.  Rules should be able to:
  *    - merge when they become very similar
  *    - split when it will improve the activation of both progeny
  * > Rule culling.
- * > self-tuning MATCH_NEAR.
  * > A*Search with self-pruning.
  * > Path validation: Agent can detect a selected path is not going as planned and aborts early
  * > Experiment with PJA.calcAdjustmentScore().  Should the amount of adjustment just be based on match score?  Or are there other factors such as rule's age?  Or perhaps track the amount of "confusion" the agent has over time and only adjust rules that are more confused than average?
@@ -40,13 +40,6 @@ public class PhuJusAgent implements IAgent {
     public static final int MAXNUMRULES = 4000;
     public static final int MAX_SEARCH_DEPTH = 5; //TODO: get the search to self prune again
     public static final int MAX_TIME_DEPTH = 4;  //size of short term memory
-
-    /** How similar two match scores need to be to each other to be "near."
-     * Some prelimiary research shows that the best value for this parameter
-     * varies from FSM to FSM, from run to run in the same FSM, and even
-     * during a single run on a single FSM. MATCH_NEAR badly needs to be
-     * replaced with some sort of self-tuning mechanism. */
-    public static final double MATCH_NEAR = 0.1;
 
     //-----------------------------//
     //=====   DEBUG FLAGS    ===== //
@@ -780,7 +773,7 @@ public class PhuJusAgent implements IAgent {
             HashSet<TFRule> currIntSubList = new HashSet<>();
             result.add(currIntSubList);
 
-            // find the TFRule at this depth that best matches the given sensors/actions
+            // find the TFRules at this depth that best match the given sensors/actions
             double bestScore = 0.0;
             // Cache all the scores in an array, so we don't have to calc them twice (see next loop)
             double[] allScores = new double[ruleSubList.size()];
@@ -801,15 +794,13 @@ public class PhuJusAgent implements IAgent {
             //sensors at this depth
             if (bestScore <= 0.0) continue;
 
-            // Turn on internal sensors for all rules that are at or "near" the
-            // highest match score.  "near" is currently hard-coded
-            // TODO:  have agent adjust "near" based on its experience
+            // Turn on internal sensors for all rules that have the best score
             for (int i = 0; i < ruleSubList.size(); ++i) {
-                if (allScores[i] <= 0.0) continue;
-                if (1.0 - (allScores[i] / bestScore) <= PhuJusAgent.MATCH_NEAR) {
+                if (allScores[i] == bestScore) {
                     currIntSubList.add(ruleSubList.get(i));
                 }
             }
+
         }//for each depth
 
         return result;
