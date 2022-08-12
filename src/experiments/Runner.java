@@ -10,6 +10,7 @@ import agents.nsm.NSMAgentProvider;
 import agents.phujus.PhuJusAgentProvider;
 import agents.predr.PredrAgentProvider;
 import agents.wfc.WFCAgentProvider;
+import agents.ndxr.NdxrAgentProvider;
 import environments.fsm.FSMEnvironment;
 import environments.fsm.FSMEnvironmentProvider;
 import environments.meta.MetaConfiguration;
@@ -59,7 +60,7 @@ public class Runner {
             }
     );
 
-    private static TestSuite RulesAgent = new TestSuite(
+    private static TestSuite ARO_AGENT = new TestSuite(
             TestSuiteConfiguration.MEDIUM,
             new IEnvironmentProvider[] {
                     //new FSMEnvironmentProvider(new FSMTransitionTableBuilder(6, 100, Random.getFalse()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN), false),
@@ -275,6 +276,22 @@ public class Runner {
                     new NSMAgentProvider()
             }
     );
+
+    private static TestSuite NDXR_AGENT = new TestSuite(
+            TestSuiteConfiguration.ONCE,
+            new IEnvironmentProvider[] {
+                    new FSMEnvironmentProvider(
+                            new FSMTransitionTableBuilder(2, 50, Random.getFalse()),
+                            EnumSet.of(FSMEnvironment.Sensor.NOISE1, FSMEnvironment.Sensor.NOISE2,
+                                        FSMEnvironment.Sensor.NOISE3, FSMEnvironment.Sensor.NOISE4,
+                                        FSMEnvironment.Sensor.IS_ODD, FSMEnvironment.Sensor.MOD_3))
+            },
+            new IAgentProvider[]{
+                    new NdxrAgentProvider()
+            }
+        );
+
+
 
     private static TestSuite PJ_SUITE = new TestSuite(
             TestSuiteConfiguration.MEDIUM,
