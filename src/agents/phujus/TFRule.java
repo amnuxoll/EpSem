@@ -38,6 +38,7 @@ public class TFRule extends Rule {
                 case "GOAL": return 0;
                 case "IS_ODD": return -1;
                 case "NOISE1": return -2;
+                case "NOISE2": return -3;
                 default: throw new IllegalArgumentException();
             }
         }
