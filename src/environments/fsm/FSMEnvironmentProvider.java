@@ -15,6 +15,7 @@ public class FSMEnvironmentProvider implements IEnvironmentProvider {
     private FSMTransitionTableBuilder transitionTableBuilder;
     private EnumSet<FSMEnvironment.Sensor> sensorsToInclude;
     private boolean serialize = false;
+    private double nonDetDegree = 0.0;  //degree of non-determinism [0.0..1.0]
     //endregion
 
     //region Constructors
@@ -23,7 +24,7 @@ public class FSMEnvironmentProvider implements IEnvironmentProvider {
      * Create an instance of a {@link FSMEnvironmentProvider}.
      *
      * @param transitionTableBuilder The transition table builder for FSMs.
-     * @param sensorsToInclude The sensor data to include when navigating the FSM.
+     * @param sensorsToInclude The sensor data to include when navigating the FSM
      */
     public FSMEnvironmentProvider(FSMTransitionTableBuilder transitionTableBuilder, EnumSet<FSMEnvironment.Sensor> sensorsToInclude) {
         if (transitionTableBuilder == null)
@@ -37,7 +38,7 @@ public class FSMEnvironmentProvider implements IEnvironmentProvider {
     }
 
     /**
-     * Create an instance of a {@link FSMEnvironmentProvider}.
+     * Create an instance of a {@link FSMEnvironmentProvider} with a serialization option.
      *
      * @param transitionTableBuilder The transition table builder for FSMs.
      * @param sensorsToInclude The sensor data to include when navigating the FSM.
@@ -47,6 +48,25 @@ public class FSMEnvironmentProvider implements IEnvironmentProvider {
         this(transitionTableBuilder, sensorsToInclude);
         this.serialize = serialize;
     }
+
+    /**
+     * Create an instance of a {@link FSMEnvironmentProvider} with a
+     * serialization option and a non-determinism setting.
+     *
+     * @param transitionTableBuilder The transition table builder for FSMs.
+     * @param sensorsToInclude The sensor data to include when navigating the FSM.
+     * @param serialize Indicates generated environments should get printed to stdout when created.
+     * @param initNDD  how non-deterministic should this FSM be [0.0..1.0]?
+     */
+    public FSMEnvironmentProvider(FSMTransitionTableBuilder transitionTableBuilder,
+                                  EnumSet<FSMEnvironment.Sensor> sensorsToInclude,
+                                  boolean serialize,
+                                  double initNDD){
+        this(transitionTableBuilder, sensorsToInclude);
+        this.serialize = serialize;
+        this.nonDetDegree = initNDD;
+    }
+
     //endregion
 
     //region IEnvironmentDescriptionProvider Members
@@ -58,7 +78,10 @@ public class FSMEnvironmentProvider implements IEnvironmentProvider {
     public IEnvironment getEnvironment() {
         FSMTransitionTable transitionTable = this.transitionTableBuilder.getTransitionTable();
         if(serialize) System.out.println(transitionTable.toString());
-        return new FSMEnvironment(transitionTable, this.sensorsToInclude);
+        FSMEnvironment result = new FSMEnvironment(transitionTable, this.sensorsToInclude);
+        result.setRandActionChance(this.nonDetDegree);
+        result.setNoOpChance(this.nonDetDegree);
+        return result;
     }
 
     @Override

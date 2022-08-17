@@ -23,6 +23,13 @@ public class FSMEnvironment implements IEnvironment {
     private static Random random = new Random(13);
 
     private int currentState;
+
+    /** If these variables are non-zero then the FSM becomes non-deterministic */
+    //odds of taking a random action instead of that prescribed
+    private double randActionChance = 0.0;
+    //odds of doing a no-op instead of the action prescribed
+    private double noOpChance = 0.0;
+
     //endregion
 
     //region Constructors
@@ -64,6 +71,8 @@ public class FSMEnvironment implements IEnvironment {
         this.sensorsToInclude = toCopy.sensorsToInclude;
         this.actions = toCopy.actions;
         this.currentState = toCopy.currentState;
+        this.randActionChance = toCopy.randActionChance;
+        this.noOpChance = toCopy.noOpChance;
     }
 
     //endregion
@@ -71,6 +80,9 @@ public class FSMEnvironment implements IEnvironment {
     //region Accessors
 
     public int getCurrentState() { return this.currentState; }
+
+    public void setRandActionChance(double val) {this.randActionChance = val; }
+    public void setNoOpChance(double val) {this.noOpChance = val;}
 
     //endregion
 
@@ -91,6 +103,24 @@ public class FSMEnvironment implements IEnvironment {
      */
     @Override
     public SensorData applyAction(Action action) {
+
+        //Check for nondeterministic FSM behavior
+        //apply chance for random action
+        if ( (this.randActionChance > 0.0) && (this.random.nextDouble() < this.randActionChance) ) {
+            Action newAct = action;
+            while(newAct.equals(action)) {
+                int index = this.random.nextInt(this.actions.length);
+                newAct = this.actions[index];
+            }
+            action = newAct;
+        } else {
+            //apply a chance for no-op
+            if ((this.noOpChance > 0.0) && (this.random.nextDouble() < this.noOpChance)) {
+                action = null;
+            }
+        }
+
+
         SensorData sensorData;
         HashMap<Action, Integer> transitions = this.transitionTable.getTransitions()[this.currentState];
         if (action == null || !transitions.containsKey(action)) {
