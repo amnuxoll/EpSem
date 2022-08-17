@@ -294,11 +294,12 @@ public class Runner {
 
 
     private static TestSuite PJ_SUITE = new TestSuite(
-            TestSuiteConfiguration.MEDIUM,
+            TestSuiteConfiguration.ONCE,
             new IEnvironmentProvider[] {
                     new FSMEnvironmentProvider(
                             new FSMTransitionTableBuilder(2, 6, Random.getFalse()),
-                            EnumSet.of(FSMEnvironment.Sensor.NOISE1, FSMEnvironment.Sensor.IS_ODD, FSMEnvironment.Sensor.WITHIN_1),
+                            EnumSet.of(FSMEnvironment.Sensor.IS_ODD, FSMEnvironment.Sensor.WITHIN_1),
+//                            EnumSet.of(FSMEnvironment.Sensor.NOISE1, FSMEnvironment.Sensor.IS_ODD, FSMEnvironment.Sensor.WITHIN_1),
                             false,
                             0.0),  //<-- non-determinism chance
             },

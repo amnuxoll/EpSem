@@ -16,8 +16,9 @@ public class PathRule extends Rule {
 
     /** lhs is a set of existing PathRules.  One of which must precede this one */
     private HashSet<PathRule> lhs = new HashSet<>();  //can be empty but not null
-    /** rhs is a path */
-    private final Vector<TreeNode> rhs;  //must contain at least one TreeNode
+    /** rhs is a path.  Each step in the path is described as a string
+     * (ext sensors and actions only) */
+    private final Vector<String> rhs;  //must contain at least one step
 
     /** Each time the agent follows a path that matches this one new PathRule may get
      * created that is a more specific version of this one.  Such PathRules are
@@ -43,13 +44,30 @@ public class PathRule extends Rule {
 //region ctors and initialization
 
     /** ctor for lhs init from given PathRule */
-    public PathRule(PhuJusAgent initAgent, PathRule initLHS, Vector<TreeNode> initRHS) {
+    public PathRule(PhuJusAgent initAgent, PathRule initLHS, Vector<String> initRHS) {
         super(initAgent);
         if (initLHS != null) this.lhs.add(initLHS);
-
-        //must make a copy because initRHS is often PJA.pathTraversedSoFar which changes
-        this.rhs = new Vector<>(initRHS);
+        this.rhs = initRHS;
     }
+
+    /** converts a Vector<TreeNode> into a Vector<String> */
+    public static Vector<String> tnPathToStrs(Vector<TreeNode> path) {
+        Vector<String> result = new Vector<>();
+        for(int i = 0; i < path.size(); ++i) {
+            StringBuilder tmpSB = new StringBuilder();
+            //ext sensors
+            TreeNode node = path.get(i);
+            tmpSB.append(node.getCurrExternal().toStringShort());
+
+            //action if not last node
+            if (i != path.size() - 1) tmpSB.append(node.getAction());
+
+            result.add(tmpSB.toString());
+        }
+
+        return result;
+    }//tnPathToStr
+
 
 
 
@@ -64,20 +82,13 @@ public class PathRule extends Rule {
      * Determines if a given Vector<TreeNode> matches this rule's rhs.
      */
     public boolean rhsMatch(Vector<TreeNode> matRHS) {
-        if (matRHS.size() != this.rhs.size()) return false;
-        for(int i = this.rhs.size() - 1; i >= 0; --i) {
-            TreeNode myNode = this.rhs.get(i);
-            TreeNode otherNode = matRHS.get(i);
-            //note:  a perfect match isn't required: nearEquals is used.
-            if (! myNode.nearEquals(otherNode)) return false;
-        }
-
-        return true;
+        Vector<String> rhsStr = tnPathToStrs(matRHS);
+        return rhsStr.equals(this.rhs);
     }//rhsMatch
 
     /** convenience overload for comparing to a rule */
     public boolean rhsMatch(PathRule other) {
-        return rhsMatch(other.rhs);
+        return this.rhs.equals(other.rhs);
     }
 
     /**
@@ -107,38 +118,6 @@ public class PathRule extends Rule {
         if (matches == 0) return -1;
         return matches;
     }//lhsMatch
-
-    /**
-     * replaceAll
-     *
-     * replaces all uses of one TFRule in this PathRule with another
-     *
-     */
-    public void replaceAll(TFRule removeMe, TFRule replacement) {
-        //Replace all uses on the RHS
-        for(TreeNode tn : this.rhs) {
-            for(HashSet<TFRule> subset : tn.getCurrInternal()) {
-                if (subset.contains(removeMe)) {
-                    subset.remove(removeMe);
-                    if (replacement != null) {
-                        subset.add(replacement);
-                    }
-                    break;  //a rule shouldn't appear at more than 1 time depth
-                }
-            }
-        }
-
-        //replace all uses in nascent rules' rhs
-        if (!this.isNascent  && !this.hasSplit) {
-            for(PathRule pr : this.positive) {
-                pr.replaceAll(removeMe, replacement);
-            }
-            for(PathRule pr : this.negative) {
-                pr.replaceAll(removeMe, replacement);
-            }
-        }
-
-    }//replaceAll
 
 
     /**
@@ -202,32 +181,16 @@ public class PathRule extends Rule {
             }
 
             //Because they share a common ancestor, the RHS path of all these
-            // rules must be the same.  However, the internal sensors in the
-            // path can be different. Create a new RHS that has the intersection
-            // of internal sensors in each TreeNode of the path
-            Vector<TreeNode> intersectRHS = null;
-            for (PathRule pr : cat) {
-                //Initialize at first iteration as it's tricky to do before the loop starts
-                if (intersectRHS == null) {
-                    intersectRHS = new Vector<>(pr.rhs);
-                    continue;
-                }
+            // rules must be the same.  So just pull one out.
+            Vector<String> rhs = null;
+            for(PathRule pr : cat) {
+                rhs = pr.getRHS();
+                break;
+            }
 
-                //Update the intersection with this PR.  I.e., any internal
-                // sensor missing in pr is removed from intersectRHS.
-                for (int i = 0; i < intersectRHS.size(); ++i) {
-                    TreeNode intersectTN = intersectRHS.get(i);
-                    TreeNode prTN = pr.rhs.get(i);
-                    int shallowest = Math.min(intersectTN.getCurrInternal().size(),
-                                              prTN.getCurrInternal().size());
-                    for(int depth = 0; depth < shallowest; ++depth) {
-                        intersectTN.getCurrInternal(depth).retainAll(prTN.getCurrInternal(depth));
-                    }
-                }
-            }//for
 
             //Now create the merged PathRule
-            result = new PathRule(this.agent, null, intersectRHS);
+            result = new PathRule(this.agent, null, rhs);
             result.lhs = unionLHS;
             result.positive = cat;
         }//else (merge required)
@@ -341,36 +304,6 @@ public class PathRule extends Rule {
         this.hasSplit = true;
     }//split
 
-    /**
-     * matchLen
-     *
-     * calculates how well this PathRule matches given data.  Since PathRule
-     * is a recursive data structure, the match score is how far back into
-     * the past the match persists.
-     *
-     * Caveat:  this is a recursive method!
-     *
-     * @return the length of the match
-     */
-    public int matchLen(HashSet<PathRule> matLHS, Vector<TreeNode> matRHS) {
-        //Match the RHS
-        if (!rhsMatch(matRHS)) return 0;
-
-        //Nasty super-recursive compare (yikes!)
-        int bestLen = 0;
-        for(PathRule thisPR : this.lhs) {
-            for(PathRule otherPR : matLHS) {
-                int len = thisPR.matchLen(otherPR.lhs, otherPR.rhs);
-                if (len > bestLen) {
-                    bestLen = len;
-                }
-            }
-        }
-
-        return 1 + bestLen;
-    }//matchLen
-
-
     /** helper for toString that just prints the LHS. */
     private void toStringLHS(StringBuilder result) {
         result.append("#");
@@ -385,27 +318,40 @@ public class PathRule extends Rule {
         result.append(") -> ");
     }//toStringConf
 
+    /** adds a short version of the RHS to a given SB */
+    private void rhsToStringShort(StringBuilder result) {
+
+        //first append all the actions
+        int indexOfLastAction = -1;
+        for(String step : this.rhs) {
+            char c = step.charAt(step.length() - 1);
+            if ((c == '0') || (c == '1')) continue;
+            result.append(c);
+        }
+
+        //now append the final ext sensors
+        result.append(":");
+        result.append(this.rhs.lastElement());
+    }
+
     @Override
     public String toString() {
         StringBuilder result = new StringBuilder();
         toStringLHS(result);
 
         //print a short version first
-        result.append(this.rhs.lastElement().getPathStr());
-        result.append(":");
-        result.append(this.rhs.lastElement().getCurrExternal().toStringShort());
+        rhsToStringShort(result);
+
+        //print stats
         result.append(String.format(" ^  conf=%.5f", getConfidence()).replaceAll("0+$", "0"));
         result.append(" pos:");
         result.append(this.positive.size());
         result.append(" neg:");
         result.append(this.negative.size());
 
-        //now print the details
+        //now print the full version
         result.append("  [");
-        for(TreeNode node : this.rhs) {
-            result.append(node.toString(false));
-            result.append("; ");
-        }
+        result.append(this.rhs);
         result.append("]");
 
         return result.toString();
@@ -416,9 +362,7 @@ public class PathRule extends Rule {
     public String toStringShort() {
         StringBuilder result = new StringBuilder();
         toStringLHS(result);
-        result.append(this.rhs.lastElement().getPathStr());
-        result.append(":");
-        result.append(this.rhs.lastElement().getCurrExternal().toStringShort());
+        rhsToStringShort(result);
 
         return result.toString();
     }//toStringShort
@@ -455,9 +399,9 @@ public class PathRule extends Rule {
     }//size
 
     /** get the final sensor data of this path */
-    public Vector<TreeNode> cloneRHS() { return new Vector<>(this.rhs); }
     public int lhsSize() { return this.lhs.size(); }
     public boolean lhsContains(PathRule other) { return this.lhs.contains(other); }
+    public Vector<String> getRHS() { return this.rhs; }
     public boolean hasConflict() { return ((this.positive.size() > 0) && (this.negative.size() > 0)); }
     public boolean hasSplit() { return this.hasSplit; }
 

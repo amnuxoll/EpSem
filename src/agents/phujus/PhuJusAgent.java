@@ -505,7 +505,7 @@ public class PhuJusAgent implements IAgent {
 
             //otherwise, newbie becomes the first example for a new base rule
             else {
-                prMatch = new PathRule(this, null, newbie.cloneRHS());
+                prMatch = new PathRule(this, null, newbie.getRHS());
                 prMatch.addExample(newbie, correctPredict);
             }
 
@@ -570,7 +570,8 @@ public class PhuJusAgent implements IAgent {
 
         //Create a new PathRule based upon the path steps taken so far
         //Note:  these steps may not match the agent's actual experience!
-        PathRule newbie = new PathRule(this, this.prevPRMatch, this.pathTraversedSoFar);
+        Vector<String> rhs = PathRule.tnPathToStrs(this.pathTraversedSoFar);
+        PathRule newbie = new PathRule(this, this.prevPRMatch, rhs);
         PathRule prMatch = getBestMatchingPathRule(newbie);
         boolean correctPredict = (this.pathTraversedSoFar.lastElement().getCurrExternal().equals(this.currExternal));
         incorporateNewPathRule(newbie, prMatch, correctPredict);
@@ -578,7 +579,8 @@ public class PhuJusAgent implements IAgent {
         //If newbie was wrong, create a second PathRule to reflect what actually happened
         PathRule correctPRMatch = getBestMatchingPathRule(this.actualPath);
         if (!correctPredict) {
-            PathRule correctNewbie = new PathRule(this, this.prevPRMatch, this.actualPath);
+            Vector<String> actRHS = PathRule.tnPathToStrs(this.actualPath);
+            PathRule correctNewbie = new PathRule(this, this.prevPRMatch, actRHS);
             incorporateNewPathRule(correctNewbie, correctPRMatch, true);
         }
 
@@ -1285,7 +1287,7 @@ public class PhuJusAgent implements IAgent {
      */
     public void addRule(Rule newRule) {
         if (rules.size() >= MAXNUMRULES) {
-            System.err.println("ERROR: Exceeded MAXNUMRULES!");
+            System.err.println("ERROR: Exceeded MAXNUMRULES! " + rules.size());
         }
 
         rules.put(newRule.ruleId,newRule);
@@ -1363,11 +1365,6 @@ public class PhuJusAgent implements IAgent {
             if (replacement != null) {
                 subset.add(replacement);
             }
-        }
-
-        //update PathRules that used this rule (old version below)
-        for(PathRule pr : this.pathRules) {
-            pr.replaceAll(removeMe, replacement);
         }
 
         //TODO:  remove from all levels in this.prevInternal as well?
