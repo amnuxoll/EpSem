@@ -9,11 +9,16 @@ import java.util.HashSet;
 import java.util.Random;
 
 public class NdxrAgent implements IAgent {
-
     private Action[] actions;
     private IIntrospector introspector;
     private Random random = utils.Random.getFalse();
     private Action lastGoalAction;
+
+    private SensorData prevExternal = null;
+    private SensorData currExternal = null;
+    private char prevAction = '?';
+    private Rule prevRule = null;
+
 
     public NdxrAgent() {
     }
@@ -27,10 +32,21 @@ public class NdxrAgent implements IAgent {
 
     @Override
     public Action getNextAction(SensorData sensorData) throws Exception {
+        this.prevExternal = this.currExternal;
+        this.currExternal = sensorData;
+
+        if (this.prevExternal != null) {
+            Rule newRule = new Rule(this.prevExternal, this.prevAction,
+                                    this.currExternal, this.prevRule);
+            this.prevRule = newRule;
+            System.out.println(newRule);
+        }
+
 
         //random action
         int actionIndex = this.random.nextInt(this.actions.length);
         Action action = this.actions[actionIndex];
+        this.prevAction = action.toString().charAt(0);
         return action;
 
     }
