@@ -163,6 +163,30 @@ public class SensorData {
         return entries;
     }
 
+    /**
+     * toBitSet
+     *
+     * Converts the SensorData into a java.util.BitSet
+     *
+     * Caveat:  If your SensorData is not a list of Boolean values this will not be helpful
+     */
+    public BitSet toBitSet() {
+        ArrayList<Entry<String, Object>> entries = getEntriesSorted();
+        BitSet result = new BitSet(entries.size());
+        int bitIndex = 0;
+        for (Entry entry : entries) {
+            Object obj = entry.getValue();
+            if (obj instanceof Boolean) {
+                boolean val = (Boolean) obj;
+                if (val) result.set(bitIndex);
+            }
+            bitIndex++;
+        }
+
+        return result;
+    }//toBitSet
+
+
 
 
     /**
