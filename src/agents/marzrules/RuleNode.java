@@ -14,6 +14,8 @@ public class RuleNode {
     protected HashMap<Action, ArrayList<RuleNode>> children;
     protected int frequency;
     protected final Action[] potentialActions;
+
+    //For each possible action, this array tracks how frequently it has been selected
     private int[] moveFrequencies;
     // maxDepth is decremented as you move down the tree; at the depth limit this value will be 0.
     // can be understood as "how much deeper does the tree go beyond this node".
@@ -83,6 +85,12 @@ public class RuleNode {
         return moveFrequencies[index];
     }
 
+    /**
+     * incrementMoveFrequency
+     *
+     * adds +1 to the frequency of a given action
+     * @return the new frequency
+     */
     public int incrementMoveFrequency(Action action){
         int index = Arrays.asList(potentialActions).indexOf(action);
         if (index == -1) {
@@ -344,7 +352,9 @@ public class RuleNode {
     }
 
     /**
-     * Gets the child that corresponds to the given sense in the given list, or creates it if it does not exist
+     * Gets the child that corresponds to the given sense in the given list,
+     * or creates it if it does not exist.
+     *
      * @param children The list of children to look through
      * @param nextSense The sense that the child should have
      * @return The corresponding child
@@ -395,12 +405,10 @@ public class RuleNode {
     }
 
     /**
-     * Gets the goal child for the node
+     * Gets the goal child for a given action if it exists
      *
      * @param action The action that led to the goal
      * @return The goal child
-     *
-     * Side Effect: Increments goal child frequency
      */
     public RuleNodeGoal getGoalChild(Action action){
         if (maxDepth == 0){
@@ -417,7 +425,7 @@ public class RuleNode {
         }
 
         return (RuleNodeGoal) moveChildren.get(0);
-    }
+    }//getGoalChild
 
     public int getSense(){
         return sense;
@@ -468,4 +476,5 @@ public class RuleNode {
     public int getCurrentDepth() {
         return currentDepth;
     }
+    public ArrayList<RuleNode> getChild(Action action) { return this.children.get(action); }
 }

@@ -6,11 +6,11 @@ import framework.IAgentProvider;
 /**
  * Created by Owen on 4/8/2019.
  */
-public class RulesAgentProvider implements IAgentProvider {
+public class PoprRulesAgentProvider implements IAgentProvider {
 
     @Override
     public IAgent getAgent(){
-        return new RulesAgent();
+        return new PoprRulesAgent();
     }
 
     @Override

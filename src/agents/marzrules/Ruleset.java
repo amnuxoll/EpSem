@@ -7,18 +7,30 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Optional;
-import java.util.ArrayDeque;
 
 /**
- * Created by Ryan on 2/7/2019.
+ * class Ruleset
+ *
+ * Stores all the agent's rules in a tree.  The depth of the rule adds
+ * additional conditions from past sensors+actions.
+ *
+ * Example Depth 1 rule:  010a
+ * Example Depth 2 rule:  110b -> 010a
+ * Example Depth 3 rule:  000a -> 110b -> 010a
+ * etc..
+ *
+ * @author Ryan Regier (created on 2/7/2019)
  */
 public class Ruleset {
 
-    private RuleNodeRoot root;
+    private final RuleNodeRoot root;  //root node of the tree
     private RuleNode driver;
-    private ArrayList<RuleNode> current;
-    //private ArrayList<Double> goalProbabilities;
-    private Action[] alphabet;
+
+    /** current is the set of all rules in that set that match the agent's
+     * experiences since last finding a goal.
+     */
+    protected ArrayList<RuleNode> current;
+    protected Action[] alphabet;
     private int explores;
     private Heuristic heuristic;
 
@@ -33,18 +45,6 @@ public class Ruleset {
         this.heuristic = heuristic;
     }
 
-    //for popper-bot
-    public Ruleset(Action[] alphabet, int maxDepth){
-        if (alphabet == null) throw new IllegalArgumentException();
-        if (alphabet.length == 0) throw new IllegalArgumentException();
-
-        root = new RuleNodeRoot(alphabet, maxDepth);
-        current = new ArrayList<>();
-        current.add(root);
-        driver = root;
-        this.alphabet = alphabet;
-    }
-
     public Action getBestMove(){
 
         if(driver != null && driver.getBestAction() != null){
@@ -57,10 +57,7 @@ public class Ruleset {
         Action bestAction = alphabet[0];
         for (RuleNode node : current){
             heuristic.setGoalProbability(root.getIncreasedGoalProbability());
-            //double h = heuristic.getHeuristic(root.getIncreasedGoalProbability(), node.getCurrentDepth());
             Optional<Double> expectation = node.getExpectation(current, true, heuristic);
-            //if (expectation.isPresent()) System.out.print("" + expectation.get() +",");
-            //else System.out.print(",");
             if (expectation.isPresent() && (bestEV == -1 || expectation.get() <= bestEV)){
                 if (node.getBestAction() != null) {
                     bestEV = expectation.get();
@@ -76,7 +73,7 @@ public class Ruleset {
         return bestAction;
     }
 
-    public ArrayList<RuleNode> getCurrent(){
+    public ArrayList<RuleNode> getCurrent() {
         return current;
     }
 
@@ -88,32 +85,43 @@ public class Ruleset {
 
     public double getMaxBitStateEstimate(){
         double bits = root.getMaxBits();
-        /*if (bits > 5){
-            System.out.println("Yo"); //Used to set breakpoint
-        }*/
         return Math.exp(bits);
     }
 
-    /*public ArrayList<Double> getGoalProbabilities() {
-        return goalProbabilities;
-    }*/
-
-    public void update(Action action, SensorData sensorData){
-        boolean isGoal = sensorData.isGoal();
-        int sense = 0;
-
+    /**
+     * sdToBits
+     *
+     * converts a given SensorData to an int with one bit per sensor.
+     * The goal sensor is ignored.
+     */
+    public static int sdToBits(SensorData sensorData) {
+        int result = 0;
         for (String sensor : sensorData.getSensorNames()){
             if (sensor.equals(SensorData.goalSensor)) {
                 continue;
             }
 
             int value = (boolean) sensorData.getSensor(sensor) ? 1 : 0;
-            sense *= 2;
-            sense += value;
+            result *= 2;
+            result += value;
         }
 
+        return result;
+    }//sdToBits
+
+    /**
+     * update
+     *
+     * updates the ruleset to reflect a new agent experience
+     *
+     * @param action  agent's most recent action
+     * @param sensorData the new sensorData the agent experienced as a result
+     */
+    public void update(Action action, SensorData sensorData){
+        boolean isGoal = sensorData.isGoal();
+
         if (isGoal){
-            root.occurs();
+            root.occurs();  //TODO: remove?  This line is already at the bottom of this method
             for (RuleNode ruleNode : current){
                 ruleNode.incrementMoveFrequency(action); // TODO: Prevent null action
                 RuleNode node = ruleNode.getGoalChild(action);
@@ -123,11 +131,11 @@ public class Ruleset {
             current.add(root);
             heuristic.setGoalProbability(root.getIncreasedGoalProbability());
             root.getExpectation(current, true, heuristic); //Update caches before saving
-            //System.out.print("G");
             root.reachedGoal(); // Cache EVs
             driver = root;
         }
 
+        int sense = sdToBits(sensorData);
         for (int i = 0; i < current.size(); i++){
             RuleNode node = current.get(i);
             node.incrementMoveFrequency(action);
@@ -144,74 +152,8 @@ public class Ruleset {
         current.removeAll(Collections.singleton(null));
         current.add(root);
         root.occurs();
-
-        //setGoalProbabilities();
     }
 
-    public double evaluateMoves(Action[] actions) {
-        ArrayList<Action> movesList = new ArrayList<>(Arrays.asList(actions));
-        return root.getGoalProbability(movesList, 0);
-    }
-
-    /*private void setGoalProbabilities() {
-        goalProbabilities = new ArrayList<>();
-        for (RuleNode node : current) {
-            ArrayList<Action> actions = new ArrayList<>(Arrays.asList(node.potentialActions));
-            goalProbabilities.add(node.getGoalProbability(actions, 0));
-        }
-    }*/
-
-
-    //region PopperBotStuff
-    public Action falsify() {
-        Action toTake = null;//TODO: make random?
-        int bestDepth = 500; //arbitrary; right now just max depth limit
-        for (int i = 0; i < current.size(); i++) {
-            if ( current.get(i) instanceof RuleNodeRoot ) { // Note : I don't think we need to look at 0-deep rules, might be wrong
-                continue;
-            }
-            if (i >= bestDepth){ // because current has one rule of each depth, i also effectively measures depth of parent RuleNode
-                break;
-            }
-
-            for (Action action : alphabet) {
-                RuleNode superstition = getNextTestable(current.get(i), action);
-                //TODO: this assumes depth means something more intuitive than what I think is reflected in our implementation
-
-                if (superstition.getCurrentDepth() < bestDepth){ //TODO: superstition.depth + 1 to enforce choice of simplest rules?
-                    toTake = action;
-                }
-            }
-        }
-        return toTake;
-    }
-    //breadth first search for nearest testable child
-    //this function is called twice (in a 2-alphabet) per node in current, which I'd like do more elegantly but alas alack
-
-    public RuleNode getNextTestable(RuleNode parent, Action action) {
-        ArrayDeque<RuleNode> queue = new ArrayDeque<>();
-        RuleNode p = parent;
-        ArrayList<RuleNode> moveChildren = p.children.get(action);
-        queue.addAll(moveChildren); //initial queue is just the specific branch of children that the caller of this function was looking at
-        while(queue.size() > 0) {
-            p = queue.remove();
-
-            if (current.contains(p)){ //if p is in current, continue b/c this is redundant
-                continue;
-            }
-
-            for (Action m : alphabet){ //to get each set of child nodes
-                moveChildren = p.children.get(m);
-                if (moveChildren.size() == 1){ //i.e. this node has never been expanded, only instantiated with goal child
-                    return p;
-                } else {
-                    queue.addAll(moveChildren);
-                }
-            }
-        }
-    return null;
-    }
-    //endregion
 
     @Override
     public String toString(){

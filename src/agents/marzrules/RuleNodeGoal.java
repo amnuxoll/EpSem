@@ -6,9 +6,14 @@ import java.util.ArrayList;
 import java.util.Optional;
 
 /**
- * Created by Ryan on 2/7/2019.
+ * class RuleNodeGoal
+ *
+ * is a node with no sensors or actions that hangs out as a leaf of the
+ * rule tree and represents a goal found by the agent.
+ *
+ * @author Ryan on 2/7/2019.
  */
-public class RuleNodeGoal extends RuleNode{
+public class RuleNodeGoal extends RuleNode {
     public RuleNodeGoal(Action[] potentialActions, int currentDepth){
         super(potentialActions, -1, 0, currentDepth);
         expectation = 0;

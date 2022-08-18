@@ -15,14 +15,14 @@ import java.util.Arrays;
  * @author Zachary Paul Faltersack
  * @version 0.95
  */
-public class RuleSetEvaluator {
+public class PoprRuleSetEvaluator {
     //region Class Variables
     Sequence[] sequences;
     ArrayList<ArrayList<Action>> suffixSequences;
     //endregion
 
     //region Constructors
-    public RuleSetEvaluator(Sequence[] sequences) {
+    public PoprRuleSetEvaluator(Sequence[] sequences) {
         this.sequences = sequences;
         this.suffixSequences = new ArrayList<>();
         for (Sequence suffix : sequences) {

@@ -7,7 +7,11 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * Created by Ryan on 2/7/2019.
+ * class RuleNodeRoot
+ *
+ * represents the root node of the rule tree.  It's LHS is empty.
+ *
+ * @author Ryan Regier (created 2/7/2019)
  */
 public class RuleNodeRoot extends RuleNode {
     private ArrayList<RuleNode> childArray;
@@ -59,11 +63,10 @@ public class RuleNodeRoot extends RuleNode {
 
     public double getIncreasedGoalProbability(){
 
-        //NOTE: We no longer add 1, since the framework was modified to show a goal at the very first step
+        //NOTE: To avoid div-by-zero, this code relies upon agent starting
+        // with goal sensor on at the very first step
         return  childArray.get(0).getFrequency()/(double)frequency;
 
-        //Number of goals + 1 / freqency + 1
-        //return (childArray.get(0).getFrequency()+1)/((double)frequency+1);
     }
 
     //NOTE: Uncomment to enable caching

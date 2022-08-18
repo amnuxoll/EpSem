@@ -1,5 +1,6 @@
 package agents.popr;
 
+import agents.marzrules.Heuristic;
 import framework.*;
 import agents.marzrules.Ruleset;
 import utils.SequenceGenerator;
@@ -8,27 +9,28 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 
+
 /**
  * Created by Owen on 4/8/2019.
  */
-public class RulesAgent implements IAgent {
-    private Ruleset ruleset;
+public class PoprRulesAgent implements IAgent {
+    private PoprRuleset ruleset;
     private Action previousAction = null;
     private IIntrospector introspector;
-    private RuleSetEvaluator ruleSetEvaluator;
+    private PoprRuleSetEvaluator ruleSetEvaluator;
 
-    public RulesAgent() { }
+    public PoprRulesAgent() { }
 
     @Override
     public void initialize(Action[] actions, IIntrospector introspector) {
         this.introspector = introspector;
-        this.ruleset = new Ruleset(actions, 1000);
+        this.ruleset = new PoprRuleset(actions, 1000, new Heuristic(0.0, 0.0));
         SequenceGenerator generator = new SequenceGenerator(actions);
         ArrayList<Sequence> evaluationSuffixes = new ArrayList<>();
         for (int i = 1; i <= 15; i++) {
             evaluationSuffixes.add(generator.nextPermutation(i));
         }
-        this.ruleSetEvaluator = new RuleSetEvaluator(evaluationSuffixes.toArray(new Sequence[0]));
+        this.ruleSetEvaluator = new PoprRuleSetEvaluator(evaluationSuffixes.toArray(new Sequence[0]));
     }
 
     @Override
