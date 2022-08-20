@@ -2,6 +2,7 @@ package agents.phujus;
 
 import framework.SensorData;
 
+import java.net.IDN;
 import java.util.*;
 
 /**
@@ -18,6 +19,10 @@ public class TFRule extends Rule {
 
     //region Inner Classes
 
+    //This is a mapping of external sensor names to ids.  Add more sensor names as needed.
+    //The actual id used is the negative index in this array.
+    public static final String[] IDNAMEMAP = {"GOAL", "IS_ODD", "NOISE1", "NOISE2"};
+
     /**
      * class Cond
      *
@@ -26,43 +31,48 @@ public class TFRule extends Rule {
      */
     public static class Cond implements Comparable<Cond> {
         public int sId;  //unique id for this condition (used by internal sensors)
-        public String sName; //unique name for this condition (used by external sensors)
-        public double numMatches;
-        public double numOn;
+        //Note: use float so we can do division.  Don't use double to save RAM
+        public float numMatches;
+        public float numOn;
 
         /** maps ane external sensor name to a unique integer.
-         * Negative numbers are used to avoid conflict with rule ids.
-         * Add new values to the switch as needed. */
+         * Negative numbers are used to avoid conflict with rule ids. */
         public static int sensorNameToId(String name) {
-            switch(name) {
-                case "GOAL": return 0;
-                case "IS_ODD": return -1;
-                case "NOISE1": return -2;
-                case "NOISE2": return -3;
-                default: throw new IllegalArgumentException();
+            for(int i = 0; i < IDNAMEMAP.length; ++i) {
+                if (IDNAMEMAP[i].equals(name)) return -i;
             }
+            throw new IllegalArgumentException();
         }
+
+        /** extracts a sensor name given an external sensor id */
+        public static String sensorIdToName(int id) {
+            if (id > 0) return "" + id;  //internal sensor
+            id = -id;  //change external id to a non-negative index
+            if (id >= IDNAMEMAP.length) throw new IllegalArgumentException();
+            return IDNAMEMAP[id];
+        }
+
+
 
         public Cond(int initId, boolean initVal) {
             this.sId = initId;
-            this.sName = "" + initId;
-            this.numMatches = 1.0;
-            this.numOn = initVal ? 1.0 : 0.0;
+            this.numMatches = 1.0f;
+            this.numOn = initVal ? 1.0f : 0.0f;
         }
 
         /** convenience ctor for external sensors */
         public Cond(String sensorName, boolean initVal) {
             this(sensorNameToId(sensorName), initVal);
-            this.sName = sensorName;
         }
 
         public double getTF() {
             return this.numOn / this.numMatches;
         }
+        public String getName() { return sensorIdToName(this.sId); }
 
         @Override
         public String toString() {
-            return this.sName + "=" + String.format("%.2f", getTF());
+            return  getName() + "=" + String.format("%.2f", getTF());
         }
 
         public String toStringShort() {
@@ -379,16 +389,16 @@ public class TFRule extends Rule {
         double overallRelevance = 0.0;
         for (Cond eCond : this.rhsExternal) {
             // If so, then we calculate the TF/DF value to be added to the score
-            if (rhsExt.hasSensor(eCond.sName)) {
+            if (rhsExt.hasSensor(eCond.getName())) {
 
                 // Calculates the TF and DF values, and if the sensor values are the same
                 double tfValue = eCond.getTF();
-                double dfValue = agent.getExternalPercents().get(eCond.sName).getSecond();
-                Boolean sVal = (Boolean) rhsExt.getSensor(eCond.sName);
+                double dfValue = agent.getExternalPercents().get(eCond.getName()).getSecond();
+                Boolean sVal = (Boolean) rhsExt.getSensor(eCond.getName());
 
                 //Special case:  GOAL=true for both sensors and rule is always a full match
                 //               and the other sensors are ignored
-                if ( (eCond.sName.equals(SensorData.goalSensor))
+                if ( (eCond.getName().equals(SensorData.goalSensor))
                         && (sVal) && (tfValue > 0.5)) {
                     score = tfValue;
                     overallRelevance = tfValue;
@@ -422,7 +432,7 @@ public class TFRule extends Rule {
         // sensor data contains the external sensor
         for (Cond eCond : this.lhsExternal) {
             // If so, then we calculate the TF/DF value to be added to the score
-            if (lhsExt.hasSensor(eCond.sName)) {
+            if (lhsExt.hasSensor(eCond.getName())) {
 
                 // Calculates the TF and DF values, and if the sensor values are the same
                 double tfValue = eCond.getTF();
@@ -430,10 +440,10 @@ public class TFRule extends Rule {
 
                 // Sometimes, when loading rules from a file, this can be null. This check helps
                 // prevent that
-                if (agent.getExternalPercents().containsKey(eCond.sName)) {
-                    dfValue = agent.getExternalPercents().get(eCond.sName).getSecond();
+                if (agent.getExternalPercents().containsKey(eCond.getName())) {
+                    dfValue = agent.getExternalPercents().get(eCond.getName()).getSecond();
                 }
-                Boolean wasOn = (Boolean) lhsExt.getSensor(eCond.sName);
+                Boolean wasOn = (Boolean) lhsExt.getSensor(eCond.getName());
 
                 if (PhuJusAgent.TFIDF) {
                     // Adds the TF/DF to the current score
@@ -624,7 +634,7 @@ public class TFRule extends Rule {
         //Move the GOAL to the end
         int goalIndex = 0;
         for(int i = 0; i < result.size(); ++i) {
-            if (result.get(i).sName.equals(SensorData.goalSensor)) {
+            if (result.get(i).getName().equals(SensorData.goalSensor)) {
                 goalIndex = i;
                 break;
             }
@@ -660,13 +670,13 @@ public class TFRule extends Rule {
                 } else {
                     result.append(";");
                 }
-                result.append(cond.sName);
+                result.append(cond.getName());
             }
         }//for
 
         result.append(") ");
         if (this.primaryInternal != null) {
-            result.append(primaryInternal.sName);
+            result.append(primaryInternal.getName());
         }
 
         return result.toString();
@@ -769,7 +779,7 @@ public class TFRule extends Rule {
         SensorData result = SensorData.createEmpty();
         for(Cond cond : this.rhsExternal) {
             //pick true/false by rounding
-            result.setSensor(cond.sName, cond.getTF() >= 0.5);
+            result.setSensor(cond.getName(), cond.getTF() >= 0.5);
         }
         return result;
     }
@@ -778,7 +788,7 @@ public class TFRule extends Rule {
         SensorData result = SensorData.createEmpty();
         for(Cond cond : this.lhsExternal) {
             //pick true/false by rounding
-            result.setSensor(cond.sName, cond.getTF() >= 0.5);
+            result.setSensor(cond.getName(), cond.getTF() >= 0.5);
         }
         return result;
     }

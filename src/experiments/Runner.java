@@ -189,16 +189,6 @@ public class Runner {
                     )
             });
 
-    private static TestSuite TempExperiment = new TestSuite(
-            TestSuiteConfiguration.QUICK,
-            new IEnvironmentProvider[] {
-                    new FSMEnvironmentProvider(new FSMTransitionTableBuilder(2, 5, Random.getFalse()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN))
-            },
-            new IAgentProvider[] {
-                    new PredrAgentProvider(),
-            }
-    );
-
     private static TestSuite ZPF_Suite = new TestSuite(
             TestSuiteConfiguration.LONG,
             new IEnvironmentProvider[] {
@@ -297,14 +287,17 @@ public class Runner {
             TestSuiteConfiguration.ONCE,
             new IEnvironmentProvider[] {
                     new FSMEnvironmentProvider(
-                            new FSMTransitionTableBuilder(2, 6, Random.getFalse()),
-                            EnumSet.of(FSMEnvironment.Sensor.IS_ODD, FSMEnvironment.Sensor.WITHIN_1),
+                            new FSMTransitionTableBuilder(3, 30, Random.getFalse()),
+                            EnumSet.of(FSMEnvironment.Sensor.NOISE1, FSMEnvironment.Sensor.IS_ODD, FSMEnvironment.Sensor.WITHIN_1),
 //                            EnumSet.of(FSMEnvironment.Sensor.NOISE1, FSMEnvironment.Sensor.IS_ODD, FSMEnvironment.Sensor.WITHIN_1),
                             false,
                             0.0),  //<-- non-determinism chance
             },
             new IAgentProvider[] {
                     new PhuJusAgentProvider()
+                    //new NSMAgentProvider()
+                    //new MaRzAgentProvider()
+                    //new RulesAgentProvider(new Heuristic(1, 0), 50)
             }
     );
 

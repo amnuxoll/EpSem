@@ -37,7 +37,7 @@ public class PhuJusAgent implements IAgent {
     //-----------------------------//
     //===== Hyper-Parameters ===== //   <-- we hate these :@
     //-----------------------------//
-    public static final int MAXNUMRULES = 4000;
+    public static final int MAXNUMRULES = 9000;
     public static final int MAX_SEARCH_DEPTH = 5; //TODO: get the search to self prune again
     public static final int MAX_TIME_DEPTH = 4;  //size of short term memory
 
@@ -46,7 +46,7 @@ public class PhuJusAgent implements IAgent {
     //-----------------------------//
 
     // DEBUG variable to toggle println statements (on/off = true/false)
-    public static final boolean DEBUGPRINTSWITCH = true;
+    public static final boolean DEBUGPRINTSWITCH = false;
 
     // DEBUG variable to toggle printing the tree (on/off = true/false)
     public static final boolean DEBUGTREESWITCH = true;
@@ -350,44 +350,13 @@ public class PhuJusAgent implements IAgent {
         //report time spent every 10 goals
         PhuJusAgent.totalTime += System.currentTimeMillis() - startTime;
         if( (stepsSinceGoal == 0) && (numGoals % 10 == 0) ) {
-            long hours = PhuJusAgent.totalTime / 3600000;
-            long mins = (PhuJusAgent.totalTime % 3600000) / 60000;
-            long secs = (PhuJusAgent.totalTime % 60000) / 1000;
-            System.out.print("elapsed time: " + totalTime + "ms ");
-            System.out.println(hours + ":" + mins + ":" + secs);
+            printElapsedTime();
         }
 
         return new Action(this.currAction + "");
     }//getNextAction
 
-    /**
-     * printAllRules
-     *
-     * is a DEBUG method to print all the rules the agent has
-     */
-    private void printAllRules() {
-        if (this.now <= 2) return;  //no rules to print
-        int depth = 0;
-        int tfCount = 0;
-        for(Vector<TFRule> subList : this.tfRules) {
-            debugPrintln("Depth " + depth + " TF Rules (" + subList.size() + "):");
-            for (TFRule tfRule : subList) {
-                debugPrintln("  " + tfRule);
-                tfCount++;
-            }
-            depth++;
-        }
-        debugPrintln("Total TF Rules: " + tfCount);
-
-        debugPrintln("Path Rules:");
-        for (PathRule pr : this.pathRules) {
-            debugPrintln("  " + pr);
-        }
-        debugPrintln("Total Path Rules: " + this.pathRules.size());
-
-    }//printAllRules
-
-    /**
+     /**
      * addPredeterminedRules
      *
      * adds the predetermined rules to the rule vector.
@@ -1392,6 +1361,52 @@ public class PhuJusAgent implements IAgent {
 //endregion Rule Maintenance
 
     //region Debug Printing Methods
+
+    /**
+     * printAllRules
+     *
+     * is a DEBUG method to print all the rules the agent has
+     */
+    private void printAllRules() {
+        if (this.now <= 2) return;  //no rules to print
+        int depth = 0;
+        int tfCount = 0;
+        for(Vector<TFRule> subList : this.tfRules) {
+            debugPrintln("Depth " + depth + " TF Rules (" + subList.size() + "):");
+            for (TFRule tfRule : subList) {
+                debugPrintln("  " + tfRule);
+                tfCount++;
+            }
+            depth++;
+        }
+        debugPrintln("Total TF Rules: " + tfCount);
+
+        debugPrintln("Path Rules:");
+        for (PathRule pr : this.pathRules) {
+            debugPrintln("  " + pr);
+        }
+        debugPrintln("Total Path Rules: " + this.pathRules.size());
+
+    }//printAllRules
+
+    /** prints the datum in PhuJusAgent.totalTime in a user friendly way */
+    private void printElapsedTime() {
+        long hours = PhuJusAgent.totalTime / 3600000;
+        long mins = (PhuJusAgent.totalTime % 3600000) / 60000;
+        long secs = (PhuJusAgent.totalTime % 60000) / 1000;
+        StringBuilder sb = new StringBuilder();
+        sb.append("elapsed time: ");
+        sb.append(totalTime);
+        sb.append("ms ");
+        if (hours < 10) sb.append("0");
+        sb.append(hours + ":");
+        if (mins < 10) sb.append("0");
+        sb.append(mins + ":");
+        if (secs < 10) sb.append("0");
+        sb.append(secs);
+        System.out.println(sb);
+    }
+
 
     /** helper method for {@link #printPrevCurrEpisode} */
     private void printIntHelper(Vector<HashSet<TFRule>> printMe, StringBuilder sb) {

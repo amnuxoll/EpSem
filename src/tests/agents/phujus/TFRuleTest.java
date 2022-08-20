@@ -60,7 +60,7 @@ public class TFRuleTest {
 
 
         // The data of Cond with an initial value of true should match corresponding TFData
-        Assertions.assertEquals(c1.sName, "1");
+        Assertions.assertEquals(c1.getName(), "1");
         Assertions.assertTrue(c1.numMatches == 1.0);
         Assertions.assertTrue(c1.numOn == 1.0);
 
@@ -128,7 +128,7 @@ public class TFRuleTest {
         HashSet<TFRule.Cond> lhsInt = tfr1.getLhsInternal();
 
         for(TFRule.Cond cond : lhsInt){
-            Assertions.assertTrue(cond.sName.length() > 0);
+            Assertions.assertTrue(cond.getName().length() > 0);
             Assertions.assertTrue(cond.getTF() >= 0);
         }
 
@@ -155,7 +155,7 @@ public class TFRuleTest {
 
         //a quick precursor check to make sure there is no error initializing
         for(TFRule.Cond cond : rhsExt){
-            Assertions.assertTrue(cond.sName.length() > 0);
+            Assertions.assertTrue(cond.getName().length() > 0);
             Assertions.assertTrue(cond.getTF() >= 0);
         }
 
