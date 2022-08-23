@@ -37,7 +37,7 @@ public class PhuJusAgent implements IAgent {
     //-----------------------------//
     //===== Hyper-Parameters ===== //   <-- we hate these :@
     //-----------------------------//
-    public static final int MAXNUMRULES = 9000;
+    public static final int MAXNUMRULES = 7000;
     public static final int MAX_SEARCH_DEPTH = 5; //TODO: get the search to self prune again
     public static final int MAX_TIME_DEPTH = 4;  //size of short term memory
 
@@ -1250,13 +1250,16 @@ public class PhuJusAgent implements IAgent {
      *
      * adds a given {@link Rule} to the agent's repertoire.  This method will
      * fail silently if the new rule can't be added:
-     *  - because you try to exceed {@link #MAXNUMRULES} <-- currently disabled
+     *  - because you try to exceed {@link #MAXNUMRULES}
      *  - because an existing rule is a duplicate of the given one
      *
      */
     public void addRule(Rule newRule) {
         if (rules.size() >= MAXNUMRULES) {
-            System.err.println("ERROR: Exceeded MAXNUMRULES! " + rules.size());
+            if (Math.random() < 0.05) {
+                System.err.println("Warning: Exceeded MAXNUMRULES! " + rules.size());
+            }
+            return;
         }
 
         rules.put(newRule.ruleId,newRule);
