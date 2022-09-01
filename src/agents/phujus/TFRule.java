@@ -21,7 +21,7 @@ public class TFRule extends Rule {
 
     //This is a mapping of external sensor names to ids.  Add more sensor names as needed.
     //The actual id used is the negative index in this array.
-    public static final String[] IDNAMEMAP = {"GOAL", "IS_ODD", "NOISE1", "NOISE2"};
+    public static final String[] IDNAMEMAP = {"GOAL", "IS_ODD", "NOISE1", "NOISE2", "NOISE3", "NOISE4", "CACTUS1", "CACTUS2", "CACTUS3", "CACTUS4"};
 
     /**
      * class Cond
