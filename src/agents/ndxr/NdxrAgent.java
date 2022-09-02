@@ -8,15 +8,33 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Random;
 
+/**
+ * NdxrAgent
+ *
+ * is a test agent created as a proof of concept for doing two-phase matching
+ * with EpMem rules.  Once this functionality is working, it's intended be
+ * combined with the PhuJus agent to create new more scalable version of
+ * PhuJus.
+ *
+ * A key intended approach is the use of Bloom Filters (or something like
+ * them) to rapidly find similar rules but also as a way of merging rules
+ * together with a minimal loss of knowledge.
+ */
 public class NdxrAgent implements IAgent {
+    //a list of valid actions in the env
     private Action[] actions;
+    //allows you to configure data gathered about agent performance (not used atm)
     private IIntrospector introspector;
+    //Use this for all random number generation in this agent
     private Random random = utils.Random.getFalse();
-    private Action lastGoalAction;
 
+    //The external sensors the agent saw on the last time step
     private SensorData prevExternal = null;
+    //The external sensors the agent saw on the current time step
     private SensorData currExternal = null;
+    //The last action the agent took (prev time step)
     private char prevAction = '?';
+    //The rule used to select the next action
     private Rule prevRule = null;
 
 
@@ -27,14 +45,24 @@ public class NdxrAgent implements IAgent {
     public void initialize(Action[] actions, IIntrospector introspector) {
         this.actions = actions;
         this.introspector = introspector;
-        this.lastGoalAction = actions[0];
     }
 
+    /**
+     * getNextAction
+     *
+     * called by the environment each time step to request the agent's next action
+     *
+     * @param sensorData The agent's current sensing ({@link SensorData})
+     * @return the agent's selected action
+     */
     @Override
     public Action getNextAction(SensorData sensorData) throws Exception {
+
+        //update the sensor logs
         this.prevExternal = this.currExternal;
         this.currExternal = sensorData;
 
+        //Create a rule from the previous episode + current sensing
         if (this.prevExternal != null) {
             Rule newRule = new Rule(this.prevExternal, this.prevAction,
                                     this.currExternal, this.prevRule);
@@ -42,35 +70,11 @@ public class NdxrAgent implements IAgent {
             System.out.println(newRule);
         }
 
-
-        //random action
+        //random action (for now)
         int actionIndex = this.random.nextInt(this.actions.length);
         Action action = this.actions[actionIndex];
         this.prevAction = action.toString().charAt(0);
         return action;
-
     }
 
-    @Override
-    public String[] getStatisticTypes() {
-        // Additional data can be gathered for analysis by declaring the types of
-        // analytics gathered prior to running the Experiment.
-        HashSet<String> statistics = new HashSet<>();
-        statistics.addAll(Arrays.asList(IAgent.super.getStatisticTypes()));
-        statistics.add("actionConfidence");
-        return statistics.toArray(new String[0]);
-    }
-
-    /**
-     * Gets the actual statistical data for the most recent iteration of hitting a goal.
-     *
-     * @return the collection of {@link Datum} that indicate the agent statistical data to track.
-     */
-    @Override
-    public ArrayList<Datum> getGoalData() {
-        // When the goal is hit, report the additional analytics the agent should be tracking.
-        ArrayList<Datum> data = new ArrayList<>();
-        data.add(new Datum("actionConfidence", this.random.nextDouble()));
-        return data;
-    }
-}
+}//class NdxrAgent
