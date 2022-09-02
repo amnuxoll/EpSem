@@ -282,14 +282,16 @@ public class Runner {
         );
 
 
-
+    //This is how a generated data for the ACS 2022 paper submission
     private static TestSuite PJ_SUITE = new TestSuite(
-            TestSuiteConfiguration.ONCE,
+            TestSuiteConfiguration.MEDIUM,
             new IEnvironmentProvider[] {
                     new FSMEnvironmentProvider(
-                            new FSMTransitionTableBuilder(3, 30, Random.getFalse()),
-                            EnumSet.of(FSMEnvironment.Sensor.NOISE1, FSMEnvironment.Sensor.IS_ODD, FSMEnvironment.Sensor.WITHIN_1),
+                            new FSMTransitionTableBuilder(3, 25, Random.getFalse()),
+//                            EnumSet.of(FSMEnvironment.Sensor.CACTUS1, FSMEnvironment.Sensor.CACTUS2, FSMEnvironment.Sensor.IS_ODD, FSMEnvironment.Sensor.WITHIN_1),
+//                            EnumSet.of(FSMEnvironment.Sensor.NOISE1, FSMEnvironment.Sensor.NOISE2, FSMEnvironment.Sensor.IS_ODD, FSMEnvironment.Sensor.WITHIN_1),
 //                            EnumSet.of(FSMEnvironment.Sensor.NOISE1, FSMEnvironment.Sensor.IS_ODD, FSMEnvironment.Sensor.WITHIN_1),
+                            EnumSet.of(FSMEnvironment.Sensor.IS_ODD, FSMEnvironment.Sensor.WITHIN_1),
                             false,
                             0.0),  //<-- non-determinism chance
             },
@@ -297,7 +299,7 @@ public class Runner {
                     new PhuJusAgentProvider()
                     //new NSMAgentProvider()
                     //new MaRzAgentProvider()
-                    //new RulesAgentProvider(new Heuristic(1, 0), 50)
+                    //new RulesAgentProvider(new Heuristic(1, 0), 50)  //Dart
             }
     );
 
