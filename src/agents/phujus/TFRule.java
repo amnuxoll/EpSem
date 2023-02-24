@@ -26,7 +26,7 @@ public class TFRule extends Rule {
     /**
      * class Cond
      *
-     * Tracks the tern frequency of one condition of a rule (LHS or RHS)
+     * Tracks the term-frequency of one condition of a rule (LHS or RHS)
      *
      */
     public static class Cond implements Comparable<Cond> {

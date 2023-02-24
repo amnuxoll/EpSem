@@ -35,7 +35,10 @@ public class NdxrAgent implements IAgent {
     //The last action the agent took (prev time step)
     private char prevAction = '?';
     //The rule used to select the next action
-    private Rule prevRule = null;
+    private ArrayList<Rule> prevRules = new ArrayList<>();
+
+    //TODO:  replace this with an index
+    private ArrayList<Rule> rules = new ArrayList<>();
 
 
     public NdxrAgent() {
@@ -62,12 +65,31 @@ public class NdxrAgent implements IAgent {
         this.prevExternal = this.currExternal;
         this.currExternal = sensorData;
 
-        //Create a rule from the previous episode + current sensing
+        //Create new rules from the previous episode + current sensing
         if (this.prevExternal != null) {
+            //new depth zero rule
             Rule newRule = new Rule(this.prevExternal, this.prevAction,
-                                    this.currExternal, this.prevRule);
-            this.prevRule = newRule;
-            System.out.println(newRule);
+                    this.currExternal, null);
+            this.rules.add(newRule);
+            ArrayList<Rule> newPRSet = new ArrayList<>();
+            newPRSet.add(newRule);
+
+            //new rules for other depths
+            for (Rule pr : this.prevRules) {
+                if (pr.getDepth() >= Rule.MAX_DEPTH) break;
+                newRule = new Rule(this.prevExternal, this.prevAction,
+                        this.currExternal, pr);
+                this.rules.add(newRule);
+                newPRSet.add(newRule);
+            }
+
+            //set prevRules for next iteration
+            this.prevRules = newPRSet;
+        }//create new rules with this episode
+
+        //print all rules
+        for(Rule r : this.rules) {
+            System.out.println(r);
         }
 
         //random action (for now)
