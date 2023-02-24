@@ -21,6 +21,10 @@ import java.util.Random;
  * together with a minimal loss of knowledge.
  */
 public class NdxrAgent implements IAgent {
+    /** maximum number of rules allowed */
+    public static final int MAX_NUM_RULES = 1000;
+
+
     //a list of valid actions in the env
     private Action[] actions;
     //allows you to configure data gathered about agent performance (not used atm)
@@ -38,7 +42,7 @@ public class NdxrAgent implements IAgent {
     private ArrayList<Rule> prevRules = new ArrayList<>();
 
     //TODO:  replace this with an index
-    private ArrayList<Rule> rules = new ArrayList<>();
+    private RuleIndex rules = new RuleIndex();
 
 
     public NdxrAgent() {
@@ -70,7 +74,7 @@ public class NdxrAgent implements IAgent {
             //new depth zero rule
             Rule newRule = new Rule(this.prevExternal, this.prevAction,
                     this.currExternal, null);
-            this.rules.add(newRule);
+            this.rules.addRule(newRule);
             ArrayList<Rule> newPRSet = new ArrayList<>();
             newPRSet.add(newRule);
 
@@ -79,7 +83,7 @@ public class NdxrAgent implements IAgent {
                 if (pr.getDepth() >= Rule.MAX_DEPTH) break;
                 newRule = new Rule(this.prevExternal, this.prevAction,
                         this.currExternal, pr);
-                this.rules.add(newRule);
+                this.rules.addRule(newRule);
                 newPRSet.add(newRule);
             }
 
@@ -88,15 +92,16 @@ public class NdxrAgent implements IAgent {
         }//create new rules with this episode
 
         //print all rules
-        for(Rule r : this.rules) {
-            System.out.println(r);
-        }
+//        for(Rule r : this.rules) {
+//            System.out.println(r);
+//        }
 
         //random action (for now)
         int actionIndex = this.random.nextInt(this.actions.length);
         Action action = this.actions[actionIndex];
-        this.prevAction = action.toString().charAt(0);
+        this.prevAction = action.toString().charAt(0);  //This trick may not work in the future...
         return action;
     }
+
 
 }//class NdxrAgent

@@ -164,6 +164,7 @@ public class Rule {
     }//toString
 
     public int getDepth() { return this.depth; }
+    public char getAction() { return this.action; }
 
 
 }//class Rule
