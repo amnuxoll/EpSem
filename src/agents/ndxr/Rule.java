@@ -163,6 +163,7 @@ public class Rule {
         return result.toString();
     }//toString
 
+    public BitSet getLHS() { return (BitSet)this.lhs.clone(); }
     public int getDepth() { return this.depth; }
     public char getAction() { return this.action; }
 

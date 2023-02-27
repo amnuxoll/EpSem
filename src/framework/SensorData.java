@@ -154,7 +154,7 @@ public class SensorData {
             String rightKey = o2.getKey();
             if (leftKey.equals(rightKey))
                 return 0;
-            if (leftKey.equals(SensorData.goalSensor))
+            if (leftKey.equals(SensorData.goalSensor))  //always at the end
                 return 1;
             if (rightKey.equals(SensorData.goalSensor))
                 return -1;
