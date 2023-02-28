@@ -81,9 +81,20 @@ public class Rule {
 
     private int id;         //unique id for this rule
     private int bitsLen;    //number of external sensor bits on each side of this rule
-    private BitSet lhs;     //sensor values on lhs
+    private BitSet lhs;     //sensor values on lhs*
     private char action;    //action taken by the agent
-    private BitSet rhs;     //sensors values on the rhs
+    private BitSet rhs;     //sensors values on the rhs*
+
+    /*         ----===== An Important Warning About BitSets ===----
+     *
+     *   the .size() of a bitset is how much ram is allocated (default 64)
+     *   the .length() of a bitset varies depending upon what bits are set.
+     *      for example if your bitset is "000000" then the size is zero!
+     *
+     *   If you want to know the "size" of lhs/rhs you will usually want
+     *   to refer to SensorData.size() instead.
+     *
+     */
 
     //track the "on" frequency of each bit on the LHS and RHS
     private FreqCount[] lhsFreqs;
@@ -164,6 +175,7 @@ public class Rule {
     }//toString
 
     public BitSet getLHS() { return (BitSet)this.lhs.clone(); }
+    public BitSet getRHS() { return (BitSet)this.rhs.clone(); }
     public int getDepth() { return this.depth; }
     public char getAction() { return this.action; }
 

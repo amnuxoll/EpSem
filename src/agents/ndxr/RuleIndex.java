@@ -1,6 +1,9 @@
 package agents.ndxr;
 
+import framework.Action;
+
 import java.util.ArrayList;
+import java.util.BitSet;
 
 /**
  * class RuleIndex
@@ -30,11 +33,19 @@ public class RuleIndex {
 
     /**These two constants control when a leaf gets too big and must be split
      * see {@link #considerSplit()} */
-    private static final int MIN_SMALLEST = 2;
-    private static final int MAX_SIZE_RATIO = 3;
+    private static final int MIN_SMALLEST = 1;
+    private static final int MAX_SIZE_RATIO = 2;
 
-    //Keep track of how many nodes have been created
-    private static int numNodes = 1;
+    /** these are index constants for top-level nodes.  See extSensorIndex below. */
+    private static final int TBD_INDEX = -1;  //for leaf nodes
+    private static final int DEPTH_INDEX = -2;
+    private static final int ACTION_INDEX = -3;
+
+    //Reference to agent
+    static NdxrAgent agent = null;
+
+    //Keep track of how many leaf nodes have been created
+    private static int numLeafNodes = 1;
 
     //The index is organized as a tree and each RuleIndex object is one
     //node in the tree.  This variable tracks the node's depth so that
@@ -50,36 +61,58 @@ public class RuleIndex {
     //this variable stays null
     private ArrayList<Rule> rules = null;
 
-    //At depths 2 and higher, the node is indexed by a particular external
-    //sensor, specified here as an index into {@link Rule.lhs}
-    private int extSensorIndex = -1;
+    //provides an index to the value upon which a non-leaf node splits as follows:
+    // depth 0:  DEPTH_INDEX
+    // depth 1:  ACTION_INDEX
+    // depth 2:  index of last sensor on RHS (goal sensor)
+    // depth 3+: index of a non-goal sensor.  For LHS use the index into Rule.lhs
+    //           For RHS, add the length of Rule.lhs.
+    private int splitIndex = TBD_INDEX;
 
     //To keep the tree balanced, we need to keep track of the largest and
     //smallest leaf node in the tree (where size == number of rules).  The
     //only way I know to do this is to keep a list of them sorted by size
     private static ArrayList<RuleIndex> leaves = new ArrayList<>();
 
-    //Each non-leaf node (except root) has a binary external sensor that it
-    //uses to split it's children into two bins.  The index of that sensor
-    //is recorded here
-    private int splitIndex = -1; //-1 for root node
-
-    /** base ctor creates the root node which indexes based on each rule's depth */
-    public RuleIndex() {
+    /** base ctor creates the root node which indexes based on each rule's depth
+     * and adds child and grandchild nodes for action and goal sensor  */
+    public RuleIndex(NdxrAgent initAgent) {
+        RuleIndex.agent = initAgent;
+        this.splitIndex = DEPTH_INDEX;
         children = new RuleIndex[Rule.MAX_DEPTH + 1];
+        //Create a child node for each possible depth
         for(int i = 0; i <= Rule.MAX_DEPTH; ++i) {
-            children[i] = new RuleIndex(this);
+            children[i] = new RuleIndex(this);  //level 1 node ctor
         }
     }//root node ctor
 
     /**
-     * this ctor creates a new leaf node
+     * this ctor creates a depth 1 node which indexes on the rule's action
      */
     public RuleIndex(RuleIndex initParent) {
-        RuleIndex.numNodes++;
+        this.indexDepth = 1;
+        this.splitIndex = ACTION_INDEX;  //depth 1 node
+        Action[] actions = agent.getActions();
+        children = new RuleIndex[actions.length];
+        //Create a child leaf node for each possible action
+        for(int i = 0; i < children.length; ++i) {
+            children[i] = new RuleIndex(this, TBD_INDEX);
+            RuleIndex.leaves.add(0, children[i]);
+        }
+    }//action RuleIndex ctor
+
+    /**
+     * this ctor creates a new leaf node.
+     *
+     * Important:  The caller is responsible for inserting this new node into
+     *             RuleIndex.leaves as appropriate.
+     *
+     */
+    public RuleIndex(RuleIndex initParent, int initExtSensorIndex) {
+        RuleIndex.numLeafNodes++;
         this.indexDepth = initParent.indexDepth + 1;
         this.rules = new ArrayList<>();
-        RuleIndex.leaves.add(0, this);
+        this.splitIndex = initExtSensorIndex;
     }//action RuleIndex ctor
 
     /**
@@ -89,13 +122,15 @@ public class RuleIndex {
      * that this node will use.
      */
     private int calcSplitIndex() {
-        //At depth 1, always split on goal sensor which, by convention,
-        //is always the last sensor
-        if (this.indexDepth == 1) {
-            return this.rules.get(0).getLHS().length() - 1;
+        //At depth 2, always split on RHS goal sensor which, by convention,
+        //is always the last sensor in that set
+        if (this.indexDepth == 2) {
+            Rule r = this.rules.get(0);
+            int sensorSize = agent.getCurrExternal().size();
+            return 2*sensorSize - 1;
         }
 
-        //TODO: At depth 2+ select sensor that has least wildcarding and also
+        //TODO: At depth 3+ select sensor that has least wildcarding and also
         //      divides.  For now, hardcode as index 0 to test the code so far
         return 0;
     }//calcSplitIndex
@@ -120,6 +155,22 @@ public class RuleIndex {
     }//insertLeaf
 
     /**
+     * retrieves the proper bit from a given rule with a given sensorIndex
+     * where the sensorIndex spans the range of LHS + RHS (treating them
+     * as a single set).
+     */
+    private boolean getBit(Rule r, int sensorIndex) {
+        int sensorSize = agent.getCurrExternal().size();
+        BitSet sensors = r.getLHS(); //default LHS
+        if (sensorIndex >= sensorSize) { //detect RHS
+            sensors = r.getRHS();
+            sensorIndex -= sensorSize;
+        }
+
+        return sensors.get(sensorIndex);
+    }//getBit
+
+    /**
      * split
      * <p>
      * helper method to turn a leaf node into a non-leaf with two children
@@ -128,13 +179,15 @@ public class RuleIndex {
         //bisect based upon a particular sensor
         this.splitIndex = calcSplitIndex();
         this.children = new RuleIndex[2];
-        this.children[0] = new RuleIndex(this);
-        this.children[1] = new RuleIndex(this);
+        this.children[0] = new RuleIndex(this, this.splitIndex);
+        this.children[1] = new RuleIndex(this, this.splitIndex);
 
         //Add the rules to the new nodes.  (Note:  can't use addRule() method
         // as it creates recursion.)
+
         for(Rule r : this.rules) {
-            if (r.getLHS().get(this.splitIndex)) {
+            //Add this rule to the correct bin
+            if (getBit(r, this.splitIndex)) {
                 this.children[1].rules.add(r);
             } else {
                 this.children[0].rules.add(r);
@@ -161,7 +214,6 @@ public class RuleIndex {
      * Caveat:  only call this on leaf nodes!
      */
     private void considerSplit() {
-
         //Find the smallest leaf node with at least MIN_SMALLEST entries
         RuleIndex smallest = null;
         for(RuleIndex node : RuleIndex.leaves) {
@@ -208,20 +260,29 @@ public class RuleIndex {
     }//adjustRulePos
 
     /**
-     * addRule
+     * addRule           *RECURSIVE*
      * <p>
      * adds a new Rule to this RuleIndex object.  This may, in turn, trigger
      * a split which may trigger a re-balance.
      */
     public void addRule(Rule addMe) {
-        //root:  use rule depth
+        //depth 0:  use rule depth
         if (indexDepth == 0) {
             RuleIndex child = this.children[addMe.getDepth()];
             child.addRule(addMe);
             return;
         }
 
-        //If this is a leaf node just add the rule
+        //depth 1:  use rule's action as index
+        if (indexDepth == 1) {
+            // We assume actions are a, b, c, etc.  Should be ok for now.
+            int childIndex = addMe.getAction() - 'a';
+            RuleIndex child = this.children[childIndex];
+            child.addRule(addMe);
+            return;
+        }
+
+        //Base Case: if this is a leaf node so just add the rule
         if (isLeaf()) {
             this.rules.add(addMe);
             this.adjustRulePos();
@@ -229,18 +290,79 @@ public class RuleIndex {
             return;
         }
 
-        //Find the correct child node and recurse
-        int index = this.extSensorIndex;
-        //at depth 1 use action as the index instead
-        if (indexDepth == 1) {
-            //Take advantage of the fact that action is a lowercase letter
-            //(We may not get away with this in the long term.)
-            char act = addMe.getAction();
-            index = (act - 'a');
-        }
-        this.children[index].addRule(addMe);
+        //Recursive Case:
+        //We are at depth 2+ with a non-leaf.  Find the correct child node and recurse.
+        //Node that extSensorIndex could ref LHS or RHS as per code below.
+        int childIndex = getBit(addMe, this.splitIndex) ? 1 : 0;
+        this.children[childIndex].addRule(addMe);
 
     }//addRule
+
+    /**
+     * getRepRule
+     *
+     * retrieves a single Rule that is in this RuleIndex object.  If the RuleIndex
+     * is a non-leaf it recurses to find one.
+     *
+     * @return the rule or null if none found
+     */
+    private Rule getRepRule() {
+        //Base Case:  leaf node
+        if (this.isLeaf()) {
+            if (this.rules.size() == 0) {
+                return null;  //no rule in this node
+            }
+            return this.rules.get(0);
+        }
+
+        //Recursive Case:  non-leaf node
+        for(RuleIndex child : this.children) {
+            Rule r = child.getRepRule();
+            if (r != null) return r;
+        }
+
+        return null; //this sub-tree is empty
+    }//getRepRule
+
+    @Override
+    public String toString() {
+        StringBuilder retVal = new StringBuilder();
+
+        //index depth
+        retVal.append("(level ");
+        retVal.append(this.indexDepth);
+
+        //rule depth
+        Rule r = getRepRule();
+        if (r != null) {
+            if (indexDepth > 0) {
+                retVal.append(", rule depth ");
+                retVal.append(r.getDepth());
+            }
+
+            //action
+            if (indexDepth > 1) {
+                retVal.append(", action ");
+                retVal.append(r.getAction());
+            }
+        }
+
+        retVal.append(")");
+
+        //TODO: build a representation of the rules inside (e.g., 0....1a -> ...1..0)
+        //      For now I'll paste in a representive rule
+        if (indexDepth > 2) {
+            if (r == null) {
+                retVal.append("no rules yet");
+            } else {
+                retVal.append(" ");
+                retVal.append(r);
+            }
+        }
+
+        return retVal.toString();
+
+    }//toString
 
     public boolean isLeaf() { return (this.children == null); }
     public int numRules() {

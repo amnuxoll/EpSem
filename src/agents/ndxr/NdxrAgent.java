@@ -41,10 +41,12 @@ public class NdxrAgent implements IAgent {
     //The rule used to select the next action
     private ArrayList<Rule> prevRules = new ArrayList<>();
 
-    //TODO:  replace this with an index
-    private RuleIndex rules = new RuleIndex();
+    /** Rules are kept an index to that provides fast lookup and keeps the
+     * total number of rules below a global maximum.
+     * Note: this can't be initialized until after this.action is set. */
+    private RuleIndex rules = null;
 
-
+    //ctor may be needed someday?
     public NdxrAgent() {
     }
 
@@ -52,6 +54,7 @@ public class NdxrAgent implements IAgent {
     public void initialize(Action[] actions, IIntrospector introspector) {
         this.actions = actions;
         this.introspector = introspector;
+        this.rules = new RuleIndex(this);
     }
 
     /**
@@ -103,5 +106,8 @@ public class NdxrAgent implements IAgent {
         return action;
     }
 
+
+    public Action[] getActions() { return this.actions; }
+    public SensorData getCurrExternal() { return currExternal; }
 
 }//class NdxrAgent
