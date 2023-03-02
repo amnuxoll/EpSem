@@ -2,8 +2,6 @@ package agents.ndxr;
 
 import framework.SensorData;
 
-import javax.naming.LimitExceededException;
-import java.util.BitSet;
 import java.util.HashSet;
 
 /** describes sensing+action->sensing */
@@ -14,20 +12,20 @@ public class Rule {
 
     /**
      * class FreqCount
-     *
+     * <p>
      * is akin to {@link agents.phujus.TFRule.Cond} but only tracks the last N matches
      * so that the agent can adapt to changes in the env
+     * <p>
+     * Each time the rule matches a new '1' or '0' is added pushed into
+     * the least significant position depending upon whether the condition
+     * associated with this counter matched.  Thus the agent has a
+     * record of the last N matches.  Right now count is a byte.  If a
+     * longer record is needed, just use an int or long.  If an even
+     * longer record is needed, a BitSet could be used but doing so would
+     * make the shift-left operator unusable.
      */
     public class FreqCount {
-        /**
-         *  Each time the rule matches a new '1' or '0' is added pushed into
-         *  the least significant position depending upon whether the condition
-         *  associated with this counter matched.  Thus the agent has a
-         *  record of the last N matches.  Right now count is a byte.  If a
-         *  longer record is needed, just use an int or long.  If an even
-         *  longer record is needed, a BitSet could be used but doing so would
-         *  make the shift-left operator unusable.
-         */
+
         /**
          * MOST_SIG is the same len size as {@link #counter} with only most significant bit set.
          * This is used to efficiently keep {@link #size} up to date.
@@ -81,11 +79,11 @@ public class Rule {
 
     private int id;         //unique id for this rule
     private int bitsLen;    //number of external sensor bits on each side of this rule
-    private BitSet lhs;     //sensor values on lhs*
+    private WCBitSet lhs;   //sensor values on lhs*
     private char action;    //action taken by the agent
-    private BitSet rhs;     //sensors values on the rhs*
+    private WCBitSet rhs;   //sensors values on the rhs*
 
-    /*         ----===== An Important Warning About BitSets ===----
+    /*     ----===== An Important Warning About BitSet/WCBitSet ===----
      *
      *   the .size() of a bitset is how much ram is allocated (default 64)
      *   the .length() of a bitset varies depending upon what bits are set.
@@ -115,15 +113,15 @@ public class Rule {
                 Rule initPrev) {
         this.id = Rule.nextId;
         Rule.nextId++;
-        this.lhs = initLHS.toBitSet();
+        this.lhs = new WCBitSet(initLHS.toBitSet());
         this.action = initAction;
-        this.rhs = initRHS.toBitSet();
+        this.rhs = new WCBitSet(initRHS.toBitSet());
         this.bitsLen = Math.max(initLHS.size(), initRHS.size());
         this.lhsFreqs = new FreqCount[bitsLen];
         this.rhsFreqs = new FreqCount[bitsLen];
         for(int i = 0; i < bitsLen; ++i) {
-            this.lhsFreqs[i] = new FreqCount(this.lhs.get(i));
-            this.rhsFreqs[i] = new FreqCount(this.rhs.get(i));
+            this.lhsFreqs[i] = new FreqCount(this.lhs.wcget(i) != 0);
+            this.rhsFreqs[i] = new FreqCount(this.rhs.wcget(i) != 0);
         }
 
         //Record previous rules and associated depth
@@ -137,11 +135,11 @@ public class Rule {
         }
     }//ctor
 
-    /** helper for toString that converst BitSet as a string of '1' and '0'
-     *  The input is presumed to be of length this.bitsLen.  */
-    private void bitsToString(StringBuilder addToMe, BitSet addThis) {
+    /** helper for toString that converts WCBitSet as a string of '1' and '0'
+     * and '.' for wildcards.  The input is presumed to be of length this.bitsLen.  */
+    private void bitsToString(StringBuilder addToMe, WCBitSet addThis) {
         for(int i = 0; i < this.bitsLen; ++i) {
-            addToMe.append(addThis.get(i) ? '1' : '0');
+            addToMe.append(addThis.wcget(i));
         }
     }
 
@@ -174,8 +172,8 @@ public class Rule {
         return result.toString();
     }//toString
 
-    public BitSet getLHS() { return (BitSet)this.lhs.clone(); }
-    public BitSet getRHS() { return (BitSet)this.rhs.clone(); }
+    public WCBitSet getLHS() { return (WCBitSet)this.lhs.clone(); }
+    public WCBitSet getRHS() { return (WCBitSet)this.rhs.clone(); }
     public int getDepth() { return this.depth; }
     public char getAction() { return this.action; }
 

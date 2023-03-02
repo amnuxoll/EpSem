@@ -3,7 +3,6 @@ package agents.ndxr;
 import framework.Action;
 
 import java.util.ArrayList;
-import java.util.BitSet;
 
 /**
  * class RuleIndex
@@ -159,15 +158,17 @@ public class RuleIndex {
      * where the sensorIndex spans the range of LHS + RHS (treating them
      * as a single set).
      */
-    private boolean getBit(Rule r, int sensorIndex) {
+    private int getBit(Rule r, int sensorIndex) {
         int sensorSize = agent.getCurrExternal().size();
-        BitSet sensors = r.getLHS(); //default LHS
+        WCBitSet sensors = r.getLHS(); //default LHS
         if (sensorIndex >= sensorSize) { //detect RHS
             sensors = r.getRHS();
             sensorIndex -= sensorSize;
         }
 
-        return sensors.get(sensorIndex);
+        int retVal = sensors.wcget(sensorIndex);
+        if (retVal < 0) retVal = 1;  //treat wildcard as '1' for indexing.  Mistake??
+        return retVal;
     }//getBit
 
     /**
@@ -187,11 +188,8 @@ public class RuleIndex {
 
         for(Rule r : this.rules) {
             //Add this rule to the correct bin
-            if (getBit(r, this.splitIndex)) {
-                this.children[1].rules.add(r);
-            } else {
-                this.children[0].rules.add(r);
-            }
+            int index = getBit(r, this.splitIndex);
+            this.children[index].rules.add(r);
         }
 
         //this is no longer a leaf node
@@ -293,7 +291,7 @@ public class RuleIndex {
         //Recursive Case:
         //We are at depth 2+ with a non-leaf.  Find the correct child node and recurse.
         //Node that extSensorIndex could ref LHS or RHS as per code below.
-        int childIndex = getBit(addMe, this.splitIndex) ? 1 : 0;
+        int childIndex = getBit(addMe, this.splitIndex);
         this.children[childIndex].addRule(addMe);
 
     }//addRule
