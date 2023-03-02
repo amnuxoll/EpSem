@@ -95,9 +95,7 @@ public class NdxrAgent implements IAgent {
         }//create new rules with this episode
 
         //print all rules
-//        for(Rule r : this.rules) {
-//            System.out.println(r);
-//        }
+        this.rules.printAll();
 
         //random action (for now)
         int actionIndex = this.random.nextInt(this.actions.length);

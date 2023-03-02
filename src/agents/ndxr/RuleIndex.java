@@ -33,8 +33,8 @@ public class RuleIndex {
 
     /**These two constants control when a leaf gets too big and must be split
      * see {@link #considerSplit()} */
-    private static final int MIN_SMALLEST = 1;
-    private static final int MAX_SIZE_RATIO = 2;
+    private static final int MIN_SMALLEST = 2;
+    private static final int MAX_SIZE_RATIO = 3;
 
     /** these are index constants for top-level nodes.  See extSensorIndex below. */
     private static final int TBD_INDEX = -1;  //for leaf nodes
@@ -369,6 +369,33 @@ public class RuleIndex {
         if (this.rules == null) return 0;
         else return this.rules.size();
     }
+
+    /**
+     * printAll           *RECURSIVE*
+     *
+     * prints all the rules in this (sub)tree in a readable format
+     */
+    public void printAll() {
+        //don't print nodes that contain no rules
+        if (this.getRepRule() == null) return;
+
+        //print the node, properly indented and formatted as ASCII tree
+        System.out.print(("+-" + this.toString()).indent(this.indexDepth * 2));
+
+        //Recursive Case: non-leaf - recurse to children
+        if (this.children != null) {
+            for(RuleIndex child : this.children) {
+                child.printAll();
+            }
+        }
+        //Base Case:  leaf - print all rules
+        else if (this.rules != null) {
+            for(Rule r : rules) {
+                System.out.print(r.toString().indent(2 + this.indexDepth * 2));
+            }
+        }
+    }//printAll
+
 
 
 }//class RuleIndex
