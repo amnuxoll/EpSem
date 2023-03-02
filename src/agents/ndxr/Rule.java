@@ -42,7 +42,6 @@ public class Rule {
         /** number of bits in counter that are in use */
         private byte size = 0;
 
-
         /**
          *
          * @param wasOn  is the sensor associated with this object currently on?
@@ -51,6 +50,7 @@ public class Rule {
             addBit(wasOn);
         }
 
+        /** updates the object with a new bit */
         public void addBit(boolean b) {
             //Are we about to push off a '1' bit?
             if ((this.counter & MOST_SIG) != 0) this.counter--;  //Note:  if (size < FQ_MAX) this won't happen
@@ -78,7 +78,6 @@ public class Rule {
      ----------------------------------------------------------------------------*/
 
     private int id;         //unique id for this rule
-    private int bitsLen;    //number of external sensor bits on each side of this rule
     private WCBitSet lhs;   //sensor values on lhs*
     private char action;    //action taken by the agent
     private WCBitSet rhs;   //sensors values on the rhs*
@@ -94,6 +93,9 @@ public class Rule {
      *
      */
 
+    //number of external sensor bits on each side of a Rule (same for all rules)
+    private static int bitsLen = -1;
+
     //track the "on" frequency of each bit on the LHS and RHS
     private FreqCount[] lhsFreqs;
     private FreqCount[] rhsFreqs;
@@ -105,7 +107,6 @@ public class Rule {
     //A rule's depth is how many
     private int depth = 0;
 
-
     /**
      * boring ctor
      */
@@ -116,7 +117,7 @@ public class Rule {
         this.lhs = new WCBitSet(initLHS.toBitSet());
         this.action = initAction;
         this.rhs = new WCBitSet(initRHS.toBitSet());
-        this.bitsLen = Math.max(initLHS.size(), initRHS.size());
+        if (this.bitsLen == -1)  Rule.bitsLen = Math.max(initLHS.size(), initRHS.size());
         this.lhsFreqs = new FreqCount[bitsLen];
         this.rhsFreqs = new FreqCount[bitsLen];
         for(int i = 0; i < bitsLen; ++i) {
@@ -139,10 +140,35 @@ public class Rule {
      * and '.' for wildcards.  The input is presumed to be of length this.bitsLen.  */
     private void bitsToString(StringBuilder addToMe, WCBitSet addThis) {
         for(int i = 0; i < this.bitsLen; ++i) {
-            addToMe.append(addThis.wcget(i));
+            int val = addThis.wcget(i);
+            char cVal = '.';
+            if (val == 1) cVal = '1';
+            else if (val == 0) cVal = '0';
+            addToMe.append(cVal);
         }
     }
 
+    /**
+     * mergeWith
+     *
+     * merges a given rule into this one
+     */
+    public void mergeWith(Rule other) {
+        if (other.depth != this.depth) throw new IllegalArgumentException("Can not merge rules with mismattching depths");
+        if (other.action != this.action) throw new IllegalArgumentException("Can not merge rules with mismattching depths");
+
+        //Merge the external sensors
+        this.lhs.mergeWith(other.lhs);
+        this.rhs.mergeWith(other.rhs);
+
+        //Merge the internal sensors by creating a union of the sets
+        this.prevRules.addAll(other.prevRules);
+
+        //TODO: Merge the frequency counts.  Can't do it now as no way to test it.
+
+    }//mergeWith
+
+    /** toString() override */
     @Override
     public String toString() {
         StringBuilder result = new StringBuilder();
@@ -157,6 +183,7 @@ public class Rule {
         boolean first = true;
         for(Rule r : this.prevRules) {
             if (!first) result.append(",");
+            else first = false;
             result.append(r.id);
         }
         result.append(")");

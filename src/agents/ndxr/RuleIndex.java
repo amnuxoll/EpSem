@@ -282,6 +282,19 @@ public class RuleIndex {
 
         //Base Case: if this is a leaf node so just add the rule
         if (isLeaf()) {
+            //DEBUG: REMOVE
+            //TO test merge, let's merge any two rules that we can
+            if (this.rules.size() > 0) {
+                Rule old = this.rules.get(0);
+                System.out.println("Before merge old: " + old);
+                System.out.println("Before merge new: " + addMe);
+                old.mergeWith(addMe);
+                System.out.println("After merge old: " + old);
+                return;
+            }
+
+
+
             this.rules.add(addMe);
             this.adjustRulePos();
             this.considerSplit();

@@ -47,6 +47,21 @@ public class WCBitSet extends BitSet implements Cloneable {
         wilds.set(index);
     }
 
+    /**
+     * mergeWith
+     *
+     * merges another WCBitSet with this one.  Where their bits disagree,
+     * the value is set to a wildcard.
+     */
+    public void mergeWith(WCBitSet other) {
+        for(int i = 0; i <= other.length(); ++i) {
+            int thisVal = this.wcget(i);
+            if (thisVal == -1) continue;
+            int otherVal = other.wcget(i);
+            if (thisVal != otherVal) this.wcset(i);
+        }
+    }
+
     /** clone override */
     @Override
     public Object clone() {
