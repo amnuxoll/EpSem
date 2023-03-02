@@ -11,19 +11,13 @@ import java.util.Random;
 /**
  * NdxrAgent
  *
- * is a test agent created as a proof of concept for doing two-phase matching
- * with EpMem rules.  Once this functionality is working, it's intended be
- * combined with the PhuJus agent to create new more scalable version of
- * PhuJus.
- *
- * A key intended approach is the use of Bloom Filters (or something like
- * them) to rapidly find similar rules but also as a way of merging rules
- * together with a minimal loss of knowledge.
+ * This agent is intended to be like PhuJus but scalable.  In particular,
+ * it allows the agent to find and merage similar rules with a minimal
+ * loss of knowledge.
  */
 public class NdxrAgent implements IAgent {
     /** maximum number of rules allowed */
     public static final int MAX_NUM_RULES = 1000;
-
 
     //a list of valid actions in the env
     private Action[] actions;
@@ -31,6 +25,12 @@ public class NdxrAgent implements IAgent {
     private IIntrospector introspector;
     //Use this for all random number generation in this agent
     private Random random = utils.Random.getFalse();
+
+
+    //The rules which matched the agent's previous experience
+    private ArrayList<Rule> prevInternal = new ArrayList<>();
+    //The rules which are matching the agent's current experience
+    private ArrayList<Rule> currInternal = null;
 
     //The external sensors the agent saw on the last time step
     private SensorData prevExternal = null;
@@ -69,8 +69,11 @@ public class NdxrAgent implements IAgent {
     public Action getNextAction(SensorData sensorData) throws Exception {
 
         //update the sensor logs
+        this.prevInternal = this.currInternal;
         this.prevExternal = this.currExternal;
         this.currExternal = sensorData;
+
+        ruleMaintenance();
 
         //Create new rules from the previous episode + current sensing
         if (this.prevExternal != null) {
@@ -103,6 +106,22 @@ public class NdxrAgent implements IAgent {
         this.prevAction = action.toString().charAt(0);  //This trick may not work in the future...
         return action;
     }
+
+    /**
+     * ruleMaintenance
+     *
+     * updates the data in the rules that match the experience the agent just had
+     */
+    public void ruleMaintenance() {
+        //Skip first timestep
+        if (this.prevAction == '?') return;
+
+        //Get the rules that match what the agent just experienced
+        this.currInternal = this.rules.findMatches(this.prevInternal,
+                                                    this.prevExternal,
+                                                    this.prevAction,
+                                                    this.currExternal);
+    }//ruleMaintenance
 
 
     public Action[] getActions() { return this.actions; }

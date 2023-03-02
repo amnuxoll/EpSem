@@ -17,6 +17,9 @@ public class WCBitSet extends BitSet implements Cloneable {
     //indicates which bits are wild.  This is left null if none are wild.
     private BitSet wilds = null;
 
+    /** default ctor */
+    public WCBitSet() { super(); }
+
     /** ctor to init with an existing BitSet */
     public WCBitSet(BitSet bs) {
         super();

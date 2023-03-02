@@ -1,6 +1,7 @@
 package agents.ndxr;
 
 import framework.Action;
+import framework.SensorData;
 
 import java.util.ArrayList;
 
@@ -258,7 +259,7 @@ public class RuleIndex {
     }//adjustRulePos
 
     /**
-     * addRule           *RECURSIVE*
+     * addRule          <!-- RECURSIVE -->
      * <p>
      * adds a new Rule to this RuleIndex object.  This may, in turn, trigger
      * a split which may trigger a re-balance.
@@ -282,19 +283,6 @@ public class RuleIndex {
 
         //Base Case: if this is a leaf node so just add the rule
         if (isLeaf()) {
-            //DEBUG: REMOVE
-            //TO test merge, let's merge any two rules that we can
-            if (this.rules.size() > 0) {
-                Rule old = this.rules.get(0);
-                System.out.println("Before merge old: " + old);
-                System.out.println("Before merge new: " + addMe);
-                old.mergeWith(addMe);
-                System.out.println("After merge old: " + old);
-                return;
-            }
-
-
-
             this.rules.add(addMe);
             this.adjustRulePos();
             this.considerSplit();
@@ -308,6 +296,80 @@ public class RuleIndex {
         this.children[childIndex].addRule(addMe);
 
     }//addRule
+
+    /**
+     * matchHelper           <!-- RECURSIVE -->
+     *
+     * is a helper method for {@link #findMatches} that finds all matches in this subtree.
+     * Note: This method must be called on a node with indexDepth of 2+.
+     */
+    private void matchHelper(ArrayList<Rule> result, ArrayList<Rule> prevInternal,
+                             WCBitSet prevExtBits, WCBitSet currExtBits) {
+        //Recursive case:  non-leaf node
+        if (this.children != null) {
+            //Retrieve the experience's bit that this rule splits on
+            int bitIndex = this.splitIndex;
+            int bit = -1;
+            if (bitIndex < Rule.getBitsLen()) {
+                bit = prevExtBits.wcget(bitIndex);
+            }
+            else {
+                bitIndex -= Rule.getBitsLen();
+                bit = currExtBits.wcget(bitIndex);
+            }
+
+            //Recurse into matching child(ren)
+            if (bit != 1) {
+                this.children[0].matchHelper(result, prevInternal, prevExtBits, currExtBits);
+            }
+            if (bit != 0) {
+                this.children[1].matchHelper(result, prevInternal, prevExtBits, currExtBits);
+            }
+        }//non-leaf
+
+        //Base Case:  leaf node
+        else if (this.rules != null) {
+            //TODO: STOPPED HERE
+        }
+    }//matchHelper
+
+    /**
+     * findMatches
+     *
+     * searches this rule index for all rules that match the given parameters
+     *
+     * Notes: this method should only be called on the top-level (root) node.
+     *
+     * @param prevExternal must be sorted by indexDepth.  It also may be null
+     *
+     * @return the list of rules found (in sorted order by index depth)
+     */
+    public ArrayList<Rule> findMatches(ArrayList<Rule> prevInternal,
+                                       SensorData prevExternal,
+                                       char act,
+                                       SensorData currExternal) {
+        ArrayList<Rule> result = new ArrayList<>();
+        if (this.indexDepth != 0) {
+            System.err.println("ERROR:  findMatches called on non-root node.");
+            return result;
+        }
+
+        //Convert the SensorData to WCBitSet for matching
+        WCBitSet prevExtBits = new WCBitSet();
+        if (prevExternal != null) prevExtBits = new WCBitSet(prevExternal.toBitSet());
+        WCBitSet currExtBits = new WCBitSet(currExternal.toBitSet());
+
+        //Find matches at each indexDepth
+        for(int depth = 0; depth <= Rule.MAX_DEPTH; ++depth) {
+            int actIndex = act - 'a';
+            RuleIndex d2node = this.children[depth].children[actIndex];
+            d2node.matchHelper(result, prevInternal, prevExtBits, currExtBits);
+        }
+
+        return result;
+    }//findMatches
+
+
 
     /**
      * getRepRule
@@ -382,7 +444,7 @@ public class RuleIndex {
     }
 
     /**
-     * printAll           *RECURSIVE*
+     * printAll           <!-- RECURSIVE -->
      *
      * prints all the rules in this (sub)tree in a readable format
      */
@@ -406,7 +468,6 @@ public class RuleIndex {
             }
         }
     }//printAll
-
 
 
 }//class RuleIndex

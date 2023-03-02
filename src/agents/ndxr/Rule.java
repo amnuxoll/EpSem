@@ -203,6 +203,7 @@ public class Rule {
     public WCBitSet getRHS() { return (WCBitSet)this.rhs.clone(); }
     public int getDepth() { return this.depth; }
     public char getAction() { return this.action; }
+    public static int getBitsLen() { return Rule.bitsLen; }
 
 
 }//class Rule
