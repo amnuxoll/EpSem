@@ -1,11 +1,11 @@
 package agents.ndxr;
 
-import framework.*;
-import utils.EpisodicMemory;
+import framework.Action;
+import framework.IAgent;
+import framework.IIntrospector;
+import framework.SensorData;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.Random;
 
 /**
@@ -27,10 +27,10 @@ public class NdxrAgent implements IAgent {
     private Random random = utils.Random.getFalse();
 
 
-    //The rules which matched the agent's previous experience
-    private ArrayList<Rule> prevInternal = new ArrayList<>();
+    //Rules that matched the agent's last N previous experiences (where N = Rule.MAX_DEPTH)
+    private ArrayList< ArrayList<Rule> > prevInternal = new ArrayList<>();
     //The rules which are matching the agent's current experience
-    private ArrayList<Rule> currInternal = null;
+    private ArrayList<Rule> currInternal = new ArrayList<>();
 
     //The external sensors the agent saw on the last time step
     private SensorData prevExternal = null;
@@ -38,8 +38,6 @@ public class NdxrAgent implements IAgent {
     private SensorData currExternal = null;
     //The last action the agent took (prev time step)
     private char prevAction = '?';
-    //The rule used to select the next action
-    private ArrayList<Rule> prevRules = new ArrayList<>();
 
     /** Rules are kept an index to that provides fast lookup and keeps the
      * total number of rules below a global maximum.
@@ -69,33 +67,12 @@ public class NdxrAgent implements IAgent {
     public Action getNextAction(SensorData sensorData) throws Exception {
 
         //update the sensor logs
-        this.prevInternal = this.currInternal;
+        this.prevInternal.add(this.currInternal);
+        if (this.prevInternal.size() > Rule.MAX_DEPTH) this.prevInternal.remove(0);
         this.prevExternal = this.currExternal;
         this.currExternal = sensorData;
 
         ruleMaintenance();
-
-        //Create new rules from the previous episode + current sensing
-        if (this.prevExternal != null) {
-            //new depth zero rule
-            Rule newRule = new Rule(this.prevExternal, this.prevAction,
-                    this.currExternal, null);
-            this.rules.addRule(newRule);
-            ArrayList<Rule> newPRSet = new ArrayList<>();
-            newPRSet.add(newRule);
-
-            //new rules for other depths
-            for (Rule pr : this.prevRules) {
-                if (pr.getDepth() >= Rule.MAX_DEPTH) break;
-                newRule = new Rule(this.prevExternal, this.prevAction,
-                        this.currExternal, pr);
-                this.rules.addRule(newRule);
-                newPRSet.add(newRule);
-            }
-
-            //set prevRules for next iteration
-            this.prevRules = newPRSet;
-        }//create new rules with this episode
 
         //print all rules
         this.rules.printAll();
@@ -108,6 +85,36 @@ public class NdxrAgent implements IAgent {
     }
 
     /**
+     * findEquiv
+     *
+     * searches a list of MatchResult for one that contains a rule that
+     * is at a given depth and completely matches a set of external sensors.
+     * <p>
+     * The list is presumed to be in sorted order by depth
+     * <p>
+     * @return the found rule or null
+     */
+    private Rule findEquiv(ArrayList<RuleIndex.MatchResult> matches,
+                           SensorData lhs,
+                           SensorData rhs,
+                           int depth) {
+        //Convert the SensorData to WCBitSet for matching
+        WCBitSet lhsBits = new WCBitSet();
+        if (lhs != null) lhsBits = new WCBitSet(lhs.toBitSet());
+        WCBitSet rhsBits = new WCBitSet(rhs.toBitSet());
+
+        for(RuleIndex.MatchResult mr : matches) {
+            if (mr.rule.getDepth() < depth) continue;
+            if (mr.rule.getDepth() > depth) break;  //no more at req'd depth
+            if (! mr.rule.getLHS().equals(lhs)) continue;
+            if (! mr.rule.getRHS().equals(lhs)) continue;
+            return mr.rule;
+        }
+
+        return null;
+    }//findEquiv
+
+    /**
      * ruleMaintenance
      *
      * updates the data in the rules that match the experience the agent just had
@@ -117,14 +124,61 @@ public class NdxrAgent implements IAgent {
         if (this.prevAction == '?') return;
 
         //Get the rules that match what the agent just experienced
-        this.currInternal = this.rules.findMatches(this.prevInternal,
-                                                    this.prevExternal,
-                                                    this.prevAction,
-                                                    this.currExternal);
+        ArrayList<Rule> prevInt = new ArrayList<>();
+        if (this.prevInternal.size() > 0) {
+            prevInt = lastPrevInternal();
+        }
+        ArrayList<RuleIndex.MatchResult> matches =
+                this.rules.findMatches( prevInt,
+                                        this.prevExternal,
+                                        this.prevAction,
+                                        this.currExternal);
+        for(RuleIndex.MatchResult mr : matches) {
+            //TODO:  reward?
+        }
+
+        //Create new rules from the previous episode + current sensing
+        this.currInternal.clear();
+        ArrayList<Rule> newRules = new ArrayList<>();
+        if (this.prevExternal != null) {
+            //new depth zero rule
+            Rule r = findEquiv(matches, this.prevExternal, this.currExternal, 0);
+            if (r == null) {
+                r = new Rule(this.prevExternal, this.prevAction,
+                        this.currExternal, null);
+                newRules.add(r);
+            }
+            this.currInternal.add(r);
+
+            //new rules for other depths
+            ArrayList<Rule> lastPrevInt = lastPrevInternal();
+            for (int i = 0; i < lastPrevInt.size(); ++i) {    //for-each causes concurrent mod exceptoin.  idk why
+                Rule pr = lastPrevInt.get(i);
+                if (pr.getDepth() >= Rule.MAX_DEPTH) break;
+                r = findEquiv(matches, this.prevExternal, this.currExternal, pr.getDepth() + 1);
+                if (r == null) {
+                    r = new Rule(this.prevExternal, this.prevAction,
+                            this.currExternal, pr);
+                    newRules.add(r);
+                }
+                this.currInternal.add(r);
+            }//if
+
+            //insert all the new rules into the index
+            for(Rule newb : newRules) {
+                this.rules.addRule(newb);
+            }
+        }//create new rules with this episode
+
     }//ruleMaintenance
 
 
+    private ArrayList<Rule> lastPrevInternal() {
+        if (this.prevInternal.size() == 0) return new ArrayList<>();
+        return this.prevInternal.get(this.prevInternal.size() - 1);
+    }
     public Action[] getActions() { return this.actions; }
     public SensorData getCurrExternal() { return currExternal; }
 
+    public RuleIndex getRules() { return this.rules; }
 }//class NdxrAgent

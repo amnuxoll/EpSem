@@ -2,6 +2,7 @@ package agents.ndxr;
 
 import framework.SensorData;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 
 /** describes sensing+action->sensing */
@@ -136,17 +137,58 @@ public class Rule {
         }
     }//ctor
 
-    /** helper for toString that converts WCBitSet as a string of '1' and '0'
-     * and '.' for wildcards.  The input is presumed to be of length this.bitsLen.  */
-    private void bitsToString(StringBuilder addToMe, WCBitSet addThis) {
-        for(int i = 0; i < this.bitsLen; ++i) {
-            int val = addThis.wcget(i);
-            char cVal = '.';
-            if (val == 1) cVal = '1';
-            else if (val == 0) cVal = '0';
-            addToMe.append(cVal);
+    /**
+     * matchScore
+     * <p>
+     * calculates the match score of this rule with given LHS and RHS.  The action
+     * is presumed to match already.
+     *
+     * TODO:  Use TF-IDF for this method.  For now it's just a cardinality count
+     */
+    public double matchScore(ArrayList<Rule> prevInt, WCBitSet prevExt, WCBitSet currExt) {
+        //Unless depth 0, at least one prevInt must match this rule
+        if (depth > 0) {
+            boolean mat = false;
+            for (Rule r : prevInt) {
+                if (this.prevRules.contains(r)) {
+                    mat = true;
+                    break;
+                }
+            }
+            if (!mat) return 0.0;
         }
-    }
+
+        //compare external sensors
+        double bitMatches = 0.0;
+        for(int i = 0; i < Rule.getBitsLen(); ++i) {
+            //LHS
+            int bit1 = prevExt.wcget(i);
+            int bit2 = this.lhs.wcget(i);
+            if ((bit1 == -1) || (bit2 == -1)) {
+                bitMatches += 0.5;  //half credit for wildcard match
+            }
+            else if (bit1 == bit2) {
+                bitMatches += 1.0;
+            }
+
+            //RHS
+            bit1 = currExt.wcget(i);
+            bit2 = this.rhs.wcget(i);
+            if ((bit1 == -1) || (bit2 == -1)) {
+                bitMatches += 0.5;  //half credit for wildcard match
+            }
+            else if (bit1 == bit2) {
+                bitMatches += 1.0;
+            }
+
+        }//for
+
+        //Calc final score
+        double score = bitMatches / (2.0 * Rule.getBitsLen());
+
+        return score;
+    }//matchScore
+
 
     /**
      * mergeWith
@@ -168,6 +210,8 @@ public class Rule {
 
     }//mergeWith
 
+
+
     /** toString() override */
     @Override
     public String toString() {
@@ -188,10 +232,10 @@ public class Rule {
         }
         result.append(")");
 
-        bitsToString(result, this.lhs);
+        result.append(this.lhs.bitString(Rule.bitsLen));
         result.append(this.action);
         result.append(" -> ");
-        bitsToString(result, this.rhs);
+        result.append(this.rhs.bitString(Rule.bitsLen));
 
         //depth
         result.append(" (depth: " + this.depth + ")");
@@ -199,6 +243,7 @@ public class Rule {
         return result.toString();
     }//toString
 
+    public int getId() { return this.id; }
     public WCBitSet getLHS() { return (WCBitSet)this.lhs.clone(); }
     public WCBitSet getRHS() { return (WCBitSet)this.rhs.clone(); }
     public int getDepth() { return this.depth; }

@@ -12,7 +12,7 @@ import java.util.ArrayList;
  * (in the given order):
  *  - depth
  *  - action
- *  - goal sensor value
+ *  - rhs goal sensor value
  *  - other sensor values (prioritized from least to most wildcarding)
  * <p>
  *  The index is a tree.  Each node in the tree either has child nodes
@@ -67,7 +67,7 @@ public class RuleIndex {
     // depth 2:  index of last sensor on RHS (goal sensor)
     // depth 3+: index of a non-goal sensor.  For LHS use the index into Rule.lhs
     //           For RHS, add the length of Rule.lhs.
-    private int splitIndex = TBD_INDEX;
+    private int splitIndex;
 
     //To keep the tree balanced, we need to keep track of the largest and
     //smallest leaf node in the tree (where size == number of rules).  The
@@ -103,7 +103,7 @@ public class RuleIndex {
 
     /**
      * this ctor creates a new leaf node.
-     *
+     * <p>
      * Important:  The caller is responsible for inserting this new node into
      *             RuleIndex.leaves as appropriate.
      *
@@ -125,7 +125,6 @@ public class RuleIndex {
         //At depth 2, always split on RHS goal sensor which, by convention,
         //is always the last sensor in that set
         if (this.indexDepth == 2) {
-            Rule r = this.rules.get(0);
             int sensorSize = agent.getCurrExternal().size();
             return 2*sensorSize - 1;
         }
@@ -228,7 +227,12 @@ public class RuleIndex {
 
         //split if the size diff is too big
         if ( (largest.numRules() / smallest.numRules() > MAX_SIZE_RATIO) ) {
-            split();
+            largest.split();
+        }
+
+        //TODO:  DEBUG: For now, do extra splits to test splitting and searching more thoroughly
+        else if ( (largest.indexDepth < 6) && (largest.numRules() > 4) ) {
+            largest.split();
         }
 
         //TODO:  rebalance if too many nodes
@@ -298,18 +302,36 @@ public class RuleIndex {
     }//addRule
 
     /**
+     * class MatchResult
+     * <p>
+     * contains rule and its match score.  Used as a result by
+     * {@link #findMatches} and its helpers.
+     */
+    public class MatchResult {
+        public Rule rule;
+        public double score;
+
+        public MatchResult(Rule initRule, double initScore) {
+            this.rule = initRule;
+            this.score = initScore;
+        }
+    }//class MatchResult
+
+    /**
      * matchHelper           <!-- RECURSIVE -->
-     *
+     * <p>
      * is a helper method for {@link #findMatches} that finds all matches in this subtree.
      * Note: This method must be called on a node with indexDepth of 2+.
+     *
+     * @param prevInternal must contain only rules whose depth matches this subtree.
      */
-    private void matchHelper(ArrayList<Rule> result, ArrayList<Rule> prevInternal,
+    private void matchHelper(ArrayList<MatchResult> results, ArrayList<Rule> prevInternal,
                              WCBitSet prevExtBits, WCBitSet currExtBits) {
         //Recursive case:  non-leaf node
         if (this.children != null) {
             //Retrieve the experience's bit that this rule splits on
             int bitIndex = this.splitIndex;
-            int bit = -1;
+            int bit;
             if (bitIndex < Rule.getBitsLen()) {
                 bit = prevExtBits.wcget(bitIndex);
             }
@@ -320,38 +342,117 @@ public class RuleIndex {
 
             //Recurse into matching child(ren)
             if (bit != 1) {
-                this.children[0].matchHelper(result, prevInternal, prevExtBits, currExtBits);
+                this.children[0].matchHelper(results, prevInternal, prevExtBits, currExtBits);
             }
             if (bit != 0) {
-                this.children[1].matchHelper(result, prevInternal, prevExtBits, currExtBits);
+                this.children[1].matchHelper(results, prevInternal, prevExtBits, currExtBits);
             }
         }//non-leaf
 
         //Base Case:  leaf node
-        else if (this.rules != null) {
-            //TODO: STOPPED HERE
+        else if ((this.rules != null) && (this.rules.size() > 0)) {
+            for(Rule r : this.rules) {
+                double score = r.matchScore(prevInternal, prevExtBits, currExtBits);
+                if (score > 0.0) {  //TODO:  0.0 is a low bar.  Require a higher min score to match?  Or take the top N?
+                    MatchResult mr = new MatchResult(r, score);
+                    results.add(mr);
+                }
+            }
+
+            //DEBUG: print the results
+            System.out.println("Matching bin " + this + ":");
+            for(RuleIndex.MatchResult mr : results) {
+                System.out.print("  ");
+                System.out.println(mr.rule);
+            }
         }
     }//matchHelper
 
     /**
-     * findMatches
+     * extractRulesOfDepth
+     * <p>
+     * is a helper method for {@link #findMatches} that finds the Rules
+     * in a given array list that have a given depth
      *
-     * searches this rule index for all rules that match the given parameters
+     * @param index  the search begins at this index.  This list is assumed
+     *               to be in sorted order.
+     * @param depth  the required depth
+     * @param list   the list to search
+     * @param found  this list is filled with the matching rules.  Any existing contents are cleared.
      *
-     * Notes: this method should only be called on the top-level (root) node.
-     *
-     * @param prevExternal must be sorted by indexDepth.  It also may be null
-     *
-     * @return the list of rules found (in sorted order by index depth)
+     * @return the index where the search stopped (to setup for next depth)
      */
-    public ArrayList<Rule> findMatches(ArrayList<Rule> prevInternal,
+    private int extractRulesOfDepth(int index, int depth,
+                                    ArrayList<Rule> list, ArrayList<Rule> found) {
+        //reset any detritus from prev code
+        found.clear();
+
+        //check for bad depth
+        if (( depth < 0) || (depth > Rule.MAX_DEPTH)) return index;
+
+        while(index < list.size()) {
+            Rule r = list.get(index);
+
+            //skip rules of too early depth (shouldn't happen?)
+            if (r.getDepth() < depth) {
+                index++;
+            }
+
+            //copy rules of correct depth
+            else if (r.getDepth() == depth) {
+                found.add(r);
+                index++;
+            }
+
+            //stop the loop at a later depth
+            else {
+                break;
+            }
+        }//while
+
+        return index;
+    }//extractRulesOfDepth
+
+
+    /**
+     * ruleIdListStr           <!-- DEBUG -->
+     * <p>
+     * returns the ids of a list of rules in a parenthetical list
+     */
+    public static String ruleIdListStr(ArrayList<Rule> list) {
+        int count = 0;
+        StringBuilder sb = new StringBuilder();
+        sb.append("(");
+        for(Rule r : list) {
+            if (count > 0) sb.append(",");
+            sb.append(r.getId());
+            count++;
+        }
+        sb.append(")");
+        return sb.toString();
+    }//ruleIdListStr
+
+
+    /**
+     * findMatches
+     * <p>
+     * searches this rule index for all rules that match the given parameters
+     * <p>
+     * Note: this method should only be called on the top-level (root) node.
+     *
+     * @param prevInternal must be sorted by indexDepth.  It also may be null.
+     *
+     * @return the list of rules found and their associated match scores
+     *         (in sorted order by index depth)
+     */
+    public ArrayList<MatchResult> findMatches(ArrayList<Rule> prevInternal,
                                        SensorData prevExternal,
                                        char act,
                                        SensorData currExternal) {
-        ArrayList<Rule> result = new ArrayList<>();
+        ArrayList<MatchResult> results = new ArrayList<>();  //accumulates matching rules
         if (this.indexDepth != 0) {
             System.err.println("ERROR:  findMatches called on non-root node.");
-            return result;
+            return results;
         }
 
         //Convert the SensorData to WCBitSet for matching
@@ -359,21 +460,38 @@ public class RuleIndex {
         if (prevExternal != null) prevExtBits = new WCBitSet(prevExternal.toBitSet());
         WCBitSet currExtBits = new WCBitSet(currExternal.toBitSet());
 
+        //DEBUG:  print the to-be-matched experience
+        StringBuilder sb = new StringBuilder();
+        System.out.println("Given Experience: ");
+        sb.append("  ");
+        sb.append(ruleIdListStr(prevInternal));
+        sb.append(prevExtBits.bitString(Rule.getBitsLen()));
+        sb.append(act);
+        sb.append(" -> ");
+        sb.append(currExtBits.bitString(Rule.getBitsLen()));
+        System.out.println(sb.toString());
+
         //Find matches at each indexDepth
+        int piIndex = 0;  //declare this here so it doesn't get reset to 0 in the loop
+        ArrayList<Rule> lilPI = new ArrayList<>();
         for(int depth = 0; depth <= Rule.MAX_DEPTH; ++depth) {
+            //Find the subtree for this depth and action
             int actIndex = act - 'a';
             RuleIndex d2node = this.children[depth].children[actIndex];
-            d2node.matchHelper(result, prevInternal, prevExtBits, currExtBits);
+
+            //Find the members of prevInternal at this depth
+            piIndex = extractRulesOfDepth(piIndex, depth - 1, prevInternal, lilPI);
+
+            //Retrieve the matching rules
+            d2node.matchHelper(results, lilPI, prevExtBits, currExtBits);
         }
 
-        return result;
+        return results;
     }//findMatches
-
-
 
     /**
      * getRepRule
-     *
+     * <p>
      * retrieves a single Rule that is in this RuleIndex object.  If the RuleIndex
      * is a non-leaf it recurses to find one.
      *
@@ -396,6 +514,46 @@ public class RuleIndex {
 
         return null; //this sub-tree is empty
     }//getRepRule
+
+    /**
+     * buildRepStr
+     * <p>
+     * is a helper method for toString that builds a representation of
+     * a given RuleIndex node that has indexDepth of 2+
+     *
+     * @return an string in this format: ...1.0.b -> ......0
+     */
+    private String buildRepStr() {
+        //Find the level 2 node that is/contains this one
+        Rule r = getRepRule();
+        int depth = r.getDepth();
+        int actIndex = r.getAction() - 'a';
+        RuleIndex node = agent.getRules().children[depth].children[actIndex];
+
+        //Generate starting sensors string (all wildcards)
+        //Note: JDK 11 has String.repeat() method for this.  Ok to use?
+        StringBuilder sbSensors = new StringBuilder();
+        for(int i = 0; i < Rule.getBitsLen() * 2; ++i) {
+            sbSensors.append('.');
+        }
+
+        //Fill in the known bits from this node any parents
+        while(node != this) {
+            int bit = getBit(r, node.splitIndex);
+            if (bit != -1) {  //should always be true
+                sbSensors.replace(node.splitIndex, node.splitIndex + 1, "" + bit);
+            }
+
+            node = node.children[bit];
+        }
+
+        //Create the result
+        String lhs = sbSensors.substring(0, Rule.getBitsLen());
+        String rhs = sbSensors.substring(Rule.getBitsLen());
+        String result = lhs + r.getAction() + " -> " + rhs;
+        return result;
+
+    }//buildRepStr
 
     @Override
     public String toString() {
@@ -422,15 +580,9 @@ public class RuleIndex {
 
         retVal.append(")");
 
-        //TODO: build a representation of the rules inside (e.g., 0....1a -> ...1..0)
-        //      For now I'll paste in a representive rule
+        //build a representation of the rules inside this node
         if (indexDepth > 2) {
-            if (r == null) {
-                retVal.append("no rules yet");
-            } else {
-                retVal.append(" ");
-                retVal.append(r);
-            }
+            retVal.append(buildRepStr());
         }
 
         return retVal.toString();
@@ -445,7 +597,7 @@ public class RuleIndex {
 
     /**
      * printAll           <!-- RECURSIVE -->
-     *
+     * <p>
      * prints all the rules in this (sub)tree in a readable format
      */
     public void printAll() {
