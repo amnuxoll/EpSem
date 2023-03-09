@@ -361,10 +361,6 @@ public class RuleIndex {
 
             //DEBUG: print the results
             System.out.println("Matching bin " + this + ":");
-            for(RuleIndex.MatchResult mr : results) {
-                System.out.print("  ");
-                System.out.println(mr.rule);
-            }
         }
     }//matchHelper
 
@@ -484,6 +480,14 @@ public class RuleIndex {
 
             //Retrieve the matching rules
             d2node.matchHelper(results, lilPI, prevExtBits, currExtBits);
+        }//for each depth
+
+        //DEBUG
+        System.out.println("Results: ");
+        for(RuleIndex.MatchResult mr : results) {
+            System.out.print("  ");
+            System.out.print(mr.rule);
+            System.out.println(" match score: " + mr.score);
         }
 
         return results;

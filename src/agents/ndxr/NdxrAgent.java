@@ -69,13 +69,14 @@ public class NdxrAgent implements IAgent {
         //update the sensor logs
         this.prevInternal.add(this.currInternal);
         if (this.prevInternal.size() > Rule.MAX_DEPTH) this.prevInternal.remove(0);
+        this.currInternal = new ArrayList<>();
         this.prevExternal = this.currExternal;
         this.currExternal = sensorData;
 
         ruleMaintenance();
 
-        //print all rules
-        this.rules.printAll();
+        //DEBUG: print all rules
+        //this.rules.printAll();
 
         //random action (for now)
         int actionIndex = this.random.nextInt(this.actions.length);
@@ -92,7 +93,10 @@ public class NdxrAgent implements IAgent {
      * <p>
      * The list is presumed to be in sorted order by depth
      * <p>
-     * @return the found rule or null
+     * @return the found rule or null.  If there are multiple matches the
+     *         best match is returned.
+     *
+     *  TODO:  Should this return multiple matches?
      */
     private Rule findEquiv(ArrayList<RuleIndex.MatchResult> matches,
                            SensorData lhs,
@@ -103,15 +107,17 @@ public class NdxrAgent implements IAgent {
         if (lhs != null) lhsBits = new WCBitSet(lhs.toBitSet());
         WCBitSet rhsBits = new WCBitSet(rhs.toBitSet());
 
+        Rule result = null;
+        double bestScore = 0.0;
         for(RuleIndex.MatchResult mr : matches) {
             if (mr.rule.getDepth() < depth) continue;
             if (mr.rule.getDepth() > depth) break;  //no more at req'd depth
-            if (! mr.rule.getLHS().equals(lhs)) continue;
-            if (! mr.rule.getRHS().equals(lhs)) continue;
-            return mr.rule;
+            if (! mr.rule.getLHS().equals(lhsBits)) continue;
+            if (! mr.rule.getRHS().equals(rhsBits)) continue;
+            if (mr.score > bestScore) result = mr.rule;
         }
 
-        return null;
+        return result;
     }//findEquiv
 
     /**
@@ -138,6 +144,7 @@ public class NdxrAgent implements IAgent {
         }
 
         //Create new rules from the previous episode + current sensing
+        // (also set this.currInternal)
         this.currInternal.clear();
         ArrayList<Rule> newRules = new ArrayList<>();
         if (this.prevExternal != null) {
@@ -165,6 +172,8 @@ public class NdxrAgent implements IAgent {
             }//if
 
             //insert all the new rules into the index
+            //(This is done at the end so the new rules don't end up being
+            //   internal sensors for each other.)
             for(Rule newb : newRules) {
                 this.rules.addRule(newb);
             }
