@@ -124,14 +124,40 @@ public class RuleIndex {
     private int calcSplitIndex() {
         //At depth 2, always split on RHS goal sensor which, by convention,
         //is always the last sensor in that set
+        int sensorSize = agent.getCurrExternal().size();
         if (this.indexDepth == 2) {
-            int sensorSize = agent.getCurrExternal().size();
             return 2*sensorSize - 1;
         }
 
         //TODO: At depth 3+ select sensor that has least wildcarding and also
-        //      divides.  For now, hardcode as index 0 to test the code so far
-        return 0;
+        //      divides.  For now, use the sensor that creates the most even split
+        int evenSplit = this.rules.size() / 2;
+        int bestGap = 2*sensorSize; //best gap away from even split seen so far
+        int result = 0;
+        for(int i = 0; i < sensorSize - 1; ++i) {
+            int currSplit = 0;
+            //count the zeroes
+            for(Rule r : this.rules) {
+                int bit = getBit(r, i);
+                if (bit == 0) {
+                    currSplit++;
+                }
+            }
+
+            //ideal split?
+            int gap = Math.abs(currSplit - evenSplit);
+            if (gap == 0) {
+                result = i;
+                break;
+            }
+
+            //best gap so far?
+            if (gap < bestGap) {
+                bestGap = gap;
+                result = i;
+            }
+        }
+        return result;
     }//calcSplitIndex
 
 
