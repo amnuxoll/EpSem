@@ -10,7 +10,7 @@ import java.util.Random;
 
 /**
  * NdxrAgent
- *
+ * <p>
  * This agent is intended to be like PhuJus but scalable.  In particular,
  * it allows the agent to find and merage similar rules with a minimal
  * loss of knowledge.
@@ -24,11 +24,11 @@ public class NdxrAgent implements IAgent {
     //allows you to configure data gathered about agent performance (not used atm)
     private IIntrospector introspector;
     //Use this for all random number generation in this agent
-    private Random random = utils.Random.getFalse();
+    private final Random random = utils.Random.getFalse();
 
 
     //Rules that matched the agent's last N previous experiences (where N = Rule.MAX_DEPTH)
-    private ArrayList< ArrayList<Rule> > prevInternal = new ArrayList<>();
+    private final ArrayList< ArrayList<Rule> > prevInternal = new ArrayList<>();
     //The rules which are matching the agent's current experience
     private ArrayList<Rule> currInternal = new ArrayList<>();
 
@@ -57,7 +57,7 @@ public class NdxrAgent implements IAgent {
 
     /**
      * getNextAction
-     *
+     * <p>
      * called by the environment each time step to request the agent's next action
      *
      * @param sensorData The agent's current sensing ({@link SensorData})
@@ -87,7 +87,7 @@ public class NdxrAgent implements IAgent {
 
     /**
      * findEquiv
-     *
+     * <p>
      * searches a list of MatchResult for one that contains a rule that
      * is at a given depth and completely matches a set of external sensors.
      * <p>
@@ -102,18 +102,18 @@ public class NdxrAgent implements IAgent {
                            SensorData lhs,
                            SensorData rhs,
                            int depth) {
-        //Convert the SensorData to WCBitSet for matching
-        WCBitSet lhsBits = new WCBitSet();
-        if (lhs != null) lhsBits = new WCBitSet(lhs.toBitSet());
-        WCBitSet rhsBits = new WCBitSet(rhs.toBitSet());
+        //Convert the SensorData to CondSet for matching
+        if (lhs == null) lhs = SensorData.createEmpty();
+        CondSet lhsConds = new CondSet(lhs);
+        CondSet rhsConds = new CondSet(rhs);
 
         Rule result = null;
         double bestScore = 0.0;
         for(RuleIndex.MatchResult mr : matches) {
             if (mr.rule.getDepth() < depth) continue;
             if (mr.rule.getDepth() > depth) break;  //no more at req'd depth
-            if (! mr.rule.getLHS().equals(lhsBits)) continue;
-            if (! mr.rule.getRHS().equals(rhsBits)) continue;
+            if (! mr.rule.getLHS().equals(lhsConds)) continue;
+            if (! mr.rule.getRHS().equals(rhsConds)) continue;
             if (mr.score > bestScore) result = mr.rule;
         }
 
@@ -122,7 +122,7 @@ public class NdxrAgent implements IAgent {
 
     /**
      * ruleMaintenance
-     *
+     * <p>
      * updates the data in the rules that match the experience the agent just had
      */
     public void ruleMaintenance() {

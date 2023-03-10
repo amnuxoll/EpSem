@@ -7,99 +7,17 @@ import java.util.HashSet;
 
 /** describes sensing+action->sensing */
 public class Rule {
-    public static byte FQ_MAX = 8;  //max matches used by class FreqCount
     private static int nextId = 1;  //next unique rule Id (use val then increment)
     public static int MAX_DEPTH = 7; //maximum rule depth allowed (see depth instance var)
-
-    /**
-     * class FreqCount
-     * <p>
-     * is akin to {@link agents.phujus.TFRule.Cond} but only tracks the last N matches
-     * so that the agent can adapt to changes in the env
-     * <p>
-     * Each time the rule matches a new '1' or '0' is added pushed into
-     * the least significant position depending upon whether the condition
-     * associated with this counter matched.  Thus the agent has a
-     * record of the last N matches.  Right now count is a byte.  If a
-     * longer record is needed, just use an int or long.  If an even
-     * longer record is needed, a BitSet could be used but doing so would
-     * make the shift-left operator unusable.
-     */
-    public class FreqCount {
-
-        /**
-         * MOST_SIG is the same len size as {@link #counter} with only most significant bit set.
-         * This is used to efficiently keep {@link #size} up to date.
-         */
-        public static final byte MOST_SIG = (byte)0b10000000;
-
-        /**
-         * a bit string indicating the history (see the main comment on this class)
-         * If counter's type changes, all the other vars must change to match and
-         * {@link Rule#FQ_MAX} must also be updated.
-         */
-        private byte counter = 0;
-
-        /** number of bits in counter that are in use */
-        private byte size = 0;
-
-        /**
-         *
-         * @param wasOn  is the sensor associated with this object currently on?
-         */
-        public FreqCount(boolean wasOn) {
-            addBit(wasOn);
-        }
-
-        /** updates the object with a new bit */
-        public void addBit(boolean b) {
-            //Are we about to push off a '1' bit?
-            if ((this.counter & MOST_SIG) != 0) this.counter--;  //Note:  if (size < FQ_MAX) this won't happen
-
-            //shift and then add a new '1' if needed
-            this.counter <<= 1;
-            if (b) {
-                this.counter++;
-            }
-
-            //update size as needed up to max
-            if (size < FQ_MAX) {
-                size++;
-            }
-        }
-
-        /** calc percent of time this sensor is "on" for last N matches */
-        public double getFreq() {
-            return (double)Integer.bitCount(counter) / (double)size;
-        }
-    }//class FreqCount
 
     /*===========================================================================
      * Instance Variables
      ----------------------------------------------------------------------------*/
 
     private int id;         //unique id for this rule
-    private WCBitSet lhs;   //sensor values on lhs*
+    private CondSet lhs;    //LHS external sensor conditions
     private char action;    //action taken by the agent
-    private WCBitSet rhs;   //sensors values on the rhs*
-
-    /*     ----===== An Important Warning About BitSet/WCBitSet ===----
-     *
-     *   the .size() of a bitset is how much ram is allocated (default 64)
-     *   the .length() of a bitset varies depending upon what bits are set.
-     *      for example if your bitset is "000000" then the size is zero!
-     *
-     *   If you want to know the "size" of lhs/rhs you will usually want
-     *   to refer to SensorData.size() instead.
-     *
-     */
-
-    //number of external sensor bits on each side of a Rule (same for all rules)
-    private static int bitsLen = -1;
-
-    //track the "on" frequency of each bit on the LHS and RHS
-    private FreqCount[] lhsFreqs;
-    private FreqCount[] rhsFreqs;
+    private CondSet rhs;    //RHS external sensor conditions
 
     //When building sequences of rules (paths) this rule may only be
     //preceded by a rule in this set.
@@ -111,20 +29,12 @@ public class Rule {
     /**
      * boring ctor
      */
-    public Rule(SensorData initLHS, char initAction, SensorData initRHS,
-                Rule initPrev) {
+    public Rule(SensorData initLHS, char initAction, SensorData initRHS, Rule initPrev) {
         this.id = Rule.nextId;
         Rule.nextId++;
-        this.lhs = new WCBitSet(initLHS.toBitSet());
+        this.lhs = new CondSet(initLHS);
         this.action = initAction;
-        this.rhs = new WCBitSet(initRHS.toBitSet());
-        if (this.bitsLen == -1)  Rule.bitsLen = Math.max(initLHS.size(), initRHS.size());
-        this.lhsFreqs = new FreqCount[bitsLen];
-        this.rhsFreqs = new FreqCount[bitsLen];
-        for(int i = 0; i < bitsLen; ++i) {
-            this.lhsFreqs[i] = new FreqCount(this.lhs.wcget(i) != 0);
-            this.rhsFreqs[i] = new FreqCount(this.rhs.wcget(i) != 0);
-        }
+        this.rhs = new CondSet(initRHS);
 
         //Record previous rules and associated depth
         if (initPrev != null) {
@@ -142,10 +52,8 @@ public class Rule {
      * <p>
      * calculates the match score of this rule with given LHS and RHS.  The action
      * is presumed to match already.
-     *
-     * TODO:  Use TF-IDF for this method.  For now it's just a cardinality count
      */
-    public double matchScore(ArrayList<Rule> prevInt, WCBitSet prevExt, WCBitSet currExt) {
+    public double matchScore(ArrayList<Rule> prevInt, CondSet lhs, CondSet rhs) {
         //Unless depth 0, at least one prevInt must match this rule
         if (depth > 0) {
             boolean mat = false;
@@ -159,40 +67,18 @@ public class Rule {
         }
 
         //compare external sensors
-        double bitMatches = 0.0;
-        for(int i = 0; i < Rule.getBitsLen(); ++i) {
-            //LHS
-            int bit1 = prevExt.wcget(i);
-            int bit2 = this.lhs.wcget(i);
-            if ((bit1 == -1) || (bit2 == -1)) {
-                bitMatches += 0.5;  //half credit for wildcard match
-            }
-            else if (bit1 == bit2) {
-                bitMatches += 1.0;
-            }
-
-            //RHS
-            bit1 = currExt.wcget(i);
-            bit2 = this.rhs.wcget(i);
-            if ((bit1 == -1) || (bit2 == -1)) {
-                bitMatches += 0.5;  //half credit for wildcard match
-            }
-            else if (bit1 == bit2) {
-                bitMatches += 1.0;
-            }
-
-        }//for
+        double lhsScore = this.lhs.matchScore(lhs);
+        double rhsScore = this.rhs.matchScore(rhs);
 
         //Calc final score
-        double score = bitMatches / (2.0 * Rule.getBitsLen());
-
+        double score = lhsScore * rhsScore;
         return score;
     }//matchScore
 
 
     /**
      * mergeWith
-     *
+     * <p>
      * merges a given rule into this one
      */
     public void mergeWith(Rule other) {
@@ -205,9 +91,6 @@ public class Rule {
 
         //Merge the internal sensors by creating a union of the sets
         this.prevRules.addAll(other.prevRules);
-
-        //TODO: Merge the frequency counts.  Can't do it now as no way to test it.
-
     }//mergeWith
 
 
@@ -232,10 +115,10 @@ public class Rule {
         }
         result.append(")");
 
-        result.append(this.lhs.bitString(Rule.bitsLen));
+        result.append(this.lhs.bitString());
         result.append(this.action);
         result.append(" -> ");
-        result.append(this.rhs.bitString(Rule.bitsLen));
+        result.append(this.rhs.bitString());
 
         //depth
         result.append(" (depth: " + this.depth + ")");
@@ -244,11 +127,11 @@ public class Rule {
     }//toString
 
     public int getId() { return this.id; }
-    public WCBitSet getLHS() { return (WCBitSet)this.lhs.clone(); }
-    public WCBitSet getRHS() { return (WCBitSet)this.rhs.clone(); }
+    public CondSet getLHS() { return (CondSet)this.lhs.clone(); }
+    public CondSet getRHS() { return (CondSet)this.rhs.clone(); }
     public int getDepth() { return this.depth; }
     public char getAction() { return this.action; }
-    public static int getBitsLen() { return Rule.bitsLen; }
+    public int getBitsLen() { return this.lhs.size() + this.rhs.size(); }
 
 
 }//class Rule

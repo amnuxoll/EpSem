@@ -28,13 +28,13 @@ import java.util.ArrayList;
 public class RuleIndex {
     //This is the maximum number of leaf nodes allowed in the index tree.  It must
     // be large enough to handle any Depth x Action x GoalSensor combo
-    //TODO: figure out an ideal size for this based on MAX_NUM_RULES
+    //TODO: figure out an ideal size for this based on MAX_NUM_RULES + number of possible index combos
     public static int MAX_LEAF_NODES = 100;
 
     /**These two constants control when a leaf gets too big and must be split
      * see {@link #considerSplit()} */
     private static final int MIN_SMALLEST = 2;
-    private static final int MAX_SIZE_RATIO = 3;
+    private static final int MAX_SIZE_RATIO = 2 * (NdxrAgent.MAX_NUM_RULES / MAX_LEAF_NODES);
 
     /** these are index constants for top-level nodes.  See extSensorIndex below. */
     private static final int TBD_INDEX = -1;  //for leaf nodes
@@ -72,7 +72,7 @@ public class RuleIndex {
     //To keep the tree balanced, we need to keep track of the largest and
     //smallest leaf node in the tree (where size == number of rules).  The
     //only way I know to do this is to keep a list of them sorted by size
-    private static ArrayList<RuleIndex> leaves = new ArrayList<>();
+    private static final ArrayList<RuleIndex> leaves = new ArrayList<>();
 
     /** base ctor creates the root node which indexes based on each rule's depth
      * and adds child and grandchild nodes for action and goal sensor  */
@@ -129,8 +129,8 @@ public class RuleIndex {
             return 2*sensorSize - 1;
         }
 
-        //TODO: At depth 3+ select sensor that has least wildcarding and also
-        //      divides.  For now, use the sensor that creates the most even split
+        //TODO: At depth 3+ select sensor that has the most contradiction among the rules.
+        //      For now, use the sensor that creates the most even split
         int evenSplit = this.rules.size() / 2;
         int bestGap = 2*sensorSize; //best gap away from even split seen so far
         int result = 0;
@@ -185,16 +185,12 @@ public class RuleIndex {
      * as a single set).
      */
     private int getBit(Rule r, int sensorIndex) {
-        int sensorSize = agent.getCurrExternal().size();
-        WCBitSet sensors = r.getLHS(); //default LHS
-        if (sensorIndex >= sensorSize) { //detect RHS
-            sensors = r.getRHS();
-            sensorIndex -= sensorSize;
+        CondSet cset = r.getLHS(); //default LHS
+        if (sensorIndex >= cset.size()) { //detect RHS
+            sensorIndex -= cset.size();
+            cset = r.getRHS();
         }
-
-        int retVal = sensors.wcget(sensorIndex);
-        if (retVal < 0) retVal = 1;  //treat wildcard as '1' for indexing.  Mistake??
-        return retVal;
+        return cset.getBit(sensorIndex);
     }//getBit
 
     /**
@@ -333,7 +329,7 @@ public class RuleIndex {
      * contains rule and its match score.  Used as a result by
      * {@link #findMatches} and its helpers.
      */
-    public class MatchResult {
+    public static class MatchResult {
         public Rule rule;
         public double score;
 
@@ -352,18 +348,18 @@ public class RuleIndex {
      * @param prevInternal must contain only rules whose depth matches this subtree.
      */
     private void matchHelper(ArrayList<MatchResult> results, ArrayList<Rule> prevInternal,
-                             WCBitSet prevExtBits, WCBitSet currExtBits) {
+                             CondSet prevExtBits, CondSet currExtBits) {
         //Recursive case:  non-leaf node
         if (this.children != null) {
             //Retrieve the experience's bit that this rule splits on
             int bitIndex = this.splitIndex;
             int bit;
-            if (bitIndex < Rule.getBitsLen()) {
-                bit = prevExtBits.wcget(bitIndex);
+            if (bitIndex < prevExtBits.size()) {
+                bit = prevExtBits.getBit(bitIndex);
             }
             else {
-                bitIndex -= Rule.getBitsLen();
-                bit = currExtBits.wcget(bitIndex);
+                bitIndex -= prevExtBits.size();
+                bit = currExtBits.getBit(bitIndex);
             }
 
             //Recurse into matching child(ren)
@@ -477,21 +473,21 @@ public class RuleIndex {
             return results;
         }
 
-        //Convert the SensorData to WCBitSet for matching
-        WCBitSet prevExtBits = new WCBitSet();
-        if (prevExternal != null) prevExtBits = new WCBitSet(prevExternal.toBitSet());
-        WCBitSet currExtBits = new WCBitSet(currExternal.toBitSet());
+        //Convert the SensorData to CondSet for matching
+        if (prevExternal == null) prevExternal = SensorData.createEmpty();
+        CondSet prevExtBits = new CondSet(prevExternal);
+        CondSet currExtBits = new CondSet(currExternal);
 
         //DEBUG:  print the to-be-matched experience
         StringBuilder sb = new StringBuilder();
         System.out.println("Given Experience: ");
         sb.append("  ");
         sb.append(ruleIdListStr(prevInternal));
-        sb.append(prevExtBits.bitString(Rule.getBitsLen()));
+        sb.append(prevExtBits.bitString());
         sb.append(act);
         sb.append(" -> ");
-        sb.append(currExtBits.bitString(Rule.getBitsLen()));
-        System.out.println(sb.toString());
+        sb.append(currExtBits.bitString());
+        System.out.println(sb);
 
         //Find matches at each indexDepth
         int piIndex = 0;  //declare this here so it doesn't get reset to 0 in the loop
@@ -556,6 +552,7 @@ public class RuleIndex {
     private String buildRepStr() {
         //Find the level 2 node that is/contains this one
         Rule r = getRepRule();
+        if (r == null) return "<no-rule>";
         int depth = r.getDepth();
         int actIndex = r.getAction() - 'a';
         RuleIndex node = agent.getRules().children[depth].children[actIndex];
@@ -563,11 +560,11 @@ public class RuleIndex {
         //Generate starting sensors string (all wildcards)
         //Note: JDK 11 has String.repeat() method for this.  Ok to use?
         StringBuilder sbSensors = new StringBuilder();
-        for(int i = 0; i < Rule.getBitsLen() * 2; ++i) {
+        for(int i = 0; i < r.getBitsLen(); ++i) {
             sbSensors.append('.');
         }
 
-        //Fill in the known bits from this node any parents
+        //Fill in the known bits from this node and any parents
         while(node != this) {
             int bit = getBit(r, node.splitIndex);
             if (bit != -1) {  //should always be true
@@ -578,8 +575,8 @@ public class RuleIndex {
         }
 
         //Create the result
-        String lhs = sbSensors.substring(0, Rule.getBitsLen());
-        String rhs = sbSensors.substring(Rule.getBitsLen());
+        String lhs = sbSensors.substring(0, r.getBitsLen());
+        String rhs = sbSensors.substring(r.getBitsLen());
         String result = lhs + r.getAction() + " -> " + rhs;
         return result;
 
@@ -635,7 +632,7 @@ public class RuleIndex {
         if (this.getRepRule() == null) return;
 
         //print the node, properly indented and formatted as ASCII tree
-        System.out.print(("+-" + this.toString()).indent(this.indexDepth * 2));
+        System.out.print(("+-" + this).indent(this.indexDepth * 2));
 
         //Recursive Case: non-leaf - recurse to children
         if (this.children != null) {
