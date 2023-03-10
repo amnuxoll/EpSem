@@ -77,6 +77,16 @@ public class Rule {
     }//matchScore
 
     /**
+     * tune
+     *
+     * adjusts the CondSets of this rule based on a given prediction that the rule made
+     */
+    public void tune(SensorData prevExternal, SensorData currExternal) {
+        this.lhs.update(prevExternal);
+        this.rhs.update(currExternal);
+    }//tune
+
+    /**
      * mergeWith
      * <p>
      * merges a given rule into this one

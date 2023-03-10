@@ -68,7 +68,7 @@ public class CondSet implements Cloneable {
         //new value replaces the most significant bit
         conds[i] >>= 1;
         if (val) {
-            conds[i] &= MOST_SIG;
+            conds[i] |= MOST_SIG;
         }
 
         return conds[i];

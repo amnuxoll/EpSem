@@ -39,6 +39,9 @@ public class NdxrAgent implements IAgent {
     //The last action the agent took (prev time step)
     private char prevAction = '?';
 
+    //These are the rules that were most confident about the outcome of the agent's action
+    ArrayList<RuleIndex.MatchResult> predictingRules = new ArrayList<>();
+
     /** Rules are kept an index to that provides fast lookup and keeps the
      * total number of rules below a global maximum.
      * Note: this can't be initialized until after this.action is set. */
@@ -73,6 +76,19 @@ public class NdxrAgent implements IAgent {
         this.prevExternal = this.currExternal;
         this.currExternal = sensorData;
 
+        //DEBUG:  print the experience the agent just had
+        if (this.prevExternal != null) {
+            StringBuilder sb = new StringBuilder();
+            sb.append("Agent Experienced: ");
+            sb.append("  ");
+            sb.append(RuleIndex.ruleIdListStr(lastPrevInternal()));
+            sb.append(new CondSet(this.prevExternal).bitString());
+            sb.append(this.prevAction);
+            sb.append(" -> ");
+            sb.append(new CondSet(this.currExternal).bitString());
+            System.out.println(sb);
+        }
+
         ruleMaintenance();
 
         //DEBUG: print all rules
@@ -82,8 +98,27 @@ public class NdxrAgent implements IAgent {
         int actionIndex = this.random.nextInt(this.actions.length);
         Action action = this.actions[actionIndex];
         this.prevAction = action.toString().charAt(0);  //This trick may not work in the future...
+
+        //DEBUG:  print the experience the agent is expecting
+        StringBuilder sb = new StringBuilder();
+        sb.append("Agent is Expecting: ");
+        sb.append("  ");
+        sb.append(RuleIndex.ruleIdListStr(this.currInternal));
+        sb.append(new CondSet(this.currExternal).bitString());
+        sb.append(this.prevAction);
+        sb.append(" -> ????");
+        System.out.println(sb);
+
+
+        //Save the rules that are most confident about the outcome of this action
+        this.predictingRules = this.rules.findMatches( this.currInternal,
+                                                        this.currExternal,
+                                                        this.prevAction,
+                                                        null);
+
+        System.out.println("----------------------------------------------------------------------");
         return action;
-    }
+    }//getNextAction
 
     /**
      * findEquiv
@@ -129,9 +164,17 @@ public class NdxrAgent implements IAgent {
         //Skip first timestep
         if (this.prevAction == '?') return;
 
+        //Tune rules that predicted the current state last timestep
+        for(RuleIndex.MatchResult mr : this.predictingRules) {
+            mr.rule.tune(this.prevExternal, this.currExternal);
+        }
+
         //Get the rules that match what the agent just experienced
-        ArrayList<Rule> prevInt = new ArrayList<>();
-        if (this.prevInternal.size() > 0) {
+        ArrayList<Rule> prevInt;
+        if (this.prevInternal.size() == 0) {  // i.e., timestep 0
+            prevInt = new ArrayList<>();
+        }
+        else {
             prevInt = lastPrevInternal();
         }
         ArrayList<RuleIndex.MatchResult> matches =
@@ -139,9 +182,6 @@ public class NdxrAgent implements IAgent {
                                         this.prevExternal,
                                         this.prevAction,
                                         this.currExternal);
-        for(RuleIndex.MatchResult mr : matches) {
-            //TODO:  reward?
-        }
 
         //Create new rules from the previous episode + current sensing
         // (also set this.currInternal)

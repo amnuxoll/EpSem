@@ -384,7 +384,7 @@ public class RuleIndex {
                     results.add(mr);
 
                     //DEBUG: print the results
-                    System.out.println("Matching bin " + this + ": " + r);
+                    System.out.println("Matching bin " + this + ": " + r + " match score: " + score);
                 }//if match found
             }//for each rule in this node
         }//else if leaf node
@@ -486,17 +486,6 @@ public class RuleIndex {
         if (currExternal == null) currExternal = SensorData.createEmpty();
         CondSet currExtBits = new CondSet(currExternal);
 
-        //DEBUG:  print the to-be-matched experience
-        StringBuilder sb = new StringBuilder();
-        System.out.println("Given Experience: ");
-        sb.append("  ");
-        sb.append(ruleIdListStr(prevInternal));
-        sb.append(prevExtBits.bitString());
-        sb.append(act);
-        sb.append(" -> ");
-        sb.append(currExtBits.bitString());
-        System.out.println(sb);
-
         //Find matches at each indexDepth
         int piIndex = 0;  //declare this here so it doesn't get reset to 0 in the loop
         ArrayList<Rule> lilPI = new ArrayList<>();
@@ -509,20 +498,8 @@ public class RuleIndex {
             piIndex = extractRulesOfDepth(piIndex, depth - 1, prevInternal, lilPI);
 
             //Retrieve the matching rules
-            if (currExternal == null) {
-                d2node.matchHelper(results, lilPI, prevExtBits, currExtBits);
-            } else {
-                d2node.matchHelper(results, lilPI, prevExtBits, currExtBits);
-            }
+            d2node.matchHelper(results, lilPI, prevExtBits, currExtBits);
         }//for each depth
-
-        //DEBUG
-        System.out.println("Results: ");
-        for(RuleIndex.MatchResult mr : results) {
-            System.out.print("  ");
-            System.out.print(mr.rule);
-            System.out.println(" match score: " + mr.score);
-        }
 
         return results;
     }//findMatches
@@ -579,12 +556,15 @@ public class RuleIndex {
         //Fill in the known bits from this node and any parents
         while(node != this) {
             int bit = getBit(r, node.splitIndex);
-            if (bit != -1) {  //should always be true
-                sbSensors.replace(node.splitIndex, node.splitIndex + 1, "" + bit);
+            sbSensors.replace(node.splitIndex, node.splitIndex + 1, "" + bit);
+
+            //DEBUG
+            if (node.children == null) {
+                break;  //should not happen
             }
 
             node = node.children[bit];
-        }
+        }//while
 
         //Create the result
         int halfway = r.getBitsLen() / 2;
