@@ -382,7 +382,9 @@ public class RuleIndex {
             }
 
             //DEBUG: print the results
-            System.out.println("Matching bin " + this + ":");
+            if (this.rules.size() > 0) {
+                System.out.println("Matching bin " + this + ": " + this.rules.get(0));
+            }
         }
     }//matchHelper
 
@@ -575,8 +577,9 @@ public class RuleIndex {
         }
 
         //Create the result
-        String lhs = sbSensors.substring(0, r.getBitsLen());
-        String rhs = sbSensors.substring(r.getBitsLen());
+        int halfway = r.getBitsLen() / 2;
+        String lhs = sbSensors.substring(0, halfway);
+        String rhs = sbSensors.substring(halfway);
         String result = lhs + r.getAction() + " -> " + rhs;
         return result;
 

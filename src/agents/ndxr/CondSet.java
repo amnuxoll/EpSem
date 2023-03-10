@@ -157,6 +157,28 @@ public class CondSet implements Cloneable {
         return sb.toString();
     }//bitString
 
+    /**
+     * bitString
+     * <p>
+     * returns a string of '1', '0' and '.' that is closest to this CondSet
+     * where the characters represent these values:
+     * '1' - 75-100% of MAX_COND
+     * '0' - 0-25% of MAX_COND
+     * '.' - everything else
+     */
+    public String wcBitString() {
+        int minOne = 75 * MAX_COND / 100;
+        int maxZero = 25 * MAX_COND / 100;
+        StringBuilder sb = new StringBuilder();
+        for(int i = 0; i < this.conds.length; ++i) {
+            char bit = '.';
+            if (conds[i] <= maxZero) bit = '0';
+            else if (conds[i] >= minOne) bit = '1';
+            sb.append(bit);
+        }
+        return sb.toString();
+    }//wcBitString
+
     /** equals() override */
     @Override
     public boolean equals(Object obj) {
@@ -170,6 +192,12 @@ public class CondSet implements Cloneable {
     @Override
     public Object clone() {
         return new CondSet(this);
+    }
+
+    /** toString() override */
+    @Override
+    public String toString() {
+        return wcBitString();
     }
 
     /** getBit retrieves the value of a single condition at a given index rounded to 0 or 1 */
