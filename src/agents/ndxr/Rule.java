@@ -50,8 +50,10 @@ public class Rule {
     /**
      * matchScore
      * <p>
-     * calculates the match score of this rule with given LHS and RHS.  The action
+     * calculates the match score of this rule with given LHS.  The action
      * is presumed to match already.
+     *
+     * @param rhs can be null or zero length if only a LHS score is desired
      */
     public double matchScore(ArrayList<Rule> prevInt, CondSet lhs, CondSet rhs) {
         //Unless depth 0, at least one prevInt must match this rule
@@ -67,14 +69,12 @@ public class Rule {
         }
 
         //compare external sensors
-        double lhsScore = this.lhs.matchScore(lhs);
-        double rhsScore = this.rhs.matchScore(rhs);
-
-        //Calc final score
-        double score = lhsScore * rhsScore;
+        double score = this.lhs.matchScore(lhs);
+        if ((rhs != null) && (rhs.size() > 0)) {
+            score *= this.rhs.matchScore(rhs);
+        }
         return score;
     }//matchScore
-
 
     /**
      * mergeWith

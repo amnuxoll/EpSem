@@ -346,6 +346,7 @@ public class RuleIndex {
      * Note: This method must be called on a node with indexDepth of 2+.
      *
      * @param prevInternal must contain only rules whose depth matches this subtree.
+     * @param currExtBits may be empty if you only want to match LHS
      */
     private void matchHelper(ArrayList<MatchResult> results, ArrayList<Rule> prevInternal,
                              CondSet prevExtBits, CondSet currExtBits) {
@@ -353,13 +354,16 @@ public class RuleIndex {
         if (this.children != null) {
             //Retrieve the experience's bit that this rule splits on
             int bitIndex = this.splitIndex;
-            int bit;
+            int bit = -1;  //default is neither 0 nor 1
+            //retrieve bit from LHS
             if (bitIndex < prevExtBits.size()) {
+
                 bit = prevExtBits.getBit(bitIndex);
             }
-            else {
-                bitIndex -= prevExtBits.size();
-                bit = currExtBits.getBit(bitIndex);
+            //retrieve bit from RHS
+            else if (currExtBits.size() > (bitIndex - prevExtBits.size())) {
+                    bitIndex -= prevExtBits.size();
+                    bit = currExtBits.getBit(bitIndex);
             }
 
             //Recurse into matching child(ren)
@@ -375,17 +379,15 @@ public class RuleIndex {
         else if ((this.rules != null) && (this.rules.size() > 0)) {
             for(Rule r : this.rules) {
                 double score = r.matchScore(prevInternal, prevExtBits, currExtBits);
-                if (score > 0.0) {  //TODO:  0.0 is a low bar.  Require a higher min score to match?  Or take the top N?
+                if (score > 0.5) {  //TODO:  0.5 seems like a low bar.  Require a higher min score to match?  Or take the top N?
                     MatchResult mr = new MatchResult(r, score);
                     results.add(mr);
-                }
-            }
 
-            //DEBUG: print the results
-            if (this.rules.size() > 0) {
-                System.out.println("Matching bin " + this + ": " + this.rules.get(0));
-            }
-        }
+                    //DEBUG: print the results
+                    System.out.println("Matching bin " + this + ": " + r);
+                }//if match found
+            }//for each rule in this node
+        }//else if leaf node
     }//matchHelper
 
     /**
@@ -460,7 +462,10 @@ public class RuleIndex {
      * <p>
      * Note: this method should only be called on the top-level (root) node.
      *
-     * @param prevInternal must be sorted by indexDepth.  It also may be null.
+     * @param prevInternal must be sorted by indexDepth.  If the value is
+     *                     'null' then only level 0 rules can be found.
+     * @param currExternal if this parameter is null, then only the LHS
+     *                     of rules need to match.
      *
      * @return the list of rules found and their associated match scores
      *         (in sorted order by index depth)
@@ -478,6 +483,7 @@ public class RuleIndex {
         //Convert the SensorData to CondSet for matching
         if (prevExternal == null) prevExternal = SensorData.createEmpty();
         CondSet prevExtBits = new CondSet(prevExternal);
+        if (currExternal == null) currExternal = SensorData.createEmpty();
         CondSet currExtBits = new CondSet(currExternal);
 
         //DEBUG:  print the to-be-matched experience
@@ -503,7 +509,11 @@ public class RuleIndex {
             piIndex = extractRulesOfDepth(piIndex, depth - 1, prevInternal, lilPI);
 
             //Retrieve the matching rules
-            d2node.matchHelper(results, lilPI, prevExtBits, currExtBits);
+            if (currExternal == null) {
+                d2node.matchHelper(results, lilPI, prevExtBits, currExtBits);
+            } else {
+                d2node.matchHelper(results, lilPI, prevExtBits, currExtBits);
+            }
         }//for each depth
 
         //DEBUG
