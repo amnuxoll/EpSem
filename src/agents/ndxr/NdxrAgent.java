@@ -234,8 +234,9 @@ public class NdxrAgent implements IAgent {
         }
 
         //Merge rules to keep under the limit
-        if (this.numRules > MAX_NUM_RULES) {
-            this.rules.reduce(this.numRules - MAX_NUM_RULES);
+        while (this.numRules > MAX_NUM_RULES) {
+            boolean success = this.rules.reduce(this.numRules - MAX_NUM_RULES);
+            if (!success) break;
             this.numRules--;
         }//rule merging
 

@@ -413,8 +413,10 @@ public class RuleIndex {
      * merges the two most similar rules in the index
      *
      * @param timeStep the current timeStep
+     *
+     * @return true if a rule was successfully removed
      */
-    public void reduce(int timeStep) {
+    public boolean reduce(int timeStep) {
         //do a full update if needed
         if ((this.indexDepth == 0) && (RuleIndex.lastBrotherUpdate < timeStep)) {
             updateBrothers();
@@ -425,6 +427,9 @@ public class RuleIndex {
         Rule r2 = r1.getBrother();
 
         //DEBUG: REMOVE
+        if (r2 == null) {
+            return false;  //no matching rules to cull
+        }
         System.out.println("REMOVING rule: " + r2.verboseString());
         System.out.println("  merged with: " + r1.verboseString());
 
@@ -437,6 +442,7 @@ public class RuleIndex {
         RuleIndex bin = findRuleBin(r2);
         bin.rules.remove(r2);
 
+        return true;
     }//reduce
 
     /**
