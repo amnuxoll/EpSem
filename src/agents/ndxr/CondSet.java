@@ -158,7 +158,7 @@ public class CondSet implements Cloneable {
     }//bitString
 
     /**
-     * bitString
+     * wcBitString
      * <p>
      * returns a string of '1', '0' and '.' that is closest to this CondSet
      * where the characters represent these values:
@@ -178,6 +178,24 @@ public class CondSet implements Cloneable {
         }
         return sb.toString();
     }//wcBitString
+
+    /**
+     * verboseString
+     *
+     * creates a string representation of this object that shows all the cond values
+     */
+    public String verboseString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("{");
+        boolean first = true;
+        for(byte b : conds) {
+            if (!first) sb.append(", ");
+            first = false;
+            sb.append(b);
+        }
+        sb.append("}");
+        return sb.toString();
+    }//verboseString
 
     /** equals() override */
     @Override

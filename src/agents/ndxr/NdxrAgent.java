@@ -17,7 +17,7 @@ import java.util.Random;
  */
 public class NdxrAgent implements IAgent {
     /** maximum number of rules allowed */
-    public static final int MAX_NUM_RULES = 1000;
+    public static final int MAX_NUM_RULES = 50;  //TODO:  DEBUG currently low val for testing
 
     //a list of valid actions in the env
     private Action[] actions;
@@ -42,10 +42,18 @@ public class NdxrAgent implements IAgent {
     //These are the rules that were most confident about the outcome of the agent's action
     ArrayList<RuleIndex.MatchResult> predictingRules = new ArrayList<>();
 
-    /** Rules are kept an index to that provides fast lookup and keeps the
-     * total number of rules below a global maximum.
-     * Note: this can't be initialized until after this.action is set. */
+    //Rules are kept an index to that provides fast lookup and keeps the
+    // total number of rules below a global maximum.
+    //Note: this can't be initialized until after this.action is set.
     private RuleIndex rules = null;
+
+    //Keep track of the total number of rules
+    private int numRules;
+
+    //Keep track of how many steps the agent has taken
+    //Note:  This is staic because it's convenient for the Rule class.
+    // If we ever have multiple simultaneous agents it will be a problem.
+    private static int timeStep = 0;
 
     //ctor may be needed someday?
     public NdxrAgent() {
@@ -68,6 +76,7 @@ public class NdxrAgent implements IAgent {
      */
     @Override
     public Action getNextAction(SensorData sensorData) throws Exception {
+        this.timeStep++;
 
         //update the sensor logs
         this.prevInternal.add(this.currInternal);
@@ -92,7 +101,7 @@ public class NdxrAgent implements IAgent {
         ruleMaintenance();
 
         //DEBUG: print all rules
-        //this.rules.printAll();
+        this.rules.printAll();
 
         //random action (for now)
         int actionIndex = this.random.nextInt(this.actions.length);
@@ -183,41 +192,53 @@ public class NdxrAgent implements IAgent {
                                         this.prevAction,
                                         this.currExternal);
 
+        //At timestep 1, no further work to do
+        if (this.prevExternal == null) return;
+
         //Create new rules from the previous episode + current sensing
         // (also set this.currInternal)
         this.currInternal.clear();
         ArrayList<Rule> newRules = new ArrayList<>();
-        if (this.prevExternal != null) {
-            //new depth zero rule
-            Rule r = findEquiv(matches, this.prevExternal, this.currExternal, 0);
+        //new depth zero rule
+        Rule r = findEquiv(matches, this.prevExternal, this.currExternal, 0);
+        if (r == null) {
+            r = new Rule(this.prevExternal, this.prevAction,
+                    this.currExternal, null);
+            newRules.add(r);
+        }
+        this.currInternal.add(r);
+
+        //new rules for other depths
+        ArrayList<Rule> lastPrevInt = lastPrevInternal();
+        for (int i = 0; i < lastPrevInt.size(); ++i) {    //for-each causes concurrent mod exceptoin.  idk why
+            Rule pr = lastPrevInt.get(i);
+            if (pr.getDepth() >= Rule.MAX_DEPTH) break;
+            r = findEquiv(matches, this.prevExternal, this.currExternal, pr.getDepth() + 1);
             if (r == null) {
                 r = new Rule(this.prevExternal, this.prevAction,
-                        this.currExternal, null);
+                        this.currExternal, pr);
                 newRules.add(r);
             }
             this.currInternal.add(r);
+        }//if
 
-            //new rules for other depths
-            ArrayList<Rule> lastPrevInt = lastPrevInternal();
-            for (int i = 0; i < lastPrevInt.size(); ++i) {    //for-each causes concurrent mod exceptoin.  idk why
-                Rule pr = lastPrevInt.get(i);
-                if (pr.getDepth() >= Rule.MAX_DEPTH) break;
-                r = findEquiv(matches, this.prevExternal, this.currExternal, pr.getDepth() + 1);
-                if (r == null) {
-                    r = new Rule(this.prevExternal, this.prevAction,
-                            this.currExternal, pr);
-                    newRules.add(r);
-                }
-                this.currInternal.add(r);
-            }//if
+        //insert all the new rules into the index
+        //(This is done at the end so the new rules don't end up being
+        //   internal sensors for each other.)
+        for(Rule newb : newRules) {
+            //DEBUG
+            System.out.println("ADDING rule: " + newb);
 
-            //insert all the new rules into the index
-            //(This is done at the end so the new rules don't end up being
-            //   internal sensors for each other.)
-            for(Rule newb : newRules) {
-                this.rules.addRule(newb);
-            }
-        }//create new rules with this episode
+            this.rules.addRule(newb);
+            this.numRules++;
+        }
+
+        //Merge rules to keep under the limit
+        if (this.numRules > MAX_NUM_RULES) {
+            this.rules.reduce(this.numRules - MAX_NUM_RULES);
+            this.numRules--;
+        }//rule merging
+
 
     }//ruleMaintenance
 
@@ -230,4 +251,5 @@ public class NdxrAgent implements IAgent {
     public SensorData getCurrExternal() { return currExternal; }
 
     public RuleIndex getRules() { return this.rules; }
+    public static int getTimeStep() { return NdxrAgent.timeStep; }
 }//class NdxrAgent

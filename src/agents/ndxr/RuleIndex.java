@@ -33,8 +33,9 @@ public class RuleIndex {
 
     /**These two constants control when a leaf gets too big and must be split
      * see {@link #considerSplit()} */
+    //TODO:  have these be calculated based upon MAX_LEAF_NODES & MAX_NUM_RULES?
     private static final int MIN_SMALLEST = 2;
-    private static final int MAX_SIZE_RATIO = 2 * (NdxrAgent.MAX_NUM_RULES / MAX_LEAF_NODES);
+    private static final int MAX_SIZE_RATIO = 5;
 
     /** these are index constants for top-level nodes.  See extSensorIndex below. */
     private static final int TBD_INDEX = -1;  //for leaf nodes
@@ -73,6 +74,9 @@ public class RuleIndex {
     //smallest leaf node in the tree (where size == number of rules).  The
     //only way I know to do this is to keep a list of them sorted by size
     private static final ArrayList<RuleIndex> leaves = new ArrayList<>();
+
+    //The timestep when this.brother was last updated for all rules
+    private static int lastBrotherUpdate = 0;
 
     /** base ctor creates the root node which indexes based on each rule's depth
      * and adds child and grandchild nodes for action and goal sensor  */
@@ -285,43 +289,155 @@ public class RuleIndex {
     }//adjustRulePos
 
     /**
-     * addRule          <!-- RECURSIVE -->
-     * <p>
-     * adds a new Rule to this RuleIndex object.  This may, in turn, trigger
-     * a split which may trigger a re-balance.
+     * findRuleBin          <!-- RECURSIVE -->
+     *
+     * finds which bin in this (sub)tree should contain a given rule.
+     * The given rule need not already be present in the bin.
+     *
+     * Important:  Don't call this method if the needed bin isn't in this (sub)tree!
      */
-    public void addRule(Rule addMe) {
+    private RuleIndex findRuleBin(Rule findMe) {
+        //Base Case: if this is a leaf node just return it
+        if (isLeaf()) {
+            return this;
+        }
+
         //depth 0:  use rule depth
         if (indexDepth == 0) {
-            RuleIndex child = this.children[addMe.getDepth()];
-            child.addRule(addMe);
-            return;
+            RuleIndex child = this.children[findMe.getDepth()];
+            return child.findRuleBin(findMe);
         }
 
         //depth 1:  use rule's action as index
         if (indexDepth == 1) {
             // We assume actions are a, b, c, etc.  Should be ok for now.
-            int childIndex = addMe.getAction() - 'a';
+            int childIndex = findMe.getAction() - 'a';
             RuleIndex child = this.children[childIndex];
-            child.addRule(addMe);
-            return;
+            return child.findRuleBin(findMe);
         }
 
-        //Base Case: if this is a leaf node so just add the rule
-        if (isLeaf()) {
-            this.rules.add(addMe);
-            this.adjustRulePos();
-            this.considerSplit();
-            return;
-        }
+        //Depth 2+:  Find the correct child node with the splitIndex
+        int childIndex = getBit(findMe, this.splitIndex);
+        return this.children[childIndex].findRuleBin(findMe);
+    }//findRuleBin
 
-        //Recursive Case:
-        //We are at depth 2+ with a non-leaf.  Find the correct child node and recurse.
-        //Node that extSensorIndex could ref LHS or RHS as per code below.
-        int childIndex = getBit(addMe, this.splitIndex);
-        this.children[childIndex].addRule(addMe);
-
+    /**
+     * addRule
+     * <p>
+     * adds a new Rule to this RuleIndex object.  This may, in turn, trigger
+     * a split which may trigger a re-balance.
+     */
+    public void addRule(Rule addMe) {
+        RuleIndex bin = findRuleBin(addMe);
+        bin.rules.add(addMe);
+        bin.adjustRulePos();
+        bin.considerSplit();
     }//addRule
+
+    /**
+     * updateBrothers         <!-- RECURSIVE -->
+     *
+     * updates this.brother for all rules in this (sub)tree of the index
+     */
+    public void updateBrothers() {
+        //Recursive case:  non-leaf node
+        if (this.children != null) {
+            for (RuleIndex ri : this.children) {
+                ri.updateBrothers();
+            }
+            return;
+        }
+
+        //Base Case:  leaf node
+        if (this.rules != null) {
+            //reset all brothers
+            for(Rule r : this.rules) {
+                r.setBrother(null, 0.0);
+            }
+
+            //Perform N^2 comparisons (ouch) to find best match
+            for(int i = 0; i < this.rules.size() - 1; ++i) {
+                Rule r1 = this.rules.get(i);
+                double bestMatch = r1.getBrotherScore();
+                for(int j = i + 1; j < this.rules.size(); ++j) {
+                    Rule r2 = this.rules.get(j);
+                    double score = r1.matchScore(r2);
+                    if (score > bestMatch) {
+                        r1.setBrother(r2, score);
+                        if (r2.getBrotherScore() < score) r2.setBrother(r1, score);
+                        bestMatch = score;
+                    }
+                }//for
+            }//for
+        }//if base case
+
+    }//updateBrothers
+
+    /**
+     * bestBrothers             <!-- RECURSIVE -->
+     *
+     * is a helper method for {@link #reduce}.  It finds the rule in this
+     * tree whose brother is the most similar to it
+     */
+    public Rule bestBrothers() {
+        Rule bestRule = null;
+        double bestScore = -1.0;
+        //Recursive case:  non-leaf
+        if (this.children != null) {
+            for(RuleIndex child : this.children) {
+                Rule cand = child.bestBrothers();
+                if ((cand != null) && (cand.getBrotherScore() > bestScore)) {
+                    bestScore = cand.getBrotherScore();
+                    bestRule = cand;
+                }
+            }
+        }
+
+        //Base Case:  leaf node
+        if (this.rules != null) {
+            for(Rule r : this.rules) {
+                double score = r.getBrotherScore();
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestRule = r;
+                }
+            }
+        }
+
+        return bestRule;
+    }//bestBrothers
+
+    /**
+     * reduce
+     *
+     * merges the two most similar rules in the index
+     *
+     * @param timeStep the current timeStep
+     */
+    public void reduce(int timeStep) {
+        //do a full update if needed
+        if ((this.indexDepth == 0) && (RuleIndex.lastBrotherUpdate < timeStep)) {
+            updateBrothers();
+        }
+
+        //merge the closest matching rules
+        Rule r1 = this.bestBrothers();
+        Rule r2 = r1.getBrother();
+
+        //DEBUG: REMOVE
+        System.out.println("REMOVING rule: " + r2.verboseString());
+        System.out.println("  merged with: " + r1.verboseString());
+
+        r1.mergeWith(r2);
+
+        //DEBUG: REMOVE
+        System.out.println("       to get: " + r1.verboseString());
+
+        //remove the old rule
+        RuleIndex bin = findRuleBin(r2);
+        bin.rules.remove(r2);
+
+    }//reduce
 
     /**
      * class MatchResult
@@ -379,13 +495,11 @@ public class RuleIndex {
         else if ((this.rules != null) && (this.rules.size() > 0)) {
             for(Rule r : this.rules) {
                 double score = r.matchScore(prevInternal, prevExtBits, currExtBits);
-                if (score > 0.5) {  //TODO:  0.5 seems like a low bar.  Require a higher min score to match?  Or take the top N?
-                    MatchResult mr = new MatchResult(r, score);
-                    results.add(mr);
+                MatchResult mr = new MatchResult(r, score);
+                results.add(mr);
 
-                    //DEBUG: print the results
-                    System.out.println("Matching bin " + this + ": " + r + " match score: " + score);
-                }//if match found
+                //DEBUG: print the results
+                //System.out.println("Matching bin " + this + ": " + r + " match score: " + score);
             }//for each rule in this node
         }//else if leaf node
     }//matchHelper
