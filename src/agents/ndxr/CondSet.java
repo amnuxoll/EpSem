@@ -8,30 +8,45 @@ import java.util.BitSet;
 /**
  * class CondSet
  * <p>
- * represents a sequence of 1+ conditions of a rule that can be used to
+ * represents a sequence of conditions of a rule that can be used to
  * calculate a match score with a given sensor array. (Could be LHS or RHS.)
+ * <p>
+ * Each condition is either a '1' or '0' depending upon what exerience (episode)
+ * was used to create it.  Each condition also has a confidence that is
+ * adjusted based upon subsequent experiences.  A condition with zero
+ * confidence is effectively a wildcard bit (matches either '0' or '1').
+ *
  */
 public class CondSet implements Cloneable {
+    /** number of bits per condition used to measure confidence.  I have this
+     * set to 7 right now because a byte is being used for each confidence value.
+     * (Remember, in Java there is no unsigned byte so the leftmost bit can't
+     * be used.)
+     */
+    public static final int NUM_CONF_BITS = 7;
+
     /**
-     * MOST_SIG is used for updates.  Only the most significant bit is set.
-     *
+     * a convenient array used to extract individual bits from this.base
      */
-    public static final byte MOST_SIG = (byte)0b01000000;  //i.e., 64
+    public static final byte[] singleBits = {(byte)0b00000001, (byte)0b00000010, (byte)0b00000100, (byte)0b00001000,
+                                             (byte)0b00010000, (byte)0b00100000, (byte)0b01000000 };
 
-    /** number of bits per condition  (Remember, in Java there is no unsigned
-     * byte so the leftmost bit can't be used.)
-     */
-    public static final double NUM_BITS = 7.0;
+    /** the highest confidence that the agent can have */
+    public static final byte MAX_CONF = (byte)0b01111111; //i.e., 127
 
-    /** max value of a condition */
-    public static final byte MAX_COND = (byte)0b01111111; //i.e., 127
+    /** for convenice, identify the most significant bit in a confidnce value */
+    public static final byte MOST_SIG = (byte)(byte)0b01000000;
 
-    //Each condition is represented by a value.  The closer this value is
-    //to zero the more confident the agent is that the sensor must be zero
-    //to match it.
+    //The initial value of each bit is represented in this value which never
+    // changes once set.  If an agent ever has more than 7 sensors, this will
+    // have to become a different type to accommodate
+    private byte base = 0;
+
+    //The agent's confidence in each bit is represented by a corresponding
+    //value in this array.
     //NOTE:  Right now I'm using a byte.  A longer value may be a better
-    //       choice in the future (:AMN: March 2023)
-    private final byte[] conds;
+    //       choice in the future (:AMN:, March 2023)
+    private final byte[] confs;
 
 
     /**
@@ -40,56 +55,64 @@ public class CondSet implements Cloneable {
      * @param sensors values to init the conditions with
      */
     public CondSet(SensorData sensors) {
-        conds = new byte[sensors.size()];
+        confs = new byte[sensors.size()];
         BitSet bits = sensors.toBitSet();
         for(int i = 0; i < sensors.size(); ++i) {
-            conds[i] = (bits.get(i)) ? Byte.MAX_VALUE : 0;
+            //initialize base
+            if (bits.get(i)) {
+                base |= CondSet.singleBits[i];
+            }
+
+            //Conds start at maximum
+            confs[i] = MAX_CONF;
         }
     }//ctor
 
     /** copy ctor */
     public CondSet(CondSet orig) {
-        this.conds = Arrays.copyOf(orig.conds, orig.conds.length);
+        this.base = orig.base;
+        this.confs = Arrays.copyOf(orig.confs, orig.confs.length);
     }
 
     /**
-     * updateOne
+     * adjustOne
      * <p>
-     * updates the value of a particular condition with a given value
+     * adjusts the confidence in a particular condition to make it stronger or weaker
      *
-     * @return the new value
+     * @return the confidence value
      */
-    public byte updateOne(int i, boolean val) {
+    public byte adjustOne(int i, boolean stronger) {
         //check for valid index
-        if ((i < 0) || (i  >= this.conds.length)) {
-            return 0;
-        }
+        if ((i < 0) || (i  >= this.confs.length)) return 0;
 
         //new value replaces the most significant bit
-        conds[i] >>= 1;
-        if (val) {
-            conds[i] |= MOST_SIG;
+        confs[i] >>= 1;
+        if (stronger) {
+            confs[i] |= MOST_SIG;
         }
 
-        return conds[i];
-    }//update one condition
+        return confs[i];
+    }//adjustOne
 
     /**
      * update
      * <p>
-     * updates all the conditions with a given SensorData set
+     * updates all the confidences with a given SensorData set
      */
     public void update(SensorData sensors) {
         BitSet bits = sensors.toBitSet();
         for(int i = 0; i < sensors.size(); ++i) {
-            updateOne(i, bits.get(i));
+            boolean sensorVal = bits.get(i);
+            boolean myVal = (this.getBit(i) == 1);
+            adjustOne(i, sensorVal == myVal);
         }
-    }//update all conditions
+    }//update
 
     /**
      * matchScore
      * <p>
      * calculates how closely this CondSet matches a given SensorData set
+     * NOTE:  sensors.size() should equal this.confs.length
      *
      * @return a match score in the range [0.0..1.0]
      *
@@ -99,13 +122,13 @@ public class CondSet implements Cloneable {
         BitSet bits = sensors.toBitSet();
         double sum = 0.0;
         for(int i = 0; i < sensors.size(); ++i) {
-            if (bits.get(i)) {
-                sum += conds[i];
-            } else {
-                sum += Byte.MAX_VALUE - conds[i];
+            boolean sensorVal = bits.get(i);
+            boolean myVal = (this.getBit(i) == 1);
+            if (sensorVal == myVal) {
+                sum += confs[i];
             }
         }
-        double score = sum / (NUM_BITS * Byte.MAX_VALUE);
+        double score = sum / ((double)(NUM_CONF_BITS * MAX_CONF));
         return score;
     }//matchScore
 
@@ -113,18 +136,23 @@ public class CondSet implements Cloneable {
      * matchScore
      * <p>
      * calculates how closely this CondSet matches another CondSet
-     * NOTE:  the other set must be same size
+     * NOTE:  the other set should be same size
      *
      * @return a match score in the range [0.0..1.0]
      *
-     * TODO:  Use TF-IDF for this method?  For now it's just an avg diff.  Could also use a squared diff??
+     * TODO:  Use TF-IDF for this method?  For now it's just a weighted cardinality count
      */
     public double matchScore(CondSet other) {
         double sum = 0.0;
         for(int i = 0; i < this.size(); ++i) {
-            sum += Math.abs(this.conds[i] - other.conds[i]);
+            int myBit = this.getBit(i);
+            int otherBit = other.getBit(i);
+            if (myBit == otherBit) {
+                sum += this.confs[i];
+                sum += other.confs[i];
+            }
         }
-        double score = 1.0 - (sum / (this.size() * MAX_COND));
+        double score = sum / (2.0 * this.size() * MAX_CONF);
         return score;
     }//matchScore
 
@@ -132,26 +160,36 @@ public class CondSet implements Cloneable {
      * mergeWith
      * <p>
      * destructively merges this CondSet with a given one.
-     * Each condition is set to the average of the two.
      */
     public void mergeWith(CondSet other) {
-        for(int i = 0; i < this.conds.length; ++i) {
-            int n1 = this.conds[i];
-            int n2 = other.conds[i];
-            int avg = (n1 + n2) / 2;
-            conds[i] = (byte)avg;
+        for(int i = 0; i < this.confs.length; ++i) {
+            int myBit = this.getBit(i);
+            int otherBit = other.getBit(i);
+            byte conf1 = this.confs[i];
+            byte conf2 = other.confs[i];
+
+            //If the bits don't match, break the tie with confidence
+            if ((myBit != otherBit) && (conf2 > conf1)){
+                this.base ^= CondSet.singleBits[i];
+                confs[i] = (byte)(conf2 - conf1);  //difference is new confidence
+            }
+
+            //otherwise just average the confidences
+            else {
+                confs[i] = (byte)((conf1 + conf2) / 2);
+            }
         }
     }//mergeWith
 
     /**
      * bitString
      * <p>
-     * returns a string of '1' and '0' that is closest to this CondSet
+     * returns a string of '1' and '0' that represents this.base
      */
     public String bitString() {
         StringBuilder sb = new StringBuilder();
-        for(int i = 0; i < this.conds.length; ++i) {
-            char bit = (conds[i] > MOST_SIG) ? '1' : '0';
+        for(int i = 0; i < this.confs.length; ++i) {
+            char bit = (getBit(i) == 1) ? '1' : '0';
             sb.append(bit);
         }
         return sb.toString();
@@ -160,20 +198,14 @@ public class CondSet implements Cloneable {
     /**
      * wcBitString
      * <p>
-     * returns a string of '1', '0' and '.' that is closest to this CondSet
-     * where the characters represent these values:
-     * '1' - 75-100% of MAX_COND
-     * '0' - 0-25% of MAX_COND
-     * '.' - everything else
+     * returns a string of '1', '0' and '.' that represents this CondSet
+     * '1' and '0' are used when confidence is high.  Otherwise '.' is used.
      */
     public String wcBitString() {
-        int minOne = 75 * MAX_COND / 100;
-        int maxZero = 25 * MAX_COND / 100;
         StringBuilder sb = new StringBuilder();
-        for(int i = 0; i < this.conds.length; ++i) {
-            char bit = '.';
-            if (conds[i] <= maxZero) bit = '0';
-            else if (conds[i] >= minOne) bit = '1';
+        for(int i = 0; i < this.confs.length; ++i) {
+            char bit = (getBit(i) == 1) ? '1' : '0';
+            if (confs[i] <= MOST_SIG) bit = '.';
             sb.append(bit);
         }
         return sb.toString();
@@ -181,29 +213,28 @@ public class CondSet implements Cloneable {
 
     /**
      * verboseString
-     *
-     * creates a string representation of this object that shows all the cond values
+     * <p>
+     * creates a string representation of this object that shows all the conf values
      */
     public String verboseString() {
         StringBuilder sb = new StringBuilder();
         sb.append("{");
-        boolean first = true;
-        for(byte b : conds) {
-            if (!first) sb.append(", ");
-            first = false;
-            sb.append(b);
+        for(int i = 0; i < confs.length; ++i) {
+            if (i > 0) sb.append(", ");
+            sb.append(getBit(i));
+            sb.append(':');
+            sb.append(confs[i]);
         }
         sb.append("}");
         return sb.toString();
     }//verboseString
 
-    /** equals() override */
+    /** equals() override:  'base' must match */
     @Override
     public boolean equals(Object obj) {
-        if (! (obj instanceof CondSet)) return false;
-        CondSet other = (CondSet) obj;
-        double score = this.matchScore(other);
-        return (score == 1.0);  //TODO: too strict?  Could start strict and relax based on experience?
+        if (! (obj instanceof CondSet other)) return false;
+        if (this.confs.length != other.confs.length) return false;
+        return (this.base == other.base);
     }
 
     /** clone() override */
@@ -218,13 +249,18 @@ public class CondSet implements Cloneable {
         return wcBitString();
     }
 
-    /** getBit retrieves the value of a single condition at a given index rounded to 0 or 1 */
+    /** getBit retrieves the value of a single bit in the base */
     public int getBit(int i) {
-        if (i >= conds.length) return 0; //should not happen!
+        if (i >= confs.length) return 0; //should not happen!
         if (i < 0) return 0; //should not happen!
-        return conds[i] > MOST_SIG ? 1 : 0;
+        int bit = 0;
+        if ( (this.base & CondSet.singleBits[i]) > 0) bit = 1;
+        return bit;
     }
 
+    //WARNING:  Think carefully before you write a working setBit method!
+    // By design, this.base should not change once set in the ctor.
+    private void setBit() { System.err.println("see warning above"); }
 
-    public int size() { return conds.length; }
+    public int size() { return confs.length; }
 }//class CondSet

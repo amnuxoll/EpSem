@@ -226,11 +226,9 @@ public class Rule {
         prefixString(sb);
 
         sb.append(this.lhs.verboseString());
-        sb.append(this.lhs.bitString());
         sb.append(this.action);
         sb.append(" -> ");
         sb.append(this.rhs.verboseString());
-        sb.append(this.rhs.bitString());
 
         //depth
         sb.append(" (depth: " + this.depth + ")");

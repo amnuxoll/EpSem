@@ -76,7 +76,12 @@ public class NdxrAgent implements IAgent {
      */
     @Override
     public Action getNextAction(SensorData sensorData) throws Exception {
-        this.timeStep++;
+        NdxrAgent.timeStep++;
+
+        //DEBUG
+        if (timeStep > 100) {
+            boolean stop = true;
+        }
 
         //update the sensor logs
         this.prevInternal.add(this.currInternal);

@@ -4,6 +4,7 @@ import framework.Action;
 import framework.SensorData;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 
 /**
  * class RuleIndex
@@ -95,6 +96,7 @@ public class RuleIndex {
      */
     public RuleIndex(RuleIndex initParent) {
         this.indexDepth = 1;
+        this.rules = null;
         this.splitIndex = ACTION_INDEX;  //depth 1 node
         Action[] actions = agent.getActions();
         children = new RuleIndex[actions.length];
@@ -110,6 +112,9 @@ public class RuleIndex {
      * <p>
      * Important:  The caller is responsible for inserting this new node into
      *             RuleIndex.leaves as appropriate.
+     *
+     * @param initParent  the parent node of this new leaf
+     * @param initExtSensorIndex  the split index of this new leaf
      *
      */
     public RuleIndex(RuleIndex initParent, int initExtSensorIndex) {
@@ -211,7 +216,6 @@ public class RuleIndex {
 
         //Add the rules to the new nodes.  (Note:  can't use addRule() method
         // as it creates recursion.)
-
         for(Rule r : this.rules) {
             //Add this rule to the correct bin
             int index = getBit(r, this.splitIndex);
@@ -426,7 +430,6 @@ public class RuleIndex {
         Rule r1 = this.bestBrothers();
         Rule r2 = r1.getBrother();
 
-        //DEBUG: REMOVE
         if (r2 == null) {
             return false;  //no matching rules to cull
         }
@@ -440,6 +443,13 @@ public class RuleIndex {
 
         //remove the old rule
         RuleIndex bin = findRuleBin(r2);
+
+        //DEBUG
+        if (! bin.rules.contains(r2)) {
+            bin = findRuleBin(r2);
+        }
+
+
         bin.rules.remove(r2);
 
         return true;
@@ -479,20 +489,19 @@ public class RuleIndex {
             int bit = -1;  //default is neither 0 nor 1
             //retrieve bit from LHS
             if (bitIndex < prevExtBits.size()) {
-
                 bit = prevExtBits.getBit(bitIndex);
             }
             //retrieve bit from RHS
             else if (currExtBits.size() > (bitIndex - prevExtBits.size())) {
-                    bitIndex -= prevExtBits.size();
-                    bit = currExtBits.getBit(bitIndex);
+                bitIndex -= prevExtBits.size();
+                bit = currExtBits.getBit(bitIndex);
             }
 
             //Recurse into matching child(ren)
-            if (bit != 1) {
+            if (bit == 0) {
                 this.children[0].matchHelper(results, prevInternal, prevExtBits, currExtBits);
             }
-            if (bit != 0) {
+            else {
                 this.children[1].matchHelper(results, prevInternal, prevExtBits, currExtBits);
             }
         }//non-leaf
@@ -504,7 +513,7 @@ public class RuleIndex {
                 MatchResult mr = new MatchResult(r, score);
                 results.add(mr);
 
-                //DEBUG: print the results
+                //DEBUG: print the match results
                 //System.out.println("Matching bin " + this + ": " + r + " match score: " + score);
             }//for each rule in this node
         }//else if leaf node
