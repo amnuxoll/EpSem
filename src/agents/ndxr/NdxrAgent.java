@@ -79,7 +79,7 @@ public class NdxrAgent implements IAgent {
         NdxrAgent.timeStep++;
 
         //DEBUG
-        if (timeStep > 100) {
+        if (timeStep > 15) {
             boolean stop = true;
         }
 

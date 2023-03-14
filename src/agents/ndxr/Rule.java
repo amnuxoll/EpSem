@@ -10,11 +10,6 @@ public class Rule {
     private static int nextId = 1;  //next unique rule Id (use val then increment)
     public static int MAX_DEPTH = 7; //maximum rule depth allowed (see depth instance var)
 
-    /** minimum match score that's worthwhile.  Is this a hyperparameters?  I think so.
-     * TODO:  Find a way to remove this?
-     */
-    public static double MIN_MATCH_SCORE = 0.5;
-
     /*===========================================================================
      * Inner Classes
      ----------------------------------------------------------------------------*/
@@ -130,10 +125,8 @@ public class Rule {
     public double matchScore(ArrayList<Rule> prevInt, CondSet lhs, CondSet rhs) {
         //Check external conditions first
         double score = this.lhs.matchScore(lhs);
-        if (score < MIN_MATCH_SCORE) return 0.0;
         if ((rhs != null) && (rhs.size() > 0)) {
             score *= this.rhs.matchScore(rhs);
-            if (score < MIN_MATCH_SCORE) return 0.0;
         }
 
         score *= matchRuleList(prevInt);   //indirect recusive call
@@ -190,6 +183,7 @@ public class Rule {
         for(Rule r : prevRules) {
             if (! this.prevRules.contains(r)) this.prevRules.add(r);
         }
+
     }//mergeWith
 
     /**
@@ -242,13 +236,26 @@ public class Rule {
         StringBuilder sb = new StringBuilder();
         prefixString(sb);
 
-        sb.append(this.lhs.bitString());
+        sb.append(this.lhs.wcBitString());
         sb.append(this.action);
         sb.append(" -> ");
-        sb.append(this.rhs.bitString());
+        sb.append(this.rhs.wcBitString());
 
         //depth
-        sb.append(" (depth: " + this.depth + ")");
+        sb.append(" (depth: ");
+        sb.append(this.depth);
+
+        //brother
+        sb.append(", bro: ");
+        if (this.brother != null) {
+            sb.append("#");
+            sb.append(this.brother.getId());
+            sb.append("=");
+            sb.append(this.brotherScore);
+        } else {
+            sb.append("null");
+        }
+        sb.append(")");
 
         return sb.toString();
     }//toString
@@ -284,7 +291,13 @@ public class Rule {
         RuleScore rs = new RuleScore(score);
         Rule.scoreHash.put(key, rs);
     }
-
+    /** replace one rule in this.prevRules with another */
+    public void replacePrevRule(Rule removeMe, Rule replacement) {
+        if (this.prevRules.contains(removeMe)) {
+            this.prevRules.remove(removeMe);
+            this.prevRules.add(replacement);
+        }
+    }
 
 }//class Rule
 

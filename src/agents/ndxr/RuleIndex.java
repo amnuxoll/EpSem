@@ -4,7 +4,6 @@ import framework.Action;
 import framework.SensorData;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 
 /**
  * class RuleIndex
@@ -412,6 +411,53 @@ public class RuleIndex {
     }//bestBrothers
 
     /**
+     * removeRule
+     *
+     * removes all trace of a given rule from this index and replaces with another
+     * Note: 'this' must be the RuleIndex leaf node that contains the given rules
+     *
+     * @param removeMe rule to remove
+     * @param replacement rule that is replacing it
+     */
+    public void replaceRule(Rule removeMe, Rule replacement) {
+        this.rules.remove(removeMe);
+
+        //remove any case where the given rule is a brother
+        for(Rule r : this.rules) {
+            Rule bro = r.getBrother();
+            if ( (bro != null) && (bro.getId() == removeMe.getId()) ) {
+                r.setBrother(null, 0.0);
+            }
+        }
+        updateBrothers();
+
+        //replace this rule as a LHS internal sensor
+        //get the rule index at next depth
+        int desiredDepth = removeMe.getDepth() + 1;
+        if (desiredDepth > Rule.MAX_DEPTH) return;
+        RuleIndex searchStart = agent.getRules().children[desiredDepth];
+
+        //Search all descendent nodes (iterative instead of recursive today.  idk why)
+        ArrayList<RuleIndex> toCheck = new ArrayList<>();
+        toCheck.add(searchStart);
+        while(toCheck.size() > 0) {
+            RuleIndex curr = toCheck.remove(0);
+            if (curr.children != null) {
+                for(RuleIndex ri : curr.children) {
+                    toCheck.add(ri);
+                }
+            }
+            else if (curr.rules != null) {
+                for(Rule r : curr.rules) {
+                    r.replacePrevRule(removeMe, replacement);
+                }
+            }
+        }//while
+
+
+    }//removeRule
+
+    /**
      * reduce
      *
      * merges the two most similar rules in the index
@@ -424,6 +470,7 @@ public class RuleIndex {
         //do a full update if needed
         if ((this.indexDepth == 0) && (RuleIndex.lastBrotherUpdate < timeStep)) {
             updateBrothers();
+            RuleIndex.lastBrotherUpdate = timeStep;
         }
 
         //merge the closest matching rules
@@ -446,11 +493,12 @@ public class RuleIndex {
 
         //DEBUG
         if (! bin.rules.contains(r2)) {
-            bin = findRuleBin(r2);
+            bin = findRuleBin(r2); //should not happen!
+            return false;
         }
 
 
-        bin.rules.remove(r2);
+        bin.replaceRule(r2, r1);
 
         return true;
     }//reduce
