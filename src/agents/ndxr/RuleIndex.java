@@ -3,7 +3,7 @@ package agents.ndxr;
 import framework.Action;
 import framework.SensorData;
 
-import java.util.ArrayList;
+import java.util.Vector;
 
 /**
  * class RuleIndex
@@ -60,7 +60,7 @@ public class RuleIndex {
 
     //If the node is a leaf node then it contains Rule objects here.  Otherwise
     //this variable stays null
-    private ArrayList<Rule> rules = null;
+    private Vector<Rule> rules = null;
 
     //provides an index to the value upon which a non-leaf node splits as follows:
     // depth 0:  DEPTH_INDEX
@@ -73,7 +73,7 @@ public class RuleIndex {
     //To keep the tree balanced, we need to keep track of the largest and
     //smallest leaf node in the tree (where size == number of rules).  The
     //only way I know to do this is to keep a list of them sorted by size
-    private static final ArrayList<RuleIndex> leaves = new ArrayList<>();
+    private static final Vector<RuleIndex> leaves = new Vector<>();
 
     //The timestep when this.brother was last updated for all rules
     private static int lastBrotherUpdate = 0;
@@ -119,7 +119,7 @@ public class RuleIndex {
     public RuleIndex(RuleIndex initParent, int initExtSensorIndex) {
         RuleIndex.numLeafNodes++;
         this.indexDepth = initParent.indexDepth + 1;
-        this.rules = new ArrayList<>();
+        this.rules = new Vector<>();
         this.splitIndex = initExtSensorIndex;
     }//action RuleIndex ctor
 
@@ -438,7 +438,7 @@ public class RuleIndex {
         RuleIndex searchStart = agent.getRules().children[desiredDepth];
 
         //Search all descendent nodes (iterative instead of recursive today.  idk why)
-        ArrayList<RuleIndex> toCheck = new ArrayList<>();
+        Vector<RuleIndex> toCheck = new Vector<>();
         toCheck.add(searchStart);
         while(toCheck.size() > 0) {
             RuleIndex curr = toCheck.remove(0);
@@ -528,7 +528,7 @@ public class RuleIndex {
      * @param prevInternal must contain only rules whose depth matches this subtree.
      * @param currExtBits may be empty if you only want to match LHS
      */
-    private void matchHelper(ArrayList<MatchResult> results, ArrayList<Rule> prevInternal,
+    private void matchHelper(Vector<MatchResult> results, Vector<Rule> prevInternal,
                              CondSet prevExtBits, CondSet currExtBits) {
         //Recursive case:  non-leaf node
         if (this.children != null) {
@@ -582,7 +582,7 @@ public class RuleIndex {
      * @return the index where the search stopped (to setup for next depth)
      */
     private int extractRulesOfDepth(int index, int depth,
-                                    ArrayList<Rule> list, ArrayList<Rule> found) {
+                                    Vector<Rule> list, Vector<Rule> found) {
         //reset any detritus from prev code
         found.clear();
 
@@ -618,7 +618,7 @@ public class RuleIndex {
      * <p>
      * returns the ids of a list of rules in a parenthetical list
      */
-    public static String ruleIdListStr(ArrayList<Rule> list) {
+    public static String ruleIdListStr(Vector<Rule> list) {
         int count = 0;
         StringBuilder sb = new StringBuilder();
         sb.append("(");
@@ -647,11 +647,11 @@ public class RuleIndex {
      * @return the list of rules found and their associated match scores
      *         (in sorted order by index depth)
      */
-    public ArrayList<MatchResult> findMatches(ArrayList<Rule> prevInternal,
+    public Vector<MatchResult> findMatches(Vector<Rule> prevInternal,
                                        SensorData prevExternal,
                                        char act,
                                        SensorData currExternal) {
-        ArrayList<MatchResult> results = new ArrayList<>();  //accumulates matching rules
+        Vector<MatchResult> results = new Vector<>();  //accumulates matching rules
         if (this.indexDepth != 0) {
             System.err.println("ERROR:  findMatches called on non-root node.");
             return results;
@@ -665,7 +665,7 @@ public class RuleIndex {
 
         //Find matches at each indexDepth
         int piIndex = 0;  //declare this here so it doesn't get reset to 0 in the loop
-        ArrayList<Rule> lilPI = new ArrayList<>();
+        Vector<Rule> lilPI = new Vector<>();
         for(int depth = 0; depth <= Rule.MAX_DEPTH; ++depth) {
             //Find the subtree for this depth and action
             int actIndex = act - 'a';

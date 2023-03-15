@@ -2,7 +2,7 @@ package agents.ndxr;
 
 import framework.SensorData;
 
-import java.util.ArrayList;
+import java.util.Vector;
 import java.util.HashMap;
 
 /** describes sensing+action->sensing */
@@ -41,7 +41,7 @@ public class Rule {
 
     //When building sequences of rules (paths) this rule may only be
     //preceded by a rule in this list.
-    private ArrayList<Rule> prevRules = new ArrayList<>();
+    private Vector<Rule> prevRules = new Vector<>();
 
     //A rule's depth is how far back it's prevRules chain goes
     private int depth = 0;
@@ -84,7 +84,7 @@ public class Rule {
      * is a helper method for matchScore.  It compares a lists of Rules to 
      * this.prevRules for similarity
      */
-    public double matchRuleList(ArrayList<Rule> prevInt) {
+    public double matchRuleList(Vector<Rule> prevInt) {
         if (depth == 0) return 1.0;  //base case: no comparison needed
         if (prevInt.size() == 0) return 0.0;  //no match possible
         
@@ -122,7 +122,7 @@ public class Rule {
      * <p>
      * Warning:  This method recurses by calling {@link #matchRuleList}!
      */
-    public double matchScore(ArrayList<Rule> prevInt, CondSet lhs, CondSet rhs) {
+    public double matchScore(Vector<Rule> prevInt, CondSet lhs, CondSet rhs) {
         //Check external conditions first
         double score = this.lhs.matchScore(lhs);
         if ((rhs != null) && (rhs.size() > 0)) {

@@ -5,7 +5,7 @@ import framework.IAgent;
 import framework.IIntrospector;
 import framework.SensorData;
 
-import java.util.ArrayList;
+import java.util.Vector;
 import java.util.Random;
 
 /**
@@ -17,21 +17,20 @@ import java.util.Random;
  */
 public class NdxrAgent implements IAgent {
     /** maximum number of rules allowed */
-    public static final int MAX_NUM_RULES = 50;  //TODO:  DEBUG currently low val for testing
+    public static final int MAX_NUM_RULES = 5000;
+    public static final int MAX_SEARCH_DEPTH = 7;
 
     //a list of valid actions in the env
     private Action[] actions;
     //allows you to configure data gathered about agent performance (not used atm)
     private IIntrospector introspector;
     //Use this for all random number generation in this agent
-    private final Random random = utils.Random.getFalse();
-
+    public static final Random rand = utils.Random.getFalse();
 
     //Rules that matched the agent's last N previous experiences (where N = Rule.MAX_DEPTH)
-    private final ArrayList< ArrayList<Rule> > prevInternal = new ArrayList<>();
+    private final Vector< Vector<Rule> > prevInternal = new Vector<>();
     //The rules which are matching the agent's current experience
-    private ArrayList<Rule> currInternal = new ArrayList<>();
-
+    private Vector<Rule> currInternal = new Vector<>();
     //The external sensors the agent saw on the last time step
     private SensorData prevExternal = null;
     //The external sensors the agent saw on the current time step
@@ -39,8 +38,8 @@ public class NdxrAgent implements IAgent {
     //The last action the agent took (prev time step)
     private char prevAction = '?';
 
-    //These are the rules that were most confident about the outcome of the agent's action
-    ArrayList<RuleIndex.MatchResult> predictingRules = new ArrayList<>();
+    //These are the rules that were most confident about the outcome of the agent's curr action
+    Vector<RuleIndex.MatchResult> predictingRules = new Vector<>();
 
     //Rules are kept an index to that provides fast lookup and keeps the
     // total number of rules below a global maximum.
@@ -86,7 +85,7 @@ public class NdxrAgent implements IAgent {
         //update the sensor logs
         this.prevInternal.add(this.currInternal);
         if (this.prevInternal.size() > Rule.MAX_DEPTH) this.prevInternal.remove(0);
-        this.currInternal = new ArrayList<>();
+        this.currInternal = new Vector<>();
         this.prevExternal = this.currExternal;
         this.currExternal = sensorData;
 
@@ -109,7 +108,7 @@ public class NdxrAgent implements IAgent {
         this.rules.printAll();
 
         //random action (for now)
-        int actionIndex = this.random.nextInt(this.actions.length);
+        int actionIndex = this.rand.nextInt(this.actions.length);
         Action action = this.actions[actionIndex];
         this.prevAction = action.toString().charAt(0);  //This trick may not work in the future...
 
@@ -147,7 +146,7 @@ public class NdxrAgent implements IAgent {
      *
      *  TODO:  Should this return multiple matches?
      */
-    private Rule findEquiv(ArrayList<RuleIndex.MatchResult> matches,
+    private Rule findEquiv(Vector<RuleIndex.MatchResult> matches,
                            SensorData lhs,
                            SensorData rhs,
                            int depth) {
@@ -184,14 +183,14 @@ public class NdxrAgent implements IAgent {
         }
 
         //Get the rules that match what the agent just experienced
-        ArrayList<Rule> prevInt;
+        Vector<Rule> prevInt;
         if (this.prevInternal.size() == 0) {  // i.e., timestep 0
-            prevInt = new ArrayList<>();
+            prevInt = new Vector<>();
         }
         else {
             prevInt = lastPrevInternal();
         }
-        ArrayList<RuleIndex.MatchResult> matches =
+        Vector<RuleIndex.MatchResult> matches =
                 this.rules.findMatches( prevInt,
                                         this.prevExternal,
                                         this.prevAction,
@@ -203,7 +202,7 @@ public class NdxrAgent implements IAgent {
         //Create new rules from the previous episode + current sensing
         // (also set this.currInternal)
         this.currInternal.clear();
-        ArrayList<Rule> newRules = new ArrayList<>();
+        Vector<Rule> newRules = new Vector<>();
         //new depth zero rule
         Rule r = findEquiv(matches, this.prevExternal, this.currExternal, 0);
         if (r == null) {
@@ -214,7 +213,7 @@ public class NdxrAgent implements IAgent {
         this.currInternal.add(r);
 
         //new rules for other depths
-        ArrayList<Rule> lastPrevInt = lastPrevInternal();
+        Vector<Rule> lastPrevInt = lastPrevInternal();
         for (int i = 0; i < lastPrevInt.size(); ++i) {    //for-each causes concurrent mod exceptoin.  idk why
             Rule pr = lastPrevInt.get(i);
             if (pr.getDepth() >= Rule.MAX_DEPTH) break;
@@ -249,8 +248,8 @@ public class NdxrAgent implements IAgent {
     }//ruleMaintenance
 
 
-    private ArrayList<Rule> lastPrevInternal() {
-        if (this.prevInternal.size() == 0) return new ArrayList<>();
+    public Vector<Rule> lastPrevInternal() {
+        if (this.prevInternal.size() == 0) return new Vector<>();
         return this.prevInternal.get(this.prevInternal.size() - 1);
     }
     public Action[] getActions() { return this.actions; }
@@ -258,4 +257,6 @@ public class NdxrAgent implements IAgent {
 
     public RuleIndex getRules() { return this.rules; }
     public static int getTimeStep() { return NdxrAgent.timeStep; }
+
+
 }//class NdxrAgent
