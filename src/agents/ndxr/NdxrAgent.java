@@ -54,6 +54,10 @@ public class NdxrAgent implements IAgent {
     // If we ever have multiple simultaneous agents it will be a problem.
     private static int timeStep = 0;
 
+    //The agent tracks how often random actions help the agent reach the goal
+    //TODO:  calculate this value!
+    private double randSuccessRate = 1.0;
+
     //ctor may be needed someday?
     public NdxrAgent() {
     }
@@ -252,11 +256,15 @@ public class NdxrAgent implements IAgent {
         if (this.prevInternal.size() == 0) return new Vector<>();
         return this.prevInternal.get(this.prevInternal.size() - 1);
     }
-    public Action[] getActions() { return this.actions; }
+    public Action[] getActionList() { return this.actions; }
     public SensorData getCurrExternal() { return currExternal; }
 
     public RuleIndex getRules() { return this.rules; }
     public static int getTimeStep() { return NdxrAgent.timeStep; }
 
+
+    public double getRandSuccessRate() {
+        return this.randSuccessRate;
+    }
 
 }//class NdxrAgent

@@ -97,7 +97,7 @@ public class RuleIndex {
         this.indexDepth = 1;
         this.rules = null;
         this.splitIndex = ACTION_INDEX;  //depth 1 node
-        Action[] actions = agent.getActions();
+        Action[] actions = agent.getActionList();
         children = new RuleIndex[actions.length];
         //Create a child leaf node for each possible action
         for(int i = 0; i < children.length; ++i) {
@@ -293,10 +293,10 @@ public class RuleIndex {
 
     /**
      * findRuleBin          <!-- RECURSIVE -->
-     *
+     * <p>
      * finds which bin in this (sub)tree should contain a given rule.
      * The given rule need not already be present in the bin.
-     *
+     * <p>
      * Important:  Don't call this method if the needed bin isn't in this (sub)tree!
      */
     private RuleIndex findRuleBin(Rule findMe) {
@@ -339,7 +339,7 @@ public class RuleIndex {
 
     /**
      * updateBrothers         <!-- RECURSIVE -->
-     *
+     * <p>
      * updates this.brother for all rules in this (sub)tree of the index
      */
     public void updateBrothers() {
@@ -378,7 +378,7 @@ public class RuleIndex {
 
     /**
      * bestBrothers             <!-- RECURSIVE -->
-     *
+     * <p>
      * is a helper method for {@link #reduce}.  It finds the rule in this
      * tree whose brother is the most similar to it
      */
@@ -412,7 +412,7 @@ public class RuleIndex {
 
     /**
      * removeRule
-     *
+     * <p>
      * removes all trace of a given rule from this index and replaces with another
      * Note: 'this' must be the RuleIndex leaf node that contains the given rules
      *
@@ -459,7 +459,7 @@ public class RuleIndex {
 
     /**
      * reduce
-     *
+     * <p>
      * merges the two most similar rules in the index
      *
      * @param timeStep the current timeStep
@@ -639,29 +639,18 @@ public class RuleIndex {
      * <p>
      * Note: this method should only be called on the top-level (root) node.
      *
-     * @param prevInternal must be sorted by indexDepth.  If the value is
-     *                     'null' then only level 0 rules can be found.
-     * @param currExternal if this parameter is null, then only the LHS
-     *                     of rules need to match.
-     *
      * @return the list of rules found and their associated match scores
      *         (in sorted order by index depth)
      */
     public Vector<MatchResult> findMatches(Vector<Rule> prevInternal,
-                                       SensorData prevExternal,
-                                       char act,
-                                       SensorData currExternal) {
+                                           CondSet prevExtBits,
+                                           char act,
+                                           CondSet currExtBits) {
         Vector<MatchResult> results = new Vector<>();  //accumulates matching rules
         if (this.indexDepth != 0) {
             System.err.println("ERROR:  findMatches called on non-root node.");
             return results;
         }
-
-        //Convert the SensorData to CondSet for matching
-        if (prevExternal == null) prevExternal = SensorData.createEmpty();
-        CondSet prevExtBits = new CondSet(prevExternal);
-        if (currExternal == null) currExternal = SensorData.createEmpty();
-        CondSet currExtBits = new CondSet(currExternal);
 
         //Find matches at each indexDepth
         int piIndex = 0;  //declare this here so it doesn't get reset to 0 in the loop
@@ -679,6 +668,31 @@ public class RuleIndex {
         }//for each depth
 
         return results;
+    }//findMatches
+
+    /**
+     * findMatches
+     * <p>
+     * convenience version of {@link #findMatches(Vector, CondSet, char, CondSet)}
+     * that can handle SensorData and/or null inputs
+     * <p>
+     * @param prevInternal must be sorted by indexDepth.  If the value is
+     *                     'null' then only level 0 rules can be found.
+     * @param currExternal if this parameter is null, then only the LHS
+     *                     of rules need to match.
+     */
+    public Vector<MatchResult> findMatches(Vector<Rule> prevInternal,
+                                           SensorData prevExternal,
+                                           char act,
+                                           SensorData currExternal) {
+        //Convert the SensorData to CondSet for matching
+        if (prevExternal == null) prevExternal = SensorData.createEmpty();
+        CondSet prevExtBits = new CondSet(prevExternal);
+        if (currExternal == null) currExternal = SensorData.createEmpty();
+        CondSet currExtBits = new CondSet(currExternal);
+
+        return findMatches(prevInternal, prevExtBits, act, currExtBits);
+
     }//findMatches
 
     /**
