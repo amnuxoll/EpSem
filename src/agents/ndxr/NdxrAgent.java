@@ -1,12 +1,14 @@
 package agents.ndxr;
 
+import agents.phujus.PhuJusAgent;
 import framework.Action;
 import framework.IAgent;
 import framework.IIntrospector;
 import framework.SensorData;
 
-import java.util.Vector;
+import java.util.Collections;
 import java.util.Random;
+import java.util.Vector;
 
 /**
  * NdxrAgent
@@ -18,7 +20,12 @@ import java.util.Random;
 public class NdxrAgent implements IAgent {
     /** maximum number of rules allowed */
     public static final int MAX_NUM_RULES = 5000;
+    /** max depth of TreeNode Search */
+    //TODO: replace with MAX_EXPANSIONS
     public static final int MAX_SEARCH_DEPTH = 7;
+
+    /** turn on/off debug printlns */
+    public static final boolean DEBUGPRINTSWITCH = true;
 
     //a list of valid actions in the env
     private Action[] actions;
@@ -54,9 +61,15 @@ public class NdxrAgent implements IAgent {
     // If we ever have multiple simultaneous agents it will be a problem.
     private static int timeStep = 0;
 
-    //The agent tracks how often random actions help the agent reach the goal
-    //TODO:  calculate this value!
-    private double randSuccessRate = 1.0;
+    //The remaining steps on the path-to-goal that the agent is currently following
+    private Vector<TreeNode> pathStepsRemaining = new Vector<>();
+
+    //These variables track the success rate of random actions
+    // (Using double instead of int, so we can calc pct success).
+    // The agent uses the percentage to avoid following "hopeless" paths.
+    private double numRand = 1.0;
+    private double numRandSuccess = 1.0;
+    private boolean lastActionRandom = true;
 
     //ctor may be needed someday?
     public NdxrAgent() {
@@ -70,6 +83,30 @@ public class NdxrAgent implements IAgent {
     }
 
     /**
+     * debugPrintln
+     * <p>
+     * is utilized as a helper method to print useful debug information to the console on a line
+     * It can be toggled on and off using the DEBUGPRINT variable
+     */
+    public void debugPrintln(String db) {
+        if(DEBUGPRINTSWITCH) {
+            System.out.println(db);
+        }
+    }//debugPrintln
+
+    /**
+     * debugPrintln
+     * <p>
+     * is utilized as a helper method to print useful debug information to the console
+     * It can be toggled on/off (true/false) using the DEBUGPRINT variable
+     */
+    public void debugPrint(String db) {
+        if(DEBUGPRINTSWITCH) {
+            System.out.print(db);
+        }
+    }//debugPrint
+
+    /**
      * getNextAction
      * <p>
      * called by the environment each time step to request the agent's next action
@@ -81,17 +118,8 @@ public class NdxrAgent implements IAgent {
     public Action getNextAction(SensorData sensorData) throws Exception {
         NdxrAgent.timeStep++;
 
-        //DEBUG
-        if (timeStep > 15) {
-            boolean stop = true;
-        }
-
         //update the sensor logs
-        this.prevInternal.add(this.currInternal);
-        if (this.prevInternal.size() > Rule.MAX_DEPTH) this.prevInternal.remove(0);
-        this.currInternal = new Vector<>();
-        this.prevExternal = this.currExternal;
-        this.currExternal = sensorData;
+        updateSensors(sensorData);
 
         //DEBUG:  print the experience the agent just had
         if (this.prevExternal != null) {
@@ -103,18 +131,30 @@ public class NdxrAgent implements IAgent {
             sb.append(this.prevAction);
             sb.append(" -> ");
             sb.append(new CondSet(this.currExternal).bitString());
-            System.out.println(sb);
+            debugPrintln(sb.toString());
         }
 
         ruleMaintenance();
 
+        //DEBUG:  Tell the human what the agent is feeling
+        if (PhuJusAgent.DEBUGPRINTSWITCH) {
+            debugPrintln("TIME STEP: " + NdxrAgent.timeStep);
+            printPrevCurrEpisode();
+        }
+
+        //DEBUG: Put breakpoints below
+        if (timeStep > 150) {
+            boolean stop = true;
+        }
+
         //DEBUG: print all rules
         this.rules.printAll();
 
-        //random action (for now)
-        int actionIndex = this.rand.nextInt(this.actions.length);
-        Action action = this.actions[actionIndex];
-        this.prevAction = action.toString().charAt(0);  //This trick may not work in the future...
+        pathMaintenance(sensorData.isGoal());
+
+        //Select the agent's next action
+        //If the agent has a path, take the next step in that path
+        Action action = calcAction();
 
         //DEBUG:  print the experience the agent is expecting
         StringBuilder sb = new StringBuilder();
@@ -124,7 +164,7 @@ public class NdxrAgent implements IAgent {
         sb.append(new CondSet(this.currExternal).bitString());
         sb.append(this.prevAction);
         sb.append(" -> ????");
-        System.out.println(sb);
+        debugPrintln(sb.toString());
 
 
         //Save the rules that are most confident about the outcome of this action
@@ -133,9 +173,188 @@ public class NdxrAgent implements IAgent {
                                                         this.prevAction,
                                                         null);
 
-        System.out.println("----------------------------------------------------------------------");
+        debugPrintln("----------------------------------------------------------------------");
         return action;
     }//getNextAction
+
+    /**
+     * calcAction
+     *
+     * determines what action the agent will take next
+     */
+    private Action calcAction() {
+        Action action = null;
+        if (this.pathStepsRemaining.size() > 0) {
+            TreeNode step = this.pathStepsRemaining.remove(0);
+            this.prevAction = step.getAction();
+            action = new Action(this.prevAction + "");
+            this.lastActionRandom = false;
+
+            //DEBUG
+            debugPrintln("Path action selected: " + this.prevAction);
+        }
+        else {
+            //random action
+            int actionIndex = this.rand.nextInt(this.actions.length);
+            action = this.actions[actionIndex];
+            this.prevAction = action.toString().charAt(0);  //This trick may not work in the future...
+            this.numRand++;
+            this.lastActionRandom = true;
+
+            //DEBUG
+            debugPrintln("Random action selected: " + this.prevAction);
+        }
+        return action;
+    }//calcAction
+
+    /**
+     * pathMaintenance
+     *
+     * updates the agent's current path information, particularly the pathToDo
+     * and prevPath instance variables
+     *
+     * @param isGoal  did the agent just reach a goal?
+     */
+    private void pathMaintenance(boolean isGoal) {
+        //If goal has been reached reset the path
+        if (isGoal) {
+            debugPrintln("FOUND GOAL");
+            if (this.lastActionRandom) this.numRandSuccess++;
+            this.pathStepsRemaining.clear();
+        }
+
+        //If the agent's goal path is empty, try to find a new path
+        if (this.pathStepsRemaining.size() == 0) {
+            //Attempt to find a new path to the goal
+            TreeNode root = new TreeNode(this);
+            Vector<TreeNode> goalPath = root.findBestGoalPath();
+            if (goalPath != null) {
+                this.pathStepsRemaining = goalPath;
+
+                //DEBUG
+                debugPrintln("New Goal Path Found: " + goalPath.lastElement());
+            }
+        }
+    }
+
+
+    /** helper method for {@link #printPrevCurrEpisode} */
+    private void printIntHelper(Vector<Vector<Rule>> printMe, StringBuilder sb) {
+        int count = 0;
+        for(Vector<Rule> subSet : printMe) {
+            for (Rule r : subSet) {
+                if (count > 0) sb.append(", ");
+                sb.append(r.getId());
+                count++;
+            }
+        }
+    }//printIntHelper
+
+    /** prints the agent's previous (just completed) and current (in progress)
+     * episode to help the human better understand what's going on. */
+    private void printPrevCurrEpisode() {
+        StringBuilder sbPrev = new StringBuilder();
+        sbPrev.append("  Completed Episode: ");
+
+        //prev internal
+        sbPrev.append("(");
+        if (this.prevInternal.size() > 0) {
+            printIntHelper(this.prevInternal, sbPrev);
+        }
+        sbPrev.append(")");
+        int lhsBarPos = sbPrev.length();
+        sbPrev.append("|");
+
+
+        //Sort external sensor names alphabetical order with GOAL last
+        Vector<String> sNames = new Vector<>(this.currExternal.getSensorNames());
+        Collections.sort(sNames);
+        int i = sNames.indexOf(SensorData.goalSensor);
+        if (i > -1) {
+            sNames.remove(i);
+            sNames.add(SensorData.goalSensor);
+        }
+
+        //prev external
+        if (this.prevExternal != null) {
+            for (String sName : sNames) {
+                int val = ((Boolean) this.prevExternal.getSensor(sName)) ? 1 : 0;
+                sbPrev.append(val);
+            }
+        } else {
+            sbPrev.append("xx");
+        }
+
+        //action
+        sbPrev.append(this.prevAction);
+        sbPrev.append(" -> ");
+        int lhsLen = sbPrev.length();  //save this so we can line up the two eps
+
+        //curr external
+        for (String sName : sNames) {
+            int val = ((Boolean)this.currExternal.getSensor(sName)) ? 1 : 0;
+            sbPrev.append(val);
+        }
+
+        //print sensor names after
+        sbPrev.append("\t\t");
+        boolean comma = false;
+        for (String sName : sNames) {
+            if (comma) sbPrev.append(", ");
+            comma = true;
+            sbPrev.append(sName);
+        }
+
+        StringBuilder sbCurr = new StringBuilder();
+        sbCurr.append("Episode in Progress: ");
+
+        //curr internal
+        sbCurr.append("(");
+        Vector<Vector<Rule>> tempVec = new Vector<>();
+        tempVec.add(this.currInternal);
+        printIntHelper(tempVec, sbCurr);
+        sbCurr.append(")");
+
+        //Lineup the '|' chars on the LHS
+        while(sbCurr.length() < lhsBarPos) sbCurr.append(" ");
+        while(sbCurr.length() > lhsBarPos) {
+            sbPrev.insert(lhsBarPos, " ");
+            lhsBarPos++;
+        }
+        sbCurr.append("|");
+
+        //curr external
+        for (String sName : sNames) {
+            int val = ((Boolean)this.currExternal.getSensor(sName)) ? 1 : 0;
+            sbCurr.append(val);
+        }
+
+        //action
+        sbCurr.append("? -> ");
+
+        //make the arrows line up
+        while(sbCurr.length() < lhsLen) {
+            sbCurr.insert(21, " ");
+        }
+
+        debugPrintln(sbPrev.toString());
+        debugPrintln(sbCurr.toString());    }//printPrevCurrEpisode
+
+    /**
+     * updateSensors
+     * <p>
+     * called at the start of each time step the update the instance variables
+     * that track what the agent's sensors feel.
+     *
+     * @param newExt the outcome of the just-executed action
+     */
+    private void updateSensors(SensorData newExt) {
+        this.prevInternal.add(this.currInternal);
+        if (this.prevInternal.size() > Rule.MAX_DEPTH) this.prevInternal.remove(0);
+        this.currInternal = new Vector<>();
+        this.prevExternal = this.currExternal;
+        this.currExternal = newExt;
+    }//updateSensors
 
     /**
      * findEquiv
@@ -235,7 +454,7 @@ public class NdxrAgent implements IAgent {
         //   internal sensors for each other.)
         for(Rule newb : newRules) {
             //DEBUG
-            System.out.println("ADDING rule: " + newb);
+            debugPrintln("ADDING rule: " + newb);
 
             this.rules.addRule(newb);
             this.numRules++;
@@ -264,7 +483,7 @@ public class NdxrAgent implements IAgent {
 
 
     public double getRandSuccessRate() {
-        return this.randSuccessRate;
+        return this.numRandSuccess / this.numRand;
     }
 
 }//class NdxrAgent

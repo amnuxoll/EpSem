@@ -92,12 +92,20 @@ public class TreeNode {
 
             char act = agent.getActionList()[actId].getName().charAt(0);
 
-            //Calculate all predicted combinations
+            //Calculate the expected outcome for this action
             Vector<Rule> prevRules = new Vector<>();
-            prevRules.add(this.rule);
-            Vector<MatchResult> results =
-                    agent.getRules().findMatches(prevRules, this.rule.getLHS(),
-                            act, null);
+            Vector<MatchResult> results;
+            CondSet rhsBits = new CondSet(SensorData.createEmpty());  //only matching LHS
+            if (this.rule == null) { //root note
+                CondSet lhsBits = new CondSet(agent.getCurrExternal());
+                results = agent.getRules().findMatches(prevRules, lhsBits,
+                                                       act, rhsBits);
+            }
+            else {  //non-root node
+                prevRules.add(this.rule);
+                results = agent.getRules().findMatches(prevRules, this.rule.getLHS(),
+                                                       act, rhsBits);
+            }
 
             //create a child for this action + ext sensor combo
             for (MatchResult mr : results) {
@@ -158,7 +166,7 @@ public class TreeNode {
      * 3.  the path's length (longer paths are less certain)
      *
      */
-    private double calcOverallScore(Vector<TreeNode> foundPath) {
+    private static double calcOverallScore(Vector<TreeNode> foundPath) {
         //the score starts with a base confidence
         TreeNode lastEl = foundPath.lastElement();
         double foundScore = lastEl.confidence;
@@ -250,6 +258,11 @@ public class TreeNode {
         for(int max = 1; max <= NdxrAgent.MAX_SEARCH_DEPTH; ++max) {
             Vector<TreeNode> path = fbgpHelper(0, max);
             if (path != null) {
+                double score = calcOverallScore(path);
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestPath = path;
+                }
                 //%PR%
 //                path.lastElement().pathRule = agent.getBestMatchingPathRule(path);
 //                double foundScore = calcOverallScore(path);
@@ -330,6 +343,9 @@ public class TreeNode {
         result.append(this.rule.getId());
         result.append(")|");
 
+        //external sensors
+        result.append(this.rule.getRHS().wcBitString());
+
         //Confidence
         if (includeConf) {
             result.append("\tc");
@@ -397,5 +413,4 @@ public class TreeNode {
     }
 
     public char getAction() { return this.pathStr.charAt(this.pathStr.length() - 1); }
-
 }//class TreeNode
