@@ -39,13 +39,6 @@ public class TreeNode {
     //A measure from 0.0 to 1.0 of how confident the agent is that this path is correct
     private final double confidence;
 
-    //The PathRule best matches the path described by this TreeNode, presuming
-    // it is the last step in its path.  This can be 'null' if no PathRule applies.
-    //TODO:  Re-insert PathRule later?  Removed for now.  I've put %PR% as a sentinel around relevant code
-    // private PathRule pathRule = null;
-
-
-
     /**
      * This root node constructor is built from the agent.
      *
@@ -123,41 +116,6 @@ public class TreeNode {
     }//expand
 
     /**
-     * cullWeakChildren
-     * <p>
-     * remove any children from this node whose overall confidence (after adjustment by a PathRule)
-     */
-    private void cullWeakChildren() {
-        //%PR%
-//        //Find the matching pathRule for each child and use it to calc overall conf
-//        Vector<TreeNode> removeThese = new Vector<>();  //children to be removed
-//        Vector<TreeNode> partialPath = new Vector<>();
-//        TreeNode tmp = this;
-//        while(tmp.parent != null) {
-//            partialPath.add(tmp);
-//            tmp = tmp.parent;
-//        }
-//        for(TreeNode child : this.children) {
-//            //Find the matching pathrule
-//            partialPath.add(child);
-//            child.pathRule = agent.getBestMatchingPathRule(partialPath);
-//            //note: don't use partialPath.remove(child) as it relies on equals()
-//            double overallScore = calcOverallScore(partialPath);
-//            partialPath.remove(partialPath.size() - 1);
-//
-//            //If the overall confidence is too low, mark the child for removal
-//            if (overallScore < agent.getRandSuccessRate()) {
-//                removeThese.add(child);
-//            }
-//        }//for
-//
-//        //Remove the too-weak children.  Gruesome, no?
-//        for(TreeNode child : removeThese) {
-//            this.children.remove(child);
-//        }
-    }//cullWeakChildren
-
-    /**
      * calcOverallScore
      * <p>
      * A path has an overall score based on these factors:
@@ -171,10 +129,12 @@ public class TreeNode {
         TreeNode lastEl = foundPath.lastElement();
         double foundScore = lastEl.confidence;
 
-        //%PR%: adjust score using the matching PathRule
-//        if (lastEl.pathRule != null) {
-//            foundScore *= lastEl.pathRule.getConfidence();
-//        }
+        //Adjust with the best matching PathRule (if it exists)
+        //Note:  the fact that no adjustment is made for mismatch make the agent explore.  TODO: too curious?
+        PathRule match = agent.getBestMatchingPathRule(agent.getCurrPathRule(), foundPath);
+        if (match != null) {
+            foundScore *= match.getConfidence();
+        }
 
         //Adjust based on path length.  This is based on the Sunrise problem in probability.
         foundScore *= (1.0 / (foundPath.size()));
@@ -217,8 +177,6 @@ public class TreeNode {
         //Create the child nodes if they don't exist yet
         if (this.children.size() == 0) {
             expand();
-            //Remove children that aren't better than random
-            cullWeakChildren();
         } else {
             for (TreeNode child : this.children) {
                 child.isLeaf = false; //reset from any prev use of this child
@@ -258,39 +216,19 @@ public class TreeNode {
         for(int max = 1; max <= NdxrAgent.MAX_SEARCH_DEPTH; ++max) {
             Vector<TreeNode> path = fbgpHelper(0, max);
             if (path != null) {
+                //ignore scores that are worse than random
                 double score = calcOverallScore(path);
+
+                //Is this the best so far?
                 if (score > bestScore) {
                     bestScore = score;
                     bestPath = path;
                 }
-                //%PR%
-//                path.lastElement().pathRule = agent.getBestMatchingPathRule(path);
-//                double foundScore = calcOverallScore(path);
-//                if (foundScore < agent.getRandSuccessRate()) continue;
-
-//                if(foundScore > bestScore) {
-//                    bestPath = path;
-//                    bestScore = foundScore;
-//                }
             }
-        }
+        }//for
 
         return bestPath;  //null if failed to find a path to goal
     }//findBestGoalPath
-
-    /**
-     * sortedKeys
-     *
-     * @return a sorted sorted Vector of the rule ids of a given set of Rules
-     */
-    private Vector<Integer> sortedKeys(HashSet<Rule> internal) {
-        Vector<Integer> result = new Vector<>();
-        for(Rule r : internal) {
-            result.add(r.getId());
-        }
-        Collections.sort(result);
-        return result;
-    }
 
     /**
      * sortedKeys

@@ -1,6 +1,5 @@
 package agents.ndxr;
 
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Vector;
 
@@ -32,9 +31,10 @@ public class PathRule {
      * rule must match the RHS of the preceding rule. */
     private final Vector<Rule> rhs;  //must contain at least one step
 
-    /** track the rule's success rate with this variables */
+    /** track the rule's success rate with this variables.  An initial success is given so that overall
+     * confidence won't drop instantly to zero on the first fail. */
     private double numTries = 1.0;
-    private double numSuccesses = 0.0;
+    private double numSuccesses = 1.0;
 
 //endregion Instance Variables
 
@@ -81,6 +81,8 @@ public class PathRule {
         for(int i = 0; i < matRHS.size(); ++i) {
             Rule matRule = matRHS.get(i).getRule();
             Rule myRule = this.rhs.get(i);
+            //actions *must* match
+            if (matRule.getAction() != myRule.getAction()) return 0.0;
             score *= matRule.matchScore(myRule);
             if (score <= 0.0) break;
         }
@@ -89,32 +91,68 @@ public class PathRule {
     }//rhsMatch
 
     /**
-     * lhsMatch
+     * rhsMatch
      *
-     * compares the lhs of a given PathRule to this one
+     * compares the rhs of a given PathRule to this one
      *
      * @return a match score:
-     *              -1 (no match)
-     *               0 (wildcard match)
-     *              +N (this many Rules in common)
      */
-    public int lhsMatch(PathRule other) {
-        //empty LHS is treated as a wildcard (base PathRule)
-        if (this.lhs.size() == 0) return 0;
-        if (other == null) return 0;
-
-        //Count the intersection size
-        int matches = 0;
-        for(PathRule thisPR : this.lhs) {
-            for(PathRule otherPR : other.lhs) {
-                if (thisPR.getId() == otherPR.getId()) matches++;
-            }
+    public double rhsMatch(PathRule other) {
+        //If other is null then this rule must also be empty
+        if (other == null) return 0.0;
+        if (other.rhs.size() != this.rhs.size()) {
+            return 0.0;
         }
 
-        //if no matches, then they are incompatible
-        if (matches == 0) return -1;
-        return matches;
+        //Comparison
+        double score = 1.0;
+        for(int i = 0; i < other.rhs.size(); ++i) {
+            Rule matRule = other.rhs.get(i);
+            Rule myRule = this.rhs.get(i);
+            //actions *must* match
+            if (matRule.getAction() != myRule.getAction()) return 0.0;
+            score *= matRule.matchScore(myRule);
+            if (score <= 0.0) break;
+        }
+
+        return score;
+
+    }//rhsMatch
+
+    /**
+     * lhsMatch
+     *
+     * determines if a given PathRule is contained in this rule's LHS
+     * If a 'null' then an empty LHS is considered  match
+     *
+     * @return 1.0 if found, 0.0 if not
+     */
+    public double lhsMatch(PathRule lhs) {
+        //If the parameter is null then this rule's lhs must also be empty
+        if (lhs == null)  {
+            if (this.lhsSize() == 0) return 1.0;
+            else return 0.0;
+        }
+
+        //One overlapping rule is sufficient
+        if (this.lhs.contains(lhs)) return 1.0;
+        return 0.0;
+
     }//lhsMatch
+
+    /**
+     * matchScore
+     *
+     * calculate a match score for this PathRule with a given lhs and rhs
+     */
+    public double matchScore(PathRule lhs, Vector<TreeNode> rhs) {
+        double score = lhsMatch(lhs);
+        if (score > 0.0) {
+            score *= rhsMatch(rhs);
+        }
+        return score;
+    }//matchScore
+
 
     /** helper for toString that just prints the LHS. */
     private void toStringLHS(StringBuilder result) {
@@ -168,10 +206,6 @@ public class PathRule {
         return result.toString();
     }//toString
 
-    private double getConfidence() {
-        return this.numSuccesses / this.numTries;
-    }
-
     /** a shorter string format designed to be used inline */
     public String toStringShort() {
         StringBuilder result = new StringBuilder();
@@ -214,7 +248,11 @@ public class PathRule {
     public int getId() { return this.ruleId; }
     public int lhsSize() { return this.lhs.size(); }
     public boolean lhsContains(PathRule other) { return this.lhs.contains(other); }
+    public HashSet<PathRule> getLHS() { return this.lhs; }
     public Vector<Rule> getRHS() { return this.rhs; }
+    public void logSuccess() { this.numTries++; this.numSuccesses++; }
+    public void logFailure() { this.numTries++; }
+    public double getConfidence() { return this.numSuccesses / this.numTries; }
 
 }//class PathRule
 

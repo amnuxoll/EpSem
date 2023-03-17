@@ -81,8 +81,8 @@ public class Rule {
     /**
      * matchRuleList            <!-- RECURSIVE -->
      * <p>
-     * is a helper method for matchScore.  It compares a lists of Rules to 
-     * this.prevRules for similarity
+     * is a helper method for {@link #matchScore(Vector, CondSet, CondSet)}.
+     * It compares a lists of Rules to this.prevRules for similarity
      */
     public double matchRuleList(Vector<Rule> prevInt) {
         if (depth == 0) return 1.0;  //base case: no comparison needed
@@ -134,7 +134,7 @@ public class Rule {
         return score;
     }//matchScore
     
-    //
+
     
     /** 
      * matchScore                  <!-- RECURSIVE -->

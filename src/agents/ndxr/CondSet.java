@@ -116,7 +116,7 @@ public class CondSet implements Cloneable {
      *
      * @return a match score in the range [0.0..1.0]
      *
-     * TODO:  Use TF-IDF for this method?  For now it's just a weighted cardinality count
+     * TODO:  Use TF-IDF for this method?  For now, it's just a weighted cardinality count
      */
     public double matchScore(SensorData sensors) {
         BitSet bits = sensors.toBitSet();
@@ -140,7 +140,7 @@ public class CondSet implements Cloneable {
      *
      * @return a match score in the range [0.0..1.0]
      *
-     * TODO:  Use TF-IDF for this method?  For now it's just a weighted cardinality count
+     * TODO:  Use TF-IDF for this method?  For now, it's just a weighted cardinality count
      */
     public double matchScore(CondSet other) {
         double sum = 0.0;

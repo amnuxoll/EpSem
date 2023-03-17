@@ -1,6 +1,5 @@
 package agents.ndxr;
 
-import agents.phujus.PhuJusAgent;
 import framework.Action;
 import framework.IAgent;
 import framework.IIntrospector;
@@ -71,6 +70,13 @@ public class NdxrAgent implements IAgent {
     private double numRandSuccess = 1.0;
     private boolean lastActionRandom = true;
 
+    /** a list of all the PathRules the agent is using
+     * TODO:  create an index for these like RuleIndex? */
+    private final Vector<PathRule> pathRules = new Vector<>();
+
+    /** This is the PathRule that matches the agent's current path */
+    private PathRule currPathRule = null;
+
     //ctor may be needed someday?
     public NdxrAgent() {
     }
@@ -137,7 +143,7 @@ public class NdxrAgent implements IAgent {
         ruleMaintenance();
 
         //DEBUG:  Tell the human what the agent is feeling
-        if (PhuJusAgent.DEBUGPRINTSWITCH) {
+        if (DEBUGPRINTSWITCH) {
             debugPrintln("TIME STEP: " + NdxrAgent.timeStep);
             printPrevCurrEpisode();
         }
@@ -177,6 +183,38 @@ public class NdxrAgent implements IAgent {
         return action;
     }//getNextAction
 
+
+    /**
+     * makeMatchingPathRule
+     *
+     * constructs a one-step PathRule with the rule that best matches a given
+     * action and the agent's current sensing
+     *
+     * @return the new PathRule or null if it could not be constructed
+     */
+    private PathRule makeMatchingPathRule(char act) {
+        //find all matching rules
+        Vector<RuleIndex.MatchResult> matches =
+                this.rules.findMatches(this.currInternal, this.currExternal, act, null);
+        if (matches.size() == 0) return null; //none found
+
+        //which one has the best score?
+        double bestScore = 0.0;
+        Rule bestRule = null;
+        for(RuleIndex.MatchResult mr : matches) {
+            if (mr.score > bestScore) {
+                bestScore = mr.score;
+                bestRule = mr.rule;
+            }
+        }
+
+        //Build a new pathRule
+        Vector<Rule> newRHS = new Vector<>();
+        newRHS.add(bestRule);
+        return new PathRule(this, null, newRHS);
+    }//makeMatchingPathRule
+
+
     /**
      * calcAction
      *
@@ -201,6 +239,14 @@ public class NdxrAgent implements IAgent {
             this.numRand++;
             this.lastActionRandom = true;
 
+            //Find or create a PathRule representing this one-step path
+            PathRule match = getBestMatchingPathRule(this.prevAction);
+            if (match == null) {
+                match = makeMatchingPathRule(this.prevAction);
+                if (match != null) this.pathRules.add(match);
+            }
+            this.currPathRule = match;
+
             //DEBUG
             debugPrintln("Random action selected: " + this.prevAction);
         }
@@ -217,25 +263,49 @@ public class NdxrAgent implements IAgent {
      */
     private void pathMaintenance(boolean isGoal) {
         //If goal has been reached reset the path
+        boolean goal = false;
         if (isGoal) {
             debugPrintln("FOUND GOAL");
+            goal = true;
             if (this.lastActionRandom) this.numRandSuccess++;
             this.pathStepsRemaining.clear();
         }
 
         //If the agent's goal path is empty, try to find a new path
         if (this.pathStepsRemaining.size() == 0) {
+            //log PathRule success/fail
+            if (this.currPathRule != null) {
+                if (goal) {
+                    this.currPathRule.logSuccess();
+                }
+                else {
+                    this.currPathRule.logFailure();
+                    this.currPathRule = null; //don't use on LHS because of failure
+                }
+            }
+
             //Attempt to find a new path to the goal
             TreeNode root = new TreeNode(this);
             Vector<TreeNode> goalPath = root.findBestGoalPath();
             if (goalPath != null) {
                 this.pathStepsRemaining = goalPath;
 
+                //Find or create the PathRule that best matches this new path
+                PathRule match = getBestMatchingPathRule(this.currPathRule, goalPath);
+                if (match == null) {
+                    //create a new PathRule that matches
+                    Vector<Rule> newRHS = PathRule.nodePathToRulePath(goalPath);
+                    match = new PathRule(this, this.currPathRule, newRHS);
+                    if (match != null) this.pathRules.add(match);
+                }
+                this.currPathRule = match;
+
+
                 //DEBUG
                 debugPrintln("New Goal Path Found: " + goalPath.lastElement());
-            }
-        }
-    }
+            }//path found
+        }//try to find new path
+    }//pathMaintenance
 
 
     /** helper method for {@link #printPrevCurrEpisode} */
@@ -419,9 +489,6 @@ public class NdxrAgent implements IAgent {
                                         this.prevAction,
                                         this.currExternal);
 
-        //At timestep 1, no further work to do
-        if (this.prevExternal == null) return;
-
         //Create new rules from the previous episode + current sensing
         // (also set this.currInternal)
         this.currInternal.clear();
@@ -470,6 +537,67 @@ public class NdxrAgent implements IAgent {
 
     }//ruleMaintenance
 
+    //region PathRule methods
+
+    /**
+     * getBestMatchingPathRule
+     *
+     * determines which PathRule in this.pathRules best matches a given path
+     *
+     * @return the matching PR or null if not found
+     */
+    public PathRule getBestMatchingPathRule(PathRule prev, Vector<TreeNode> path) {
+        double bestScore = 0.0;
+        PathRule bestPR = null;
+        for (PathRule pr : this.pathRules) {
+            double score = pr.matchScore(prev, path);
+            if (score > bestScore) {
+                bestScore = score;
+                bestPR = pr;
+            }
+        }
+
+        return bestPR;
+    }//getBestMatchingPathRule
+
+    /**
+     * getBestMatchingPathRule
+     *
+     * determines which PathRule in this.pathRules best matches a given action.
+     * In particular, this must be a PathRule with one-step RHS that has the
+     * given action.  The match scores with current external sensors are used
+     * to find the best match.
+     *
+     * @return the matching PR or null if not found
+     */
+    public PathRule getBestMatchingPathRule(char act) {
+        double bestScore = 0.0;
+        PathRule bestPR = null;
+        for (PathRule pr : this.pathRules) {
+            //LHS must be empty
+            if (pr.getLHS().size() > 0) continue;
+
+            //only one-step paths can match
+            if (pr.getRHS().size() != 1) continue;
+
+            //action must match
+            Rule step = pr.getRHS().get(0);
+            if (step.getAction() != act) continue;
+
+            //Note:  no need to check depth since it must be depth 0 given the other requirements
+
+            //Score is based on LHS ext match with the step
+            double score = step.getLHS().matchScore(this.currExternal);
+            if (score > bestScore) {
+                bestScore = score;
+                bestPR = pr;
+            }
+        }
+
+        return bestPR;
+    }//getBestMatchingPathRule
+
+    //endregion PathRule Methods
 
     public Vector<Rule> lastPrevInternal() {
         if (this.prevInternal.size() == 0) return new Vector<>();
@@ -477,13 +605,8 @@ public class NdxrAgent implements IAgent {
     }
     public Action[] getActionList() { return this.actions; }
     public SensorData getCurrExternal() { return currExternal; }
-
     public RuleIndex getRules() { return this.rules; }
     public static int getTimeStep() { return NdxrAgent.timeStep; }
-
-
-    public double getRandSuccessRate() {
-        return this.numRandSuccess / this.numRand;
-    }
-
+    public double getRandSuccessRate() { return this.numRandSuccess / this.numRand; }
+    public PathRule getCurrPathRule() { return this.currPathRule; }
 }//class NdxrAgent
