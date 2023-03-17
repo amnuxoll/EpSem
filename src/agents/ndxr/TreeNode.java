@@ -413,4 +413,6 @@ public class TreeNode {
     }
 
     public char getAction() { return this.pathStr.charAt(this.pathStr.length() - 1); }
+
+    public Rule getRule() { return this.rule; }
 }//class TreeNode
