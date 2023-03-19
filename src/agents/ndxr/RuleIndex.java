@@ -495,17 +495,21 @@ public class RuleIndex {
         //DEBUG: REMOVE
         System.out.println("       to get: " + r1.verboseString());
 
-        //remove the old rule
+        //remove the old rule from the index
         RuleIndex bin = findRuleBin(r2);
+        bin.replaceRule(r2, r1);
 
-        //DEBUG
-        if (! bin.rules.contains(r2)) {
-            bin = findRuleBin(r2); //should not happen!
-            return false;
+        //Replace the old rule in all PathRules
+        for(PathRule pr : agent.getPathRules()) {
+            for(int i = 0; i < pr.getRHS().size(); ++i) {
+                Rule prRule = pr.getRHS().get(i);
+                if (prRule.getId() == r2.getId()) {
+                    pr.getRHS().remove(i);
+                    pr.getRHS().insertElementAt(r1, i);
+                }
+            }
         }
 
-
-        bin.replaceRule(r2, r1);
 
         return true;
     }//reduce

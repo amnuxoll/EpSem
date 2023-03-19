@@ -170,6 +170,9 @@ public class Rule {
      * mergeWith
      * <p>
      * merges a given rule into this one
+     *
+     * Note:  This method does not update other Rules and PathRules that
+     *         may be affected by this merge.
      */
     public void mergeWith(Rule other) {
         if (other.depth != this.depth) throw new IllegalArgumentException("Can not merge rules with mismattching depths");

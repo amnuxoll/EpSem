@@ -634,4 +634,5 @@ public class NdxrAgent implements IAgent {
     public static int getTimeStep() { return NdxrAgent.timeStep; }
     public double getRandSuccessRate() { return this.numRandSuccess / this.numRand; }
     public PathRule getCurrPathRule() { return this.currPathRule; }
+    public Vector<PathRule> getPathRules() { return this.pathRules; }
 }//class NdxrAgent
