@@ -113,6 +113,39 @@ public class NdxrAgent implements IAgent {
     }//debugPrint
 
     /**
+     * print what the agent expects at the next time step
+     */
+    private void debugPrintAgentExpectation() {
+        if(!DEBUGPRINTSWITCH)  return;
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("Agent is Expecting:  ");
+        sb.append(RuleIndex.ruleIdListStr(this.currInternal));
+        sb.append(new CondSet(this.currExternal).bitString());
+        sb.append(this.prevAction);
+        sb.append(" -> ");
+        //which predicting rule has highest confidence
+        double bestScore = 0.0;
+        Rule bestRule = null;
+        for(RuleIndex.MatchResult mr : this.predictingRules) {
+            if (mr.score > bestScore) {
+                bestScore = mr.score;
+                bestRule = mr.rule;
+            }
+        }
+        if (bestRule == null) {
+            sb.append("??? (no predicting rule)");
+        } else {
+            sb.append(bestRule.getRHS().wcBitString());
+            sb.append(" ( ");
+            sb.append(bestRule);
+            sb.append(")");
+        }
+        debugPrintln(sb.toString());
+    }//debugPrintAgentExpectation
+
+
+    /**
      * getNextAction
      * <p>
      * called by the environment each time step to request the agent's next action
@@ -148,36 +181,32 @@ public class NdxrAgent implements IAgent {
             printPrevCurrEpisode();
         }
 
-        //DEBUG: Put breakpoints below
-        if (timeStep > 150) {
-            boolean stop = true;
-        }
 
         //DEBUG: print all rules
+        System.out.println("\nRules:");
         this.rules.printAll();
+        System.out.println("\nPathRules:");
+        for(PathRule pr : this.pathRules) {
+            System.out.println(pr);
+        }
 
+        //DEBUG: Put breakpoints below
+        if (timeStep > 5) {
+            boolean stop = true;
+        }
         pathMaintenance(sensorData.isGoal());
 
         //Select the agent's next action
         //If the agent has a path, take the next step in that path
         Action action = calcAction();
 
-        //DEBUG:  print the experience the agent is expecting
-        StringBuilder sb = new StringBuilder();
-        sb.append("Agent is Expecting: ");
-        sb.append("  ");
-        sb.append(RuleIndex.ruleIdListStr(this.currInternal));
-        sb.append(new CondSet(this.currExternal).bitString());
-        sb.append(this.prevAction);
-        sb.append(" -> ????");
-        debugPrintln(sb.toString());
-
-
         //Save the rules that are most confident about the outcome of this action
         this.predictingRules = this.rules.findMatches( this.currInternal,
-                                                        this.currExternal,
-                                                        this.prevAction,
-                                                        null);
+                this.currExternal,
+                this.prevAction,
+                null);
+
+        debugPrintAgentExpectation();
 
         debugPrintln("----------------------------------------------------------------------");
         return action;
@@ -309,14 +338,12 @@ public class NdxrAgent implements IAgent {
 
 
     /** helper method for {@link #printPrevCurrEpisode} */
-    private void printIntHelper(Vector<Vector<Rule>> printMe, StringBuilder sb) {
+    private void printIntHelper(Vector<Rule> printMe, StringBuilder sb) {
         int count = 0;
-        for(Vector<Rule> subSet : printMe) {
-            for (Rule r : subSet) {
-                if (count > 0) sb.append(", ");
-                sb.append(r.getId());
-                count++;
-            }
+        for (Rule r : printMe) {
+            if (count > 0) sb.append(", ");
+            sb.append(r.getId());
+            count++;
         }
     }//printIntHelper
 
@@ -329,7 +356,7 @@ public class NdxrAgent implements IAgent {
         //prev internal
         sbPrev.append("(");
         if (this.prevInternal.size() > 0) {
-            printIntHelper(this.prevInternal, sbPrev);
+            printIntHelper(this.lastPrevInternal(), sbPrev);
         }
         sbPrev.append(")");
         int lhsBarPos = sbPrev.length();
@@ -380,9 +407,7 @@ public class NdxrAgent implements IAgent {
 
         //curr internal
         sbCurr.append("(");
-        Vector<Vector<Rule>> tempVec = new Vector<>();
-        tempVec.add(this.currInternal);
-        printIntHelper(tempVec, sbCurr);
+        printIntHelper(this.currInternal, sbCurr);
         sbCurr.append(")");
 
         //Lineup the '|' chars on the LHS

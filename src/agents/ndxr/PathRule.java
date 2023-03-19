@@ -199,7 +199,7 @@ public class PathRule {
         for (Rule r : this.rhs) {
             if (!first) result.append(",");
             first = false;
-            result.append(this.rhs.toString());
+            result.append(r.toString());
         }
         result.append("]");
 

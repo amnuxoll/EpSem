@@ -35,7 +35,7 @@ public class RuleIndex {
      * see {@link #considerSplit()} */
     //TODO:  have these be calculated based upon MAX_LEAF_NODES & MAX_NUM_RULES?
     private static final int MIN_SMALLEST = 2;
-    private static final int MAX_SIZE_RATIO = 5;
+    private static final int MAX_SIZE_RATIO = 2;
 
     /** these are index constants for top-level nodes.  See extSensorIndex below. */
     private static final int TBD_INDEX = -1;  //for leaf nodes
@@ -127,7 +127,8 @@ public class RuleIndex {
      * calcSplitIndex
      * <p>
      * is a helper method for {@link #split()}.  It calculates the split index
-     * that this node will use.
+     * that this node will use.  If no index can be found, {@link #TBD_INDEX}
+     * is returned instead.
      */
     private int calcSplitIndex() {
         //At depth 2, always split on RHS goal sensor which, by convention,
@@ -141,8 +142,8 @@ public class RuleIndex {
         //      For now, use the sensor that creates the most even split
         int evenSplit = this.rules.size() / 2;
         int bestGap = 2*sensorSize; //best gap away from even split seen so far
-        int result = 0;
-        for(int i = 0; i < sensorSize - 1; ++i) {
+        int result = TBD_INDEX;
+        for(int i = 0; i < 2*sensorSize - 1; ++i) {
             int currSplit = 0;
             //count the zeroes
             for(Rule r : this.rules) {
@@ -158,6 +159,9 @@ public class RuleIndex {
                 result = i;
                 break;
             }
+
+            //skip gaps that are completely uneven
+            if ((currSplit == 0) || (currSplit == sensorSize)) continue;
 
             //best gap so far?
             if (gap < bestGap) {
@@ -209,6 +213,14 @@ public class RuleIndex {
     private void split() {
         //bisect based upon a particular sensor
         this.splitIndex = calcSplitIndex();
+
+        //DEBUG
+        if (this.splitIndex == TBD_INDEX) {
+            calcSplitIndex();
+        }
+
+
+        if (this.splitIndex == TBD_INDEX) return;
         this.children = new RuleIndex[2];
         this.children[0] = new RuleIndex(this, this.splitIndex);
         this.children[1] = new RuleIndex(this, this.splitIndex);
@@ -256,11 +268,6 @@ public class RuleIndex {
 
         //split if the size diff is too big
         if ( (largest.numRules() / smallest.numRules() > MAX_SIZE_RATIO) ) {
-            largest.split();
-        }
-
-        //TODO:  DEBUG: For now, do extra splits to test splitting and searching more thoroughly
-        else if ( (largest.indexDepth < 6) && (largest.numRules() > 4) ) {
             largest.split();
         }
 

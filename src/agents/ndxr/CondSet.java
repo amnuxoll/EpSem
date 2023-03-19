@@ -204,9 +204,14 @@ public class CondSet implements Cloneable {
     public String wcBitString() {
         StringBuilder sb = new StringBuilder();
         for(int i = 0; i < this.confs.length; ++i) {
-            char bit = (getBit(i) == 1) ? '1' : '0';
-            if (confs[i] <= MOST_SIG) bit = '.';
-            sb.append(bit);
+            int bit = getBit(i);
+            char bitChar = '*';
+            if (confs[i] > MOST_SIG) {
+                bitChar = (bit == 1) ? '1' : '0';
+            } else {
+                bitChar = (bit == 1) ? '¹' : '°';  //smaller symbols indicate lower confidence
+            }
+            sb.append(bitChar);
         }
         return sb.toString();
     }//wcBitString
