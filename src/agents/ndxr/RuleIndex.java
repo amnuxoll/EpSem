@@ -436,7 +436,7 @@ public class RuleIndex {
                 r.setBrother(null, 0.0);
             }
         }
-        updateBrothers();
+        updateBrothers();  //local update to this index only
 
         //replace this rule as a LHS internal sensor
         //get the rule index at next depth
@@ -462,7 +462,22 @@ public class RuleIndex {
         }//while
 
 
-    }//removeRule
+    }//replaceRule
+
+    /**
+     * replaceInRuleList
+     *
+     * is a helper method for {@link #reduce}. It replaces r2 with r1 in a given vector
+     */
+    public static void replaceInRuleList(Rule r1, Rule r2, Vector<Rule> prevs) {
+        for(int i = 0; i < prevs.size(); ++i) {
+            Rule r = prevs.get(i);
+            if (r.getId() == r2.getId()) {
+                prevs.remove(i);
+                prevs.insertElementAt(r1, i);
+            }
+        }
+    }//replaceInRuleList
 
     /**
      * reduce
@@ -487,6 +502,13 @@ public class RuleIndex {
         if (r2 == null) {
             return false;  //no matching rules to cull
         }
+
+        //DEBUG: REMOVE
+        if (r2.getId() == 41) {
+            boolean stop = true;
+        }
+
+        //DEBUG
         System.out.println("REMOVING rule: " + r2.verboseString());
         System.out.println("  merged with: " + r1.verboseString());
 
@@ -501,18 +523,26 @@ public class RuleIndex {
 
         //Replace the old rule in all PathRules
         for(PathRule pr : agent.getPathRules()) {
-            for(int i = 0; i < pr.getRHS().size(); ++i) {
-                Rule prRule = pr.getRHS().get(i);
-                if (prRule.getId() == r2.getId()) {
-                    pr.getRHS().remove(i);
-                    pr.getRHS().insertElementAt(r1, i);
-                }
-            }
+            replaceInRuleList(r1, r2, pr.getRHS());
         }
+
+        //Replace the old rule from the agent's prevInternal
+        Vector< Vector<Rule> > allPrev = agent.getPrevInternal();
+        for(Vector<Rule> prevs : allPrev) {
+            replaceInRuleList(r1, r2, prevs);
+        }
+
+        //Replace the old rule in the agent's curr internal
+        Vector<Rule> currs = agent.getCurrInternal();
+        replaceInRuleList(r1, r2, currs);
+
+        //Clean up the old rule's data to encourage garbage collection
+        r2.cleanup();
 
 
         return true;
     }//reduce
+
 
     /**
      * class MatchResult

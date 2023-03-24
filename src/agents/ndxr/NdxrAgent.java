@@ -18,10 +18,10 @@ import java.util.Vector;
  */
 public class NdxrAgent implements IAgent {
     /** maximum number of rules allowed */
-    public static final int MAX_NUM_RULES = 5000;
+    public static final int MAX_NUM_RULES = 50;
     /** max depth of TreeNode Search */
-    //TODO: replace with MAX_EXPANSIONS
-    public static final int MAX_SEARCH_DEPTH = 7;
+    //TODO: replace with MAX_EXPANSIONS someday
+    public static final int MAX_SEARCH_DEPTH = 3;
 
     /** turn on/off debug printlns */
     public static final boolean DEBUGPRINTSWITCH = true;
@@ -76,6 +76,16 @@ public class NdxrAgent implements IAgent {
 
     /** This is the PathRule that matches the agent's current path */
     private PathRule currPathRule = null;
+
+    //DATA:  track how many steps to reach each goal
+    private int goalCount = 0;
+    private int stepsSinceLastGoal = 0;
+
+    //DEBUG:  profiling variables
+    public static long agentStart = 0L;
+    public static long agentTotal = 0L;
+    public static long subStart = 0L;
+    public static long subTotal = 0L;
 
     //ctor may be needed someday?
     public NdxrAgent() {
@@ -155,6 +165,9 @@ public class NdxrAgent implements IAgent {
      */
     @Override
     public Action getNextAction(SensorData sensorData) throws Exception {
+        //DEBUG: profiling
+        agentStart = System.currentTimeMillis();
+
         NdxrAgent.timeStep++;
 
         //update the sensor logs
@@ -194,6 +207,10 @@ public class NdxrAgent implements IAgent {
         if (timeStep > 5) {
             boolean stop = true;
         }
+        if (this.numRules > 200) {
+            boolean stop = true;
+        }
+
         pathMaintenance(sensorData.isGoal());
 
         //Select the agent's next action
@@ -209,6 +226,13 @@ public class NdxrAgent implements IAgent {
         debugPrintAgentExpectation();
 
         debugPrintln("----------------------------------------------------------------------");
+
+        //DEBUG: PROFILING
+        long agentStop = System.currentTimeMillis();
+        agentTotal += agentStop - agentStart;
+        System.out.println("Subroutine Time: " + subTotal);
+        System.out.println("Total Time: " + agentTotal);
+
         return action;
     }//getNextAction
 
@@ -292,19 +316,27 @@ public class NdxrAgent implements IAgent {
      */
     private void pathMaintenance(boolean isGoal) {
         //If goal has been reached reset the path
-        boolean goal = false;
         if (isGoal) {
-            debugPrintln("FOUND GOAL");
-            goal = true;
+            this.goalCount++;
+            debugPrintln("FOUND GOAL #" + this.goalCount + " in " + this.stepsSinceLastGoal + " steps.");
+            this.stepsSinceLastGoal = 0;
             if (this.lastActionRandom) this.numRandSuccess++;
             this.pathStepsRemaining.clear();
+        } else {
+            this.stepsSinceLastGoal++;
+
+            //DEBUG: failsafe for inifinite loops
+            if (this.stepsSinceLastGoal > 1000) {
+                System.err.println("Logic Loop Detected.  Exiting.");
+                System.exit(-11);
+            }
         }
 
         //If the agent's goal path is empty, try to find a new path
         if (this.pathStepsRemaining.size() == 0) {
             //log PathRule success/fail
             if (this.currPathRule != null) {
-                if (goal) {
+                if (isGoal) {
                     this.currPathRule.logSuccess();
                 }
                 else {
@@ -315,7 +347,15 @@ public class NdxrAgent implements IAgent {
 
             //Attempt to find a new path to the goal
             TreeNode root = new TreeNode(this);
+            //DEBUG: PROFILING
+            subStart = System.currentTimeMillis();
+
             Vector<TreeNode> goalPath = root.findBestGoalPath();
+
+            //DEBUG: PROFILING
+            long subStop = System.currentTimeMillis();
+            subTotal += subStop - subStart;
+
             if (goalPath != null) {
                 this.pathStepsRemaining = goalPath;
 
@@ -624,6 +664,7 @@ public class NdxrAgent implements IAgent {
 
     //endregion PathRule Methods
 
+    public Vector< Vector<Rule> > getPrevInternal() { return this.prevInternal; }
     public Vector<Rule> lastPrevInternal() {
         if (this.prevInternal.size() == 0) return new Vector<>();
         return this.prevInternal.get(this.prevInternal.size() - 1);
@@ -635,4 +676,7 @@ public class NdxrAgent implements IAgent {
     public double getRandSuccessRate() { return this.numRandSuccess / this.numRand; }
     public PathRule getCurrPathRule() { return this.currPathRule; }
     public Vector<PathRule> getPathRules() { return this.pathRules; }
+    public Vector<Rule> getCurrInternal() { return this.currInternal; }
+
+
 }//class NdxrAgent

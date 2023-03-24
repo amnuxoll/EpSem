@@ -123,6 +123,11 @@ public class Rule {
      * Warning:  This method recurses by calling {@link #matchRuleList}!
      */
     public double matchScore(Vector<Rule> prevInt, CondSet lhs, CondSet rhs) {
+        //DEBUG: REMOVE
+        if (this.lhs == null) {
+            boolean stop = true;
+        }
+
         //Check external conditions first
         double score = this.lhs.matchScore(lhs);
         if ((rhs != null) && (rhs.size() > 0)) {
@@ -133,8 +138,6 @@ public class Rule {
 
         return score;
     }//matchScore
-    
-
     
     /** 
      * matchScore                  <!-- RECURSIVE -->
@@ -183,11 +186,27 @@ public class Rule {
         this.rhs.mergeWith(other.rhs);
 
         //Merge the internal sensors by creating a union of the sets
-        for(Rule r : prevRules) {
+        for(Rule r : other.prevRules) {
             if (! this.prevRules.contains(r)) this.prevRules.add(r);
         }
 
     }//mergeWith
+
+    /**
+     * cleanup
+     *
+     * removes any references this rule has to encourage garbage collection.
+     * This rule should not be used after this method is called
+     */
+    public void cleanup() {
+        this.prevRules.clear();
+        this.prevRules = null;
+        this.rhs = null;
+        this.lhs = null;
+        this.brother = null;
+    }//cleanup
+
+
 
     /**
      * prefixString
@@ -294,12 +313,10 @@ public class Rule {
         RuleScore rs = new RuleScore(score);
         Rule.scoreHash.put(key, rs);
     }
+
     /** replace one rule in this.prevRules with another */
     public void replacePrevRule(Rule removeMe, Rule replacement) {
-        if (this.prevRules.contains(removeMe)) {
-            this.prevRules.remove(removeMe);
-            this.prevRules.add(replacement);
-        }
+        RuleIndex.replaceInRuleList(replacement, removeMe, this.prevRules);
     }
 
 }//class Rule

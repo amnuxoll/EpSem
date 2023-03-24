@@ -156,7 +156,7 @@ public class PathRule {
 
     /** helper for toString that just prints the LHS. */
     private void toStringLHS(StringBuilder result) {
-        result.append("#");
+        result.append("#pr");
         result.append(this.ruleId);
         result.append(": (");
         boolean first = true;

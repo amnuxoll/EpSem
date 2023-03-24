@@ -215,6 +215,7 @@ public class TreeNode {
         Vector<TreeNode> bestPath = null;
         for(int max = 1; max <= NdxrAgent.MAX_SEARCH_DEPTH; ++max) {
             Vector<TreeNode> path = fbgpHelper(0, max);
+
             if (path != null) {
                 //ignore scores that are worse than random
                 double score = calcOverallScore(path);
@@ -248,20 +249,6 @@ public class TreeNode {
 
         return result;
     }//sortedKeys
-
-    /**
-     * extToString
-     * <p>
-     * a shortened bit-based toString() method for SensorData
-     */
-    public static String extToString(SensorData stringMe) {
-        StringBuilder result = new StringBuilder();
-        for (String s : sortedKeys(stringMe)) {
-            Boolean val = (Boolean) stringMe.getSensor(s);
-            result.append(val ? "1" : "0");
-        }
-        return result.toString();
-    }//extToString
 
     /**
      * toString

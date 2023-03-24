@@ -46,7 +46,7 @@ public class CondSet implements Cloneable {
     //value in this array.
     //NOTE:  Right now I'm using a byte.  A longer value may be a better
     //       choice in the future (:AMN:, March 2023)
-    private final byte[] confs;
+    private byte[] confs;
 
 
     /**
@@ -268,4 +268,5 @@ public class CondSet implements Cloneable {
     private void setBit() { System.err.println("see warning above"); }
 
     public int size() { return confs.length; }
+
 }//class CondSet
