@@ -5,7 +5,7 @@ import java.util.Vector;
 
 /**
  * class PathRule
- *
+ * <p>
  * This class is descended from {@link PathRule}.
  * A PathRule describes a path that the agent could take to reach a goal.
  * Each PathRule has a confidence level indicating how often it has
@@ -25,16 +25,14 @@ public class PathRule {
     protected final int ruleId;
 
     /** The LHS is a set of existing PathRules.  One of which must precede this one */
-    private HashSet<PathRule> lhs = new HashSet<>();  //can be empty but not null
+    private final HashSet<PathRule> lhs = new HashSet<>();  //can be empty but not null
 
     /** The RHS is a sequence of rules that describe a path.  The LHS of each
      * rule must match the RHS of the preceding rule. */
     private final Vector<Rule> rhs;  //must contain at least one step
 
-    /** track the rule's success rate with this variables.  An initial success is given so that overall
-     * confidence won't drop instantly to zero on the first fail. */
-    private double numTries = 1.0;
-    private double numSuccesses = 1.0;
+    /** maintain a confidence in this PathRule */
+    private final Conf confidence = new Conf();
 
 //endregion Instance Variables
 
@@ -51,8 +49,7 @@ public class PathRule {
     /** converts a Vector<TreeNode> into a Vector<Rule> */
     public static Vector<Rule> nodePathToRulePath(Vector<TreeNode> path) {
         Vector<Rule> result = new Vector<>();
-        for(int i = 0; i < path.size(); ++i) {
-            TreeNode node = path.get(i);
+        for (TreeNode node : path) {
             if (node == null) continue;
             Rule r = node.getRule();
             if (r == null) continue;
@@ -70,7 +67,7 @@ public class PathRule {
 
     /**
      * rhsMatch
-     *
+     * <p>
      * Determines if a given Vector<TreeNode> matches this rule's rhs.
      */
     public double rhsMatch(Vector<TreeNode> matRHS) {
@@ -91,37 +88,8 @@ public class PathRule {
     }//rhsMatch
 
     /**
-     * rhsMatch
-     *
-     * compares the rhs of a given PathRule to this one
-     *
-     * @return a match score:
-     */
-    public double rhsMatch(PathRule other) {
-        //If other is null then this rule must also be empty
-        if (other == null) return 0.0;
-        if (other.rhs.size() != this.rhs.size()) {
-            return 0.0;
-        }
-
-        //Comparison
-        double score = 1.0;
-        for(int i = 0; i < other.rhs.size(); ++i) {
-            Rule matRule = other.rhs.get(i);
-            Rule myRule = this.rhs.get(i);
-            //actions *must* match
-            if (matRule.getAction() != myRule.getAction()) return 0.0;
-            score *= matRule.matchScore(myRule);
-            if (score <= 0.0) break;
-        }
-
-        return score;
-
-    }//rhsMatch
-
-    /**
      * lhsMatch
-     *
+     * <p>
      * determines if a given PathRule is contained in this rule's LHS
      * If a 'null' then an empty LHS is considered  match
      *
@@ -142,7 +110,7 @@ public class PathRule {
 
     /**
      * matchScore
-     *
+     * <p>
      * calculate a match score for this PathRule with a given lhs and rhs
      */
     public double matchScore(PathRule lhs, Vector<TreeNode> rhs) {
@@ -172,7 +140,6 @@ public class PathRule {
     private void rhsToStringShort(StringBuilder result) {
 
         //first append all the actions
-        int indexOfLastAction = -1;
         for(Rule step : this.rhs) {
             result.append(step.getAction());
         }
@@ -217,21 +184,20 @@ public class PathRule {
 
 
     public boolean equals(Object obj) {
-        if (! (obj instanceof PathRule)) return false;
-        PathRule other = (PathRule) obj;
+        if (! (obj instanceof PathRule other)) return false;
         return (this.ruleId == other.ruleId);
     }
 
     /**
      * length
-     *
+     * <p>
      * Caveat:  this is a recursive method!
      *
      * @return the time depth of this rule
      */
     public int length() {
-        //Base Case
-        if (this.lhs == null) return 1;
+        //Base Case is implicit in the fact that you eventually reach a
+        // PathRule with empty lhs
 
         //Recursive Case
         int bestLen = 0;
@@ -250,9 +216,9 @@ public class PathRule {
     public boolean lhsContains(PathRule other) { return this.lhs.contains(other); }
     public HashSet<PathRule> getLHS() { return this.lhs; }
     public Vector<Rule> getRHS() { return this.rhs; }
-    public void logSuccess() { this.numTries++; this.numSuccesses++; }
-    public void logFailure() { this.numTries++; }
-    public double getConfidence() { return this.numSuccesses / this.numTries; }
+    public void logSuccess() { this.confidence.adj(true); }
+    public void logFailure() { this.confidence.adj(false); }
+    public double getConfidence() { return this.confidence.dval(); }
 
 }//class PathRule
 
