@@ -287,7 +287,7 @@ public class NdxrAgent implements IAgent {
         }
         else {
             //random action
-            int actionIndex = this.rand.nextInt(this.actions.length);
+            int actionIndex = NdxrAgent.rand.nextInt(this.actions.length);
             action = this.actions[actionIndex];
             this.prevAction = action.toString().charAt(0);  //This trick may not work in the future...
             this.numRand++;

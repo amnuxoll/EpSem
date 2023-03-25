@@ -130,7 +130,7 @@ public class TreeNode {
         double foundScore = lastEl.confidence;
 
         //Adjust with the best matching PathRule (if it exists)
-        //Note:  the fact that no adjustment is made for mismatch make the agent explore.  TODO: too curious?
+        //Note:  the fact that no adjustment is made for mismatch makes the agent explore more.  TODO: too curious?
         PathRule match = agent.getBestMatchingPathRule(agent.getCurrPathRule(), foundPath);
         if (match != null) {
             foundScore *= match.getConfidence();

@@ -62,9 +62,6 @@ public class PathRule {
 
 //endregion ctors and initialization
 
-    //TODO:  Should rhsMatch and lhsMatch be doing partial matches??
-    // The nearEquals() method lets us dodge this for now but not sure we should.
-
     /**
      * rhsMatch
      * <p>
