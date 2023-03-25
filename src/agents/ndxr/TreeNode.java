@@ -219,9 +219,12 @@ public class TreeNode {
             if (path != null) {
                 //ignore scores that are worse than random
                 double score = calcOverallScore(path);
+                if (score < agent.getRandSuccessRate()) {
+                    path = null;
+                }
 
                 //Is this the best so far?
-                if (score > bestScore) {
+                else if (score > bestScore) {
                     bestScore = score;
                     bestPath = path;
                 }
@@ -340,4 +343,5 @@ public class TreeNode {
     public char getAction() { return this.pathStr.charAt(this.pathStr.length() - 1); }
 
     public Rule getRule() { return this.rule; }
+    public double getConfidence() { return this.confidence; }
 }//class TreeNode

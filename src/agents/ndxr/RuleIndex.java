@@ -503,11 +503,6 @@ public class RuleIndex {
             return false;  //no matching rules to cull
         }
 
-        //DEBUG: REMOVE
-        if (r2.getId() == 41) {
-            boolean stop = true;
-        }
-
         //DEBUG
         System.out.println("REMOVING rule: " + r2.verboseString());
         System.out.println("  merged with: " + r1.verboseString());

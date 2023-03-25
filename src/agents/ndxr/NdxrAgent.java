@@ -207,7 +207,7 @@ public class NdxrAgent implements IAgent {
         if (timeStep > 5) {
             boolean stop = true;
         }
-        if (this.numRules > 200) {
+        if (this.stepsSinceLastGoal > 150) {
             boolean stop = true;
         }
 
@@ -260,6 +260,7 @@ public class NdxrAgent implements IAgent {
                 bestRule = mr.rule;
             }
         }
+        if (bestRule == null) return null;
 
         //Build a new pathRule
         Vector<Rule> newRHS = new Vector<>();
@@ -372,6 +373,8 @@ public class NdxrAgent implements IAgent {
 
                 //DEBUG
                 debugPrintln("New Goal Path Found: " + goalPath.lastElement());
+                debugPrintln("             adj by: " + this.currPathRule + " c" + this.currPathRule.getConfidence());
+
             }//path found
         }//try to find new path
     }//pathMaintenance
