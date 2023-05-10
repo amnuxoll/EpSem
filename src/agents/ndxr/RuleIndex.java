@@ -515,6 +515,8 @@ public class RuleIndex {
         //remove the old rule from the index
         RuleIndex bin = findRuleBin(r2);
         bin.replaceRule(r2, r1);
+        bin = findRuleBin(r1);
+        bin.replaceRule(r2, r1);
 
         //Replace the old rule in all PathRules
         for(PathRule pr : agent.getPathRules()) {
@@ -532,6 +534,7 @@ public class RuleIndex {
         replaceInRuleList(r1, r2, currs);
 
         //Clean up the old rule's data to encourage garbage collection
+        //and catch errors where the agent is still trying to use exised rules
         r2.cleanup();
 
 
