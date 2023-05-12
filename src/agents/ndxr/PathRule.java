@@ -6,7 +6,7 @@ import java.util.Vector;
 /**
  * class PathRule
  * <p>
- * This class is descended from {@link PathRule}.
+ * This class is descended from the class with the same name in PhuJus.
  * A PathRule describes a path that the agent could take to reach a goal.
  * Each PathRule has a confidence level indicating how often it has
  * been successful.

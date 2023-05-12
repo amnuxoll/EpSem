@@ -216,6 +216,15 @@ public class TreeNode {
         for(int max = 1; max <= NdxrAgent.MAX_SEARCH_DEPTH; ++max) {
             Vector<TreeNode> path = fbgpHelper(0, max);
 
+            //DEBUG
+            if (path != null) {
+                PathRule matchPR = agent.getBestMatchingPathRule(agent.getCurrPathRule(), path);
+                agent.debugPrintln("    Cand Path Found: " + path.lastElement());
+                if (matchPR != null) {
+                    agent.debugPrintln("             adj by: " + matchPR + " c" + matchPR.getConfidence());
+                }
+            }
+
             if (path != null) {
                 //ignore scores that are worse than random
                 double score = calcOverallScore(path);

@@ -123,11 +123,6 @@ public class Rule {
      * Warning:  This method recurses by calling {@link #matchRuleList}!
      */
     public double matchScore(Vector<Rule> prevInt, CondSet lhs, CondSet rhs) {
-        //DEBUG: REMOVE
-        if (this.lhs == null) {
-            boolean stop = true;
-        }
-
         //Check external conditions first
         double score = this.lhs.matchScore(lhs);
         if ((rhs != null) && (rhs.size() > 0)) {
@@ -189,6 +184,9 @@ public class Rule {
         for(Rule r : other.prevRules) {
             if (! this.prevRules.contains(r)) this.prevRules.add(r);
         }
+
+        //Remove any "bro" designation
+        setBrother(null, 0.0);
 
     }//mergeWith
 

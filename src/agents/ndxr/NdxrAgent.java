@@ -207,7 +207,7 @@ public class NdxrAgent implements IAgent {
         if (timeStep > 5) {
             boolean stop = true;
         }
-        if (this.stepsSinceLastGoal > 150) {
+        if (this.stepsSinceLastGoal > 0) {
             boolean stop = true;
         }
 
@@ -373,7 +373,7 @@ public class NdxrAgent implements IAgent {
 
                 //DEBUG
                 debugPrintln("New Goal Path Found: " + goalPath.lastElement());
-                debugPrintln("             adj by: " + this.currPathRule + " c" + this.currPathRule.getConfidence());
+                debugPrintln("             adj by: " + this.currPathRule);
 
             }//path found
         }//try to find new path

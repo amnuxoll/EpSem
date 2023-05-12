@@ -427,7 +427,17 @@ public class RuleIndex {
      * @param replacement rule that is replacing it
      */
     public void replaceRule(Rule removeMe, Rule replacement) {
-        this.rules.remove(removeMe);
+        //recursive case
+        if (this.rules == null) {
+            for(RuleIndex ri : this.children) {
+                ri.replaceRule(removeMe, replacement);
+            }
+            return;
+        }
+
+        if (this.rules.contains(removeMe)) {
+            this.rules.remove(removeMe);
+        }
 
         //remove any case where the given rule is a brother
         for(Rule r : this.rules) {
@@ -436,7 +446,6 @@ public class RuleIndex {
                 r.setBrother(null, 0.0);
             }
         }
-        updateBrothers();  //local update to this index only
 
         //replace this rule as a LHS internal sensor
         //get the rule index at next depth
@@ -461,7 +470,6 @@ public class RuleIndex {
             }
         }//while
 
-
     }//replaceRule
 
     /**
@@ -470,6 +478,23 @@ public class RuleIndex {
      * is a helper method for {@link #reduce}. It replaces r2 with r1 in a given vector
      */
     public static void replaceInRuleList(Rule r1, Rule r2, Vector<Rule> prevs) {
+        //Check if these rules are in the list
+        boolean r1Present = false;
+        boolean r2Present = false;
+        for(Rule r : prevs) {
+            if (r.getId() == r1.getId()) r1Present = true;
+            if (r.getId() == r2.getId()) r2Present = true;
+        }
+
+        //check: nothing to replace
+        if (!r2Present) return;
+
+        //if r1 is already there then just delete r2
+        if (r1Present) {
+            prevs.remove(r2);
+        }
+
+        //If only r2 is there then do a swap
         for(int i = 0; i < prevs.size(); ++i) {
             Rule r = prevs.get(i);
             if (r.getId() == r2.getId()) {
@@ -513,10 +538,7 @@ public class RuleIndex {
         System.out.println("       to get: " + r1.verboseString());
 
         //remove the old rule from the index
-        RuleIndex bin = findRuleBin(r2);
-        bin.replaceRule(r2, r1);
-        bin = findRuleBin(r1);
-        bin.replaceRule(r2, r1);
+        replaceRule(r2, r1);
 
         //Replace the old rule in all PathRules
         for(PathRule pr : agent.getPathRules()) {
@@ -866,7 +888,14 @@ public class RuleIndex {
         //Base Case:  leaf - print all rules
         else if (this.rules != null) {
             for(Rule r : rules) {
-                System.out.print(r.toString().indent(2 + this.indexDepth * 2));
+                StringBuilder sb = new StringBuilder();
+                sb.append(r.toString());
+
+                //append match score with current sensing
+                sb.append(" ^ mat: ");
+                double matScore = r.matchScore(agent.getCurrInternal(), new CondSet(agent.getCurrExternal()), null);
+                sb.append(String.format("%.3f", matScore));
+                System.out.print(sb.toString().indent(2 + this.indexDepth * 2));
             }
         }
     }//printAll
