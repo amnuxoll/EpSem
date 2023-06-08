@@ -895,6 +895,12 @@ public class RuleIndex {
                 sb.append(" ^ mat: ");
                 double matScore = r.matchScore(agent.getCurrInternal(), new CondSet(agent.getCurrExternal()), null);
                 sb.append(String.format("%.3f", matScore));
+
+                //append the verbose version
+                sb.append(" /// ");
+                sb.append(r.verboseString());
+
+                //print the complete string
                 System.out.print(sb.toString().indent(2 + this.indexDepth * 2));
             }
         }

@@ -5,6 +5,7 @@ import framework.IAgent;
 import framework.IIntrospector;
 import framework.SensorData;
 
+import java.util.BitSet;
 import java.util.Collections;
 import java.util.Random;
 import java.util.Vector;
@@ -59,6 +60,11 @@ public class NdxrAgent implements IAgent {
     //Note:  This is staic because it's convenient for the Rule class.
     // If we ever have multiple simultaneous agents it will be a problem.
     private static int timeStep = 0;
+
+    //Track how often each external sensor is on.  This is used to calculate
+    // "document frequency" for TF-IDF scores.  ('static' for same reason
+    // as timeStep)
+    private static long[] extOnCount;
 
     //The remaining steps on the path-to-goal that the agent is currently following
     private Vector<TreeNode> pathStepsRemaining = new Vector<>();
@@ -147,9 +153,9 @@ public class NdxrAgent implements IAgent {
             sb.append("??? (no predicting rule)");
         } else {
             sb.append(bestRule.getRHS().wcBitString());
-            sb.append(" ( ");
+            sb.append("    { ");
             sb.append(bestRule);
-            sb.append(")");
+            sb.append(" }");
         }
         debugPrintln(sb.toString());
     }//debugPrintAgentExpectation
@@ -492,6 +498,17 @@ public class NdxrAgent implements IAgent {
         this.currInternal = new Vector<>();
         this.prevExternal = this.currExternal;
         this.currExternal = newExt;
+
+        //Also update "document frequency" data
+        BitSet bits = newExt.toBitSet();
+        if (NdxrAgent.timeStep == 1) {  //init array first time
+            NdxrAgent.extOnCount = new long[bits.size()];
+        }
+        for(int i = 0; i < newExt.size(); ++i) {
+            if (bits.get(i)) {
+                NdxrAgent.extOnCount[i] ++;
+            }
+        }
     }//updateSensors
 
     /**
@@ -676,6 +693,7 @@ public class NdxrAgent implements IAgent {
     public SensorData getCurrExternal() { return currExternal; }
     public RuleIndex getRules() { return this.rules; }
     public static int getTimeStep() { return NdxrAgent.timeStep; }
+    public static float getDocFrequency(int index) { return (float)NdxrAgent.extOnCount[index] / (float)NdxrAgent.timeStep; }
     public double getRandSuccessRate() { return this.numRandSuccess / this.numRand; }
     public PathRule getCurrPathRule() { return this.currPathRule; }
     public Vector<PathRule> getPathRules() { return this.pathRules; }

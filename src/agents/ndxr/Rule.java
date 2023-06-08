@@ -88,26 +88,30 @@ public class Rule {
         if (depth == 0) return 1.0;  //base case: no comparison needed
         if (prevInt.size() == 0) return 0.0;  //no match possible
         
-        //Do the two lists have at least one in common?
+        //The two lists must have at least one in common.
+        //Return the score of the best of these
         for (Rule r : prevInt) {
             if (this.prevRules.contains(r)) {
                 return 1.0;
             }
         }
-        
-        //Find the score of best matching rules
+
+        //TODO:  Consider adding this back in.  I'm taking it out for now to
+        //       minimize the amount of differences between NDXR and PhuJus
+//        //Find the score of best matching rules
         double bestScore = 0.0;
-        for(Rule r1 : prevInt) {
-            for (Rule r2 : this.prevRules) {
-                double score = r1.matchScore(r2);  //recursion
-                if (score > bestScore) {
-                    bestScore = score;
-                }
-            }
-        }
+//        for(Rule r1 : prevInt) {
+//            for (Rule r2 : this.prevRules) {
+//                double score = r1.matchScore(r2);  //recursion
+//                if (score > bestScore) {
+//                    bestScore = score;
+//                }
+//            }
+//        }
 
         return bestScore;
     }//matchRuleList
+
 
     /**
      * matchScore                <!-- RECURSIVE -->
@@ -129,7 +133,7 @@ public class Rule {
             score *= this.rhs.matchScore(rhs);
         }
 
-        score *= matchRuleList(prevInt);   //indirect recusive call
+        score *= matchRuleList(prevInt);   //indirect recursive call
 
         return score;
     }//matchScore

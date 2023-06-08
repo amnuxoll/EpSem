@@ -16,10 +16,12 @@ public class Conf {
     /** the highest confidence that the agent can have */
     public static final byte MAX = (byte)0b01111111; //i.e., 127
 
-    /** for convenice, identify the most significant bit in a confidence value */
+    /** for convenice, index to the most significant bit in a confidence value */
     public static final byte MOST_SIG = (byte)(byte)0b01000000;
 
     /** the raw confidence value */
+    //NOTE:  Right now I'm using a byte.  A longer value may be a better
+    //       choice in the future (:AMN:, March 2023)
     public byte val = MAX;
 
     /** base ctor assumed max value */

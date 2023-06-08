@@ -10,7 +10,7 @@ import java.util.BitSet;
  * represents a sequence of conditions of a rule that can be used to
  * calculate a match score with a given sensor array. (Could be LHS or RHS.)
  * <p>
- * Each condition is either a '1' or '0' depending upon what exerience (episode)
+ * Each condition is either a '1' or '0' depending upon what experience (episode)
  * was used to create it.  Each condition also has a confidence that is
  * adjusted based upon subsequent experiences.  A condition with zero
  * confidence is effectively a wildcard bit (matches either '0' or '1').
@@ -29,11 +29,9 @@ public class CondSet implements Cloneable {
     private byte base = 0;
 
     //The agent's confidence in each bit is represented by a corresponding
-    //value in this array.
-    //NOTE:  Right now I'm using a byte.  A longer value may be a better
-    //       choice in the future (:AMN:, March 2023)
+    //value in this array.  This confidence is used as the TF value  in
+    //TF-IDF calculations
     private final Conf[] confs;
-
 
     /**
      * ctor
@@ -76,28 +74,74 @@ public class CondSet implements Cloneable {
         }
     }//update
 
+
+    /**
+     * calculateTFIDF
+     * <p>
+     * helper method that calculates the TF-IDF given the tf, df and whether
+     * the sensor was on.  This is used to score partial matches.
+     * <p>
+     * For our purposes:
+     *   Term-Frequency (TF) is how often the sensor is on when the rule matches
+     *   Document-Frequency (DF) is how often the sensor is on in general
+     * <p>
+     * Note: We've strayed quite a bit from the canonical TF-IDF
+     *       formula:  tf * -log(df).  Nonetheless, the name has stuck.
+     *
+     * @param tf the term frequency of the sensor [0.0..1.0]
+     * @param df the document frequency of the sensor [0.0..1.0]
+     * @param wasOn whether the sensor was on
+     * @return two values in an array:
+     *         0 - the tfidf match score [-1.0..1.0]
+     *         1 - the relevance of this score [0.0..1.0]
+     */
+    //pre-allocating this array speeds up calculateTFIDF() but at the cost
+    //of being thread-unsafe.  Ok for now.
+    private static final double[] ctfidfResult = new double[2];
+
+
+    private double[] calculateTFIDF(double tf, double df, boolean wasOn) {
+        //Calculate a base match degree on the scale [-1.0..1.0]
+        double tfidf = wasOn ? tf : (1.0 - tf);
+        tfidf -= 0.5;
+        tfidf *= 2.0;
+        ctfidfResult[0] = tfidf;
+
+        //Calculate its relevance.
+        ctfidfResult[1] = Math.abs(tf - df);
+
+        return ctfidfResult;
+    }//calculateTFIDF
+
+
+
     /**
      * matchScore
      * <p>
      * calculates how closely this CondSet matches a given SensorData set
+     * as a TF-IDF (ish) match score.
      * NOTE:  sensors.size() should equal this.confs.length
      *
-     * @return a match score in the range [0.0..1.0]
-     *
-     * TODO:  Use TF-IDF for this method?  For now, it's just a weighted cardinality count
+     * @return a TF-IDF (ish) match score in the range [0.0..1.0]
      */
     public double matchScore(SensorData sensors) {
         BitSet bits = sensors.toBitSet();
-        double sum = 0.0;
+        double sum = 0.0; //sum of tfidf values for the sensors
+        double max = 0.0; //max tfidf score possible
         for(int i = 0; i < sensors.size(); ++i) {
             boolean sensorVal = bits.get(i);
             boolean myVal = (this.getBit(i) == 1);
             if (sensorVal == myVal) {
-                sum += confs[i].val;
+                double tf = this.confs[i].dval();
+                double df = NdxrAgent.getDocFrequency(i);
+                double[] result = calculateTFIDF(tf, df, myVal);
+                sum += result[0] * result[1];
+                max += result[1];
+
             }
         }
-        double score = sum / ((double)(Conf.NUM_CONF_BITS * Conf.MAX));
-        return score;
+
+        return sum / max;
     }//matchScore
 
     /**
@@ -106,22 +150,24 @@ public class CondSet implements Cloneable {
      * calculates how closely this CondSet matches another CondSet
      * NOTE:  the other set should be same size
      *
-     * @return a match score in the range [0.0..1.0]
-     *
-     * TODO:  Use TF-IDF for this method?  For now, it's just a weighted cardinality count
+     * @return a TF-IDF (ish) match score in the range [0.0..1.0]
      */
     public double matchScore(CondSet other) {
-        double sum = 0.0;
+        double sum = 0.0; //sum of tfidf values for the sensors
+        double max = 0.0; //max tfidf score possible
         for(int i = 0; i < this.size(); ++i) {
             int myBit = this.getBit(i);
             int otherBit = other.getBit(i);
             if (myBit == otherBit) {
-                sum += this.confs[i].val;
-                sum += other.confs[i].val;
+                double tf = this.confs[i].dval();
+                double df = NdxrAgent.getDocFrequency(i);
+                double[] result = calculateTFIDF(tf, df, myBit == 1);
+                sum += result[0] * result[1];
+                max += result[1];
             }
         }
-        double score = sum / (2.0 * this.size() * Conf.MAX);
-        return score;
+
+        return sum/max;
     }//matchScore
 
     /**
