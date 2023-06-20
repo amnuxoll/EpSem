@@ -99,22 +99,6 @@ public class CondSet implements Cloneable {
     //of being thread-unsafe.  Ok for now.
     private static final double[] ctfidfResult = new double[2];
 
-
-    private double[] calculateTFIDF(double tf, double df, boolean wasOn) {
-        //Calculate a base match degree on the scale [-1.0..1.0]
-        double tfidf = wasOn ? tf : (1.0 - tf);
-        tfidf -= 0.5;
-        tfidf *= 2.0;
-        ctfidfResult[0] = tfidf;
-
-        //Calculate its relevance.
-        ctfidfResult[1] = Math.abs(tf - df);
-
-        return ctfidfResult;
-    }//calculateTFIDF
-
-
-
     /**
      * matchScore
      * <p>
@@ -134,10 +118,9 @@ public class CondSet implements Cloneable {
             if (sensorVal == myVal) {
                 double tf = this.confs[i].dval();
                 double df = NdxrAgent.getDocFrequency(i);
-                double[] result = calculateTFIDF(tf, df, myVal);
-                sum += result[0] * result[1];
-                max += result[1];
-
+                double relevance = Math.abs(tf - df);
+                sum += tf * relevance;
+                max += relevance;
             }
         }
 
@@ -161,9 +144,9 @@ public class CondSet implements Cloneable {
             if (myBit == otherBit) {
                 double tf = this.confs[i].dval();
                 double df = NdxrAgent.getDocFrequency(i);
-                double[] result = calculateTFIDF(tf, df, myBit == 1);
-                sum += result[0] * result[1];
-                max += result[1];
+                double relevance = Math.abs(tf - df);
+                sum += tf * relevance;
+                max += relevance;
             }
         }
 
