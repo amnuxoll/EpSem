@@ -88,8 +88,8 @@ public class Rule {
         if (depth == 0) return 1.0;  //base case: no comparison needed
         if (prevInt.size() == 0) return 0.0;  //no match possible
         
-        //The two lists must have at least one in common.
-        //Return the score of the best of these
+        //If the two lists have at least one value in common then
+        //they are a full match
         for (Rule r : prevInt) {
             if (this.prevRules.contains(r)) {
                 return 1.0;
@@ -98,11 +98,11 @@ public class Rule {
 
         //TODO:  Consider adding this back in.  I'm taking it out for now to
         //       minimize the amount of differences between NDXR and PhuJus
-//        //Find the score of best matching rules
+        //A partial match score is the best match score of any two rules
         double bestScore = 0.0;
 //        for(Rule r1 : prevInt) {
 //            for (Rule r2 : this.prevRules) {
-//                double score = r1.matchScore(r2);  //recursion
+//                double score = r1.matchScore(r2);  //Note: recursion!
 //                if (score > bestScore) {
 //                    bestScore = score;
 //                }

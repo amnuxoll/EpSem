@@ -133,17 +133,17 @@ public class RuleIndex {
     private int calcSplitIndex() {
         //At depth 2, always split on RHS goal sensor which, by convention,
         //is always the last sensor in that set
-        int sensorSize = agent.getCurrExternal().size();
+        int numSensors = 2 * agent.getCurrExternal().size();  //both lhs and rhs
         if (this.indexDepth == 2) {
-            return 2*sensorSize - 1;
+            return numSensors - 1;
         }
 
         //TODO: At depth 3+ select sensor that has the most contradiction among the rules.
         //      For now, use the sensor that creates the most even split
         int evenSplit = this.rules.size() / 2;
-        int bestGap = 2*sensorSize; //best gap away from even split seen so far
+        int bestGap = numSensors; //best gap away from even split seen so far
         int result = TBD_INDEX;
-        for(int i = 0; i < 2*sensorSize - 1; ++i) {
+        for(int i = 0; i < numSensors - 1; ++i) {
             int currSplit = 0;
             //count the zeroes
             for(Rule r : this.rules) {
@@ -161,14 +161,15 @@ public class RuleIndex {
             }
 
             //skip gaps that are completely uneven
-            if ((currSplit == 0) || (currSplit == sensorSize)) continue;
+            if ((currSplit == 0) || (currSplit == numSensors)) continue;
 
             //best gap so far?
             if (gap < bestGap) {
                 bestGap = gap;
                 result = i;
             }
-        }
+        }//for each split point
+
         return result;
     }//calcSplitIndex
 
@@ -213,14 +214,9 @@ public class RuleIndex {
     private void split() {
         //bisect based upon a particular sensor
         this.splitIndex = calcSplitIndex();
-
-        //DEBUG
-        if (this.splitIndex == TBD_INDEX) {
-            calcSplitIndex();
-        }
-
-
         if (this.splitIndex == TBD_INDEX) return;
+
+        //Create two new child nodes based on the split
         this.children = new RuleIndex[2];
         this.children[0] = new RuleIndex(this, this.splitIndex);
         this.children[1] = new RuleIndex(this, this.splitIndex);
@@ -247,13 +243,18 @@ public class RuleIndex {
     /**
      * considerSplit
      * <p>
-     * a helper for addRule that considers splitting
-     * this node into two.  It also can trigger a rebalance.
+     * a helper for addRule that considers splitting this node into two.
+     * A split is performed if the largest leaf node (i.e., most rules)
+     * is at least N-times larger than the smallest leaf node that meets
+     * some minimum.
+     *
+     * This method can also can trigger a rebalance.
      * <p>
      * Caveat:  only call this on leaf nodes!
      */
     private void considerSplit() {
         //Find the smallest leaf node with at least MIN_SMALLEST entries
+        // (This is the first one found since the list is sorted.)
         RuleIndex smallest = null;
         for(RuleIndex node : RuleIndex.leaves) {
             if (node.rules.size() >= MIN_SMALLEST) {
@@ -854,6 +855,7 @@ public class RuleIndex {
 
         //build a representation of the rules inside this node
         if (indexDepth > 2) {
+            retVal.append("  ");
             retVal.append(buildRepStr());
         }
 

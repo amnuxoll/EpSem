@@ -150,6 +150,9 @@ public class CondSet implements Cloneable {
             }
         }
 
+        //catch divide by zero (complete cardinality mismatch)
+        if (max == 0.0) return 0.0;
+
         return sum/max;
     }//matchScore
 
