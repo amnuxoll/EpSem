@@ -74,31 +74,6 @@ public class CondSet implements Cloneable {
         }
     }//update
 
-
-    /**
-     * calculateTFIDF
-     * <p>
-     * helper method that calculates the TF-IDF given the tf, df and whether
-     * the sensor was on.  This is used to score partial matches.
-     * <p>
-     * For our purposes:
-     *   Term-Frequency (TF) is how often the sensor is on when the rule matches
-     *   Document-Frequency (DF) is how often the sensor is on in general
-     * <p>
-     * Note: We've strayed quite a bit from the canonical TF-IDF
-     *       formula:  tf * -log(df).  Nonetheless, the name has stuck.
-     *
-     * @param tf the term frequency of the sensor [0.0..1.0]
-     * @param df the document frequency of the sensor [0.0..1.0]
-     * @param wasOn whether the sensor was on
-     * @return two values in an array:
-     *         0 - the tfidf match score [-1.0..1.0]
-     *         1 - the relevance of this score [0.0..1.0]
-     */
-    //pre-allocating this array speeds up calculateTFIDF() but at the cost
-    //of being thread-unsafe.  Ok for now.
-    private static final double[] ctfidfResult = new double[2];
-
     /**
      * matchScore
      * <p>
@@ -115,13 +90,11 @@ public class CondSet implements Cloneable {
         for(int i = 0; i < sensors.size(); ++i) {
             boolean sensorVal = bits.get(i);
             boolean myVal = (this.getBit(i) == 1);
-            if (sensorVal == myVal) {
-                double tf = this.confs[i].dval();
-                double df = NdxrAgent.getDocFrequency(i);
-                double relevance = Math.abs(tf - df);
-                sum += tf * relevance;
-                max += relevance;
-            }
+            double tf = this.confs[i].dval();
+            double df = NdxrAgent.getDocFrequency(i);
+            double relevance = Math.abs(tf - df);
+            if (sensorVal == myVal) sum += tf * relevance;
+            max += relevance;
         }
 
         return sum / max;
@@ -141,13 +114,11 @@ public class CondSet implements Cloneable {
         for(int i = 0; i < this.size(); ++i) {
             int myBit = this.getBit(i);
             int otherBit = other.getBit(i);
-            if (myBit == otherBit) {
-                double tf = this.confs[i].dval();
-                double df = NdxrAgent.getDocFrequency(i);
-                double relevance = Math.abs(tf - df);
-                sum += tf * relevance;
-                max += relevance;
-            }
+            double tf = this.confs[i].dval();
+            double df = NdxrAgent.getDocFrequency(i);
+            double relevance = Math.abs(tf - df);
+            if (myBit == otherBit) sum += tf * relevance;
+            max += relevance;
         }
 
         //catch divide by zero (complete cardinality mismatch)

@@ -161,7 +161,7 @@ public class RuleIndex {
             }
 
             //skip gaps that are completely uneven
-            if ((currSplit == 0) || (currSplit == numSensors)) continue;
+            if ((currSplit == 0) || (currSplit == this.rules.size())) continue;
 
             //best gap so far?
             if (gap < bestGap) {

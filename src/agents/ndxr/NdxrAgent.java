@@ -140,7 +140,7 @@ public class NdxrAgent implements IAgent {
         sb.append(new CondSet(this.currExternal).bitString());
         sb.append(this.prevAction);
         sb.append(" -> ");
-        //which predicting rule has highest confidence
+        //which predicting rule has the highest confidence
         double bestScore = 0.0;
         Rule bestRule = null;
         for(RuleIndex.MatchResult mr : this.predictingRules) {
@@ -213,7 +213,7 @@ public class NdxrAgent implements IAgent {
         if (timeStep > 5) {
             boolean stop = true;
         }
-        if (this.stepsSinceLastGoal > 0) {
+        if (this.stepsSinceLastGoal > 15) {
             boolean stop = true;
         }
 
@@ -245,10 +245,10 @@ public class NdxrAgent implements IAgent {
 
     /**
      * makeMatchingPathRule
-     *
+     * <p>
      * constructs a one-step PathRule with the rule that best matches a given
      * action and the agent's current sensing
-     *
+     * <p>
      * @return the new PathRule or null if it could not be constructed
      */
     private PathRule makeMatchingPathRule(char act) {
@@ -277,11 +277,11 @@ public class NdxrAgent implements IAgent {
 
     /**
      * calcAction
-     *
+     * <p>
      * determines what action the agent will take next
      */
     private Action calcAction() {
-        Action action = null;
+        Action action;
         if (this.pathStepsRemaining.size() > 0) {
             TreeNode step = this.pathStepsRemaining.remove(0);
             this.prevAction = step.getAction();
@@ -315,7 +315,7 @@ public class NdxrAgent implements IAgent {
 
     /**
      * pathMaintenance
-     *
+     * <p>
      * updates the agent's current path information, particularly the pathToDo
      * and prevPath instance variables
      *
@@ -323,6 +323,7 @@ public class NdxrAgent implements IAgent {
      */
     private void pathMaintenance(boolean isGoal) {
         //If goal has been reached reset the path
+        this.stepsSinceLastGoal++;
         if (isGoal) {
             this.goalCount++;
             debugPrintln("FOUND GOAL #" + this.goalCount + " in " + this.stepsSinceLastGoal + " steps.");
@@ -330,8 +331,6 @@ public class NdxrAgent implements IAgent {
             if (this.lastActionRandom) this.numRandSuccess++;
             this.pathStepsRemaining.clear();
         } else {
-            this.stepsSinceLastGoal++;
-
             //DEBUG: failsafe for inifinite loops
             if (this.stepsSinceLastGoal > 1000) {
                 System.err.println("Logic Loop Detected.  Exiting.");
@@ -372,14 +371,26 @@ public class NdxrAgent implements IAgent {
                     //create a new PathRule that matches
                     Vector<Rule> newRHS = PathRule.nodePathToRulePath(goalPath);
                     match = new PathRule(this, this.currPathRule, newRHS);
-                    if (match != null) this.pathRules.add(match);
+                    this.pathRules.add(match);
                 }
                 this.currPathRule = match;
 
 
                 //DEBUG
-                debugPrintln("New Goal Path Found: " + goalPath.lastElement());
-                debugPrintln("             adj by: " + this.currPathRule);
+                StringBuilder sb = new StringBuilder();
+                sb.append("New Goal Path Found: ");
+                sb.append(goalPath.lastElement());
+                sb.append("\n             using rules: ");
+                for(TreeNode tn : goalPath) {
+                    sb.append("\n                 ");
+                    sb.append(tn.getRule().toString());
+                    sb.append(" ^ mat: ");
+                    double matScore = tn.getRule().matchScore(this.getCurrInternal(), new CondSet(this.getCurrExternal()), null);
+                    sb.append(String.format("%.3f", matScore));
+                }
+                sb.append("\n             adj by: ");
+                sb.append(this.currPathRule);
+                debugPrintln(sb.toString());
 
             }//path found
         }//try to find new path
@@ -626,7 +637,7 @@ public class NdxrAgent implements IAgent {
 
     /**
      * getBestMatchingPathRule
-     *
+     * <p>
      * determines which PathRule in this.pathRules best matches a given path
      *
      * @return the matching PR or null if not found
@@ -647,7 +658,7 @@ public class NdxrAgent implements IAgent {
 
     /**
      * getBestMatchingPathRule
-     *
+     * <p>
      * determines which PathRule in this.pathRules best matches a given action.
      * In particular, this must be a PathRule with one-step RHS that has the
      * given action.  The match scores with current external sensors are used
