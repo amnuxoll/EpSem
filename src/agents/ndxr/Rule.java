@@ -79,22 +79,39 @@ public class Rule {
     }//ctor
 
     /**
+     * cardMatchRuleList
+     * <p>
+     * is a helper method for {@link #matchRuleList(Vector)}
+     * and {@link #cardMatchScore(Vector, CondSet, CondSet)} .
+     * It compares a lists of Rules to this.prevRules to find at
+     * least one value in common.
+     *
+     * Note:  depth 0 rules are always considered a match
+     *
+     * @return true if common value found or this rule is depth 0
+     */
+    private boolean cardMatchRuleList(Vector<Rule> prevInt) {
+        if (depth == 0) return true;
+        if (prevInt.size() == 0) return false;
+
+        //If the two lists have at least one value in common then
+        //they are a full match
+        for (Rule r : prevInt) {
+            if (this.prevRules.contains(r)) {
+                return true;
+            }
+        }
+        return false;
+    }   //cardMatchRuleList
+
+    /**
      * matchRuleList            <!-- RECURSIVE -->
      * <p>
      * is a helper method for {@link #matchScore(Vector, CondSet, CondSet)}.
      * It compares a lists of Rules to this.prevRules for similarity
      */
     public double matchRuleList(Vector<Rule> prevInt) {
-        if (depth == 0) return 1.0;  //base case: no comparison needed
-        if (prevInt.size() == 0) return 0.0;  //no match possible
-        
-        //If the two lists have at least one value in common then
-        //they are a full match
-        for (Rule r : prevInt) {
-            if (this.prevRules.contains(r)) {
-                return 1.0;
-            }
-        }
+        if (cardMatchRuleList(prevInt) ) return 1.0;
 
         //TODO:  Consider adding this back in.  I'm taking it out for now to
         //       minimize the amount of differences between NDXR and PhuJus
@@ -113,11 +130,36 @@ public class Rule {
     }//matchRuleList
 
 
+
+
+    /**
+     * cardMatchScore
+     * <p>
+     * calculates the cardinality match score of this rule with given LHS.
+     * In other words, this method does not do any partial matches and looks
+     * explicitly for exactly matching conditions.  The action is presumed
+     * to match already.
+     *
+     * @param rhs can be null or zero length if only a LHS score is desired
+     * <p>
+     */
+    public double cardMatchScore(Vector<Rule> prevInt, CondSet lhs, CondSet rhs) {
+        //Check external conditions first
+        double score = this.lhs.cardMatch(lhs);
+        if ((rhs != null) && (rhs.size() > 0)) {
+            score *= this.rhs.cardMatch(rhs);
+        }
+
+        score *= matchRuleList(prevInt);
+
+        return score;
+    }//cardMatchScore
+
     /**
      * matchScore                <!-- RECURSIVE -->
      * <p>
-     * calculates the match score of this rule with given LHS.  The action
-     * is presumed to match already.
+     * calculates the match score of this rule with given LHS (+ RHS).
+     * The action is presumed to match already.
      * <p>
      * Note: If the method detects that the final match score will be less than
      *       MIN_MATCH_SCORE then 0.0 is returned immediately (for efficiency)

@@ -75,6 +75,27 @@ public class CondSet implements Cloneable {
     }//update
 
     /**
+     * cardMatch
+     *
+     * calculations the cardinality match between this set and another, given set.
+     * This is based entirely upon the bit values.  No partial matching is performed.
+     *
+     * @return fraction of bits that match
+     */
+    public double cardMatch(CondSet other) {
+        double count = 0.0;
+        double sum = 0.0;
+        for(int i = 0; i < this.size(); ++i) {
+            count++;
+            int myBit = this.getBit(i);
+            int otherBit = other.getBit(i);
+            if (myBit != otherBit) sum++;
+        }
+
+        return sum / count;
+    }//cardMatch
+
+    /**
      * matchScore
      * <p>
      * calculates how closely this CondSet matches a given SensorData set

@@ -523,6 +523,26 @@ public class NdxrAgent implements IAgent {
     }//updateSensors
 
     /**
+     * tuneRules
+     *
+     * is a helper method for {@link #ruleMaintenance()}.  It adjusts the confidence of rules
+     * with the best matching LHS in the last timestep
+     */
+    public void tuneRules() {
+        for(RuleIndex.MatchResult mr : this.predictingRules) {
+            //If the rule was not a perfect match and did not correctly
+            // predict the outcome then it is assumed that this rule
+            // should not have been applied in that situation so it is
+            // not tuned.  I.e., Why tune a mismatching rule when a
+            // perfectly correct rule is about to be created?
+            double rhsScore = mr.rule.getRHS().matchScore(this.currExternal);
+            if ((mr.score < 1.0) && (rhsScore < 1.0)) continue;
+
+            mr.rule.tune(this.prevExternal, this.currExternal);
+        }
+    }//tuneRules
+
+    /**
      * findEquiv
      * <p>
      * searches a list of MatchResult for one that contains a rule that
@@ -558,20 +578,68 @@ public class NdxrAgent implements IAgent {
     }//findEquiv
 
     /**
-     * ruleMaintenance
-     * <p>
-     * updates the data in the rules that match the experience the agent just had
+     * createNewDepth0Rules
+     *
+     * is a helper method for {@link #ruleMaintenance()}.  It creates new
+     * depth 0 rules from the previous episode + current sensing
+     *
+     * Side effect:  this resets this.currInternal
+     *
+     * @param matches a vector of rules which best matched the agent's most recent experience
+     * @param newRules  the newly created rules are added to this vector
+     *
+     * @return a vector of the rules that were created (may be empty)
      */
-    public void ruleMaintenance() {
-        //Skip first timestep
-        if (this.prevAction == '?') return;
+    private void createNewDepth0Rules(Vector<RuleIndex.MatchResult> matches, Vector<Rule> newRules) {
+        //This will be init'd by this method
+        this.currInternal.clear();
 
-        //Tune rules that predicted the current state last timestep
-        for(RuleIndex.MatchResult mr : this.predictingRules) {
-            mr.rule.tune(this.prevExternal, this.currExternal);
+        Rule r = findEquiv(matches, this.prevExternal, this.currExternal, 0);
+        if (r == null) {  //don't create a duplicate
+            r = new Rule(this.prevExternal, this.prevAction,
+                    this.currExternal, null);
+            newRules.add(r);
         }
+        this.currInternal.add(r);
+    }//createNewDepth0Rules
 
-        //Get the rules that match what the agent just experienced
+    /**
+     * createNewDepth1PlusRules
+     *
+     * is a helper method for {@link #ruleMaintenance()}.  It creates new
+     * depth 1+ rules from the previous episode + current sensing
+     *
+     * Side effect:  the newly created rules are added to this.currInternal
+     *
+     * @param matches a vector of rules which best matched the agent's most recent experience
+     * @param newRules  the newly created rules are added to this vector
+     */
+    private void createNewDepth1PlusRules(Vector<RuleIndex.MatchResult> matches, Vector<Rule> newRules) {
+        //new rules for other depths
+        Rule r;
+        Vector<Rule> lastPrevInt = lastPrevInternal();
+        for (int i = 0; i < lastPrevInt.size(); ++i) {    //for-each causes concurrent mod exceptoin.  idk why
+            Rule pr = lastPrevInt.get(i);
+            if (pr.getDepth() >= Rule.MAX_DEPTH) break;
+            r = findEquiv(matches, this.prevExternal, this.currExternal, pr.getDepth() + 1);
+            if (r == null) {  //don't create a duplicate
+                r = new Rule(this.prevExternal, this.prevAction,
+                        this.currExternal, pr);
+                newRules.add(r);
+            }
+            this.currInternal.add(r);
+        }//if
+    }//createNewDepth1PlusRules
+
+    /**
+     * getExistingRuleMatches
+     *
+     * is a helper method for {@link #ruleMaintenance()}.  It retrieves a list of all
+     * existing rules which match the agent's most recent experience
+     *
+     * @return a list of MatchResult objects
+     */
+    private Vector<RuleIndex.MatchResult> getExistingRuleMatches() {
         Vector<Rule> prevInt;
         if (this.prevInternal.size() == 0) {  // i.e., timestep 0
             prevInt = new Vector<>();
@@ -581,40 +649,35 @@ public class NdxrAgent implements IAgent {
         }
         Vector<RuleIndex.MatchResult> matches =
                 this.rules.findMatches( prevInt,
-                                        this.prevExternal,
-                                        this.prevAction,
-                                        this.currExternal);
+                        this.prevExternal,
+                        this.prevAction,
+                        this.currExternal);
+        return matches;
+    }//getExistingRuleMatches
 
-        //Create new rules from the previous episode + current sensing
-        // (also set this.currInternal)
-        this.currInternal.clear();
+    /**
+     * ruleMaintenance
+     * <p>
+     * updates the data in the rules that match the experience the agent just had
+     */
+    public void ruleMaintenance() {
+        //Skip first timestep
+        if (this.prevAction == '?') return;
+
+        //Adjust rule confidences
+        tuneRules();
+
+        //Get the existing rules that best match what the agent just experienced
+        Vector<RuleIndex.MatchResult> matches = getExistingRuleMatches();
+
+        //Create new rules that exactly match the agent's most recent experience
         Vector<Rule> newRules = new Vector<>();
-        //new depth zero rule
-        Rule r = findEquiv(matches, this.prevExternal, this.currExternal, 0);
-        if (r == null) {
-            r = new Rule(this.prevExternal, this.prevAction,
-                    this.currExternal, null);
-            newRules.add(r);
-        }
-        this.currInternal.add(r);
-
-        //new rules for other depths
-        Vector<Rule> lastPrevInt = lastPrevInternal();
-        for (int i = 0; i < lastPrevInt.size(); ++i) {    //for-each causes concurrent mod exceptoin.  idk why
-            Rule pr = lastPrevInt.get(i);
-            if (pr.getDepth() >= Rule.MAX_DEPTH) break;
-            r = findEquiv(matches, this.prevExternal, this.currExternal, pr.getDepth() + 1);
-            if (r == null) {
-                r = new Rule(this.prevExternal, this.prevAction,
-                        this.currExternal, pr);
-                newRules.add(r);
-            }
-            this.currInternal.add(r);
-        }//if
+        createNewDepth0Rules(matches, newRules);
+        createNewDepth1PlusRules(matches, newRules);
 
         //insert all the new rules into the index
-        //(This is done at the end so the new rules don't end up being
-        //   internal sensors for each other.)
+        //  This is done after the matching (above) so the new rules don't
+        //  end up being internal sensors for each other.
         for(Rule newb : newRules) {
             //DEBUG
             debugPrintln("ADDING rule: " + newb);
@@ -629,9 +692,8 @@ public class NdxrAgent implements IAgent {
             if (!success) break;
             this.numRules--;
         }//rule merging
-
-
     }//ruleMaintenance
+
 
     //region PathRule methods
 
