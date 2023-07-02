@@ -80,6 +80,9 @@ public class CondSet implements Cloneable {
      * calculations the cardinality match between this set and another, given set.
      * This is based entirely upon the bit values.  No partial matching is performed.
      *
+     * Note:  If all you care about is whether it is an exact match or not then use
+     * {@link #equals(Object)}
+     *
      * @return fraction of bits that match
      */
     public double cardMatch(CondSet other) {

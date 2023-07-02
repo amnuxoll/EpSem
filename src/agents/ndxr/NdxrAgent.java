@@ -548,7 +548,8 @@ public class NdxrAgent implements IAgent {
      * searches a list of MatchResult for one that contains a rule that
      * is at a given depth and completely matches a set of external sensors.
      * <p>
-     * The list is presumed to be in sorted order by depth
+     * @param matches is presumed to be in sorted order by depth
+     * @param rhs may be null indicating only a LHS match is desired
      * <p>
      * @return the found rule or null.  If there are multiple matches the
      *         best match is returned.
@@ -562,7 +563,7 @@ public class NdxrAgent implements IAgent {
         //Convert the SensorData to CondSet for matching
         if (lhs == null) lhs = SensorData.createEmpty();
         CondSet lhsConds = new CondSet(lhs);
-        CondSet rhsConds = new CondSet(rhs);
+        CondSet rhsConds = (rhs == null) ? null : new CondSet(rhs);
 
         Rule result = null;
         double bestScore = 0.0;
@@ -570,12 +571,71 @@ public class NdxrAgent implements IAgent {
             if (mr.rule.getDepth() < depth) continue;
             if (mr.rule.getDepth() > depth) break;  //no more at req'd depth
             if (! mr.rule.getLHS().equals(lhsConds)) continue;
-            if (! mr.rule.getRHS().equals(rhsConds)) continue;
+            if ( (rhs != null) && (! mr.rule.getRHS().equals(rhsConds)) ) continue;
             if (mr.score > bestScore) result = mr.rule;
         }
 
         return result;
     }//findEquiv
+
+
+    /**
+     * findRHSMatches
+     * <p>
+     * searches a list of MatchResult for all results that are a perfect match
+     * to the RHS
+     * <p>
+     * The list is presumed to be in sorted order by depth
+     * <p>
+     * @param matches is presumed to be in sorted order by depth
+     * <p>
+     * @return a list of MatchRules objects whose rules have matching RHS
+     *
+     *  TODO:  Should this return multiple matches?
+     */
+    private Vector<RuleIndex.MatchResult> findRHSMatches(Vector<RuleIndex.MatchResult> matches,
+                           SensorData rhs,
+                           int depth) {
+        //Convert the SensorData to CondSet for matching
+        CondSet rhsConds = (rhs == null) ? null : new CondSet(rhs);
+
+        Vector<RuleIndex.MatchResult> results = new Vector<>();
+        for(RuleIndex.MatchResult mr : matches) {
+            if (mr.rule.getDepth() < depth) continue;
+            if (mr.rule.getDepth() > depth) break;  //no more at req'd depth
+            if (mr.rule.getRHS().equals(rhsConds)) {
+                results.add(mr);
+            }
+        }
+
+        return results;
+    }//findRHSMatches
+
+    /**
+     * getBestRHSExactMatch
+     *
+     * Given a list of MatchResult objects, finds the one with the best match
+     * score that exactly matches a given RHS and depth.
+     */
+    private Rule findBestRHSMatch(Vector<RuleIndex.MatchResult> matches,
+                                  SensorData rhs,
+                                  int depth) {
+        //Since no LHS match, find any rules with perfect RHS match
+        Rule r = null;
+        Vector<RuleIndex.MatchResult> rhsMatches = findRHSMatches(matches, rhs, depth);
+        if (rhsMatches.size() > 0) {
+            //The rule with the best score will be used as the internal sensor at this depth
+            double bestScore = 0.0;
+            for (RuleIndex.MatchResult mr : rhsMatches) {
+                if (mr.score > bestScore) {
+                    r = mr.rule;
+                    bestScore = mr.score;
+                }
+            }
+        }
+        return r;
+    }//findBestRHSMatch
+
 
     /**
      * createNewDepth0Rules
@@ -583,7 +643,7 @@ public class NdxrAgent implements IAgent {
      * is a helper method for {@link #ruleMaintenance()}.  It creates new
      * depth 0 rules from the previous episode + current sensing
      *
-     * Side effect:  this resets this.currInternal
+     * Side effect:  this resets this.currInternal and adds a depth 0 rule to it
      *
      * @param matches a vector of rules which best matched the agent's most recent experience
      * @param newRules  the newly created rules are added to this vector
@@ -594,12 +654,19 @@ public class NdxrAgent implements IAgent {
         //This will be init'd by this method
         this.currInternal.clear();
 
-        Rule r = findEquiv(matches, this.prevExternal, this.currExternal, 0);
-        if (r == null) {  //don't create a duplicate
+        //Look for a perfect LHS match
+        Rule r = findEquiv(matches, this.prevExternal, null, 0);
+
+        //If that fails try for a perfect RHS match
+        if (r == null) r = findBestRHSMatch(matches, this.currExternal, 0);
+
+        //If no perfect match for either LHS or RHS, then a new rule is needed
+        if (r == null) {
             r = new Rule(this.prevExternal, this.prevAction,
                     this.currExternal, null);
             newRules.add(r);
         }
+
         this.currInternal.add(r);
     }//createNewDepth0Rules
 
@@ -609,7 +676,7 @@ public class NdxrAgent implements IAgent {
      * is a helper method for {@link #ruleMaintenance()}.  It creates new
      * depth 1+ rules from the previous episode + current sensing
      *
-     * Side effect:  the newly created rules are added to this.currInternal
+     * Side effect:  rules are added to this.currInternal
      *
      * @param matches a vector of rules which best matched the agent's most recent experience
      * @param newRules  the newly created rules are added to this vector
@@ -618,15 +685,22 @@ public class NdxrAgent implements IAgent {
         //new rules for other depths
         Rule r;
         Vector<Rule> lastPrevInt = lastPrevInternal();
-        for (int i = 0; i < lastPrevInt.size(); ++i) {    //for-each causes concurrent mod exceptoin.  idk why
+        for (int i = 0; i < lastPrevInt.size(); ++i) {    //for-each causes concurrent mod exception.  idk why
             Rule pr = lastPrevInt.get(i);
             if (pr.getDepth() >= Rule.MAX_DEPTH) break;
+            //Look for a perfect LHS match
             r = findEquiv(matches, this.prevExternal, this.currExternal, pr.getDepth() + 1);
-            if (r == null) {  //don't create a duplicate
+
+            //If that fails try for a perfect RHS match
+            if (r == null) r = findBestRHSMatch(matches, this.currExternal, pr.getDepth() + 1);
+
+            //If no perfect match for either LHS or RHS, then a new rule is needed
+            if (r == null) {
                 r = new Rule(this.prevExternal, this.prevAction,
                         this.currExternal, pr);
                 newRules.add(r);
             }
+
             this.currInternal.add(r);
         }//if
     }//createNewDepth1PlusRules

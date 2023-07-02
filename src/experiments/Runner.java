@@ -268,7 +268,7 @@ public class Runner {
     );
 
     private static TestSuite NDXR_AGENT = new TestSuite(
-            TestSuiteConfiguration.ONCE,
+            TestSuiteConfiguration.QUICK,
             new IEnvironmentProvider[] {
                     new FSMEnvironmentProvider(
                             new FSMTransitionTableBuilder(2, 5, Random.getFalse()),

@@ -129,9 +129,6 @@ public class Rule {
         return bestScore;
     }//matchRuleList
 
-
-
-
     /**
      * cardMatchScore
      * <p>
