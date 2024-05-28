@@ -232,7 +232,8 @@ public class CondSet implements Cloneable {
     /** equals() override:  'base' must match */
     @Override
     public boolean equals(Object obj) {
-        if (! (obj instanceof CondSet other)) return false;
+        if (! (obj instanceof CondSet)) return false;
+        CondSet other = (CondSet)obj;
         if (this.confs.length != other.confs.length) return false;
         return (this.base == other.base);
     }

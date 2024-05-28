@@ -11,6 +11,7 @@ import agents.phujus.PhuJusAgentProvider;
 import agents.predr.PredrAgentProvider;
 import agents.wfc.WFCAgentProvider;
 import agents.ndxr.NdxrAgentProvider;
+import agents.tfsocket.TFSocketAgentProvider;
 import environments.fsm.FSMEnvironment;
 import environments.fsm.FSMEnvironmentProvider;
 import environments.meta.MetaConfiguration;
@@ -305,6 +306,17 @@ public class Runner {
             }
     );
 
+    //This suite runs the TensorFlow proxy agent
+    private static TestSuite TF_SUITE = new TestSuite(
+            TestSuiteConfiguration.QUICK,
+            new IEnvironmentProvider[] {
+                    new FSMEnvironmentProvider(new FSMTransitionTableBuilder(2, 10, Random.getFalse()), FSMEnvironment.Sensor.NO_SENSORS),
+            },
+            new IAgentProvider[] {
+                    new TFSocketAgentProvider()
+            }
+    );
+
     //endregion
 
     //region Main
@@ -312,7 +324,7 @@ public class Runner {
 
         // The suite that's used is fed in as a command line argument. If an invalid command line argument is given,
         // it fails silently and uses the default suite instead. The name of the suite must match exactly.
-        TestSuite defaultSuite = PJ_SUITE;
+        TestSuite defaultSuite = TF_SUITE;
 
         if (args.length >= 1) {
             String suiteName = args[0];

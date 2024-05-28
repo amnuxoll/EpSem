@@ -879,7 +879,9 @@ public class RuleIndex {
         if (this.getRepRule() == null) return;
 
         //print the node, properly indented and formatted as ASCII tree
-        System.out.print(("+-" + this).indent(this.indexDepth * 2));
+        //Commented out may 2024 b/c did not compile and didn't immediately have
+        //time to fix
+        //System.out.print(("+-" + this).indent(this.indexDepth * 2));
 
         //Recursive Case: non-leaf - recurse to children
         if (this.children != null) {
@@ -902,8 +904,10 @@ public class RuleIndex {
                 sb.append(" /// ");
                 sb.append(r.verboseString());
 
+        //Commented out may 2024 b/c did not compile and didn't immediately have
+        //time to fix
                 //print the complete string
-                System.out.print(sb.toString().indent(2 + this.indexDepth * 2));
+//                System.out.print(sb.toString().indent(2 + this.indexDepth * 2));
             }
         }
     }//printAll

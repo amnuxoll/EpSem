@@ -14,7 +14,7 @@ import java.util.Vector;
  */
 public class PathRule {
     //to assign a unique id to each rule this shared variable is incremented by the ctor
-    private static int nextRuleId = 1;
+    private static int nextRuleId = 18;
 
 //region Instance Variables
 
@@ -181,7 +181,8 @@ public class PathRule {
 
 
     public boolean equals(Object obj) {
-        if (! (obj instanceof PathRule other)) return false;
+        if (! (obj instanceof PathRule)) return false;
+        PathRule other = (PathRule)obj;
         return (this.ruleId == other.ruleId);
     }
 
