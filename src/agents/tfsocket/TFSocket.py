@@ -1,17 +1,19 @@
 import sys
 import socket
 import os
+import random
 
 def log(s):
     f = open("output.txt", "a")
     f.write(s)
-    f.write("\n");
+    f.write("\n")
     f.close()    
 
 log("Running Python-TensorFlow agent")
-
 os.remove("output.txt")
 
+# hardcoded alphabet, will need to read actual from Java environment
+alphabet = ['a','b']
 argc = len(sys.argv)
 if (argc < 2):
     print("ERROR:  Must pass port number as a parameter.")
@@ -32,5 +34,6 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
             if not data:
                 print("ERROR: Timeout receiving next input from Java environment")
                 break
-            #TODO: Send a letter back to the client
-            # conn.sendall(data)
+            # Send a random letter back to the Java environment
+            letter = random.choice(alphabet)
+            conn.sendall(letter.encode("ASCII"))

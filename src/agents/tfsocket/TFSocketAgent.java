@@ -29,6 +29,7 @@ public class TFSocketAgent implements IAgent {
     private Socket sock;
     private Scanner scriptOutput;
     private OutputStream outStream;
+    private InputStream inputStream; // Line added in pair programming session
 
     public static final int BASE_PORT = 8026;
     private int port;
@@ -85,6 +86,7 @@ public class TFSocketAgent implements IAgent {
         while (refuseCount < 5) {
             try {
                 sock = new Socket("127.0.0.1", port);
+                inputStream = sock.getInputStream(); // Line added in pair programming session
                 outStream = sock.getOutputStream();
                 break;
             } catch (ConnectException ce) {
@@ -132,7 +134,7 @@ public class TFSocketAgent implements IAgent {
         if (sock == null) System.exit(-3);
         
         outStream.write("banana republic".getBytes());
-
+        System.out.println((char)inputStream.read()); // Line added in pair programming session
         printScriptOutputSoFar();
         return new Action("a");
     }
