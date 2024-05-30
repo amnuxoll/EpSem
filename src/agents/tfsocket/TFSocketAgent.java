@@ -24,17 +24,18 @@ public class TFSocketAgent implements IAgent {
     private IIntrospector introspector;
     private Random random;
     private Action lastGoalAction;
-    private Process process;  //the python TensorFlow agent
-    private ServerSocket server;  //We use sockets to communicate with the TF Agent
+    private Process process; // the python TensorFlow agent
+    // We use sockets to communicate with the TF Agent
     private Socket sock;
-    private PrintWriter sockWriter;
     private Scanner scriptOutput;
+    private OutputStream outStream;
 
-    public static final int PORT = 9026;
+    public static final int BASE_PORT = 8026;
+    private int port;
 
-    public TFSocketAgent(Random random)
-    {
-        // For unit testing purposes we inject a Random object that can be seeded to produce
+    public TFSocketAgent(Random random) {
+        // For unit testing purposes we inject a Random object that can be seeded to
+        // produce
         // specific, repeating behaviors.
         this.random = random;
 
@@ -54,50 +55,83 @@ public class TFSocketAgent implements IAgent {
         this.introspector = introspector;
         this.lastGoalAction = actions[0];
 
-        //Run the python agent
+        //Pick a random port number in case stale python agents are sitting
+        //around
+        port = this.random.nextInt(1000) + BASE_PORT;
+        
+        // Run the python agent
         System.out.println("Launching Python Agent...");
-        ProcessBuilder processBuilder = new ProcessBuilder("python3", "./src/agents/tfsocket/TFSocket.py", "" + PORT);
+        ProcessBuilder processBuilder = new ProcessBuilder("python3", "./src/agents/tfsocket/TFSocket.py", "" + port);
         processBuilder.redirectErrorStream(true);
         try {
             Process process = processBuilder.start();
-            InputStream is = process.getInputStream();
-            scriptOutput = new Scanner(is);
-            printScriptOutputSoFar();
-        }
-        catch(IOException ioe) {
+
+            //TODO We would like the pythong output to show up in Java program's
+            // stdout but this code below doesn't seem to work.
+            
+            // InputStream is = process.getInputStream();
+            // scriptOutput = new Scanner(is);
+            // printScriptOutputSoFar();
+        } catch (IOException ioe) {
             System.err.println("ERROR launching python agent.");
             System.err.println("\tThe binary file 'python3' must exist and be in your PATH.");
             System.err.println(ioe);
             System.exit(-1);
         }
 
-        //Listen for the python agent to connect
-        System.out.println("Listening for agent on port " + PORT + "...");
-        try {
-            server = new ServerSocket(PORT);
-            sock = server.accept();
-            OutputStream outStream = sock.getOutputStream();
-            sockWriter = new PrintWriter(outStream);
+        // Listen for the python agent to connect
+        System.out.println("Listening for agent on port " + port + "...");
+        int refuseCount = 0;
+        while (refuseCount < 5) {
+            try {
+                sock = new Socket("127.0.0.1", port);
+                outStream = sock.getOutputStream();
+                break;
+            } catch (ConnectException ce) {
+                printScriptOutputSoFar();
+                System.err.println("Connection refused.  Retrying...");
+                refuseCount++;
+                try {
+                    Thread.sleep(1000);
+                }
+                catch (InterruptedException ie) {
+                    System.err.println("Interrupted while waiting to retry connection.");
+                    System.err.println(ie);
+                }
+            } catch (IOException ioe) {
+                System.err.println("ERROR connecting to python agent.");
+                System.err.println(ioe);
+                System.exit(-2);
+            }
         }
-        catch(IOException ioe) {
-            System.err.println("ERROR connecting to python agent.");
-            System.err.println(ioe);            
-            System.exit(-2);
+
+        if (refuseCount >=5) {
+            System.out.println("Failed to connect to python agent.");
+            sock = null;
+            onTestRunComplete();
+            System.exit(refuseCount);
         }
-        
+        System.out.println("Connected to python agent.");
     }
 
     /** prints any new output from the python script */
     private void printScriptOutputSoFar() {
-            while(scriptOutput.hasNextLine()) {
-                System.out.println("PYTHON: " + scriptOutput.nextLine());
-            }
-     }
-    
+        if (scriptOutput == null) {
+            System.out.println("PYTHON: (no output)");
+            return;
+        }
+        while (scriptOutput.hasNextLine()) {
+            System.out.println("PYTHON: " + scriptOutput.nextLine());
+        }
+
+    }
+
     @Override
     public Action getNextAction(SensorData sensorData) throws Exception {
 
-        sockWriter.println("banana republic");
+        if (sock == null) System.exit(-3);
+        
+        outStream.write("banana republic".getBytes());
 
         printScriptOutputSoFar();
         return new Action("a");
@@ -114,13 +148,16 @@ public class TFSocketAgent implements IAgent {
     }
 
     /**
-     * Gets the actual statistical data for the most recent iteration of hitting a goal.
+     * Gets the actual statistical data for the most recent iteration of hitting a
+     * goal.
      *
-     * @return the collection of {@link Datum} that indicate the agent statistical data to track.
+     * @return the collection of {@link Datum} that indicate the agent statistical
+     *         data to track.
      */
     @Override
     public ArrayList<Datum> getGoalData() {
-        // When the goal is hit, report the additional analytics the agent should be tracking.
+        // When the goal is hit, report the additional analytics the agent should be
+        // tracking.
         ArrayList<Datum> data = new ArrayList<>();
         data.add(new Datum("actionConfidence", this.random.nextDouble()));
         return data;
@@ -131,16 +168,14 @@ public class TFSocketAgent implements IAgent {
      */
     @Override
     public void onTestRunComplete() {
-        //TODO:  send a kill signal
-        try {
-            process.waitFor();
-        }
-        catch(InterruptedException ie) {
-            /* don't care */
-        }
-
+        // TODO: send a kill signal
         printScriptOutputSoFar();
-        scriptOutput.close();
+        if (scriptOutput != null) {
+            scriptOutput.close();
+        }
+        if ((process != null) && (process.isAlive())) {
+            process.destroy();
+        }
     }
 
 }
