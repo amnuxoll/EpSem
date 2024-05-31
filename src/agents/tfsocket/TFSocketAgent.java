@@ -29,11 +29,15 @@ public class TFSocketAgent implements IAgent {
     private Socket sock;
     private Scanner scriptOutput;
     private OutputStream outStream;
-    private InputStream inputStream; // Line added in pair programming session
+    private InputStream inputStream;
 
     public static final int BASE_PORT = 8026;
     private int port;
 
+    //This is how many previous actions we send to the python agent
+    public static final int WINDOW_SIZE = 10;
+
+    
     public TFSocketAgent(Random random) {
         // For unit testing purposes we inject a Random object that can be seeded to
         // produce
@@ -86,7 +90,7 @@ public class TFSocketAgent implements IAgent {
         while (refuseCount < 5) {
             try {
                 sock = new Socket("127.0.0.1", port);
-                inputStream = sock.getInputStream(); // Line added in pair programming session
+                inputStream = sock.getInputStream();
                 outStream = sock.getOutputStream();
                 break;
             } catch (ConnectException ce) {
@@ -107,15 +111,106 @@ public class TFSocketAgent implements IAgent {
             }
         }
 
+        //Report a failed connect
         if (refuseCount >=5) {
             System.out.println("Failed to connect to python agent.");
             sock = null;
             onTestRunComplete();
             System.exit(refuseCount);
         }
+
+        //Pass the alphabet to the python agent
+        String alphabet = "";
+        for(Action act : actions) {
+            alphabet += act;
+        }
+        sendMessage("%%%alphabet:" + alphabet);
+
+        
         System.out.println("Connected to python agent.");
     }
 
+    /** aborts the agent.  This is usually due to socket communication failure. */
+    private void abort(int errNum, String errMsg) {
+        System.err.println("COMM ERROR: " + errMsg);
+        onTestRunComplete();
+        System.exit(errNum);
+    }
+
+    /** sends a message to the python agent via the socket.  If something goes
+     * wrong this method will abort the run and exit.  */
+    private void sendMessage(String msg) {
+        if (sock == null) abort(-4, "socket is null");
+        if (outStream == null) abort(-5, "outStream is null");
+        try {
+            outStream.write(msg.getBytes());
+        }
+        catch(IOException ioe) {
+            abort(-6, "sending message to python agent");
+        }
+    }
+
+    /** reads the next action from the python agent.  If, instead, a message is
+     * passed then this method responds appropiately */
+    private Action getTFAction() {
+        if (inputStream == null) abort(-7, "inputStream is null");
+
+        //Attempt to read from the socket
+        byte[] buf = new byte[1024];
+        int numChars = -2;
+        int waitDuration = 0; //how long we've been waiting so far
+        while(numChars < 0) {
+            try {
+                numChars = inputStream.read(buf);
+            }
+            catch(IOException ioe) {
+                abort(-8, "receiving message from python agent");
+            }
+            if (numChars < 0) {
+                try {
+                    waitDuration += 10;
+                    Thread.sleep(10);
+                }
+                catch(InterruptedException ie) {
+                    /* it's okay */
+                }
+            }
+
+            //We've waited too long
+            if (waitDuration > 1000) {
+                abort(-14, "timeout waiting for response from python agent");
+            }
+        }
+
+        //abort on problems
+        if (numChars == -1) abort(-9, "inputStream was closed.");
+        if (numChars == -2) abort(-12, "unknown failure reading from inputStream.");
+
+        //check for sentinel messages
+        String msg = new String(buf);
+        if (msg.startsWith("%%%")) {
+            if (msg.startsWith("%%%abort")) {
+                abort(-13, "python agent sent abort signal");
+            }
+        }
+
+        //Verify that the message is a valid action
+        if (msg.length() != 1) {
+            abort(-10, "received action of length != 1: " + msg);
+        }
+        boolean found = false;
+        for(Action act : this.actions) {
+            if (act.toString().equals(msg)) {
+                return act;  //Success!
+            }
+        }
+
+        abort(-11, "unknown action: " + msg);
+        return null; //should never be reached
+
+    }//getTFAction
+    
+    
     /** prints any new output from the python script */
     private void printScriptOutputSoFar() {
         if (scriptOutput == null) {
@@ -130,13 +225,20 @@ public class TFSocketAgent implements IAgent {
 
     @Override
     public Action getNextAction(SensorData sensorData) throws Exception {
-
-        if (sock == null) System.exit(-3);
-        
-        outStream.write("banana republic".getBytes());
-        System.out.println((char)inputStream.read()); // Line added in pair programming session
         printScriptOutputSoFar();
-        return new Action("a");
+
+        //Send the last N episodes to the python agent
+        //TODO:  This could be more efficient if that becomes an issue
+        String window = episodicMemory.toString();
+        if (window.length() > WINDOW_SIZE) {
+            window = window.substring(window.length() - WINDOW_SIZE);
+        }
+        sendMessage(window);
+
+        //Retrieve/use the agent's response
+        Action act = getTFAction();
+        this.episodicMemory.add(new Episode(sensorData, act));
+        return act;
     }
 
     @Override

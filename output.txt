@@ -1,7 +1,0 @@
-port number: 8393
-Creating server for the Java environment to connect to...
-Connected by ('127.0.0.1', 52900)
-received from Java env: b'banana republic'
-received from Java env: b'banana republic'
-received from Java env: b'banana republic'
-received from Java env: b''
