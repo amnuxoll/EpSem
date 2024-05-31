@@ -20,7 +20,8 @@ if (argc < 2):
     print("ERROR:  Must pass port number as a parameter.")
 
 portNum = int(sys.argv[1])
-     
+count = 1
+timeout = 0
 log("port number: " + str(portNum))
 log("Creating server for the Java environment to connect to...")
 
@@ -32,19 +33,27 @@ try:
         with conn:
             log(f"Connected by {addr}")
             while True:
+                log(str(count))
+                count+=1
                 data = conn.recv(1024)
+                
                 while not data:
                     data = conn.recv(1024)
+                    timeout += 10
+                    if (timeout > 1000):
+                        log("ERROR: Timeout receiving next input from Java environment")
+                        exit(-1)
                     # log("ERROR: Timeout receiving next input from Java environment")
                     # break
                 log(f"received from Java env: {data}")
-
                 #check for sentinel
                 strData = data.decode("utf-8")
                 if (strData.startswith("%%%alphabet:")):
                     alphabet = list(strData[12:])
                     log(f"new alphabet: {alphabet}")
-
+                    letter = random.choice(alphabet)
+                    log(f"sending {letter}")
+                    conn.sendall(letter.encode("ASCII"))
                 #must be a history                
                 else:  
                     # Send a random letter back to the Java environment

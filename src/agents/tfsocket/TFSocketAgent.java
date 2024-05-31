@@ -193,6 +193,10 @@ public class TFSocketAgent implements IAgent {
                 abort(-13, "python agent sent abort signal");
             }
         }
+        msg = msg.trim();
+        System.out.println("Received message: " + msg);
+        System.out.println("Received message length: " + msg.length());
+
 
         //Verify that the message is a valid action
         if (msg.length() != 1) {
@@ -234,10 +238,12 @@ public class TFSocketAgent implements IAgent {
             window = window.substring(window.length() - WINDOW_SIZE);
         }
         sendMessage(window);
+        System.out.println("Window:" + window);
 
         //Retrieve/use the agent's response
         Action act = getTFAction();
         this.episodicMemory.add(new Episode(sensorData, act));
+
         return act;
     }
 
