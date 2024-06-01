@@ -125,12 +125,17 @@ public class TestRun implements IIntrospector, Runnable {
                 actionHistory.add("" + action);
 
                 if (sensorData.isGoal()) {
+                    actionHistory.add("*");
                     this.agent.onGoalFound();
                     this.fireGoalEvent(goalCount++, moveCount);
                     System.out.println("\nGoal found:\n\tCurrent # of goals found: " + goalCount + "\n\tCurrent # of moves: " + moveCount);
                     moveCount = 0;
                     System.out.println("\nReached goal state: #" + goalCount);
-                    System.out.println("\nHistory of actions to reach goal state: \n" + actionHistory);
+                    String history = "";
+                    for (String actionString : actionHistory) {
+                        history += actionString;
+                    }
+                    System.out.println("\nHistory of actions to reach goal state: \n" + history);
                 } else{
                     Integer newState = env.getCurrentState();
                     System.out.print("New state: s" + newState);
