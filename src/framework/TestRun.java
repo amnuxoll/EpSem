@@ -106,6 +106,7 @@ public class TestRun implements IIntrospector, Runnable {
         try {
             int goalCount = 0;
             int moveCount = 0;
+            ArrayList<String> actionHistory = new ArrayList<String>();
             this.agent.initialize(this.environment.getActions(), this);
             SensorData sensorData = this.environment.applyAction(null);
             do {
@@ -121,6 +122,7 @@ public class TestRun implements IIntrospector, Runnable {
 
                 sensorData = this.environment.applyAction(action);
                 moveCount++;
+                actionHistory.add("" + action);
 
                 if (sensorData.isGoal()) {
                     this.agent.onGoalFound();
@@ -128,6 +130,7 @@ public class TestRun implements IIntrospector, Runnable {
                     System.out.println("\nGoal found:\n\tCurrent # of goals found: " + goalCount + "\n\tCurrent # of moves: " + moveCount);
                     moveCount = 0;
                     System.out.println("\nReached goal state: #" + goalCount);
+                    System.out.println("\nHistory of actions to reach goal state: \n" + actionHistory);
                 } else{
                     Integer newState = env.getCurrentState();
                     System.out.print("New state: s" + newState);
