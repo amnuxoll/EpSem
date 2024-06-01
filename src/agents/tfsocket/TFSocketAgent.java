@@ -194,8 +194,7 @@ public class TFSocketAgent implements IAgent {
             }
         }
         msg = msg.trim();
-        System.out.println("Received message: " + msg);
-        System.out.println("Received message length: " + msg.length());
+        // System.out.println("Agent's Action: " + msg);
 
 
         //Verify that the message is a valid action
@@ -218,7 +217,7 @@ public class TFSocketAgent implements IAgent {
     /** prints any new output from the python script */
     private void printScriptOutputSoFar() {
         if (scriptOutput == null) {
-            System.out.println("PYTHON: (no output)");
+            // System.out.println("PYTHON: (no output)");
             return;
         }
         while (scriptOutput.hasNextLine()) {

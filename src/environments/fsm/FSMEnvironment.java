@@ -63,7 +63,7 @@ public class FSMEnvironment implements IEnvironment {
         //DEBUG: print the universal sequence
         Sequence uSeq = this.transitionTable.getUniversalSequence();
         System.err.println("Universal sequence: " + uSeq + " (" + uSeq.getLength() + " steps)");
-        System.out.println(this.transitionTable.dotFormOutput());
+        System.out.println(this.transitionTable.dotFormOutput(this.currentState));
     }
 
     private FSMEnvironment(FSMEnvironment toCopy) {
@@ -131,7 +131,9 @@ public class FSMEnvironment implements IEnvironment {
         this.currentState = transitions.get(action);
         if (this.transitionTable.isGoalState(this.currentState)) {
             sensorData = new SensorData(true);
+            System.out.println("Goal state reached: s" + this.currentState);
             this.currentState = this.getRandomState();
+            System.out.println("Teleporting to s" + this.currentState);
         }
         else
             sensorData = new SensorData(false);
