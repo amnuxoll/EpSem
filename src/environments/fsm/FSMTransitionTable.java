@@ -250,9 +250,8 @@ public class FSMTransitionTable {
             }
         }
 
-        // Add start state arrow to digraph
         builder.append("\n\tstart [label= \"\", shape=none]\n\tstart -> s" + currentState + "\n");
-        builder.append("}");
+        builder.append("}\n");
 
         return builder.toString();
     }//dotFormOutput

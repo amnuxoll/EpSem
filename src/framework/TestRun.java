@@ -114,29 +114,29 @@ public class TestRun implements IIntrospector, Runnable {
                     throw new InvalidObjectException("Agent's getNextAction() method returned a null action.");
                 }
                 FSMEnvironment env = (FSMEnvironment)this.environment;
-                Integer prevState = env.getCurrentState();
-                System.out.println("Current state: s" + prevState);
-                System.out.println("Agent's Action: " + action);
+                Integer currState = env.getCurrentState();
+
+                System.out.println("Current State: s" + currState);
+                System.out.println("Agent's action: " + action);
+
                 sensorData = this.environment.applyAction(action);
                 moveCount++;
-                Integer currState = env.getCurrentState();
-                System.out.print("new state: s" + currState);
-                System.out.print("\t(shortest path: " + env.getShortestSequenceString(currState));
-                System.out.println(", blind path: " + env.getBlindPathString(currState) + ")");
-
-                //DEBUG
-                // CHANGE THIS BACK JUT IN CASE IT BREAKS SOMETHING: JAYVEN AND PENNY
-                // if (this.environment instanceof FSMEnvironment) {
-                // }
 
                 if (sensorData.isGoal()) {
                     this.agent.onGoalFound();
                     this.fireGoalEvent(goalCount++, moveCount);
                     System.out.println("\nGoal found:\n\tCurrent # of goals found: " + goalCount + "\n\tCurrent # of moves: " + moveCount);
                     moveCount = 0;
+                    System.out.println("\nReached goal state: #" + goalCount);
+                } else{
+                    Integer newState = env.getCurrentState();
+                    System.out.print("New state: s" + newState);
+                    System.out.print("\t(shortest path: " + env.getShortestSequenceString(currState));
+                    System.out.println(", blind path: " + env.getBlindPathString(currState) + ")");
                 }
 
                 System.out.println();
+
             } while (goalCount < this.numberOfGoalsToFind);
             this.agent.onTestRunComplete();
         } catch (Exception ex) {

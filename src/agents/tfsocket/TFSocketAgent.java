@@ -71,7 +71,7 @@ public class TFSocketAgent implements IAgent {
         try {
             Process process = processBuilder.start();
 
-            //TODO We would like the pythong output to show up in Java program's
+            //TODO We would like the python output to show up in Java program's
             // stdout but this code below doesn't seem to work.
             
             // InputStream is = process.getInputStream();
@@ -194,8 +194,6 @@ public class TFSocketAgent implements IAgent {
             }
         }
         msg = msg.trim();
-        // System.out.println("Agent's Action: " + msg);
-
 
         //Verify that the message is a valid action
         if (msg.length() != 1) {

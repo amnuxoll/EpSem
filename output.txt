@@ -1,0 +1,132 @@
+port number: 8701
+Creating server for the Java environment to connect to...
+Connected by ('127.0.0.1', 51019)
+1
+received from Java env: b'%%%alphabet:ab'
+new alphabet: ['a', 'b']
+sending b
+2
+received from Java env: b'[GOAL:1]b,'
+sending b
+3
+received from Java env: b'[GOAL:0]b,'
+sending a
+4
+received from Java env: b'[GOAL:0]a,'
+sending b
+5
+received from Java env: b'[GOAL:0]b,'
+sending b
+6
+received from Java env: b'[GOAL:0]b,'
+sending a
+7
+received from Java env: b'[GOAL:0]a,'
+sending a
+8
+received from Java env: b'[GOAL:0]a,'
+sending a
+9
+received from Java env: b'[GOAL:0]a,'
+sending a
+10
+received from Java env: b'[GOAL:0]a,'
+sending b
+11
+received from Java env: b'[GOAL:1]b,'
+sending a
+12
+received from Java env: b'[GOAL:0]a,'
+sending b
+13
+received from Java env: b'[GOAL:0]b,'
+sending b
+14
+received from Java env: b'[GOAL:0]b,'
+sending a
+15
+received from Java env: b'[GOAL:0]a,'
+sending b
+16
+received from Java env: b'[GOAL:0]b,'
+sending a
+17
+received from Java env: b'[GOAL:0]a,'
+sending a
+18
+received from Java env: b'[GOAL:0]a,'
+sending a
+19
+received from Java env: b'[GOAL:0]a,'
+sending b
+20
+received from Java env: b'[GOAL:1]b,'
+sending a
+21
+received from Java env: b'[GOAL:0]a,'
+sending b
+22
+received from Java env: b'[GOAL:0]b,'
+sending a
+23
+received from Java env: b'[GOAL:0]a,'
+sending b
+24
+received from Java env: b'[GOAL:0]b,'
+sending b
+25
+received from Java env: b'[GOAL:0]b,'
+sending b
+26
+received from Java env: b'[GOAL:0]b,'
+sending a
+27
+received from Java env: b'[GOAL:0]a,'
+sending a
+28
+received from Java env: b'[GOAL:0]a,'
+sending a
+29
+received from Java env: b'[GOAL:0]a,'
+sending b
+30
+received from Java env: b'[GOAL:0]b,'
+sending b
+31
+received from Java env: b'[GOAL:0]b,'
+sending a
+32
+received from Java env: b'[GOAL:0]a,'
+sending b
+33
+received from Java env: b'[GOAL:0]b,'
+sending b
+34
+received from Java env: b'[GOAL:0]b,'
+sending a
+35
+received from Java env: b'[GOAL:0]a,'
+sending b
+36
+received from Java env: b'[GOAL:0]b,'
+sending b
+37
+received from Java env: b'[GOAL:0]b,'
+sending a
+38
+received from Java env: b'[GOAL:0]a,'
+sending a
+39
+received from Java env: b'[GOAL:0]a,'
+sending b
+40
+received from Java env: b'[GOAL:0]b,'
+sending a
+41
+received from Java env: b'[GOAL:0]a,'
+sending a
+42
+received from Java env: b'[GOAL:0]a,'
+sending a
+43
+ERROR: Timeout receiving next input from Java environment
