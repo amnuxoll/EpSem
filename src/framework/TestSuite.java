@@ -148,6 +148,8 @@ public class TestSuite {
             metadataBuilder.append("\tWith Alias: " + agentProvider.getAlias() + "\n");
         }
         NamedOutput.getInstance().writeLine("metadata", metadataBuilder.toString());
+        String metadata = metadataBuilder.toString();
+        System.out.println(metadata);
     }
 
     private void logDurationInMetadata(Duration duration) {

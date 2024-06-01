@@ -223,7 +223,7 @@ public class FSMTransitionTable {
      * produces a String that can be printed to the console and copied to a .dot graph tool
      * @return .dot format String to view an FSM
      */
-    public String dotFormOutput() {
+    public String dotFormOutput(int currentState) {
         StringBuilder builder = new StringBuilder();
 
         builder.append("digraph G {\n");
@@ -250,6 +250,7 @@ public class FSMTransitionTable {
             }
         }
 
+        builder.append("\n\tstart [label= \"\", shape=none]\n\tstart -> s" + currentState + "\n");
         builder.append("}\n");
 
         return builder.toString();
