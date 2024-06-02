@@ -178,7 +178,6 @@ public class EpisodicMemory<TEpisode extends Episode> {
         StringBuilder value = new StringBuilder();
         for (Episode episode : this.last(count)){
             value.append(episode.toString());
-            value.append(",");
         }
         return value.toString();
     }

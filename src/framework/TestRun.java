@@ -127,7 +127,6 @@ public class TestRun implements IIntrospector, Runnable {
                     this.fireGoalEvent(goalCount++, moveCount);
                     System.out.println("\nGoal found:\n\tCurrent # of goals found: " + goalCount + "\n\tCurrent # of moves: " + moveCount);
                     moveCount = 0;
-                    System.out.println("\nReached goal state: #" + goalCount);
                 } else{
                     Integer newState = env.getCurrentState();
                     System.out.print("New state: s" + newState);

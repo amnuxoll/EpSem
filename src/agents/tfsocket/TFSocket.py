@@ -8,7 +8,13 @@ def log(s):
     f = open("output.txt", "a")
     f.write(s)
     f.write("\n")
-    f.close()    
+    f.close()
+
+def log_port_numbers(port_num):
+    file = open("port_numbers", "a")
+    file.write(str(port_num))
+    file.write("\n")
+    file.close
 
 def sendLetter():
     letter = random.choice(alphabet)
@@ -32,6 +38,7 @@ log("Creating server for the Java environment to connect to...")
 
 try:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        log_port_numbers(portNum)
         sock.bind(("127.0.0.1", portNum))
         sock.listen()
         conn, addr = sock.accept()

@@ -142,6 +142,7 @@ public class TFSocketAgent implements IAgent {
     private void sendMessage(String msg) {
         if (sock == null) abort(-4, "socket is null");
         if (outStream == null) abort(-5, "outStream is null");
+
         try {
             outStream.write(msg.getBytes());
         }
@@ -206,6 +207,14 @@ public class TFSocketAgent implements IAgent {
             }
         }
 
+        int sentinelCount = 0;
+        for (int i = 0; i < msg.length() -3; i++) {
+            if (msg.substring(i,i+2) == "%%%") {
+                sentinelCount++;
+            }
+        }
+        if (sentinelCount > 1) abort(-15, "message contains more than 1 sentinel: " + msg);
+
         abort(-11, "unknown action: " + msg);
         return null; //should never be reached
 
@@ -235,8 +244,8 @@ public class TFSocketAgent implements IAgent {
             window = window.substring(window.length() - WINDOW_SIZE);
         }
         // Send history to the python agent
-        sendMessage("%%%history:" + window + "__" + sensorData.toString());
-        System.out.println("Window:" + window);
+        sendMessage("history:" + window + "__" + sensorData.toString());
+        System.out.println("Window: " + window);
 
         //Retrieve/use the agent's response
         Action act = getTFAction();
