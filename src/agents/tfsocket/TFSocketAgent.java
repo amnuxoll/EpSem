@@ -234,7 +234,7 @@ public class TFSocketAgent implements IAgent {
         if (window.length() > WINDOW_SIZE) {
             window = window.substring(window.length() - WINDOW_SIZE);
         }
-        sendMessage(window);
+        sendMessage("%%%history:" + window + "__" + sensorData.toString());
         System.out.println("Window:" + window);
 
         //Retrieve/use the agent's response

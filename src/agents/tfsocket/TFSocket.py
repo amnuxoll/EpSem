@@ -10,6 +10,11 @@ def log(s):
     f.write("\n")
     f.close()    
 
+def sendLetter():
+    letter = random.choice(alphabet)
+    log(f"sending {letter}")
+    conn.sendall(letter.encode("ASCII"))
+
 log("Running Python-TensorFlow agent")
 os.remove("output.txt")
 
@@ -33,8 +38,6 @@ try:
         with conn:
             log(f"Connected by {addr}")
             while True:
-                log(str(count))
-                count+=1
                 data = conn.recv(1024)
                 
                 while not data:
@@ -43,23 +46,22 @@ try:
                     if (timeout > 1000):
                         log("ERROR: Timeout receiving next input from Java environment")
                         exit(-1)
-                    # log("ERROR: Timeout receiving next input from Java environment")
-                    # break
                 log(f"received from Java env: {data}")
                 #check for sentinel
                 strData = data.decode("utf-8")
                 if (strData.startswith("%%%alphabet:")):
                     alphabet = list(strData[12:])
                     log(f"new alphabet: {alphabet}")
-                    letter = random.choice(alphabet)
-                    log(f"sending {letter}")
-                    conn.sendall(letter.encode("ASCII"))
-                #must be a history                
+                    sendLetter()
+                elif (strData.startswith("%%%history:")):
+                    history = strData[11:].split("__")
+                    log("history received:")
+                    log("path history: " + history[0])
+                    log("sensor data: " + history[1])
+                    sendLetter()                
                 else:  
                     # Send a random letter back to the Java environment
-                    letter = random.choice(alphabet)
-                    log(f"sending {letter}")
-                    conn.sendall(letter.encode("ASCII"))
+                    sendLetter()
 except Exception as error:
     log("Exception:" + str(error))
     log("-----")
