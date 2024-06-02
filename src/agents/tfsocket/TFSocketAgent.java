@@ -234,6 +234,7 @@ public class TFSocketAgent implements IAgent {
         if (window.length() > WINDOW_SIZE) {
             window = window.substring(window.length() - WINDOW_SIZE);
         }
+        // Send history to the python agent
         sendMessage("%%%history:" + window + "__" + sensorData.toString());
         System.out.println("Window:" + window);
 
