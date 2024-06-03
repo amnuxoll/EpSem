@@ -5,7 +5,7 @@ import random
 import traceback
 
 def log(s):
-    f = open("output.txt", "a")
+    f = open("pyout.txt", "a")
     f.write(s)
     f.write("\n")
     f.close()
@@ -22,7 +22,7 @@ def sendLetter():
     conn.sendall(letter.encode("ASCII"))
 
 log("Running Python-TensorFlow agent")
-os.remove("output.txt")
+os.remove("pyout.txt")
 
 # hardcoded alphabet, will need to read actual from Java environment
 alphabet = ['a','b']
@@ -59,13 +59,17 @@ try:
                 if (strData.startswith("%%%alphabet:")):
                     alphabet = list(strData[12:])
                     log(f"new alphabet: {alphabet}")
-                    sendLetter()
+                    log(f"sending 'ack'")
+                    conn.sendall("%%%ack".encode("ASCII"))
                 elif (strData.startswith("%%%history:")):
                     history = strData[11:].split("__")
                     log("history received:")
                     log("path history: " + history[0])
                     log("sensor data: " + history[1])
                     sendLetter()                
+                elif (strData.startswith("%%%quit")):
+                    log("python agent received quit signal:")
+                    break
                 else:  
                     # Send a random letter back to the Java environment
                     sendLetter()
@@ -73,7 +77,7 @@ except Exception as error:
     log("Exception:" + str(error))
     log("-----")
     try:
-        f = open("output.txt", "a")
+        f = open("pyout.txt", "a")
         traceback.print_tb(error.__traceback__, None, f)
         f.close()
     except Exception as errerr:

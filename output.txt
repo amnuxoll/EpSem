@@ -1,9 +1,0 @@
-port number: 8329
-Creating server for the Java environment to connect to...
-Connected by ('127.0.0.1', 55544)
-received from Java env: b'%%%alphabet:abhistory:__[GOAL:1]'
-new alphabet: ['a', 'b', 'h', 'i', 's', 't', 'o', 'r', 'y', ':', '_', '_', '[', 'G', 'O', 'A', 'L', ':', '1', ']']
-sending _
-ERROR: Timeout receiving next input from Java environment
-ERROR: Timeout receiving next input from Java environment
-ERROR: Timeout receiving next input from Java environment
