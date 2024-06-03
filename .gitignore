@@ -123,3 +123,8 @@ null/
 
 # ignore emacs temp files
 \#*\#
+
+# ignore output.txt file
+output.txt
+javaout.txt
+pyout.txt

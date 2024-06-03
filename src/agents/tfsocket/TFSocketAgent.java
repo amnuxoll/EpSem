@@ -71,12 +71,11 @@ public class TFSocketAgent implements IAgent {
         try {
             Process process = processBuilder.start();
 
-            //TODO We would like the pythong output to show up in Java program's
+            //TODO We would like the python output to show up in Java program's
             // stdout but this code below doesn't seem to work.
             
             // InputStream is = process.getInputStream();
             // scriptOutput = new Scanner(is);
-            // printScriptOutputSoFar();
         } catch (IOException ioe) {
             System.err.println("ERROR launching python agent.");
             System.err.println("\tThe binary file 'python3' must exist and be in your PATH.");
@@ -94,7 +93,6 @@ public class TFSocketAgent implements IAgent {
                 outStream = sock.getOutputStream();
                 break;
             } catch (ConnectException ce) {
-                printScriptOutputSoFar();
                 System.err.println("Connection refused.  Retrying...");
                 refuseCount++;
                 try {
@@ -115,7 +113,7 @@ public class TFSocketAgent implements IAgent {
         if (refuseCount >=5) {
             System.out.println("Failed to connect to python agent.");
             sock = null;
-            onTestRunComplete();
+            shutdown();
             System.exit(refuseCount);
         }
 
@@ -126,14 +124,23 @@ public class TFSocketAgent implements IAgent {
         }
         sendMessage("%%%alphabet:" + alphabet);
 
+        //wait for acknowledge signal from the python agent
+        Action ack = getTFAction();
+        if (! ack.getName().equals("ack")) {
+            System.out.println("Agent did not sent proper acknowledge signal.");
+            sock = null;
+            shutdown();
+            System.exit(-16);
+        }
         
         System.out.println("Connected to python agent.");
-    }
+    }//initialize
 
     /** aborts the agent.  This is usually due to socket communication failure. */
     private void abort(int errNum, String errMsg) {
+        sock=null;
         System.err.println("COMM ERROR: " + errMsg);
-        onTestRunComplete();
+        shutdown();
         System.exit(errNum);
     }
 
@@ -142,6 +149,7 @@ public class TFSocketAgent implements IAgent {
     private void sendMessage(String msg) {
         if (sock == null) abort(-4, "socket is null");
         if (outStream == null) abort(-5, "outStream is null");
+
         try {
             outStream.write(msg.getBytes());
         }
@@ -189,14 +197,15 @@ public class TFSocketAgent implements IAgent {
         //check for sentinel messages
         String msg = new String(buf);
         if (msg.startsWith("%%%")) {
-            if (msg.startsWith("%%%abort")) {
+            if (msg.startsWith("%%%ack")) {
+                System.out.println("python agent sent acknowledge signal");
+                return new Action("ack");
+            }
+            else if (msg.startsWith("%%%abort")) {
                 abort(-13, "python agent sent abort signal");
             }
         }
         msg = msg.trim();
-        System.out.println("Received message: " + msg);
-        System.out.println("Received message length: " + msg.length());
-
 
         //Verify that the message is a valid action
         if (msg.length() != 1) {
@@ -209,36 +218,31 @@ public class TFSocketAgent implements IAgent {
             }
         }
 
+        int sentinelCount = 0;
+        for (int i = 0; i < msg.length() -3; i++) {
+            if (msg.substring(i,i+2) == "%%%") {
+                sentinelCount++;
+            }
+        }
+        if (sentinelCount > 1) abort(-15, "message contains more than 1 sentinel: " + msg);
+
         abort(-11, "unknown action: " + msg);
         return null; //should never be reached
 
     }//getTFAction
     
     
-    /** prints any new output from the python script */
-    private void printScriptOutputSoFar() {
-        if (scriptOutput == null) {
-            System.out.println("PYTHON: (no output)");
-            return;
-        }
-        while (scriptOutput.hasNextLine()) {
-            System.out.println("PYTHON: " + scriptOutput.nextLine());
-        }
-
-    }
-
     @Override
     public Action getNextAction(SensorData sensorData) throws Exception {
-        printScriptOutputSoFar();
-
         //Send the last N episodes to the python agent
         //TODO:  This could be more efficient if that becomes an issue
         String window = episodicMemory.toString();
         if (window.length() > WINDOW_SIZE) {
             window = window.substring(window.length() - WINDOW_SIZE);
         }
-        sendMessage(window);
-        System.out.println("Window:" + window);
+        // Send history to the python agent
+        sendMessage("history:" + window + "__" + sensorData.toString());
+        System.out.println("Window: " + window);
 
         //Retrieve/use the agent's response
         Action act = getTFAction();
@@ -278,14 +282,35 @@ public class TFSocketAgent implements IAgent {
      */
     @Override
     public void onTestRunComplete() {
-        // TODO: send a kill signal
-        printScriptOutputSoFar();
+        System.out.println("Run completed.");
+        shutdown();
+    }
+
+    /**
+     * shutdown the python and java agent.  This is separate from onTestRunComplete()
+     * because it can be used for both a successful end of run or for an abort
+     */
+    private void shutdown() {
+        System.out.println("Sending quit message to python agent.");
+        if (sock != null) sendMessage("%%%quit");
+
+        System.out.println("Closing the Java-side socket.");
+        try {
+            sock.close();
+        }
+        catch(IOException ioe) {
+            System.out.println("Could not close socket.  Oh well...");
+        }
+        
         if (scriptOutput != null) {
             scriptOutput.close();
         }
+
         if ((process != null) && (process.isAlive())) {
+            System.out.println("Attempting to kill the python process.");
             process.destroy();
         }
     }
+     
 
 }

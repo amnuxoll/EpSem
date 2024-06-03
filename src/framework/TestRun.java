@@ -113,23 +113,29 @@ public class TestRun implements IIntrospector, Runnable {
                 if(action == null) {
                     throw new InvalidObjectException("Agent's getNextAction() method returned a null action.");
                 }
+                FSMEnvironment env = (FSMEnvironment)this.environment;
+                Integer currState = env.getCurrentState();
+
+                System.out.println("Current State: s" + currState);
+                System.out.println("Agent's action: " + action);
+
                 sensorData = this.environment.applyAction(action);
                 moveCount++;
-
-                //DEBUG
-                if (this.environment instanceof FSMEnvironment) {
-                    FSMEnvironment env = (FSMEnvironment)this.environment;
-                    Integer currState = env.getCurrentState();
-                    System.out.print("new state: " + currState);
-                    System.out.print("\t(shortest path: " + env.getShortestSequenceString(currState));
-                    System.out.println(", blind path: " + env.getBlindPathString(currState) + ")");
-                }
 
                 if (sensorData.isGoal()) {
                     this.agent.onGoalFound();
                     this.fireGoalEvent(goalCount++, moveCount);
+                    System.out.println("\nGoal found:\n\tCurrent # of goals found: " + goalCount + "\n\tCurrent # of moves: " + moveCount);
                     moveCount = 0;
+                } else{
+                    Integer newState = env.getCurrentState();
+                    System.out.print("New state: s" + newState);
+                    System.out.print("\t(shortest path: " + env.getShortestSequenceString(currState));
+                    System.out.println(", blind path: " + env.getBlindPathString(currState) + ")");
                 }
+
+                System.out.println();
+
             } while (goalCount < this.numberOfGoalsToFind);
             this.agent.onTestRunComplete();
         } catch (Exception ex) {
@@ -139,3 +145,4 @@ public class TestRun implements IIntrospector, Runnable {
 
     //endregion
 }
+
