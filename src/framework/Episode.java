@@ -125,8 +125,7 @@ public class Episode {
      */
     @Override
     public String toString() {
-        // return this.sensorData.toString(true) + this.action.toString();
-        return this.action.toString();
+        return this.sensorData.toString(true) + this.action.toString();
     }
     //endregion
 }
