@@ -93,10 +93,10 @@ public class TFSocketAgent implements IAgent {
                 outStream = sock.getOutputStream();
                 break;
             } catch (ConnectException ce) {
-                System.err.println("Connection refused.  Retrying...");
+                if (refuseCount > 0) System.err.println("Connection refused.  Retrying...");
                 refuseCount++;
                 try {
-                    Thread.sleep(1000);
+                    Thread.sleep(10000);
                 }
                 catch (InterruptedException ie) {
                     System.err.println("Interrupted while waiting to retry connection.");
@@ -122,7 +122,7 @@ public class TFSocketAgent implements IAgent {
         for(Action act : actions) {
             alphabet += act;
         }
-        sendMessage("%%%alphabet:" + alphabet);
+        sendMessage("$$$alphabet:" + alphabet);
 
         //wait for acknowledge signal from the python agent
         Action ack = getTFAction();
@@ -196,12 +196,12 @@ public class TFSocketAgent implements IAgent {
 
         //check for sentinel messages
         String msg = new String(buf);
-        if (msg.startsWith("%%%")) {
-            if (msg.startsWith("%%%ack")) {
+        if (msg.startsWith("$$$")) {
+            if (msg.startsWith("$$$ack")) {
                 System.out.println("python agent sent acknowledge signal");
                 return new Action("ack");
             }
-            else if (msg.startsWith("%%%abort")) {
+            else if (msg.startsWith("$$$abort")) {
                 abort(-13, "python agent sent abort signal");
             }
         }
@@ -220,7 +220,7 @@ public class TFSocketAgent implements IAgent {
 
         int sentinelCount = 0;
         for (int i = 0; i < msg.length() -3; i++) {
-            if (msg.substring(i,i+2) == "%%%") {
+            if (msg.substring(i,i+2) == "$$$") {
                 sentinelCount++;
             }
         }
@@ -230,6 +230,26 @@ public class TFSocketAgent implements IAgent {
         return null; //should never be reached
 
     }//getTFAction
+
+    /**
+     * buildHistoryString
+     *
+     * creates a string representing the last WINDOW_SIZE episodes which will be
+     * sent to the python agent.
+     */
+    private String buildHistoryString() {
+        String retVal = "$$$history:";
+        Episode[] recents = episodicMemory.subset(Math.max(0, episodicMemory.length() - WINDOW_SIZE));
+        for(Episode ep : recents) {
+            String actStr = ep.getAction().getName();
+            if (ep.hitGoal()) {
+                actStr = actStr.toUpperCase();
+            }
+            retVal += actStr;
+        }
+
+        return retVal;
+    }
     
     
     @Override
@@ -240,9 +260,11 @@ public class TFSocketAgent implements IAgent {
         if (window.length() > WINDOW_SIZE) {
             window = window.substring(window.length() - WINDOW_SIZE);
         }
+        
         // Send history to the python agent
-        sendMessage("history:" + window + "__" + sensorData.toString());
-        System.out.println("Window: " + window);
+        String hist = buildHistoryString();
+        System.out.println(hist);
+        sendMessage(hist);
 
         //Retrieve/use the agent's response
         Action act = getTFAction();
@@ -292,7 +314,7 @@ public class TFSocketAgent implements IAgent {
      */
     private void shutdown() {
         System.out.println("Sending quit message to python agent.");
-        if (sock != null) sendMessage("%%%quit");
+        if (sock != null) sendMessage("$$$quit");
 
         System.out.println("Closing the Java-side socket.");
         try {
