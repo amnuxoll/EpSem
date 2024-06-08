@@ -19,7 +19,43 @@ def sendLetter():
     letter = random.choice(alphabet)
     log(f"sending {letter}")
     conn.sendall(letter.encode("ASCII"))
-    
+    return letter
+
+def calc_history(entire_history):
+    entire_history += last_step.upper()
+    log(f"History in function: {entire_history}")
+    curr_count = 0
+    total = 0
+    num_goals = 0
+    for i in range(len(entire_history)):
+        if i == 0:
+            curr_count+=1
+            continue
+        if entire_history[i].upper() == entire_history[i]:
+            curr_count+=1
+            num_goals+=1
+            total+=curr_count
+            curr_count = 0
+        else:
+            curr_count+=1
+    log(f"Avg steps: {total/num_goals}")
+    with open("collecting-data-points.txt",'a') as file:
+        file.write(entire_history + "\n")
+
+
+
+def get_tensors():
+    i = 0
+    inputs = []
+    with open("collecting-data-points.txt",'r') as file:
+        curr_line = file.readline()
+        while curr_line is not None and curr_line != "":
+            window = curr_line[i:i+10]
+            inputs.append(flatten(window))
+            if len(inputs) >= 3:
+                log(str(inputs))
+                getNextAction(inputs)
+            i+=1
 ## 
 # flatten
 # 
@@ -35,40 +71,54 @@ def sendLetter():
 def flatten(window):
     """convert a window to an input tensor"""
     #split the window into goal part and action part
-    ays = []
-    bees = []
-    goals = []
-    for let in window:
-        if ((let == 'a') or (let == 'A')):
-            ays.append(1.0)
-            bees.append(0.0)
-        else:  #assume 'b' or 'B'
-            ays.append(0.0)
-            bees.append(1.0)
-            
-        if ((let == 'A') or (let == 'B')):
-            goals.append(1.0)
+    ays = [0.0 for i in range(len(window))]
+    bees = [0.0 for i in range(len(window))]
+    goals = [0.0 for i in range(len(window))]
+    for i in range(len(window)):
+        let = window[i]
+        if let == 'a' or let == 'A':
+            ays[i] = 1.0
         else:
-            goals.append(0.0)
+            bees[i] = 1.0
+        if let == 'A' or let == 'B':
+            goals[i] = 1.0
+    # ays = []
+    # bees = []
+    # goals = []
+    # for let in window:
+    #     if ((let == 'a') or (let == 'A')):
+    #         ays.append(1.0)
+    #         bees.append(0.0)
+    #     else:  #assume 'b' or 'B'
+    #         ays.append(0.0)
+    #         bees.append(1.0)
+            
+    #     if ((let == 'A') or (let == 'B')):
+    #         goals.append(1.0)
+    #     else:
+    #         goals.append(0.0)
     
-    #if the history is too small pad with 0.0's to get it to the proper size
-    #TODO: More efficient way to do this?
-    while (len(ays) < WINDOW_SIZE):
-        ays.insert(0, 0.0)
-        bees.insert(0, 0.0)
-        goals.insert(0, 0.0)
+    # #if the history is too small pad with 0.0's to get it to the proper size
+    # #TODO: More efficient way to do this?
+    # while (len(ays) < WINDOW_SIZE):
+    #     ays.insert(0, 0.0)
+    #     bees.insert(0, 0.0)
+    #     goals.insert(0, 0.0)
         
     return ays + bees + goals
     
-    
-def getNextAction(window):
-    inputs = flatten(window)
+# predictions = model(x_train[:1])
+# predictions
+def getNextAction(inputs):
     model = tf.keras.models.Sequential([
-  tf.keras.layers.Flatten(input_shape=(28, 28)),
-  tf.keras.layers.Dense(128, activation='relu'),
-  tf.keras.layers.Dropout(0.2),
-  tf.keras.layers.Dense(10)
-])
+        tf.keras.layers.Dense(16, activation='relu'),
+        tf.keras.layers.Dropout(0.2),
+        tf.keras.layers.Dense(2)
+    ])
+    inputs = tf.constant(inputs)
+    predictions = model(inputs[:1])
+    tf.nn.softmax(predictions).numpy()
+    loss_fn = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
 
 log("Running Python-TensorFlow agent")
 os.remove("pyout.txt")
@@ -85,6 +135,8 @@ timeout = 0
 log("port number: " + str(portNum))
 log("Creating server for the Java environment to connect to...")
 
+entire_history = ""
+last_step = ''
 try:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         sock.bind(("127.0.0.1", portNum))
@@ -112,13 +164,19 @@ try:
                 elif (strData.startswith("$$$history:")):
                     history = strData[11:]
                     log(f"history received: {history}")
-                    sendLetter()                
+                    if len(history) == 1:
+                        history = history.lower()
+                    entire_history += str(history[-1:])
+                    log(f"entire history: {entire_history}")
+                    last_step = sendLetter()   
                 elif (strData.startswith("$$$quit")):
+                    calc_history(entire_history)
+                    get_tensors()
                     log("python agent received quit signal:")
                     break
                 else:  
                     # Send a random letter back to the Java environment
-                    sendLetter()
+                    last_step = sendLetter()          
 except Exception as error:
     log("Exception:" + str(error))
     log("-----")
@@ -129,3 +187,5 @@ except Exception as error:
     except Exception as errerr:
         log("Exception exception!:" + str(errerr))
     log("--- end of report ---")
+    
+    
