@@ -21,45 +21,101 @@ def sendLetter():
     conn.sendall(letter.encode("ASCII"))
     return letter
 
-def calc_history(entire_history):
-    entire_history += last_step.upper()
-    log(f"History in function: {entire_history}")
-    curr_count = 0
+def calc_history(history):
+    """calculate average steps to goal for a given history"""
+    curr_count = 0   #steps since last goal (at a given point)
     total = 0
+
+    #count the number of goals (skipping the first)
     num_goals = 0
-    for i in range(len(entire_history)):
+    for i in range(len(history)):
         if i == 0:
-            curr_count+=1
             continue
-        if entire_history[i].upper() == entire_history[i]:
-            curr_count+=1
+        if history[i].isupper():
             num_goals+=1
-            total+=curr_count
-            curr_count = 0
-        else:
-            curr_count+=1
-    log(f"Avg steps: {total/num_goals}")
-    with open("collecting-data-points.txt",'a') as file:
-        file.write(entire_history + "\n")
+    
+    avg_steps = len(history) / num_goals
+    log(f"Avg steps: {avg_steps}")
+    return avg_steps
 
 
+## 
+# getNextAction
+def getNextAction(inputs):
+    """create and train a model based on the agent's experiences"""
+    model = tf.keras.models.Sequential([
+        tf.keras.layers.Dense(16, activation='relu'),
+        tf.keras.layers.Dropout(0.2),
+        tf.keras.layers.Dense(2)
+    ])
+    x_train = calc_input_tensors(entire_history)
+    y_train = calc_desired_actions(entire_history)
+    x_train = tf.constant(x_train)
+    predictions = model(inputs[:1])
+    tf.nn.softmax(predictions).numpy()
+    loss_fn = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
 
-def get_tensors():
-    i = 0
-    inputs = []
-    with open("collecting-data-points.txt",'r') as file:
-        curr_line = file.readline()
-        while curr_line is not None and curr_line != "":
-            window = curr_line[i:i+10]
-            inputs.append(flatten(window))
-            if len(inputs) >= 3:
-                log(str(inputs))
-                getNextAction(inputs)
-            i+=1
+
+##
+# calc_input_tensors
+def calc_input_tensors(history):
+    """convert a blind FSM action history into an array of input tensors"""
+    #sanity check
+    if (len(history) < 10):
+        log("ERROR:  history too short for training!")
+        return
+    
+    #iterate over a range that skips the first 10 indexes so we have a full window for each input
+    #generate an input tensor for each one
+    hrange = list(range(len(history)))[10:]
+    ret = []
+    for i in hrange:
+        window = history[i-WINDOW_SIZE:i]
+        ret.append(flatten(window))
+        
+    return ret
+
+##
+# calc_desired_actions
+#
+# the output of this function should line up with the output of 
+# calc_input_tensors for the same history
+def calc_desired_actions(history, cutoff):
+    """calculates the desired action for each window in a history"""
+    #sanity check
+    if (len(history) < 10):
+        log("ERROR:  history too short for training!")
+        return
+    
+    #iterate over a range starting at index 10 in the history
+    hrange = list(range(len(history)))[10:]
+    ret = []
+    for i in hrange:
+        #calculate how many steps from this position to the next goal
+        num_steps = 0
+        while(history[i + num_steps].islower()):
+            num_steps += 1
+        
+        #calculate the index of the action of this position
+        val = 0
+        if ( (history[i].lower() == 'b') or (history[i].lower() == 'B') ):
+            val = 1
+            
+        #if the cutoff is exceeded then we want the other action instead
+        if (num_steps >= cutoff):
+            val = 1 - val
+            
+        #add to result
+        ret.append(val)
+    
+    return ret
+            
+    
+
 ## 
 # flatten
 # 
-# a window has this format:  aabaBbbab
+# a window has this format:  'aabaBbbab'
 # the output is 3x window size doubles with the first 10 
 # being whether or not an 'a'/'A' is in that position
 # the second set is for b/B.  The third set is goal sensor.
@@ -67,13 +123,17 @@ def get_tensors():
 # TODO:  this is hard-coded for a two-letter alphabet.  change
 #        the code to handle any alphabet size
 # TODO:  in the future we may want to handle sensors. 
-#        Example:   01a11B00b00a 
+#        Example input window:   01a11B00b00a 
 def flatten(window):
     """convert a window to an input tensor"""
+    if (len(window) != WINDOW_SIZE):
+        log(f"ERROR:  flatten requires a window of size {WINDOW_SIZE}")
+        return None
+    
     #split the window into goal part and action part
-    ays = [0.0 for i in range(len(window))]
-    bees = [0.0 for i in range(len(window))]
-    goals = [0.0 for i in range(len(window))]
+    ays = [0.0 for i in range(WINDOW_SIZE)]
+    bees = [0.0 for i in range(WINDOW_SIZE)]
+    goals = [0.0 for i in range(WINDOW_SIZE)]
     for i in range(len(window)):
         let = window[i]
         if let == 'a' or let == 'A':
@@ -82,44 +142,12 @@ def flatten(window):
             bees[i] = 1.0
         if let == 'A' or let == 'B':
             goals[i] = 1.0
-    # ays = []
-    # bees = []
-    # goals = []
-    # for let in window:
-    #     if ((let == 'a') or (let == 'A')):
-    #         ays.append(1.0)
-    #         bees.append(0.0)
-    #     else:  #assume 'b' or 'B'
-    #         ays.append(0.0)
-    #         bees.append(1.0)
             
-    #     if ((let == 'A') or (let == 'B')):
-    #         goals.append(1.0)
-    #     else:
-    #         goals.append(0.0)
-    
-    # #if the history is too small pad with 0.0's to get it to the proper size
-    # #TODO: More efficient way to do this?
-    # while (len(ays) < WINDOW_SIZE):
-    #     ays.insert(0, 0.0)
-    #     bees.insert(0, 0.0)
-    #     goals.insert(0, 0.0)
-        
     return ays + bees + goals
     
-# predictions = model(x_train[:1])
-# predictions
-def getNextAction(inputs):
-    model = tf.keras.models.Sequential([
-        tf.keras.layers.Dense(16, activation='relu'),
-        tf.keras.layers.Dropout(0.2),
-        tf.keras.layers.Dense(2)
-    ])
-    inputs = tf.constant(inputs)
-    predictions = model(inputs[:1])
-    tf.nn.softmax(predictions).numpy()
-    loss_fn = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
-
+#======================================================================
+# TFSocket Agent
+#----------------------------------------------------------------------
 log("Running Python-TensorFlow agent")
 os.remove("pyout.txt")
 
@@ -170,6 +198,9 @@ try:
                     log(f"entire history: {entire_history}")
                     last_step = sendLetter()   
                 elif (strData.startswith("$$$quit")):
+                    #add the last step to complete the history.
+                    entire_history += last_step.upper()
+                    
                     calc_history(entire_history)
                     get_tensors()
                     log("python agent received quit signal:")
@@ -188,4 +219,5 @@ except Exception as error:
         log("Exception exception!:" + str(errerr))
     log("--- end of report ---")
     
-    
+
+log("Agent Exit")
