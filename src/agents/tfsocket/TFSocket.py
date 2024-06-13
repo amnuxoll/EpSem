@@ -3,11 +3,13 @@ import socket
 import os
 import random
 import traceback
+import contextlib
 import tensorflow as tf
-print("TensorFlow version:", tf.__version__)
 
 #This must be kept in sync with the Java side!
-WINDOW_SIZE = 10
+WINDOW_SIZE = 3
+num_goals = 0
+model = None
 
 def log(s):
     f = open("pyout.txt", "a")
@@ -15,13 +17,14 @@ def log(s):
     f.write("\n")
     f.close()
 
-def sendLetter():
-    letter = random.choice(alphabet)
+def send_letter(letter):
+    if(letter == '*'):
+        letter = random.choice(alphabet)
     log(f"sending {letter}")
     conn.sendall(letter.encode("ASCII"))
     return letter
 
-def calc_history(history):
+def calc_avg_steps(history):
     """calculate average steps to goal for a given history"""
     curr_count = 0   #steps since last goal (at a given point)
     total = 0
@@ -40,21 +43,33 @@ def calc_history(history):
 
 
 ## 
-# getNextAction
-def getNextAction(inputs):
+# get_next_action
+def get_next_action(inputs):
     """create and train a model based on the agent's experiences"""
     model = tf.keras.models.Sequential([
         tf.keras.layers.Dense(16, activation='relu'),
         tf.keras.layers.Dropout(0.2),
         tf.keras.layers.Dense(2)
     ])
+    avg_steps = calc_avg_steps(entire_history)
     x_train = calc_input_tensors(entire_history)
-    y_train = calc_desired_actions(entire_history)
+    y_train = calc_desired_actions(entire_history, avg_steps)
     x_train = tf.constant(x_train)
-    predictions = model(inputs[:1])
+    y_train = tf.constant(y_train)
+    predictions = model(x_train[:1])
+    log(f"predictions {predictions}")
     tf.nn.softmax(predictions).numpy()
     loss_fn = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
-
+    loss_test = loss_fn(y_train[:1], predictions).numpy()
+    log(f"loss_test={loss_test}")
+    model.compile(optimizer='adam', loss=loss_fn, metrics=['accuracy'])
+    with contextlib.redirect_stdout(open('trainout.txt', 'w')):
+        model.fit(x_train, y_train, epochs=5, verbose=2)
+        print("hi")
+        eval_result = 3
+        eval_result = model.evaluate(x_train,  y_train)
+        print((f"eval_result={eval_result}"))
+    
 
 ##
 # calc_input_tensors
@@ -80,6 +95,10 @@ def calc_input_tensors(history):
 #
 # the output of this function should line up with the output of 
 # calc_input_tensors for the same history
+#
+# history - in a letter-based format (e.g., aabaBbbabaabaBbbab...)
+# cutoff - distance from curr pos to goal at which the agent prefers 
+#          NOT to take the historical action
 def calc_desired_actions(history, cutoff):
     """calculates the desired action for each window in a history"""
     #sanity check
@@ -148,15 +167,17 @@ def flatten(window):
 #======================================================================
 # TFSocket Agent
 #----------------------------------------------------------------------
-log("Running Python-TensorFlow agent")
 os.remove("pyout.txt")
+log("Running Python-TensorFlow agent")
+log(f"TensorFlow version: {tf.__version__}")
+
 
 # hardcoded alphabet, will need to read actual from Java environment
 alphabet = ['a','b']
 argc = len(sys.argv)
 if (argc < 2):
     print("ERROR:  Must pass port number as a parameter.")
-
+    
 portNum = int(sys.argv[1])
 count = 1
 timeout = 0
@@ -181,7 +202,7 @@ try:
                     if (timeout > 1000):
                         log("ERROR: Timeout receiving next input from Java environment")
                         exit(-1)
-                log(f"received from Java env: {data}")
+                #log(f"received from Java env: {data}")
                 #check for sentinel
                 strData = data.decode("utf-8")
                 if (strData.startswith("$$$alphabet:")):
@@ -191,23 +212,38 @@ try:
                     conn.sendall("$$$ack".encode("ASCII"))
                 elif (strData.startswith("$$$history:")):
                     history = strData[11:]
-                    log(f"history received: {history}")
+                    log(f"window received: {history}")
                     if len(history) == 1:
                         history = history.lower()
                     entire_history += str(history[-1:])
-                    log(f"entire history: {entire_history}")
-                    last_step = sendLetter()   
+
+                    #Did we reach the goal?
+                    if (history[-1:].isupper()):
+                        num_goals += 1
+                        if ((num_goals >= 470) and (model == None)):
+                            get_next_action(entire_history)
+                    last_step = '*'
+                    
+                    #If there is a trained model, use it to select the next action
+                    if (model != None):
+                        one_input = []
+                        one_input.append(flatten(history))
+                        one_input = tf.constant(one_input)
+                        predictions = model(one_input[0])
+                        last_step = 'a'
+                        if (predictions[0] < predictions[1]):
+                            last_step = 'b'
+                    
+                    #send it
+                    last_step = send_letter(last_step)
                 elif (strData.startswith("$$$quit")):
                     #add the last step to complete the history.
-                    entire_history += last_step.upper()
-                    
-                    calc_history(entire_history)
-                    get_tensors()
                     log("python agent received quit signal:")
                     break
                 else:  
-                    # Send a random letter back to the Java environment
-                    last_step = sendLetter()          
+                    # Should never happen...
+                    # if it does, send a random letter back to the Java environment
+                    last_step = send_letter()          
 except Exception as error:
     log("Exception:" + str(error))
     log("-----")

@@ -124,8 +124,9 @@ null/
 # ignore emacs temp files
 \#*\#
 
-# ignore output.txt file
+# ignore output text files
 output.txt
 javaout.txt
 pyout.txt
 collecting-data-points.txt
+trainout.txt
