@@ -7,7 +7,7 @@ import contextlib
 import tensorflow as tf
 
 #This must be kept in sync with the Java side!
-WINDOW_SIZE = 3
+WINDOW_SIZE = 10
 num_goals = 0
 model = None
 
@@ -41,11 +41,9 @@ def calc_avg_steps(history):
     log(f"Avg steps: {avg_steps}")
     return avg_steps
 
-
-## 
-# get_next_action
-def get_next_action(inputs):
-    """create and train a model based on the agent's experiences"""
+   
+def create_model():
+    """create and train a model for the agent to use"""
     model = tf.keras.models.Sequential([
         tf.keras.layers.Dense(16, activation='relu'),
         tf.keras.layers.Dropout(0.2),
@@ -57,20 +55,16 @@ def get_next_action(inputs):
     x_train = tf.constant(x_train)
     y_train = tf.constant(y_train)
     predictions = model(x_train[:1])
-    log(f"predictions {predictions}")
-    tf.nn.softmax(predictions).numpy()
+    predictions = tf.nn.softmax(predictions).numpy() #convert to probabilities
     loss_fn = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
     loss_test = loss_fn(y_train[:1], predictions).numpy()
     log(f"loss_test={loss_test}")
     model.compile(optimizer='adam', loss=loss_fn, metrics=['accuracy'])
     with contextlib.redirect_stdout(open('trainout.txt', 'w')):
         model.fit(x_train, y_train, epochs=5, verbose=2)
-        print("hi")
-        eval_result = 3
         eval_result = model.evaluate(x_train,  y_train)
         print((f"eval_result={eval_result}"))
-    
-
+    return model
 ##
 # calc_input_tensors
 def calc_input_tensors(history):
@@ -220,19 +214,26 @@ try:
                     #Did we reach the goal?
                     if (history[-1:].isupper()):
                         num_goals += 1
-                        if ((num_goals >= 470) and (model == None)):
-                            get_next_action(entire_history)
+                        if ((num_goals >= 470) and (model is None)):
+                            log("Creating model, reached 470 goals")
+                            model = create_model()
+    
                     last_step = '*'
                     
                     #If there is a trained model, use it to select the next action
-                    if (model != None):
+                    if (model is not None):
                         one_input = []
                         one_input.append(flatten(history))
                         one_input = tf.constant(one_input)
-                        predictions = model(one_input[0])
+                        # predictions = get_next_action(entire_history)
+                        predictions = model(one_input)
+                        
                         last_step = 'a'
-                        if (predictions[0] < predictions[1]):
+                        # Predictions now returns as a tensor of shape (1,2)
+                        log(f"Chance of a: {predictions[0][0]}\nChance of b: {predictions[0][1]}")
+                        if (predictions[0][0] < predictions[0][1]):
                             last_step = 'b'
+                        log("Model is not None, sending prediction: " + last_step)
                     
                     #send it
                     last_step = send_letter(last_step)
