@@ -11,7 +11,7 @@ WINDOW_SIZE = 10
 num_goals = 0
 steps_since_last_goal = 0
 model = None
-avg_steps = 9999
+avg_steps = 0
 
 def log(s):
     f = open("pyout.txt", "a")
@@ -46,6 +46,8 @@ def calc_avg_steps(history):
    
 def create_model():
     """create and train a model for the agent to use"""
+    global model, avg_steps
+    
     model = tf.keras.models.Sequential([
         tf.keras.layers.Dense(16, activation='relu'),
         tf.keras.layers.Dropout(0.2),
@@ -218,12 +220,17 @@ try:
                     if (history[-1:].isupper()):
                         steps_since_last_goal = 0
                         num_goals += 1
+                        log(f"Found goal #{num_goals}")
                         if ((num_goals >= 400) and (model is None)):
                             log("Creating model, reached 400 goals")
-                            model = create_model()
+                            create_model()
+                            log(f"new model = {model}")
+                            log(f"avg_steps={avg_steps}")
                     else:
                         steps_since_last_goal +=1
+                    
                     if (model is not None) and steps_since_last_goal > 3*avg_steps:
+                        log(f"Looks like we're stuck in a loop! steps_since_last_goal={steps_since_last_goal} and avg_steps={avg_steps}")
                         model = None #reset the model if we haven't reached a goal in a while
                     last_step = '*'
                     
