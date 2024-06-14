@@ -9,7 +9,9 @@ import tensorflow as tf
 #This must be kept in sync with the Java side!
 WINDOW_SIZE = 10
 num_goals = 0
+steps_since_last_goal = 0
 model = None
+avg_steps = 9999
 
 def log(s):
     f = open("pyout.txt", "a")
@@ -56,6 +58,7 @@ def create_model():
     y_train = tf.constant(y_train)
     predictions = model(x_train[:1])
     predictions = tf.nn.softmax(predictions).numpy() #convert to probabilities
+    log(f"PREDICTIONS: {predictions}")
     loss_fn = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
     loss_test = loss_fn(y_train[:1], predictions).numpy()
     log(f"loss_test={loss_test}")
@@ -213,11 +216,15 @@ try:
 
                     #Did we reach the goal?
                     if (history[-1:].isupper()):
+                        steps_since_last_goal = 0
                         num_goals += 1
-                        if ((num_goals >= 470) and (model is None)):
-                            log("Creating model, reached 470 goals")
+                        if ((num_goals >= 400) and (model is None)):
+                            log("Creating model, reached 400 goals")
                             model = create_model()
-    
+                    else:
+                        steps_since_last_goal +=1
+                    if (model is not None) and steps_since_last_goal > 3*avg_steps:
+                        model = None #reset the model if we haven't reached a goal in a while
                     last_step = '*'
                     
                     #If there is a trained model, use it to select the next action
