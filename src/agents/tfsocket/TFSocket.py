@@ -7,7 +7,7 @@ import contextlib
 import tensorflow as tf
 
 #This must be kept in sync with the Java side!
-WINDOW_SIZE = 10
+WINDOW_SIZE = 9
 num_goals = 0
 steps_since_last_goal = 0
 model = None
@@ -75,13 +75,13 @@ def create_model():
 def calc_input_tensors(history):
     """convert a blind FSM action history into an array of input tensors"""
     #sanity check
-    if (len(history) < 10):
+    if (len(history) < WINDOW_SIZE):
         log("ERROR:  history too short for training!")
         return
     
-    #iterate over a range that skips the first 10 indexes so we have a full window for each input
+    #iterate over a range that skips the first WINDOW_SIZE indexes so we have a full window for each input
     #generate an input tensor for each one
-    hrange = list(range(len(history)))[10:]
+    hrange = list(range(len(history)))[WINDOW_SIZE:]
     ret = []
     for i in hrange:
         window = history[i-WINDOW_SIZE:i]
@@ -101,12 +101,12 @@ def calc_input_tensors(history):
 def calc_desired_actions(history, cutoff):
     """calculates the desired action for each window in a history"""
     #sanity check
-    if (len(history) < 10):
+    if (len(history) < WINDOW_SIZE):
         log("ERROR:  history too short for training!")
         return
     
-    #iterate over a range starting at index 10 in the history
-    hrange = list(range(len(history)))[10:]
+    #iterate over a range starting at index WINDOW_SIZE in the history
+    hrange = list(range(len(history)))[WINDOW_SIZE:]
     ret = []
     for i in hrange:
         #calculate how many steps from this position to the next goal
@@ -134,7 +134,7 @@ def calc_desired_actions(history, cutoff):
 # flatten
 # 
 # a window has this format:  'aabaBbbab'
-# the output is 3x window size doubles with the first 10 
+# the output is 3x window size doubles with the first WINDOW_SIZE
 # being whether or not an 'a'/'A' is in that position
 # the second set is for b/B.  The third set is goal sensor.
 #
