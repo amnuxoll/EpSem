@@ -1,15 +1,15 @@
 import tensorflow as tf
 import contextlib
-from TFSocket import log
+from TFSocketUtils import log
 
-class TFSocketModel():
+class TFSocketModel:
 
-    def __init__(self, window_size, entire_history):
+    def __init__(self, environment, window_size):
         '''
         
         '''
+        self.environment = environment
         self.window_size = window_size
-        self.history = entire_history
         
         # Defining the model function as a variable
         self.model = tf.keras.models.Sequential([
@@ -18,7 +18,7 @@ class TFSocketModel():
             tf.keras.layers.Dense(2)
         ])
 
-    def train_model(self, entire_history):
+    def train_model(self):
         '''
         Train and optimize a new ANN model
         
@@ -26,12 +26,12 @@ class TFSocketModel():
         https://www.tensorflow.org/tutorials/quickstart/beginner
         '''
         # Defining the inputs and expected outputs from a given history
-        avg_steps = self.calc_avg_steps(entire_history)
-        x_train = self.calc_input_tensors(entire_history)
-        y_train = self.calc_desired_actions(entire_history, avg_steps)
+        self.environment.update_avg_steps()
+        x_train = self.calc_input_tensors(self.environment.entire_history)
+        y_train = self.calc_desired_actions(self.environment.entire_history, self.environment.avg_steps)
         x_train = tf.constant(x_train)
         y_train = tf.constant(y_train)
-        
+
         # Defining the model's loss function
         predictions = self.model(x_train[:1])
         predictions = tf.nn.softmax(predictions).numpy() # Convert to probabilities
@@ -42,92 +42,71 @@ class TFSocketModel():
         with contextlib.redirect_stdout(open('trainout.txt', 'w')):
             self.model.fit(x_train, y_train, epochs=5, verbose=2)
 
-        return avg_steps
-
-    def calc_avg_steps(history):
+    def calc_input_tensors(self, window):
         '''
-        Calculate average steps to goal for a given history
-        '''
-        # Count the number of goals (skipping the first)
-        num_historical_goals = 0
-        for i in range(len(history)):
-            if (i == 0):
-                continue
-            if (history[i].isupper()):
-                num_historical_goals+=1
-
-        avg_steps = len(history) / num_historical_goals
-        log(f'Avg steps: {avg_steps}')
-        return avg_steps
-
-    def calc_input_tensors(self, history):
-        '''
-        Convert a blind FSM action history into an array of input tensors
+        Convert a blind FSM action window into an array of input tensors
         '''
         # Sanity check
-        if (len(history) < self.window_size):
-            log('ERROR:  history too short for training!')
+        if (len(window) < self.window_size):
+            log('ERROR: window too short for training!')
             return
 
         # Iterate over a range that skips the first window_size indexes so we have a full window for each input
         # generate an input tensor for each one
-        history_range = list(range(len(history)))[self.window_size:]
+        history_range = list(range(len(window)))[self.window_size:]
         tensor = []
         for i in history_range:
-            window = history[i-self.window_size:i]
+            window = window[i-self.window_size:i]
             tensor.append(self.flatten(window))
 
         return tensor
 
-    def get_action(self, history):
+    def get_action(self, window):
         '''
         Uses the model to generate a next step for the environment
         '''
-
         one_input = []
-        one_input.append(self.flatten(history))
+        one_input.append(self.flatten(window))
         one_input = tf.constant(one_input)
         predictions = self.model(one_input)
 
-        last_step = 'a'
+        self.environment.last_step = 'a'
         # Predictions now returns as a tensor of shape (1,2)
         log(f'Chance of a: {predictions[0][0]}\nChance of b: {predictions[0][1]}')
         if (predictions[0][0] < predictions[0][1]):
-            last_step = 'b'
-        log('Model is not None, sending prediction: ' + last_step)
-        
-        return last_step
+            self.environment.last_step = 'b'
+        log('Model is not None, sending prediction: ' + self.environment.last_step)
 
     ##
     # calc_desired_actions
     #
     # the output of this function should line up with the output of 
-    # calc_input_tensors for the same history
+    # calc_input_tensors for the same window
     #
-    # history - in a letter-based format (e.g., aabaBbbabaabaBbbab...)
+    # window - in a letter-based format (e.g., aabaBbbabaabaBbbab...)
     # cutoff - distance from curr pos to goal at which the agent prefers 
     #          NOT to take the historical action
-    def calc_desired_actions(self, history, cutoff):
+    def calc_desired_actions(self, window, cutoff):
         '''
-        Calculates the desired action for each window in a history
+        Calculates the desired action for each window in a window
         '''
         #sanity check
-        if (len(history) < self.window_size):
-            log('ERROR:  history too short for training!')
+        if (len(window) < self.window_size):
+            log('ERROR:  window too short for training!')
             return
 
-        #iterate over a range starting at index window_size in the history
-        hrange = list(range(len(history)))[self.window_size:]
-        ret = []
+        #iterate over a range starting at index window_size in the window
+        hrange = list(range(len(window)))[self.window_size:]
+        desired_actions = []
         for i in hrange:
             #calculate how many steps from this position to the next goal
             num_steps = 0
-            while(history[i + num_steps].islower()):
+            while(window[i + num_steps].islower()):
                 num_steps += 1
 
             #calculate the index of the action of this position
             val = 0
-            if ( (history[i].lower() == 'b') or (history[i].lower() == 'B') ):
+            if ( (window[i].lower() == 'b') or (window[i].lower() == 'B') ):
                 val = 1
 
             #if the cutoff is exceeded then we want the other action instead
@@ -135,11 +114,11 @@ class TFSocketModel():
                 val = 1 - val
 
             #add to result
-            ret.append(val)
+            desired_actions.append(val)
 
-        return ret
+        return desired_actions
 
-    def flatten(window):
+    def flatten(self, window):
         '''
         Convert a window into an input tensor
         Helper function for @calc_input_tensors()

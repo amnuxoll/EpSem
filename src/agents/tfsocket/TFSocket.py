@@ -3,84 +3,71 @@ import socket
 import os
 import random
 import traceback
-import TFSocketModel as tfmodel
+from TFSocketModel import TFSocketModel as tfmodel
+from TFSocketEnv import TFSocketEnv as tfenv
+from TFSocketUtils import log
 
 #This must be kept in sync with the Java side!
 # Define global constants
 WINDOW_SIZE = 9
-ALPHABET = []
 
-# Global variables
-model = None
-
-def log(s):
-    f = open('pyout.txt', 'a')
-    f.write(s)
-    f.write('\n')
-    f.close()
-
-def send_letter(conn, letter):
+def send_letter(conn, letter, environment):
     '''
     Send an action to the environment through the socket
     '''
-    if not ALPHABET:
+    if not environment.alphabet:
         log('ALPHABET has not been intialized')
         return None
 
     if (letter == '*'):
-        letter = random.choice(ALPHABET)
+        letter = random.choice(environment.alphabet)
     log(f'sending {letter}')
     conn.sendall(letter.encode('ASCII'))
     return letter
 
-def check_if_goal(history, steps_since_last_goal, entire_history, model):
-    ''' Did we reach the goal? '''
-    num_goals = 0
-    avg_steps = 0
-
-    if (history[-1:].isupper()):
-        steps_since_last_goal = 0
-        num_goals += 1
-        log(f'Found goal #{num_goals}')
-        if ((num_goals >= 400) and (model is None)):
+def check_if_goal(window, environment, model):
+    '''
+    Did we reach the goal?
+    '''
+    if (window[-1:].isupper()):
+        environment.num_goals += 1
+        log(f'Found goal #{environment.num_goals}')
+        if ((environment.num_goals >= 400) and (model is None)):
             log('Creating model, reached 400 goals')
-            model = tfmodel(WINDOW_SIZE, entire_history)
-            avg_steps = model.train_model(entire_history)
+            model = tfmodel(environment, WINDOW_SIZE)
+            model.train_model()
     else:
-        steps_since_last_goal +=1
+        environment.steps_since_last_goal +=1
 
-    return model, steps_since_last_goal, avg_steps
+    return model
 
-def process_history_sentinel(strData, entire_history, steps_since_last_goal, model):
+def process_history_sentinel(strData, environment, model):
     '''
     Manage the step-history and use the model to generate the next
     step for the environment
     '''
     # Update entire_history
-    history = strData[11:]
-    log(f'Window received: {history}')
-    if len(history) == 1:
-        history = history.lower()
-    updated_entire_history = entire_history + str(history[-1:])
+    window = strData[11:]
+    log(f'Window received: {window}')
+    if len(window) == 1:
+        window = window.lower()
+    environment.entire_history = environment.entire_history + str(window[-1:])
 
-    model, steps_since_last_goal, avg_steps = check_if_goal(history, steps_since_last_goal, updated_entire_history, model)
+    model = check_if_goal(window, environment, model)
 
-    if (model is not None) and steps_since_last_goal > 3*avg_steps:
-        log(f"Looks like we're stuck in a loop! steps_since_last_goal={steps_since_last_goal} and avg_steps={avg_steps}")
+    if (model is not None) and environment.steps_since_last_goal > 3*environment.avg_steps:
+        log(f"Looks like we're stuck in a loop! steps_since_last_goal={environment.steps_since_last_goal} and avg_steps={environment.avg_steps}")
         model = None # Reset the model if we haven't reached a goal in a while
-    last_step = '*'
+    environment.last_step = '*'
 
     # If there is a trained model, use it to select the next action
     if (model is not None):
-        last_step = model.get_action(history)
-
-    return updated_entire_history, last_step
+        model.get_action(window)
 
 def main():
     '''
     main
     '''
-    global ALPHABET
     conn = None
 
     os.remove('pyout.txt')
@@ -97,9 +84,7 @@ def main():
     log('Creating server for the Java environment to connect to...')
 
     # Initialize FSM scoped variables
-    entire_history = ''
-    last_step = ''
-    steps_since_last_goal = 0
+    environment = tfenv()
     model = None
 
     try:
@@ -125,15 +110,15 @@ def main():
                     strData = data.decode('utf-8')
 
                     if (strData.startswith('$$$alphabet:')):
-                        ALPHABET = list(strData[12:])
-                        log(f'New alphabet: {ALPHABET}')
+                        environment.alphabet = list(strData[12:])
+                        log(f'New alphabet: {environment.alphabet}')
                         log(f"Sending 'ack'") # Acknowledge
                         conn.sendall('$$$ack'.encode('ASCII'))
 
                     elif (strData.startswith('$$$history:')):
-                        entire_history, last_step = process_history_sentinel(strData, entire_history, steps_since_last_goal, model)
+                        process_history_sentinel(strData, environment, model)
                         # Send the model's prediction to the environment
-                        last_step = send_letter(conn, last_step)
+                        send_letter(conn, environment.last_step, environment)
 
                     elif (strData.startswith('$$$quit')):
                         #add the last step to complete the history.
@@ -143,7 +128,7 @@ def main():
                     else:  
                         # Should never happen...
                         # if it does, send a random letter back to the Java environment
-                        last_step = send_letter() 
+                        send_letter() # Will error
 
     except Exception as error:
         log('Exception:' + str(error))
