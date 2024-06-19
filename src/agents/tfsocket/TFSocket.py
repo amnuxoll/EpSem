@@ -12,11 +12,7 @@ WINDOW_SIZE = 9
 ALPHABET = []
 
 # Global variables
-num_goals = 0
-steps_since_last_goal = 0
 model = None
-avg_steps = 0
-conn = None
 
 def log(s):
     f = open('pyout.txt', 'a')
@@ -24,33 +20,38 @@ def log(s):
     f.write('\n')
     f.close()
 
-def send_letter(letter):
+def send_letter(conn, letter):
+    '''
+    Send an action to the environment through the socket
+    '''
     if not ALPHABET:
         log('ALPHABET has not been intialized')
         return None
 
-    if(letter == '*'):
+    if (letter == '*'):
         letter = random.choice(ALPHABET)
     log(f'sending {letter}')
     conn.sendall(letter.encode('ASCII'))
     return letter
 
 def calc_avg_steps(history):
-    '''calculate average steps to goal for a given history'''
+    '''
+    Calculate average steps to goal for a given history
+    '''
     # Count the number of goals (skipping the first)
-    num_goals = 0
+    num_historical_goals = 0
     for i in range(len(history)):
-        if i == 0:
+        if (i == 0):
             continue
-        if history[i].isupper():
-            num_goals+=1
+        if (history[i].isupper()):
+            num_historical_goals+=1
     
-    avg_steps = len(history) / num_goals
+    avg_steps = len(history) / num_historical_goals
     log(f'Avg steps: {avg_steps}')
     return avg_steps
 
    
-def create_model():
+def create_model(entire_history):
     '''
     Train and optimize a new ANN model
     
@@ -59,10 +60,8 @@ def create_model():
     
     Global variables being used:
         model
-        avg_steps
-        entire_history
     '''
-    global model, avg_steps, entire_history
+    global model
 
     # Defining the model function as a variable
     model = tf.keras.models.Sequential([
@@ -88,7 +87,7 @@ def create_model():
     with contextlib.redirect_stdout(open('trainout.txt', 'w')):
         model.fit(x_train, y_train, epochs=5, verbose=2)
 
-    return model
+    return model, avg_steps
 
 def calc_input_tensors(history):
     '''
@@ -119,7 +118,9 @@ def calc_input_tensors(history):
 # cutoff - distance from curr pos to goal at which the agent prefers 
 #          NOT to take the historical action
 def calc_desired_actions(history, cutoff):
-    '''calculates the desired action for each window in a history'''
+    '''
+    Calculates the desired action for each window in a history
+    '''
     #sanity check
     if (len(history) < WINDOW_SIZE):
         log('ERROR:  history too short for training!')
@@ -181,12 +182,77 @@ def flatten(window):
 
     return ays + bees + goals
 
+def check_if_goal(history, steps_since_last_goal, entire_history):
+    ''' Did we reach the goal? '''
+    global model
+    num_goals = 0
+    avg_steps = 0
 
+    if (history[-1:].isupper()):
+        steps_since_last_goal = 0
+        num_goals += 1
+        log(f'Found goal #{num_goals}')
+        if ((num_goals >= 400) and (model is None)):
+            log('Creating model, reached 400 goals')
+            _, avg_steps = create_model(entire_history)
+    else:
+        steps_since_last_goal +=1
 
+    return steps_since_last_goal, avg_steps
+
+def get_model_prediction(history):
+    '''
+    Uses the model to generate a next step for the environment
+    '''
+    global model
+
+    one_input = []
+    one_input.append(flatten(history))
+    one_input = tf.constant(one_input)
+    predictions = model(one_input)
+
+    last_step = 'a'
+    # Predictions now returns as a tensor of shape (1,2)
+    log(f'Chance of a: {predictions[0][0]}\nChance of b: {predictions[0][1]}')
+    if (predictions[0][0] < predictions[0][1]):
+        last_step = 'b'
+    log('Model is not None, sending prediction: ' + last_step)
+    
+    return last_step
+
+def process_history_sentinel(strData, entire_history, steps_since_last_goal):
+    '''
+    Manage the step-history and use the model to generate the next
+    step for the environment
+    '''
+    global model
+    
+    # Update entire_history
+    history = strData[11:]
+    log(f'Window received: {history}')
+    if len(history) == 1:
+        history = history.lower()
+    updated_entire_history = entire_history + str(history[-1:])
+
+    steps_since_last_goal, avg_steps = check_if_goal(history, steps_since_last_goal, updated_entire_history)
+
+    if (model is not None) and steps_since_last_goal > 3*avg_steps:
+        log(f"Looks like we're stuck in a loop! steps_since_last_goal={steps_since_last_goal} and avg_steps={avg_steps}")
+        model = None # Reset the model if we haven't reached a goal in a while
+    last_step = '*'
+
+    # If there is a trained model, use it to select the next action
+    if (model is not None):
+        last_step = get_model_prediction(history)
+    
+    return updated_entire_history, last_step
 
 def main():
-    
-    global conn
+    '''
+    main
+    '''
+    global ALPHABET
+    conn = None
 
     os.remove('pyout.txt')
     log('Running Python-TensorFlow agent')
@@ -195,13 +261,17 @@ def main():
     if (argc < 2):
         print('ERROR:  Must pass port number as a parameter.')
 
+    # Creating the python side of the socket
     portNum = int(sys.argv[1])
     timeout = 0
     log('port number: ' + str(portNum))
     log('Creating server for the Java environment to connect to...')
 
+    # Initialize FSM scoped variables
     entire_history = ''
     last_step = ''
+    steps_since_last_goal = 0
+    
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
             sock.bind(('127.0.0.1', portNum))
@@ -218,65 +288,33 @@ def main():
                         if (timeout > 1000):
                             log('ERROR: Timeout receiving next input from Java environment')
                             exit(-1)
-                    #log(f'received from Java env: {data}')
-                    #check for sentinel
+                    # Connected to socket
+                    
+                    # Handling socket communication
+                    # Check for sentinel
                     strData = data.decode('utf-8')
-                    if (strData.startswith('$$$ALPHABET:')):
-                        # TODO: ALPHABET is initialized but not used
-                        ALPHABET = list(strData[12:])
-                        log(f'new ALPHABET: {ALPHABET}')
-                        log(f"sending 'ack'")
-                        conn.sendall('$$$ack'.encode('ASCII'))
-                    elif (strData.startswith('$$$history:')):
-                        history = strData[11:]
-                        log(f'window received: {history}')
-                        if len(history) == 1:
-                            history = history.lower()
-                        entire_history += str(history[-1:])
 
-                        #Did we reach the goal?
-                        if (history[-1:].isupper()):
-                            steps_since_last_goal = 0
-                            num_goals += 1
-                            log(f'Found goal #{num_goals}')
-                            if ((num_goals >= 400) and (model is None)):
-                                log('Creating model, reached 400 goals')
-                                create_model()
-                                log(f'new model = {model}')
-                                log(f'avg_steps={avg_steps}')
-                        else:
-                            steps_since_last_goal +=1
-                        
-                        if (model is not None) and steps_since_last_goal > 3*avg_steps:
-                            log(f"Looks like we're stuck in a loop! steps_since_last_goal={steps_since_last_goal} and avg_steps={avg_steps}")
-                            model = None #reset the model if we haven't reached a goal in a while
-                        last_step = '*'
-                        
-                        #If there is a trained model, use it to select the next action
-                        if (model is not None):
-                            one_input = []
-                            one_input.append(flatten(history))
-                            one_input = tf.constant(one_input)
-                            # predictions = get_next_action(entire_history)
-                            predictions = model(one_input)
-                            
-                            last_step = 'a'
-                            # Predictions now returns as a tensor of shape (1,2)
-                            log(f'Chance of a: {predictions[0][0]}\nChance of b: {predictions[0][1]}')
-                            if (predictions[0][0] < predictions[0][1]):
-                                last_step = 'b'
-                            log('Model is not None, sending prediction: ' + last_step)
-                        
-                        #send it
-                        last_step = send_letter(last_step)
+                    if (strData.startswith('$$$alphabet:')):
+                        ALPHABET = list(strData[12:])
+                        log(f'New alphabet: {ALPHABET}')
+                        log(f"Sending 'ack'") # Acknowledge
+                        conn.sendall('$$$ack'.encode('ASCII'))
+
+                    elif (strData.startswith('$$$history:')):
+                        entire_history, last_step = process_history_sentinel(strData, entire_history, steps_since_last_goal)
+                        # Send the model's prediction to the environment
+                        last_step = send_letter(conn, last_step)
+
                     elif (strData.startswith('$$$quit')):
                         #add the last step to complete the history.
                         log('python agent received quit signal:')
                         break
+
                     else:  
                         # Should never happen...
                         # if it does, send a random letter back to the Java environment
-                        last_step = send_letter()          
+                        last_step = send_letter() 
+     
     except Exception as error:
         log('Exception:' + str(error))
         log('-----')
@@ -287,7 +325,6 @@ def main():
         except Exception as errerr:
             log('Exception exception!:' + str(errerr))
         log('--- end of report ---')
-        
 
     log('Agent Exit')
 
