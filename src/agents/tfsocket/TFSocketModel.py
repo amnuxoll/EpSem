@@ -3,10 +3,15 @@ import contextlib
 from TFSocketUtils import log
 
 class TFSocketModel:
+    '''
+    TFSocketModel uses tensorflow to read a history of past
+    steps into tensors then calculates a probable next
+    step to reach the goal.
+    '''
 
     def __init__(self, environment, window_size):
         '''
-        
+        define object variables and create the model function-variable
         '''
         self.environment = environment
         self.window_size = window_size
@@ -27,7 +32,7 @@ class TFSocketModel:
         '''
         # Defining the inputs and expected outputs from a given history
         self.environment.update_avg_steps()
-        x_train = self.calc_input_tensors(self.environment.entire_history)
+        x_train = self.calc_input_tensors()
         y_train = self.calc_desired_actions(self.environment.entire_history, self.environment.avg_steps)
         x_train = tf.constant(x_train)
         y_train = tf.constant(y_train)
@@ -42,21 +47,31 @@ class TFSocketModel:
         with contextlib.redirect_stdout(open('trainout.txt', 'w')):
             self.model.fit(x_train, y_train, epochs=5, verbose=2)
 
-    def calc_input_tensors(self, window):
+    def calc_input_tensors(self):
         '''
         Convert a blind FSM action window into an array of input tensors
+        
+        Example:
+            if window_size = 3, and entire_history = 'abbBababAa'
+            first it creates each window:
+                abb, bbB, bBa, etc.
+            then it converts each window to a tensor
+                abb -> [1, 0, 0, 0, 1, 1, 0, 0, 0]
+            then it creates a list of all the input tensors
         '''
         # Sanity check
-        if (len(window) < self.window_size):
+        if (len(self.environment.entire_history) < self.window_size):
             log('ERROR: window too short for training!')
             return
 
-        # Iterate over a range that skips the first window_size indexes so we have a full window for each input
-        # generate an input tensor for each one
-        history_range = list(range(len(window)))[self.window_size:]
+        # Generate a list of the index of the last character in each history window
+        # Example:
+        #   If window_size = 3, and len(entire_history) = 10,
+        #   then it will output [3, 4, 5, 6, 7, 8, 9]
+        history_range = list(range(len(self.environment.entire_history)))[self.window_size:]
         tensor = []
         for i in history_range:
-            window = window[i-self.window_size:i]
+            window = self.environment.entire_history[i-self.window_size:i]
             tensor.append(self.flatten(window))
 
         return tensor
@@ -72,23 +87,20 @@ class TFSocketModel:
 
         self.environment.last_step = 'a'
         # Predictions now returns as a tensor of shape (1,2)
-        log(f'Chance of a: {predictions[0][0]}\nChance of b: {predictions[0][1]}')
         if (predictions[0][0] < predictions[0][1]):
             self.environment.last_step = 'b'
         log('Model is not None, sending prediction: ' + self.environment.last_step)
 
-    ##
-    # calc_desired_actions
-    #
-    # the output of this function should line up with the output of 
-    # calc_input_tensors for the same window
-    #
-    # window - in a letter-based format (e.g., aabaBbbabaabaBbbab...)
-    # cutoff - distance from curr pos to goal at which the agent prefers 
-    #          NOT to take the historical action
     def calc_desired_actions(self, window, cutoff):
         '''
-        Calculates the desired action for each window in a window
+        Calculates the desired action for each window in the entire_history
+        
+        the output of this function should line up with the output of 
+        calc_input_tensors for the same window
+
+        window - in a letter-based format (e.g., aabaBbbabaabaBbbab...)
+        cutoff - distance from curr pos to goal at which the agent prefers 
+                 NOT to take the historical action
         '''
         #sanity check
         if (len(window) < self.window_size):

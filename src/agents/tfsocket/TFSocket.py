@@ -7,9 +7,24 @@ from TFSocketModel import TFSocketModel as tfmodel
 from TFSocketEnv import TFSocketEnv as tfenv
 from TFSocketUtils import log
 
-#This must be kept in sync with the Java side!
 # Define global constants
-WINDOW_SIZE = 9
+WINDOW_SIZE = 9 # This must be kept in sync with the Java side!
+
+'''
+This is the main script for the TFSocket python agent
+TFSocket communicates with the java-side proxy agent with the FSM framework
+
+Note: all output from this script is printed to a file named 'pyout.txt'
+    since the output of any print statements will be lost.
+
+Commonly used variable names:
+    conn: socket used to communicate with the java-side agent
+    environment: instance of TFSocketEnv that describes the environment variables
+    model: instance of the TFSocketModel class that has methods for training ANN
+        using the agent's experience
+    window: a subset of the agent's entire action history; the agent's last N
+        actions where N = WINDOW_SIZE
+'''
 
 def send_letter(conn, letter, environment):
     '''
@@ -36,6 +51,7 @@ def check_if_goal(window, environment, model):
             log('Creating model, reached 400 goals')
             model = tfmodel(environment, WINDOW_SIZE)
             model.train_model()
+        environment.steps_since_last_goal = 0
     else:
         environment.steps_since_last_goal +=1
 
@@ -45,6 +61,9 @@ def process_history_sentinel(strData, environment, model):
     '''
     Manage the step-history and use the model to generate the next
     step for the environment
+    
+    @Param:
+        strData: The raw history data from the java proxy
     '''
     # Update entire_history
     window = strData[11:]
@@ -63,6 +82,8 @@ def process_history_sentinel(strData, environment, model):
     # If there is a trained model, use it to select the next action
     if (model is not None):
         model.get_action(window)
+    
+    return model
 
 def main():
     '''
@@ -106,8 +127,8 @@ def main():
                     # Connected to socket
 
                     # Handling socket communication
-                    # Check for sentinel
-                    strData = data.decode('utf-8')
+                    # Check for sentinels
+                    strData = data.decode('utf-8') # raw data from the java agent
 
                     if (strData.startswith('$$$alphabet:')):
                         environment.alphabet = list(strData[12:])
@@ -116,7 +137,7 @@ def main():
                         conn.sendall('$$$ack'.encode('ASCII'))
 
                     elif (strData.startswith('$$$history:')):
-                        process_history_sentinel(strData, environment, model)
+                        model = process_history_sentinel(strData, environment, model)
                         # Send the model's prediction to the environment
                         send_letter(conn, environment.last_step, environment)
 
@@ -127,18 +148,20 @@ def main():
 
                     else:  
                         # Should never happen...
-                        # if it does, send a random letter back to the Java environment
-                        send_letter() # Will error
+                        log('ERROR received unknown sentinal from java agent: ' + str(strData))
+                        log('\tAborting')
+                        break
 
+    # Catch any error and print a stack trace
     except Exception as error:
-        log('Exception:' + str(error))
+        log('Exception: ' + str(error))
         log('-----')
         try:
             f = open('pyout.txt', 'a')
             traceback.print_tb(error.__traceback__, None, f)
             f.close()
         except Exception as errerr:
-            log('Exception exception!:' + str(errerr))
+            log('Exception exception!: ' + str(errerr))
         log('--- end of report ---')
 
     log('Agent Exit')
