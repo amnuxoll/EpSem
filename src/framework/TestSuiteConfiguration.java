@@ -10,10 +10,10 @@ public class TestSuiteConfiguration {
 
     //region Static Configurations
     /** Defines a temp debug configuration */
-    public static final TestSuiteConfiguration TEST = new TestSuiteConfiguration(10, 1);
+    public static final TestSuiteConfiguration TEST = new TestSuiteConfiguration(1, 100);
 
     /** Defines a one-FSM (very short) debug configuration. */
-    public static final TestSuiteConfiguration ONCE = new TestSuiteConfiguration(1, 500);
+    public static final TestSuiteConfiguration ONCE = new TestSuiteConfiguration(1, 300);
 
     /** Defines a two-FSM (rather short) debug configuration. */
     public static final TestSuiteConfiguration TWICE = new TestSuiteConfiguration(2, 100);

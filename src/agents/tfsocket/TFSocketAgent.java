@@ -185,7 +185,7 @@ public class TFSocketAgent implements IAgent {
             }
 
             //We've waited too long
-            if (waitDuration > 1000) {
+            if (waitDuration > 2000) {
                 abort(-14, "timeout waiting for response from python agent");
             }
         }
