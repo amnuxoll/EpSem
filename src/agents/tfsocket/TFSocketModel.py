@@ -20,9 +20,54 @@ class TFSocketModel:
         self.model = tf.keras.models.Sequential([
             tf.keras.layers.Dense(16, activation='relu'),
             tf.keras.layers.Dropout(0.2),
-            tf.keras.layers.Dense(2)
+            tf.keras.layers.Dense(4)
         ])
-
+        
+    def get_letter(self,prediction):
+        max = 0
+        for i in range(len(prediction[0])):
+            if prediction[0][i] > prediction[0][max]:
+                max = i
+        match max:
+            case 0:
+                return 'a'
+            case 1:
+                return 'A'
+            case 2:
+                return 'b'
+            case 3:
+                return 'B'
+        log("Error ocurred")
+        return
+        
+    def simulate_model(self,prediction):
+        '''
+        Simulate the model's prediction of the next step
+        '''
+        def get_sim_input():
+            self.environment.entire_history = self.environment.entire_history + self.get_letter(prediction)
+            input = self.calc_input_tensors()
+            input = tf.constant(input)
+            log(f"self.model(input[:1]): {self.model(input[:1])}")
+            return self.model(input[:1])
+        
+        temp = self.environment.entire_history
+        prediction = get_sim_input()
+        log(f"Prediction: {prediction}")
+        sim_path = self.get_letter(prediction)
+        while not ((self.get_letter(prediction) == 'A') or (self.get_letter(prediction) == 'B')):
+            if len(sim_path) < 100:
+                log(f"Simulation: {sim_path}")
+            else:
+                log("Simulation: Path too long, stopping.")
+                break
+            prediction = get_sim_input()
+            sim_path += self.get_letter(prediction)
+            
+            
+        self.environment.entire_history = temp
+        log(f"Simulation: {sim_path}")
+        
     def train_model(self):
         '''
         Train and optimize a new ANN model
@@ -33,7 +78,7 @@ class TFSocketModel:
         # Defining the inputs and expected outputs from a given history
         self.environment.update_avg_steps()
         x_train = self.calc_input_tensors()
-        y_train = self.calc_desired_actions(self.environment.entire_history, self.environment.avg_steps)
+        y_train = self.calc_desired_actions(self.environment.entire_history)
         x_train = tf.constant(x_train)
         y_train = tf.constant(y_train)
 
@@ -46,6 +91,8 @@ class TFSocketModel:
         self.model.compile(optimizer='adam', loss=loss_fn, metrics=['accuracy'])
         with contextlib.redirect_stdout(open('trainout.txt', 'w')):
             self.model.fit(x_train, y_train, epochs=5, verbose=2)
+            
+        self.simulate_model(self.model(x_train[:1]))
 
     def calc_input_tensors(self):
         '''
@@ -57,6 +104,7 @@ class TFSocketModel:
                 abb, bbB, bBa, etc.
             then it converts each window to a tensor
                 abb -> [1, 0, 0, 0, 1, 1, 0, 0, 0]
+                bAb -> [0, 1, 0, 1, 1, 0, 0, 1, 0]
             then it creates a list of all the input tensors
         '''
         # Sanity check
@@ -84,14 +132,15 @@ class TFSocketModel:
         one_input.append(self.flatten(window))
         one_input = tf.constant(one_input)
         predictions = self.model(one_input)
-
+        predictions = tf.nn.softmax(predictions).numpy()
+        log('Predictions: ' + str(predictions))
         self.environment.last_step = 'a'
         # Predictions now returns as a tensor of shape (1,2)
-        if (predictions[0][0] < predictions[0][1]):
+        if (predictions[0][0] + predictions[0][1] < predictions[0][2] + predictions[0][3]):
             self.environment.last_step = 'b'
         log('Model is not None, sending prediction: ' + self.environment.last_step)
 
-    def calc_desired_actions(self, window, cutoff):
+    def calc_desired_actions(self, window):
         '''
         Calculates the desired action for each window in the entire_history
         
@@ -117,13 +166,30 @@ class TFSocketModel:
                 num_steps += 1
 
             #calculate the index of the action of this position
-            val = 0
-            if ( (window[i].lower() == 'b') or (window[i].lower() == 'B') ):
-                val = 1
+            # 0 = a, 0.33 = A, 0.66 = b, 1 = B
+            val = -1
+            match window[i]:
+                case 'a':
+                    val = 0
+                case 'A':
+                    val = 0.33
+                case 'b':
+                    val = 0.66
+                case 'B':
+                    val = 1
+                    
+            if val == -1:
+                log('ERROR:  invalid character in window')
+                return
+            
 
             #if the cutoff is exceeded then we want the other action instead
-            if (num_steps >= cutoff):
-                val = 1 - val
+            # If val is an a or A, then send the opposite, lowercase action and vic versa
+            if (num_steps >= self.window_size): 
+                if val < 0.5:
+                    val = 0.66
+                else:
+                    val = 0
 
             #add to result
             desired_actions.append(val)
