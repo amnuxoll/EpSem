@@ -47,10 +47,11 @@ def check_if_goal(window, environment, model):
     if (window[-1:].isupper()):
         environment.num_goals += 1
         log(f'Found goal #{environment.num_goals}')
-        if ((environment.num_goals >= 400) and (model is None)):
-            log('Creating model, reached 400 goals')
+        if ((environment.num_goals >= 100) and (model is None)):
+            log('Creating model, reached 100 goals')
             model = tfmodel(environment, WINDOW_SIZE)
             model.train_model()
+            model.simulate_model()
         environment.steps_since_last_goal = 0
     else:
         environment.steps_since_last_goal +=1

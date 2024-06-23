@@ -20,15 +20,15 @@ class TFSocketModel:
         self.model = tf.keras.models.Sequential([
             tf.keras.layers.Dense(16, activation='relu'),
             tf.keras.layers.Dropout(0.2),
-            tf.keras.layers.Dense(4)
+            tf.keras.layers.Dense(4, activation='softmax')
         ])
         
-    def get_letter(self,prediction):
-        max = 0
+    def get_letter(self, prediction):
+        max_index = 0 # index of the largest value in prediction[0][max_index]
         for i in range(len(prediction[0])):
-            if prediction[0][i] > prediction[0][max]:
-                max = i
-        match max:
+            if prediction[0][i] > prediction[0][max_index]:
+                max_index = i
+        match max_index:
             case 0:
                 return 'a'
             case 1:
@@ -37,37 +37,35 @@ class TFSocketModel:
                 return 'b'
             case 3:
                 return 'B'
-        log("Error ocurred")
+        log(f'Error: There is no valid max-value (or most likely) of the prediction values: {prediction[0]}')
         return
-        
-    def simulate_model(self,prediction):
+
+    def simulate_model(self):
         '''
         Simulate the model's prediction of the next step
         '''
-        def get_sim_input():
-            self.environment.entire_history = self.environment.entire_history + self.get_letter(prediction)
-            input = self.calc_input_tensors()
+        def sim_get_action(entire_sim_history):
+            window = entire_sim_history[-self.window_size:]
+            input = [self.flatten(window)]
             input = tf.constant(input)
-            log(f"self.model(input[:1]): {self.model(input[:1])}")
-            return self.model(input[:1])
-        
-        temp = self.environment.entire_history
-        prediction = get_sim_input()
-        log(f"Prediction: {prediction}")
-        sim_path = self.get_letter(prediction)
-        while not ((self.get_letter(prediction) == 'A') or (self.get_letter(prediction) == 'B')):
-            if len(sim_path) < 100:
-                log(f"Simulation: {sim_path}")
+            prediction = self.model(input)
+            prediction = tf.nn.softmax(prediction).numpy()
+            log(f'Simulation prediction: {prediction}')
+            return self.get_letter(prediction)
+       
+        first_sim_action = sim_get_action(self.environment.entire_history.upper())
+        sim_path = first_sim_action
+        while not ( (sim_path[-1:] == 'A') or (sim_path[-1:] == 'B') ):
+            if len(sim_path) < 50:
+                log(f'Simulation: {sim_path}')
             else:
-                log("Simulation: Path too long, stopping.")
+                log('Simulation: Path too long, stopping.')
                 break
-            prediction = get_sim_input()
-            sim_path += self.get_letter(prediction)
-            
-            
-        self.environment.entire_history = temp
-        log(f"Simulation: {sim_path}")
-        
+            next_sim_action = sim_get_action(self.environment.entire_history.upper() + sim_path)
+            sim_path += next_sim_action
+
+        log(f'Simulation prediction complete: {sim_path}')
+
     def train_model(self):
         '''
         Train and optimize a new ANN model
@@ -77,7 +75,7 @@ class TFSocketModel:
         '''
         # Defining the inputs and expected outputs from a given history
         self.environment.update_avg_steps()
-        x_train = self.calc_input_tensors()
+        x_train = self.calc_input_tensors(self.environment.entire_history)
         y_train = self.calc_desired_actions(self.environment.entire_history)
         x_train = tf.constant(x_train)
         y_train = tf.constant(y_train)
@@ -91,35 +89,35 @@ class TFSocketModel:
         self.model.compile(optimizer='adam', loss=loss_fn, metrics=['accuracy'])
         with contextlib.redirect_stdout(open('trainout.txt', 'w')):
             self.model.fit(x_train, y_train, epochs=5, verbose=2)
-            
-        self.simulate_model(self.model(x_train[:1]))
 
-    def calc_input_tensors(self):
+    def calc_input_tensors(self, given_window):
         '''
         Convert a blind FSM action window into an array of input tensors
-        
+        NOTE: the given_window is often larger than the window_size
+                but the 'window' is of window_size
+
         Example:
-            if window_size = 3, and entire_history = 'abbBababAa'
+            if window_size = 3, and given_window = 'abbBababAa'
             first it creates each window:
                 abb, bbB, bBa, etc.
             then it converts each window to a tensor
                 abb -> [1, 0, 0, 0, 1, 1, 0, 0, 0]
-                bAb -> [0, 1, 0, 1, 1, 0, 0, 1, 0]
+                bAb -> [0, 1, 0, 1, 0, 1, 0, 1, 0]
             then it creates a list of all the input tensors
         '''
         # Sanity check
-        if (len(self.environment.entire_history) < self.window_size):
+        if (len(given_window) < self.window_size):
             log('ERROR: window too short for training!')
             return
 
-        # Generate a list of the index of the last character in each history window
+        # Generate a list of the index of the last character in each window_size chunk
         # Example:
-        #   If window_size = 3, and len(entire_history) = 10,
+        #   If window_size = 3, and len(given_window) = 10,
         #   then it will output [3, 4, 5, 6, 7, 8, 9]
-        history_range = list(range(len(self.environment.entire_history)))[self.window_size:]
+        given_window_range = list(range(len(given_window)))[self.window_size:]
         tensor = []
-        for i in history_range:
-            window = self.environment.entire_history[i-self.window_size:i]
+        for i in given_window_range:
+            window = given_window[i-self.window_size:i]
             tensor.append(self.flatten(window))
 
         return tensor
@@ -128,17 +126,16 @@ class TFSocketModel:
         '''
         Uses the model to generate a next step for the environment
         '''
-        one_input = []
-        one_input.append(self.flatten(window))
+        one_input = [self.flatten(window)]
         one_input = tf.constant(one_input)
         predictions = self.model(one_input)
         predictions = tf.nn.softmax(predictions).numpy()
-        log('Predictions: ' + str(predictions))
+        log(f'Predictions: {predictions}')
         self.environment.last_step = 'a'
         # Predictions now returns as a tensor of shape (1,2)
         if (predictions[0][0] + predictions[0][1] < predictions[0][2] + predictions[0][3]):
             self.environment.last_step = 'b'
-        log('Model is not None, sending prediction: ' + self.environment.last_step)
+        log(f'Model is not None, sending prediction: {self.environment.last_step}')
 
     def calc_desired_actions(self, window):
         '''
@@ -151,47 +148,50 @@ class TFSocketModel:
         cutoff - distance from curr pos to goal at which the agent prefers 
                  NOT to take the historical action
         '''
-        #sanity check
+        # Sanity check
         if (len(window) < self.window_size):
             log('ERROR:  window too short for training!')
             return
 
-        #iterate over a range starting at index window_size in the window
+        # Iterate over a range starting at index window_size in the window
         hrange = list(range(len(window)))[self.window_size:]
         desired_actions = []
         for i in hrange:
-            #calculate how many steps from this position to the next goal
+            # Calculate how many steps from this position to the next goal
             num_steps = 0
             while(window[i + num_steps].islower()):
                 num_steps += 1
 
-            #calculate the index of the action of this position
-            # 0 = a, 0.33 = A, 0.66 = b, 1 = B
+            # Calculate the index of the action of this position
+            # 0 = a, 1 = A, 2 = b, 3 = B
             val = -1
             match window[i]:
                 case 'a':
                     val = 0
                 case 'A':
-                    val = 0.33
-                case 'b':
-                    val = 0.66
-                case 'B':
                     val = 1
+                case 'b':
+                    val = 2
+                case 'B':
+                    val = 3
                     
             if val == -1:
                 log('ERROR:  invalid character in window')
                 return
-            
 
-            #if the cutoff is exceeded then we want the other action instead
-            # If val is an a or A, then send the opposite, lowercase action and vic versa
+            # If the cutoff is exceeded then we want the other action instead
+            # Examples:
+            #   I.   if val is 'a' (=0), set val to 'b' (=2)
+            #   II.  if val is 'A' (=1), set val to 'b' (=2)
+            #   III. if val is 'b' (=2), set val to 'a' (=0)
+            #   IV.  if val is 'B' (=3), set val to 'a' (=0)
             if (num_steps >= self.window_size): 
-                if val < 0.5:
-                    val = 0.66
+                if val < 1.5:
+                    val = 2
                 else:
                     val = 0
 
-            #add to result
+            # Add to result
             desired_actions.append(val)
 
         return desired_actions
@@ -209,7 +209,7 @@ class TFSocketModel:
         TODO:  This is hard-coded for a two-letter ALPHABET. Change
             the code to handle any ALPHABET size
         TODO:  In the future we may want to handle sensors. 
-            Example input window:   '01a11B00b00a'
+            Example input window:       '01a11B00b00a'
         '''
         win_size = len(window)
 
