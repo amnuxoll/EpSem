@@ -314,17 +314,25 @@ public class TFSocketAgent implements IAgent {
      */
     private void shutdown() {
         System.out.println("Sending quit message to python agent.");
-        if (sock != null) sendMessage("$$$quit");
-
-        System.out.println("Closing the Java-side socket.");
-        try {
-            sock.close();
+        if (sock == null) {
+            System.out.println("Socket reference is null!");
         }
-        catch(IOException ioe) {
-            System.out.println("Could not close socket.  Oh well...");
+        else {
+            sendMessage("$$$quit");
+
+            System.out.println("Closing the Java-side socket.");
+            try {
+                sock.close();
+            }
+            catch(IOException ioe) {
+                System.out.println("Could not close socket.  Oh well...");
+            }
         }
         
-        if (scriptOutput != null) {
+        if (scriptOutput == null) {
+            System.out.println("scriptOutput is null!");
+        }
+        else {
             scriptOutput.close();
         }
 

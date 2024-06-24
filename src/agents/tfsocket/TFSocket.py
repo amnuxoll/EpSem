@@ -82,7 +82,8 @@ def process_history_sentinel(strData, environment, model):
 
     # If there is a trained model, use it to select the next action
     if (model is not None):
-        model.get_action(window)
+        environment.last_step = model.get_action(window).lower()
+        log(f'Model is not None, sending prediction: {environment.last_step}')
     
     return model
 
@@ -92,7 +93,8 @@ def main():
     '''
     conn = None
 
-    os.remove('pyout.txt')
+    if os.path.isfile('pyout.txt'):
+        os.remove('pyout.txt')
     log('Running Python-TensorFlow agent')
 
     argc = len(sys.argv)

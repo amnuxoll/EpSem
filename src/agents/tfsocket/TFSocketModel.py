@@ -44,24 +44,20 @@ class TFSocketModel:
         '''
         Simulate the model's prediction of the next step
         '''
-        def sim_get_action(entire_sim_history):
-            window = entire_sim_history[-self.window_size:]
-            input = [self.flatten(window)]
-            input = tf.constant(input)
-            prediction = self.model(input)
-            prediction = tf.nn.softmax(prediction).numpy()
-            log(f'Simulation prediction: {prediction}')
-            return self.get_letter(prediction)
-       
-        first_sim_action = sim_get_action(self.environment.entire_history.upper())
+        window = self.environment.entire_history[-self.window_size:]
+        log('window=' + str(window))
+        first_sim_action = self.get_action(window)
         sim_path = first_sim_action
         while not ( (sim_path[-1:] == 'A') or (sim_path[-1:] == 'B') ):
-            if len(sim_path) < 50:
+            if len(sim_path) < 50:  #TODO:  use double avg_steps instead 
                 log(f'Simulation: {sim_path}')
             else:
                 log('Simulation: Path too long, stopping.')
                 break
-            next_sim_action = sim_get_action(self.environment.entire_history.upper() + sim_path)
+            sim_hist = self.environment.entire_history + sim_path
+            window = sim_hist[-self.window_size:]
+            log('window=' + str(window))
+            next_sim_action = self.get_action(window)
             sim_path += next_sim_action
 
         log(f'Simulation prediction complete: {sim_path}')
@@ -131,15 +127,14 @@ class TFSocketModel:
         predictions = self.model(one_input)
         predictions = tf.nn.softmax(predictions).numpy()
         log(f'Predictions: {predictions}')
-        self.environment.last_step = 'a'
-        # Predictions now returns as a tensor of shape (1,2)
-        if (predictions[0][0] + predictions[0][1] < predictions[0][2] + predictions[0][3]):
-            self.environment.last_step = 'b'
-        log(f'Model is not None, sending prediction: {self.environment.last_step}')
+        return self.get_letter(predictions)
 
     def calc_desired_actions(self, window):
         '''
         Calculates the desired action for each window in the entire_history
+        
+        The model wants expected outputs to be a set of integer categories.
+        So we arbitrarily assign:  a=0, A=1, b=2, B=3
         
         the output of this function should line up with the output of 
         calc_input_tensors for the same window
