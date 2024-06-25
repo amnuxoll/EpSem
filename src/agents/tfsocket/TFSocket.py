@@ -82,7 +82,8 @@ def process_history_sentinel(strData, environment, model):
 
     # If there is a trained model, use it to select the next action
     if (model is not None):
-        environment.last_step = model.get_action(window).lower()
+        predictions = model.get_predictions(window)
+        environment.last_step = model.get_letter(predictions).lower() 
         log(f'Model is not None, sending prediction: {environment.last_step}')
     
     return model

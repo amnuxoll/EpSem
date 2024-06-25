@@ -24,6 +24,9 @@ class TFSocketModel:
         ])
         
     def get_letter(self, prediction):
+        '''
+        given a set of predictions, returns the letter corresponding to the action with the highest confidence
+        '''
         max_index = 0 # index of the largest value in prediction[0][max_index]
         for i in range(len(prediction[0])):
             if prediction[0][i] > prediction[0][max_index]:
@@ -42,14 +45,38 @@ class TFSocketModel:
 
     def simulate_model(self):
         '''
-        Simulate the model's prediction of the next step
+        Simulate the model's prediction of the next step. 
+        
+        The model predicts what action is best for the next step.  Then it appends that action
+        to a local copy of the agent action history so as to create a predicted history.  This,
+        in turn, is used to make yet another prediction so the agent can look several steps
+        into the future.
+        
+        The iteration stops when a goal is reached or, otherwise, when some maximum is reached.  
+        Because goal states are rare, the agent rarely predicts one.  Thus, the maximum is
+        usually reached.  This is undesirable so this method inserts a 'artificial' goal
+        at the point where a goal was predicted most strongly.  
         '''
+        max_len = 50
         window = self.environment.entire_history[-self.window_size:]
         log('window=' + str(window))
-        first_sim_action = self.get_action(window)
+        predictions = self.get_predictions(window)
+        first_sim_action = self.get_letter(predictions)
+
+        #while a non-goal letter may be best, at each step we want to track which GOAL 
+        #letter had the highest prediction and when it occurred
+        predictions = predictions[0]  #reduce tensor to 1D list
+        best_goal_prediction = max(predictions[1], predictions[3])
+        best_goal_letter = 'A'
+        best_goal_index = 0
+        index = 0
+        if (best_goal_prediction == predictions[3]):
+            best_goal_letter = 'B'
+
+        #Simulate future steps
         sim_path = first_sim_action
         while not ( (sim_path[-1:] == 'A') or (sim_path[-1:] == 'B') ):
-            if len(sim_path) < 50:  #TODO:  use double avg_steps instead 
+            if len(sim_path) < max_len:  #TODO:  use double avg_steps instead 
                 log(f'Simulation: {sim_path}')
             else:
                 log('Simulation: Path too long, stopping.')
@@ -57,8 +84,26 @@ class TFSocketModel:
             sim_hist = self.environment.entire_history + sim_path
             window = sim_hist[-self.window_size:]
             log('window=' + str(window))
-            next_sim_action = self.get_action(window)
+            predictions = self.get_predictions(window)
+            next_sim_action = self.get_letter(predictions)
             sim_path += next_sim_action
+            
+            #update best_goal data
+            index += 1
+            predictions = predictions[0]  #reduce tensor to 1D list
+            if (predictions[1] > best_goal_prediction):
+                best_goal_prediction = predictions[1]
+                best_goal_letter = 'A'
+                best_goal_index = index
+            if (predictions[3] > best_goal_prediction):
+                best_goal_prediction = predictions[3]
+                best_goal_letter = 'B'
+                best_goal_index = index            
+
+        #If necessary, truncate the sim_path with an artificial goal
+        if (len(sim_path) == max_len) and (sim_path[-1:].islower()):
+            sim_path = sim_path[:best_goal_index]
+            sim_path += best_goal_letter
 
         log(f'Simulation prediction complete: {sim_path}')
 
@@ -118,16 +163,19 @@ class TFSocketModel:
 
         return tensor
 
-    def get_action(self, window):
+    def get_predictions(self, window):
         '''
-        Uses the model to generate a next step for the environment
+        Uses the model to generate predictions about the next step for the environment
+        
+        This takes the form of a 2D array like this (to support TensorFlow):
+            [[0.35471925 0.19711517 0.25747794 0.19068767]]
         '''
         one_input = [self.flatten(window)]
         one_input = tf.constant(one_input)
         predictions = self.model(one_input)
         predictions = tf.nn.softmax(predictions).numpy()
         log(f'Predictions: {predictions}')
-        return self.get_letter(predictions)
+        return predictions
 
     def calc_desired_actions(self, window):
         '''
