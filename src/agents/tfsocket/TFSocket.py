@@ -58,9 +58,9 @@ def check_if_goal(window, environment, model):
 
     return model
 
-def process_history_sentinel(strData, environment, model):
+def process_history_sentinel(strData, environment, models):
     '''
-    Manage the step-history and use the model to generate the next
+    Manage the step-history and use the models to generate the next
     step for the environment
     
     @Param:
@@ -73,20 +73,58 @@ def process_history_sentinel(strData, environment, model):
         window = window.lower()
     environment.entire_history = environment.entire_history + str(window[-1:])
 
-    model = check_if_goal(window, environment, model)
+    #If we've reached a goal update trackinv ars
+    if (window[-1:].isupper()):
+        environment.num_goals += 1
+        log(f'Found goal #{environment.num_goals}')
+        
+        #If we've reached the end of random-action data gathering, create models using entire history
+        if (environment.num_goals >= 100):
+            win_sizes = [3, 6, 9]
+            for index, model in enumerate(models): 
+                if (model is None):
+                    log('Creating models, reached 100 goals')
+                    model = tfmodel(environment, win_sizes[index])
+                    model.train_model()
+                    model.simulate_model()
+                    
+        environment.steps_since_last_goal = 0
+    else:
+        environment.steps_since_last_goal +=1
 
-    if (model is not None) and environment.steps_since_last_goal > 3*environment.avg_steps:
-        log(f"Looks like we're stuck in a loop! steps_since_last_goal={environment.steps_since_last_goal} and avg_steps={environment.avg_steps}")
-        model = None # Reset the model if we haven't reached a goal in a while
+    #model = check_if_goal(window, environment, model)
+
+    if (environment.steps_since_last_goal > 3*environment.avg_steps):
+        for index, model in enumerate(models):
+            if (model is not None):
+                log(f"Looks like we're stuck in a loop! steps_since_last_goal={environment.steps_since_last_goal} and avg_steps={environment.avg_steps}")
+                models[index] = None # Reset the model if we haven't reached a goal in a while
     environment.last_step = '*'
 
+    #Find the model with the shortest path
+    min_path_model = None
+    for model in models:
+        if (model is not None):
+            if (min_path_model is None):
+                min_path_model = model
+            elif len(model.sim_path) < len(min_path_model.sim_path):
+                min_path_model = model
+                
     # If there is a trained model, use it to select the next action
-    if (model is not None):
-        predictions = model.get_predictions(window)
-        environment.last_step = model.get_letter(predictions).lower() 
+    if (min_path_model is not None):
+        environment.last_step = min_path_model.sim_path[0].lower()
         log(f'Model is not None, sending prediction: {environment.last_step}')
+        
+    #adjust sim_paths for all models based on selected action
+    for index, model in enumerate(models):
+        if (model is not None): 
+            action = model.sim_path[0]
+            if (action.lower() != environment.last_step):
+                models[index] = None  #this will trigger a retrain at next iteration
+            else:
+                model.sim_path = model.sim_path[1:]
     
-    return model
+    return models
 
 def main():
     '''
@@ -110,7 +148,7 @@ def main():
 
     # Initialize FSM scoped variables
     environment = tfenv()
-    model = None
+    models = [None, None, None]
 
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
@@ -141,7 +179,7 @@ def main():
                         conn.sendall('$$$ack'.encode('ASCII'))
 
                     elif (strData.startswith('$$$history:')):
-                        model = process_history_sentinel(strData, environment, model)
+                        models = process_history_sentinel(strData, environment, models)
                         # Send the model's prediction to the environment
                         send_letter(conn, environment.last_step, environment)
 

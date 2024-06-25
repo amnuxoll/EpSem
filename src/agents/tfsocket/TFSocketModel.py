@@ -15,6 +15,7 @@ class TFSocketModel:
         '''
         self.environment = environment
         self.window_size = window_size
+        self.sim_path = None    #the path this model predicts the agent should follow to goal (e.g., abbabA)
         
         # Defining the model function as a variable
         self.model = tf.keras.models.Sequential([
@@ -45,7 +46,7 @@ class TFSocketModel:
 
     def simulate_model(self):
         '''
-        Simulate the model's prediction of the next step. 
+        Simulate the model's prediction of the next step and place it in self.sim_path
         
         The model predicts what action is best for the next step.  Then it appends that action
         to a local copy of the agent action history so as to create a predicted history.  This,
@@ -74,19 +75,19 @@ class TFSocketModel:
             best_goal_letter = 'B'
 
         #Simulate future steps
-        sim_path = first_sim_action
-        while not ( (sim_path[-1:] == 'A') or (sim_path[-1:] == 'B') ):
-            if len(sim_path) < max_len:  #TODO:  use double avg_steps instead 
-                log(f'Simulation: {sim_path}')
+        self.sim_path = first_sim_action
+        while not ( (self.sim_path[-1:] == 'A') or (self.sim_path[-1:] == 'B') ):
+            if len(self.sim_path) < max_len:  #TODO:  use double avg_steps instead 
+                log(f'Simulation: {self.sim_path}')
             else:
                 log('Simulation: Path too long, stopping.')
                 break
-            sim_hist = self.environment.entire_history + sim_path
+            sim_hist = self.environment.entire_history + self.sim_path
             window = sim_hist[-self.window_size:]
             log('window=' + str(window))
             predictions = self.get_predictions(window)
             next_sim_action = self.get_letter(predictions)
-            sim_path += next_sim_action
+            self.sim_path += next_sim_action
             
             #update best_goal data
             index += 1
@@ -101,11 +102,11 @@ class TFSocketModel:
                 best_goal_index = index            
 
         #If necessary, truncate the sim_path with an artificial goal
-        if (len(sim_path) == max_len) and (sim_path[-1:].islower()):
-            sim_path = sim_path[:best_goal_index]
-            sim_path += best_goal_letter
+        if (len(self.sim_path) == max_len) and (self.sim_path[-1:].islower()):
+            self.sim_path = self.sim_path[:best_goal_index]
+            self.sim_path += best_goal_letter
 
-        log(f'Simulation prediction complete: {sim_path}')
+        log(f'Simulation prediction complete: {self.sim_path}')
 
     def train_model(self):
         '''
