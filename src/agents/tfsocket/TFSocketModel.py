@@ -15,7 +15,7 @@ class TFSocketModel:
         '''
         self.environment = environment
         self.window_size = window_size
-        self.sim_path = None    # The path this model predicts the agent should follow to goal (e.g., abbabA)
+        self.sim_path = None # The path this model predicts the agent should follow to goal (e.g., abbabA)
         
         # Defining the model function as a variable
         self.model = tf.keras.models.Sequential([
@@ -47,71 +47,70 @@ class TFSocketModel:
     def simulate_model(self):
         '''
         Simulate the model's prediction of the next step and place it in self.sim_path
-        
-        The model predicts what action is best for the next step.  Then it appends that action
-        to a local copy of the agent action history so as to create a predicted history.  This,
+    
+        The model predicts what action is best for the next step. Then it appends that action
+        to a local copy of the agent action history so as to create a predicted history. This,
         in turn, is used to make yet another prediction so the agent can look several steps
         into the future.
-        
-        The iteration stops when a goal is reached or, otherwise, when some maximum is reached.  
-        Because goal states are rare, the agent rarely predicts one.  Thus, the maximum is
-        usually reached.  This is undesirable so this method inserts a 'artificial' goal
-        at the point where a goal was predicted most strongly.  
+
+        The iteration stops when a goal is reached or, otherwise, when some maximum is reached.
+        Because goal states are rare, the agent rarely predicts one. Thus, the maximum is
+        usually reached. This is undesirable so this method inserts a 'artificial' goal
+        at the point where a goal was predicted most strongly.
         '''
-        max_len = 2*self.environment.avg_steps
         window = self.environment.entire_history[-self.window_size:]
-        # log(f'window = {window}')
         predictions = self.get_predictions(window)
         first_sim_action = self.get_letter(predictions)
 
         # While a non-goal letter may be best, at each step we want to track which GOAL 
         # Letter had the highest prediction and when it occurred
-        predictions = predictions[0]  # Reduce tensor to 1D list
-        best_goal_prediction = max(predictions[1], predictions[3])
-        best_goal_letter = 'A'
-        best_goal_index = 0
+        predictions = predictions[0] # Reduce tensor to 1D list
+        best_goal = {'prediction': max(predictions[1], predictions[3]),
+                     'letter': 'A',
+                     'index': 0}
+        if best_goal['prediction'] == predictions[3]:
+            best_goal['letter'] = 'B'
+
+        max_len = 2*self.environment.avg_steps
         index = 0
-        if (best_goal_prediction == predictions[3]):
-            best_goal_letter = 'B'
- 
         # Simulate future steps
         self.sim_path = first_sim_action
-        while not ( (self.sim_path[-1:] == 'A') or (self.sim_path[-1:] == 'B') ):
-            if len(self.sim_path) < max_len:  # TODO:  use double avg_steps instead 
-                pass # log(f'Simulation: {self.sim_path}') # TODO: undo this comment/pass
-            else:
-                log('Simulation: Path reached max length; truncate with most probable goal prediction')
+        while not ((self.sim_path[-1:] == 'A') or (self.sim_path[-1:] == 'B')):
+            if len(self.sim_path) >= max_len:
+                # log('sim_path reached max length; truncate to most probable goal prediction')
                 break
+            
+            # log(f'sim-window={window}; sim_path: {self.sim_path}')
+
+            # Simulate the next step from entire_path and sim_path so far
             sim_hist = self.environment.entire_history + self.sim_path
             window = sim_hist[-self.window_size:]
-            # log(f'window= {window}')
             predictions = self.get_predictions(window)
-            next_sim_action = self.get_letter(predictions)
-            self.sim_path += next_sim_action
-            
+            self.sim_path += self.get_letter(predictions)
+
             # Update best_goal data
             index += 1
-            predictions = predictions[0]  # Reduce tensor to 1D list
-            if (predictions[1] > best_goal_prediction):
-                best_goal_prediction = predictions[1]
-                best_goal_letter = 'A'
-                best_goal_index = index
-            if (predictions[3] > best_goal_prediction):
-                best_goal_prediction = predictions[3]
-                best_goal_letter = 'B'
-                best_goal_index = index            
+            predictions = predictions[0] # Reduce tensor to 1D list
+            if predictions[1] > best_goal['prediction']:
+                best_goal['prediction'] = predictions[1]
+                best_goal['letter'] = 'A'
+                best_goal['index'] = index
+            if predictions[3] > best_goal['prediction']:
+                best_goal['prediction'] = predictions[3]
+                best_goal['letter'] = 'B'
+                best_goal['index'] = index
 
         # If necessary, truncate the sim_path with an artificial goal
-        if (len(self.sim_path) == max_len) and (self.sim_path[-1:].islower()):
-            self.sim_path = self.sim_path[:best_goal_index]
-            self.sim_path += best_goal_letter
+        if (len(self.sim_path) >= max_len) and (self.sim_path[-1:].islower()):
+            self.sim_path = self.sim_path[:best_goal['index']]
+            self.sim_path += best_goal['letter'] 
 
-        log(f'Simulation prediction complete: {self.sim_path}')
+        # log(f'Model (window_size={self.window_size}) has simulated path to goal: {self.sim_path}')
 
     def train_model(self):
         '''
         Train and optimize a new ANN model
-        
+
         Refer to the beginner tensorflow tutorial:
         https://www.tensorflow.org/tutorials/quickstart/beginner
         '''
@@ -148,7 +147,7 @@ class TFSocketModel:
             then it creates a list of all the input tensors
         '''
         # Sanity check
-        if (len(given_window) < self.window_size):
+        if len(given_window) < self.window_size:
             log('ERROR: window too short for training!')
             return
 
@@ -182,18 +181,18 @@ class TFSocketModel:
         Calculates the desired action for each window in the entire_history
         
         The model wants expected outputs to be a set of integer categories.
-        So we arbitrarily assign:  a=0, A=1, b=2, B=3
+        So we arbitrarily assign: a=0, A=1, b=2, B=3
         
         the output of this function should line up with the output of 
         calc_input_tensors for the same window
 
         window - in a letter-based format (e.g., aabaBbbabaabaBbbab...)
         cutoff - distance from curr pos to goal at which the agent prefers 
-                 NOT to take the historical action
+                NOT to take the historical action
         '''
         # Sanity check
-        if (len(window) < self.window_size):
-            log('ERROR:  window too short for training!')
+        if len(window) < self.window_size:
+            log('ERROR: window too short for training!')
             return
 
         # Iterate over a range starting at index window_size in the window
@@ -204,7 +203,7 @@ class TFSocketModel:
             num_steps = 0
             while(window[i + num_steps].islower()):
                 num_steps += 1
-                if (i + num_steps >= len(window)):
+                if i + num_steps >= len(window):
                     break
 
             # Calculate the index of the action of this position
@@ -221,7 +220,7 @@ class TFSocketModel:
                     val = 3
                     
             if val == -1:
-                log('ERROR:  invalid character in window')
+                log('ERROR: invalid character in window')
                 return
 
             # If the cutoff is exceeded then we want the other action instead
@@ -230,7 +229,7 @@ class TFSocketModel:
             #   II.  if val is 'A' (=1), set val to 'b' (=2)
             #   III. if val is 'b' (=2), set val to 'a' (=0)
             #   IV.  if val is 'B' (=3), set val to 'a' (=0)
-            if (num_steps >= self.window_size): 
+            if num_steps >= self.window_size: 
                 if val < 1.5:
                     val = 2
                 else:
@@ -249,12 +248,12 @@ class TFSocketModel:
         A window has this format:      'aabaBbbab'
         the return object's length is 3*window_size
         being whether or not an 'a'/'A' is in that position
-        the second set is for b/B.  The third set is goal sensor.
+        the second set is for b/B. The third set is goal sensor.
 
         TODO:  This is hard-coded for a two-letter ALPHABET. Change
             the code to handle any ALPHABET size
         TODO:  In the future we may want to handle sensors. 
-            Example input window:       '01a11B00b00a'
+            Example input window:      '01a11B00b00a'
         '''
         win_size = len(window)
 

@@ -8,7 +8,7 @@ from TFSocketEnv import TFSocketEnv as tfenv
 from TFSocketUtils import log
 
 # Define global constants
-WINDOW_SIZE = 9 # This must be kept in sync with the Java side!
+WINDOW_SIZE = 10 # This must be kept in sync with the Java side!
 
 '''
 This is the main script for the TFSocket python agent
@@ -34,29 +34,11 @@ def send_letter(conn, letter, environment):
         log('ALPHABET has not been intialized')
         return None
 
-    if (letter == '*'):
+    if letter == '*':
         letter = random.choice(environment.alphabet)
     log(f'sending {letter}')
     conn.sendall(letter.encode('ASCII'))
     return letter
-
-def check_if_goal(window, environment, model):
-    '''
-    Did we reach the goal?
-    '''
-    if (window[-1:].isupper()):
-        environment.num_goals += 1
-        log(f'Found goal #{environment.num_goals}')
-        if ((environment.num_goals >= 100) and (model is None)):
-            log('Creating model, reached 100 goals')
-            model = tfmodel(environment, WINDOW_SIZE)
-            model.train_model()
-            model.simulate_model()
-        environment.steps_since_last_goal = 0
-    else:
-        environment.steps_since_last_goal +=1
-
-    return model
 
 def process_history_sentinel(strData, environment, models):
     '''
@@ -74,7 +56,7 @@ def process_history_sentinel(strData, environment, models):
     environment.entire_history = environment.entire_history + str(window[-1:])
 
     # Update environment variables
-    if (window[-1:].isupper()):
+    if window[-1:].isupper():
         environment.num_goals += 1
         log(f'Found goal #{environment.num_goals}')
         environment.steps_since_last_goal = 0
@@ -114,13 +96,13 @@ def train_models(environment, models):
     model_win_size_param = [4, 5, 6] # models[i].win_size = model_win_size_param[i] 
 
     # If we've reached the end of random-action data gathering, create models using entire history
-    if (environment.num_goals >= TRAINING_THRESHOLD):
-        if (environment.num_goals == TRAINING_THRESHOLD):
-            log(f'Reached training threshold: {TRAINING_THRESHOLD}')
+    if environment.num_goals >= TRAINING_THRESHOLD:
+        if environment.num_goals == TRAINING_THRESHOLD:
+            pass # log(f'Reached training threshold: {TRAINING_THRESHOLD}')
 
         for index in range(len(model_win_size_param)): 
-            if (models[index] is None):
-                log(f'Creating model with window_size of {model_win_size_param[index]}')
+            if models[index] is None:
+                # log(f'Training model (window_size={model_win_size_param[index]})')
                 models[index] = tfmodel(environment, model_win_size_param[index])
                 models[index].train_model()
                 models[index].simulate_model()
@@ -133,10 +115,10 @@ def terminate_loops(environment, models):
         if the model has gone 3*avg_steps without finding a goal,
         set the model to None so it can be retrained
     '''
-    if (environment.steps_since_last_goal > 3*environment.avg_steps):
+    if environment.steps_since_last_goal > 3*environment.avg_steps:
+        # log(f"Looks like we're stuck in a loop!\n\tsteps_since_last_goal={environment.steps_since_last_goal}\n\tavg_steps={environment.avg_steps}")
         for index, model in enumerate(models):
-            if (model is not None):
-                log(f"Looks like we're stuck in a loop! steps_since_last_goal={environment.steps_since_last_goal} and avg_steps={environment.avg_steps}")
+            if model is not None:
                 models[index] = None # Reset the model if we haven't reached a goal in a while
     environment.last_step = '*'
 
@@ -149,15 +131,16 @@ def select_min_path_model(models):
     '''
     min_path_model = None
     for index in range(len(models)):
-        if (models[index] is not None):
-            if (len(models[index].sim_path) <= 0):
+        if models[index] is not None:
+            log(f'Model (window_size={models[index].window_size}) sim_path: {models[index].sim_path}')
+            if len(models[index].sim_path) <= 0:
                 # Set to None so the model can be re-trained
                 models[index] = None
                 continue
 
-            if (min_path_model is None):
+            if min_path_model is None:
                 min_path_model = models[index]
-            elif (len(models[index].sim_path) < len(min_path_model.sim_path)):
+            elif len(models[index].sim_path) < len(min_path_model.sim_path):
                 min_path_model = models[index]
 
     return min_path_model
@@ -169,7 +152,7 @@ def get_best_prediction(environment, models, min_path_model):
     Then adjust each model's sim_path to reflect the environment change.
     '''
     # If there is a trained model, use it to select the next action
-    if (min_path_model is None):
+    if min_path_model is None:
         log(f'All models are None')
         return models
     
@@ -177,9 +160,9 @@ def get_best_prediction(environment, models, min_path_model):
     
     # Adjust sim_paths for all models based on selected action
     for index in range(len(models)):
-        if (models[index] is not None): 
+        if models[index] is not None: 
             action = models[index].sim_path[0]
-            if (action.lower() != environment.last_step):
+            if action.lower() != environment.last_step:
                 models[index] = None # This will trigger a retrain at next iteration
             else:
                 models[index].sim_path = models[index].sim_path[1:]
@@ -197,8 +180,8 @@ def main():
     log('Running Python-TensorFlow agent')
 
     argc = len(sys.argv)
-    if (argc < 2):
-        print('ERROR:  Must pass port number as a parameter.')
+    if argc < 2:
+        print('ERROR: Must pass port number as a parameter.')
 
     # Creating the python side of the socket
     portNum = int(sys.argv[1])
@@ -223,7 +206,7 @@ def main():
                     while not data:
                         data = conn.recv(1024)
                         timeout += 10
-                        if (timeout > 1000):
+                        if timeout > 1000:
                             log('ERROR: Timeout receiving next input from Java environment')
                             exit(-1)
                     # Connected to socket
@@ -232,23 +215,23 @@ def main():
                     # Check for sentinels
                     strData = data.decode('utf-8') # raw data from the java agent
 
-                    if (strData.startswith('$$$alphabet:')):
+                    if strData.startswith('$$$alphabet:'):
                         environment.alphabet = list(strData[12:])
                         log(f'New alphabet: {environment.alphabet}')
                         log(f"Sending 'ack'") # Acknowledge
                         conn.sendall('$$$ack'.encode('ASCII'))
 
-                    elif (strData.startswith('$$$history:')):
+                    elif strData.startswith('$$$history:'):
                         models = process_history_sentinel(strData, environment, models)
                         # Send the model's prediction to the environment
                         send_letter(conn, environment.last_step, environment)
 
-                    elif (strData.startswith('$$$quit')):
+                    elif strData.startswith('$$$quit'):
                         # Add the last step to complete the history.
                         log('python agent received quit signal:')
                         break
 
-                    else:  
+                    else:
                         # Should never happen...
                         log(f'ERROR received unknown sentinal from java agent: {strData}')
                         log('\tAborting')

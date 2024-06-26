@@ -14,20 +14,16 @@ class TFSocketEnv:
         self.avg_steps = 0              # Average number of steps the agent has taken to find a goal
 
     def update_avg_steps(self):
-        self.avg_steps = self.calc_avg_steps(self.entire_history)
-
-    def calc_avg_steps(self, window):
         '''
-        Calculate average steps to goal for a given window
+        Calculate average steps to goal for a given self.entire_history
         '''
         # Count the number of goals (skipping the first)
         num_historical_goals = 0
-        for i in range(len(window)):
+        for i in range(len(self.entire_history)):
             if (i == 0):
                 continue
-            if (window[i].isupper()):
+            if (self.entire_history[i].isupper()):
                 num_historical_goals+=1
 
-        avg_steps = len(window) / num_historical_goals
-        log(f'Avg steps of window: {avg_steps}')
-        return avg_steps
+        self.avg_steps = len(self.entire_history) / num_historical_goals
+        # log(f'Avg steps of the entire_history: {self.avg_steps}')
