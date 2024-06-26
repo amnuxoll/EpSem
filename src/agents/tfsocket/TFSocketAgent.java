@@ -27,7 +27,6 @@ public class TFSocketAgent implements IAgent {
     private Process process; // the python TensorFlow agent
     // We use sockets to communicate with the TF Agent
     private Socket sock;
-    private Scanner scriptOutput;
     private OutputStream outStream;
     private InputStream inputStream;
 
@@ -71,11 +70,6 @@ public class TFSocketAgent implements IAgent {
         try {
             Process process = processBuilder.start();
 
-            //TODO We would like the python output to show up in Java program's
-            // stdout but this code below doesn't seem to work.
-            
-            // InputStream is = process.getInputStream();
-            // scriptOutput = new Scanner(is);
         } catch (IOException ioe) {
             System.err.println("ERROR launching python agent.");
             System.err.println("\tThe binary file 'python3' must exist and be in your PATH.");
@@ -327,13 +321,6 @@ public class TFSocketAgent implements IAgent {
             catch(IOException ioe) {
                 System.out.println("Could not close socket.  Oh well...");
             }
-        }
-        
-        if (scriptOutput == null) {
-            System.out.println("scriptOutput is null!");
-        }
-        else {
-            scriptOutput.close();
         }
 
         if ((process != null) && (process.isAlive())) {

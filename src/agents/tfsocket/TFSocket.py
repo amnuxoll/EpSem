@@ -73,27 +73,66 @@ def process_history_sentinel(strData, environment, models):
         window = window.lower()
     environment.entire_history = environment.entire_history + str(window[-1:])
 
-    #If we've reached a goal update trackinv ars
+    # Update environment variables
     if (window[-1:].isupper()):
         environment.num_goals += 1
         log(f'Found goal #{environment.num_goals}')
-        
-        #If we've reached the end of random-action data gathering, create models using entire history
-        if (environment.num_goals >= 100):
-            win_sizes = [3, 6, 9]
-            for index, model in enumerate(models): 
-                if (model is None):
-                    log('Creating models, reached 100 goals')
-                    model = tfmodel(environment, win_sizes[index])
-                    model.train_model()
-                    model.simulate_model()
-                    
         environment.steps_since_last_goal = 0
     else:
         environment.steps_since_last_goal +=1
 
-    #model = check_if_goal(window, environment, model)
+    # Create and train models of various window_sizes then calculate which model simulates the shortest path to a Goal
+    min_path_model = None
+    max_iterations = 0 # Infinite loop precaution, should never run more than 2 times.
+    while (min_path_model == None) and (max_iterations < 3):
+        # If the random-action data gathering is complete, create models using entire history
+        models = train_models(environment, models)
+        # If the agent has gone 3*avg_steps without finding a goal, retrain all the models
+        environment, models = terminate_loops(environment, models)
+        # Find the model with the shortest sim_path
+        min_path_model = select_min_path_model(models)
+        max_iterations += 1
 
+    # Select the next action from the shortest min_path_model, then adjust the sim_paths for all models
+    models = get_best_prediction(environment, models, min_path_model)
+
+    return models
+
+def train_models(environment, models):
+    '''
+    If the random-action data gathering is complete, create a list of models
+    using the environment's entire_history and a window_size defined by model_win_size_param
+    
+    Example: models[i].win_size = model_win_size_param[i]
+        If model_win_size_param = [4, 5, 6], then...
+            model[0].win_size = model_win_size_param[0] # = 4
+            model[1].win_size = model_win_size_param[1] # = 5
+            model[2].win_size = model_win_size_param[2] # = 6
+    '''
+    TRAINING_THRESHOLD = 100
+    # Defines how many models and the win_size param for each model
+    model_win_size_param = [4, 5, 6] # models[i].win_size = model_win_size_param[i] 
+
+    # If we've reached the end of random-action data gathering, create models using entire history
+    if (environment.num_goals >= TRAINING_THRESHOLD):
+        if (environment.num_goals == TRAINING_THRESHOLD):
+            log(f'Reached training threshold: {TRAINING_THRESHOLD}')
+
+        for index in range(len(model_win_size_param)): 
+            if (models[index] is None):
+                log(f'Creating model with window_size of {model_win_size_param[index]}')
+                models[index] = tfmodel(environment, model_win_size_param[index])
+                models[index].train_model()
+                models[index].simulate_model()
+
+    return models
+
+def terminate_loops(environment, models):
+    '''
+    For each model in models:
+        if the model has gone 3*avg_steps without finding a goal,
+        set the model to None so it can be retrained
+    '''
     if (environment.steps_since_last_goal > 3*environment.avg_steps):
         for index, model in enumerate(models):
             if (model is not None):
@@ -101,29 +140,50 @@ def process_history_sentinel(strData, environment, models):
                 models[index] = None # Reset the model if we haven't reached a goal in a while
     environment.last_step = '*'
 
-    #Find the model with the shortest path
+    return environment, models
+
+def select_min_path_model(models):
+    '''
+    Re-train any models with an empty sim_path
+    Return the model that has the shortest length sim_path (min_length=1)
+    '''
     min_path_model = None
-    for model in models:
-        if (model is not None):
+    for index in range(len(models)):
+        if (models[index] is not None):
+            if (len(models[index].sim_path) <= 0):
+                # Set to None so the model can be re-trained
+                models[index] = None
+                continue
+
             if (min_path_model is None):
-                min_path_model = model
-            elif len(model.sim_path) < len(min_path_model.sim_path):
-                min_path_model = model
-                
+                min_path_model = models[index]
+            elif (len(models[index].sim_path) < len(min_path_model.sim_path)):
+                min_path_model = models[index]
+
+    return min_path_model
+
+def get_best_prediction(environment, models, min_path_model):
+    '''
+    Update environment.last_step with the most recent prediction from the best
+    model with the shortest sim_path.
+    Then adjust each model's sim_path to reflect the environment change.
+    '''
     # If there is a trained model, use it to select the next action
-    if (min_path_model is not None):
-        environment.last_step = min_path_model.sim_path[0].lower()
-        log(f'Model is not None, sending prediction: {environment.last_step}')
-        
-    #adjust sim_paths for all models based on selected action
-    for index, model in enumerate(models):
-        if (model is not None): 
-            action = model.sim_path[0]
-            if (action.lower() != environment.last_step):
-                models[index] = None  #this will trigger a retrain at next iteration
-            else:
-                model.sim_path = model.sim_path[1:]
+    if (min_path_model is None):
+        log(f'All models are None')
+        return models
     
+    environment.last_step = min_path_model.sim_path[0].lower()
+    
+    # Adjust sim_paths for all models based on selected action
+    for index in range(len(models)):
+        if (models[index] is not None): 
+            action = models[index].sim_path[0]
+            if (action.lower() != environment.last_step):
+                models[index] = None # This will trigger a retrain at next iteration
+            else:
+                models[index].sim_path = models[index].sim_path[1:]
+
     return models
 
 def main():
@@ -143,7 +203,7 @@ def main():
     # Creating the python side of the socket
     portNum = int(sys.argv[1])
     timeout = 0
-    log('port number: ' + str(portNum))
+    log(f'port number: {portNum}')
     log('Creating server for the Java environment to connect to...')
 
     # Initialize FSM scoped variables
@@ -184,26 +244,26 @@ def main():
                         send_letter(conn, environment.last_step, environment)
 
                     elif (strData.startswith('$$$quit')):
-                        #add the last step to complete the history.
+                        # Add the last step to complete the history.
                         log('python agent received quit signal:')
                         break
 
                     else:  
                         # Should never happen...
-                        log('ERROR received unknown sentinal from java agent: ' + str(strData))
+                        log(f'ERROR received unknown sentinal from java agent: {strData}')
                         log('\tAborting')
                         break
 
     # Catch any error and print a stack trace
     except Exception as error:
-        log('Exception: ' + str(error))
+        log(f'Exception: {error}')
         log('-----')
         try:
             f = open('pyout.txt', 'a')
             traceback.print_tb(error.__traceback__, None, f)
             f.close()
         except Exception as errerr:
-            log('Exception exception!: ' + str(errerr))
+            log(f'Exception exception!: {errerr}')
         log('--- end of report ---')
 
     log('Agent Exit')

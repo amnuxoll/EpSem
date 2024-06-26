@@ -15,7 +15,7 @@ class TFSocketModel:
         '''
         self.environment = environment
         self.window_size = window_size
-        self.sim_path = None    #the path this model predicts the agent should follow to goal (e.g., abbabA)
+        self.sim_path = None    # The path this model predicts the agent should follow to goal (e.g., abbabA)
         
         # Defining the model function as a variable
         self.model = tf.keras.models.Sequential([
@@ -58,40 +58,40 @@ class TFSocketModel:
         usually reached.  This is undesirable so this method inserts a 'artificial' goal
         at the point where a goal was predicted most strongly.  
         '''
-        max_len = 50
+        max_len = 2*self.environment.avg_steps
         window = self.environment.entire_history[-self.window_size:]
-        log('window=' + str(window))
+        # log(f'window = {window}')
         predictions = self.get_predictions(window)
         first_sim_action = self.get_letter(predictions)
 
-        #while a non-goal letter may be best, at each step we want to track which GOAL 
-        #letter had the highest prediction and when it occurred
-        predictions = predictions[0]  #reduce tensor to 1D list
+        # While a non-goal letter may be best, at each step we want to track which GOAL 
+        # Letter had the highest prediction and when it occurred
+        predictions = predictions[0]  # Reduce tensor to 1D list
         best_goal_prediction = max(predictions[1], predictions[3])
         best_goal_letter = 'A'
         best_goal_index = 0
         index = 0
         if (best_goal_prediction == predictions[3]):
             best_goal_letter = 'B'
-
-        #Simulate future steps
+ 
+        # Simulate future steps
         self.sim_path = first_sim_action
         while not ( (self.sim_path[-1:] == 'A') or (self.sim_path[-1:] == 'B') ):
-            if len(self.sim_path) < max_len:  #TODO:  use double avg_steps instead 
-                log(f'Simulation: {self.sim_path}')
+            if len(self.sim_path) < max_len:  # TODO:  use double avg_steps instead 
+                pass # log(f'Simulation: {self.sim_path}') # TODO: undo this comment/pass
             else:
-                log('Simulation: Path too long, stopping.')
+                log('Simulation: Path reached max length; truncate with most probable goal prediction')
                 break
             sim_hist = self.environment.entire_history + self.sim_path
             window = sim_hist[-self.window_size:]
-            log('window=' + str(window))
+            # log(f'window= {window}')
             predictions = self.get_predictions(window)
             next_sim_action = self.get_letter(predictions)
             self.sim_path += next_sim_action
             
-            #update best_goal data
+            # Update best_goal data
             index += 1
-            predictions = predictions[0]  #reduce tensor to 1D list
+            predictions = predictions[0]  # Reduce tensor to 1D list
             if (predictions[1] > best_goal_prediction):
                 best_goal_prediction = predictions[1]
                 best_goal_letter = 'A'
@@ -101,7 +101,7 @@ class TFSocketModel:
                 best_goal_letter = 'B'
                 best_goal_index = index            
 
-        #If necessary, truncate the sim_path with an artificial goal
+        # If necessary, truncate the sim_path with an artificial goal
         if (len(self.sim_path) == max_len) and (self.sim_path[-1:].islower()):
             self.sim_path = self.sim_path[:best_goal_index]
             self.sim_path += best_goal_letter
@@ -175,7 +175,6 @@ class TFSocketModel:
         one_input = tf.constant(one_input)
         predictions = self.model(one_input)
         predictions = tf.nn.softmax(predictions).numpy()
-        log(f'Predictions: {predictions}')
         return predictions
 
     def calc_desired_actions(self, window):
@@ -205,6 +204,8 @@ class TFSocketModel:
             num_steps = 0
             while(window[i + num_steps].islower()):
                 num_steps += 1
+                if (i + num_steps >= len(window)):
+                    break
 
             # Calculate the index of the action of this position
             # 0 = a, 1 = A, 2 = b, 3 = B
