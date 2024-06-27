@@ -308,9 +308,9 @@ public class Runner {
 
     //This suite runs the TensorFlow proxy agent
     private static TestSuite TF_SUITE = new TestSuite(
-            TestSuiteConfiguration.QUICK,
+            TestSuiteConfiguration.TEST,
             new IEnvironmentProvider[] {
-                    new FSMEnvironmentProvider(new FSMTransitionTableBuilder(2, 10, Random.getTrue()), FSMEnvironment.Sensor.NO_SENSORS),
+                    new FSMEnvironmentProvider(new FSMTransitionTableBuilder(2, 5, Random.getTrue()), FSMEnvironment.Sensor.NO_SENSORS),
             },
             new IAgentProvider[] {
                     new TFSocketAgentProvider()

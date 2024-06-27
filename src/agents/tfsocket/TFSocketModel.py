@@ -121,13 +121,12 @@ class TFSocketModel:
 
         # Defining the model's loss function
         predictions = self.model(x_train[:1])
-        predictions = tf.nn.softmax(predictions).numpy() # Convert to probabilities
         loss_fn = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
 
         # Optimize and train the model
         self.model.compile(optimizer='adam', loss=loss_fn, metrics=['accuracy'])
         with contextlib.redirect_stdout(open('trainout.txt', 'w')):
-            self.model.fit(x_train, y_train, epochs=5, verbose=2)
+            self.model.fit(x_train, y_train, epochs=2, verbose=0)
 
     def calc_input_tensors(self, given_window):
         '''
@@ -171,7 +170,6 @@ class TFSocketModel:
         one_input = [self.flatten(window)]
         one_input = tf.constant(one_input)
         predictions = self.model(one_input)
-        predictions = tf.nn.softmax(predictions).numpy()
         return predictions
 
     def calc_desired_actions(self, window):
