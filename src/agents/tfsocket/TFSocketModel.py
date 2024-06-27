@@ -15,7 +15,7 @@ class TFSocketModel:
         '''
         self.environment = environment
         self.window_size = window_size
-        self.sim_path = None # The path this model predicts the agent should follow to goal (e.g., abbabA)
+        self.sim_path = None # Predicted shortest path to goal (e.g., abbabA)
         
         # Defining the model function as a variable
         self.model = tf.keras.models.Sequential([
@@ -62,8 +62,8 @@ class TFSocketModel:
         predictions = self.get_predictions(window)
         first_sim_action = self.get_letter(predictions)
 
-        # While a non-goal letter may be best, at each step we want to track which GOAL 
-        # Letter had the highest prediction and when it occurred
+        # While a non-goal letter may be best, at each step we want to track which goal-letter
+        # had the highest prediction and when it occurred
         predictions = predictions[0] # Reduce tensor to 1D list
         best_goal = {'prediction': max(predictions[1], predictions[3]),
                      'letter': 'A',
@@ -77,10 +77,10 @@ class TFSocketModel:
         self.sim_path = first_sim_action
         while not ((self.sim_path[-1:] == 'A') or (self.sim_path[-1:] == 'B')):
             if len(self.sim_path) >= max_len:
-                # log('sim_path reached max length; truncate to most probable goal prediction')
-                break
+                # log('sim_path reached max length, truncate to most probable goal prediction.')
+                break # I suspect the while loop exits here virtually always
             
-            # log(f'sim-window={window}; sim_path: {self.sim_path}')
+            # log(f'Model (window_size={window}); sim_path: {self.sim_path}')
 
             # Simulate the next step from entire_path and sim_path so far
             sim_hist = self.environment.entire_history + self.sim_path
@@ -104,8 +104,6 @@ class TFSocketModel:
         if (len(self.sim_path) >= max_len) and (self.sim_path[-1:].islower()):
             self.sim_path = self.sim_path[:best_goal['index']]
             self.sim_path += best_goal['letter'] 
-
-        # log(f'Model (window_size={self.window_size}) has simulated path to goal: {self.sim_path}')
 
     def train_model(self):
         '''
@@ -206,7 +204,7 @@ class TFSocketModel:
                 if i + num_steps >= len(window):
                     break
 
-            # Calculate the index of the action of this position
+            # Calculate the index of the action at this position
             # 0 = a, 1 = A, 2 = b, 3 = B
             val = -1
             match window[i]:
@@ -218,7 +216,6 @@ class TFSocketModel:
                     val = 2
                 case 'B':
                     val = 3
-                    
             if val == -1:
                 log('ERROR: invalid character in window')
                 return

@@ -15,7 +15,7 @@ class TFSocketEnv:
 
     def update_avg_steps(self):
         '''
-        Calculate average steps to goal for a given self.entire_history
+        Calculate average steps to goal from the entire_history
         '''
         # Count the number of goals (skipping the first)
         num_historical_goals = 0
@@ -23,7 +23,9 @@ class TFSocketEnv:
             if (i == 0):
                 continue
             if (self.entire_history[i].isupper()):
-                num_historical_goals+=1
+                num_historical_goals += 1
 
-        self.avg_steps = len(self.entire_history) / num_historical_goals
-        # log(f'Avg steps of the entire_history: {self.avg_steps}')
+        if num_historical_goals <= 0:
+            self.avg_steps = len(self.entire_history)
+        else:
+            self.avg_steps = len(self.entire_history) / num_historical_goals
