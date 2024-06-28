@@ -41,7 +41,7 @@ def send_letter(conn, letter, environment):
     conn.sendall(letter.encode('ASCII'))
     return letter
 
-def process_history_sentinel(strData, environment, models):
+def process_history_sentinel(strData, environment, models, model_window_sizes):
     '''
     First use strData to update the TFSocketEnv object's variables.
     Then create and train a list of models of various window_sizes.
@@ -73,8 +73,29 @@ def process_history_sentinel(strData, environment, models):
         return models # Either returns models unchanged, or as a list of None's
 
     # If we reached a goal, we need to retrain all the models
+    # TODO: put this in a helper method
     if strData[-1:].isupper():
-        #TODO: adjust model sizes here
+        log('Adjusting window sizes')
+        # find the model with the smallest window_size that predicted this goal
+        predicting_model = None
+        for model in models:
+            if (
+                model is not None
+                and model.sim_path is not None
+                and len(model.sim_path) == 0
+            ):
+                predicting_model = model
+                break
+        
+        # adjust model sizes 
+        # TODO:  try something binary-search-like?
+        if predicting_model is not None:
+            log(f'new model sizes centered around {predicting_model.window_size}')
+            model_window_sizes[0] = predicting_model.window_size - 1
+            model_window_sizes[1] = predicting_model.window_size
+            model_window_sizes[2] = predicting_model.window_size + 1
+        
+        # Trigger a retrain for all models
         for index in range(len(models)):
             models[index] = None
         return models
@@ -94,7 +115,7 @@ def process_history_sentinel(strData, environment, models):
 
     # Create and train models of various window_sizes then select
     # which model simulates the shortest path to a goal
-    models, min_path_model = manage_models(environment, models)
+    models, min_path_model = manage_models(environment, models, model_window_sizes)
 
     # Select the next action from the shortest min_path_model, then adjust the sim_paths for all models
     models = get_best_prediction(environment, models, min_path_model)
@@ -133,7 +154,7 @@ def update_environment(strData, environment):
 
     return environment
 
-def manage_models(environment, models):
+def manage_models(environment, models, model_window_sizes):
     '''
     1. Train each model
     2. Simulate each model
@@ -148,7 +169,7 @@ def manage_models(environment, models):
     index = 0
     while (min_path_model is None) and (index < max_iterations):
         # Create models using entire history
-        models = train_models(environment, models)
+        models = train_models(environment, models, model_window_sizes)
         # Find the model with the shortest sim_path
         min_path_model = select_min_path_model(models, min_path_model)
         index += 1
@@ -157,25 +178,22 @@ def manage_models(environment, models):
 
     return models, min_path_model
 
-def train_models(environment, models):
+def train_models(environment, models, model_window_sizes):
     '''
     If the random-action data gathering is complete, create a list of models
-    using the environment's entire_history and a window_size defined by model_win_sizes
+    using the environment's entire_history and a window_size defined by model_window_sizes
 
-    Example: models[i].win_size = model_win_sizes[i]
-        If model_win_sizes = [4, 5, 6], then...
-            model[0].win_size = model_win_sizes[0] # = 4
-            model[1].win_size = model_win_sizes[1] # = 5
-            model[2].win_size = model_win_sizes[2] # = 6
+    Example: models[i].win_size = model_window_sizes[i]
+        If model_window_sizes = [4, 5, 6], then...
+            model[0].win_size = model_window_sizes[0] # = 4
+            model[1].win_size = model_window_sizes[1] # = 5
+            model[2].win_size = model_window_sizes[2] # = 6
     '''
-    # Defines how many models and the win_size param for each model
-    model_win_sizes = [3, 6, 9] # models[i].win_size = model_win_sizes[i] 
-
     if all(model is None for model in models):
         log(f'Training models')
         # If we've reached the end of random-action data gathering, create models using entire history
-        for index in range(len(model_win_sizes)):
-            models[index] = tfmodel(environment, model_win_sizes[index])
+        for index in range(len(model_window_sizes)):
+            models[index] = tfmodel(environment, model_window_sizes[index])
             models[index].train_model()
             models[index].simulate_model()
 
@@ -255,6 +273,9 @@ def main():
     # Initialize FSM scoped variables
     environment = tfenv()
     models = [None, None, None]
+    # Defines how many models and the win_size param for each model
+    # These numbers will change dynamically as the agent discovers a near-optimal size
+    model_window_sizes = [4, 5, 6] # models[i].win_size = model_window_sizes[i] 
 
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
@@ -285,7 +306,7 @@ def main():
                         conn.sendall('$$$ack'.encode('ASCII'))
 
                     elif strData.startswith('$$$history:'):
-                        models = process_history_sentinel(strData, environment, models)
+                        models = process_history_sentinel(strData, environment, models, model_window_sizes)
                         # Send the model's prediction to the environment
                         send_letter(conn, environment.last_step, environment)
 
