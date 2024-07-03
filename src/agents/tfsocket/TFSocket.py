@@ -8,7 +8,7 @@ from TFSocketEnv import TFSocketEnv as tfenv
 from TFSocketUtils import log
 
 # Define global constants
-TRAINING_THRESHOLD = 290  # number of random steps to take before training models
+TRAINING_THRESHOLD = 200  # Number of random steps to take before training models
 
 '''
 This is the main script for the TFSocket python agent
@@ -61,24 +61,22 @@ def process_history_sentinel(strData, environment, models, model_window_sizes):
     # Use the random pseudo-model until we've collected enough data to train on
     if environment.num_goals < TRAINING_THRESHOLD:
         environment.last_step = '*' # Select the random pseudo-model
+        return models # Return early to send random action
 
-        # When the agent reaches the TRAINING_THRESHOLD, set all models
-        # to None; to prepare for training
+    # If we reached a goal, we need to retrain all the models
+    # TODO: put this in a helper method
+    if strData[-1:].isupper():
+
+        # When the agent reaches the TRAINING_THRESHOLD create the models
         if environment.num_goals == TRAINING_THRESHOLD:
             log(f'Reached training threshold: goal #{TRAINING_THRESHOLD}')
             # Set all models to None to prepare for training
             for index in range(len(models)):
                 models[index] = None
 
-        return models # Either returns models unchanged, or as a list of None's
-
-    # If we reached a goal, we need to retrain all the models
-    # TODO: put this in a helper method
-    if strData[-1:].isupper():
-        log('Adjusting window sizes')
-        # find the model with the smallest window_size that predicted this goal
+        # Find the model that predicted this goal
         predicting_model = None
-        for model in models:
+        for model in models: # NOTE: This will favor higher indexed models
             if (
                 model is not None
                 and model.sim_path is not None
@@ -86,35 +84,39 @@ def process_history_sentinel(strData, environment, models, model_window_sizes):
             ):
                 predicting_model = model
                 break
-        
-        # adjust model sizes 
-        # TODO:  try something binary-search-like?
-        if predicting_model is not None:
+
+        # Adjust model sizes
+        # TODO: Try something binary-search-like?
+        if predicting_model is not None and predicting_model.window_size >= 2:
             log(f'new model sizes centered around {predicting_model.window_size}')
             model_window_sizes[0] = predicting_model.window_size - 1
             model_window_sizes[1] = predicting_model.window_size
             model_window_sizes[2] = predicting_model.window_size + 1
-        
-        # Trigger a retrain for all models
+
+        # Re-simulate models that correctly simulated the goal and trigger a retrain for the other models
         for index in range(len(models)):
-            models[index] = None
+            if models[index] is not None and models[index] == predicting_model:
+                models[index].simulate_model()
+            else:
+                models[index] = None
         return models
 
     # If looping is suspected, use the random sudo-model and set all models to None for retraining
     loop_threshold = 2*environment.avg_steps # Suspect looping threshold
     if environment.steps_since_last_goal >= loop_threshold:
+        # Reset the models for training
         if environment.steps_since_last_goal == loop_threshold:
             log('Looks like the agent is stuck in a loop! Switching to random sudo-model')
             log(f'avg_steps={environment.avg_steps:.2f}, steps_since_last_goal={environment.steps_since_last_goal}')
-            # Reset the model if we haven't reached a goal in a while
             for index in range(len(models)):
                 models[index] = None
+
         # Enable the random sudo-model
         environment.last_step = '*'
         return models
 
     # Create and train models of various window_sizes then select
-    # which model simulates the shortest path to a goal
+    # Which model simulates the shortest path to a goal
     models, min_path_model = manage_models(environment, models, model_window_sizes)
 
     # Select the next action from the shortest min_path_model, then adjust the sim_paths for all models
@@ -159,7 +161,7 @@ def manage_models(environment, models, model_window_sizes):
     1. Train each model
     2. Simulate each model
     3. Select the best model
-    
+
     Returns:
         models, list of TFSocketModel objects of various window_sizes
         min_path_model, the model with the shortest sim_path in models
@@ -218,10 +220,11 @@ def select_min_path_model(models, min_path_model):
 
             if min_path_model is None:
                 min_path_model = models[index]
+            # NOTE: '<=' favors larger indexed models, and '<' favors smaller index models
             elif len(models[index].sim_path) < len(min_path_model.sim_path):
                 min_path_model = models[index]
 
-    # Could possibly None it all models are None
+    # Could possibly return None if all models are None
     return min_path_model
 
 def get_best_prediction(environment, models, min_path_model):
@@ -244,7 +247,8 @@ def get_best_prediction(environment, models, min_path_model):
             action = models[index].sim_path[0]
             if action.lower() != environment.last_step:
                 # This model's prediction does not match action selected by min_path_model
-                models[index] = None # This will trigger a retrain at next iteration
+                if models[index] is not None:
+                    models[index].simulate_model()
             else:
                 models[index].sim_path = models[index].sim_path[1:]
 
@@ -297,7 +301,7 @@ def main():
 
                     # Handling socket communication
                     # Check for sentinels
-                    strData = data.decode('utf-8') # raw data from the java agent
+                    strData = data.decode('utf-8') # Raw data from the java agent
 
                     if strData.startswith('$$$alphabet:'):
                         environment.alphabet = list(strData[12:])

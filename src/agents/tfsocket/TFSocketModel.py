@@ -16,14 +16,14 @@ class TFSocketModel:
         self.environment = environment
         self.window_size = window_size
         self.sim_path = None # Predicted shortest path to goal (e.g., abbabA)
-        
+
         # Defining the model function as a variable
         self.model = tf.keras.models.Sequential([
             tf.keras.layers.Dense(16, activation='relu'),
             tf.keras.layers.Dropout(0.2),
             tf.keras.layers.Dense(4, activation='softmax')
         ])
-        
+
     def get_letter(self, prediction):
         '''
         given a set of predictions, returns the letter corresponding to the action with the highest confidence
@@ -47,7 +47,7 @@ class TFSocketModel:
     def simulate_model(self):
         '''
         Simulate the model's prediction of the next step and place it in self.sim_path
-    
+
         The model predicts what action is best for the next step. Then it appends that action
         to a local copy of the agent action history so as to create a predicted history. This,
         in turn, is used to make yet another prediction so the agent can look several steps
@@ -79,7 +79,7 @@ class TFSocketModel:
             if len(self.sim_path) >= max_len:
                 # log('sim_path reached max length, truncate to most probable goal prediction.')
                 break # I suspect the while loop exits here virtually always
-            
+
             # log(f'Model (window_size={window}); sim_path: {self.sim_path}')
 
             # Simulate the next step from entire_path and sim_path so far
@@ -120,13 +120,11 @@ class TFSocketModel:
         y_train = tf.constant(y_train)
 
         # Defining the model's loss function
-        predictions = self.model(x_train[:1])
         loss_fn = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
 
         # Optimize and train the model
         self.model.compile(optimizer='adam', loss=loss_fn, metrics=['accuracy'])
-        with contextlib.redirect_stdout(open('trainout.txt', 'w')):
-            self.model.fit(x_train, y_train, epochs=2, verbose=0)
+        self.model.fit(x_train, y_train, epochs=2, verbose=0)
 
     def calc_input_tensors(self, given_window):
         '''
@@ -163,7 +161,7 @@ class TFSocketModel:
     def get_predictions(self, window):
         '''
         Uses the model to generate predictions about the next step for the environment
-        
+
         This takes the form of a 2D array like this (to support TensorFlow):
             [[0.35471925 0.19711517 0.25747794 0.19068767]]
         '''
@@ -175,10 +173,10 @@ class TFSocketModel:
     def calc_desired_actions(self, window):
         '''
         Calculates the desired action for each window in the entire_history
-        
+
         The model wants expected outputs to be a set of integer categories.
         So we arbitrarily assign: a=0, A=1, b=2, B=3
-        
+
         the output of this function should line up with the output of 
         calc_input_tensors for the same window
 
