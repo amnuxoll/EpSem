@@ -132,7 +132,6 @@ class TFSocketModel:
             log(f'x_train: {x_train} with len: {len(x_train)} and shape: {x_train.shape}')
             log(f'y_train: {y_train} with len: {len(y_train)} and shape: {y_train.shape}')
             log(f'model: {self.model}')
-            log(f'predictions: {predictions}')
             log(f'loss_fn: {loss_fn}')
             log(f'self.environment.entire_history: {self.environment.entire_history}')
 
