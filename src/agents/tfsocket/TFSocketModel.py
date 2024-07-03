@@ -125,8 +125,17 @@ class TFSocketModel:
 
         # Optimize and train the model
         self.model.compile(optimizer='adam', loss=loss_fn, metrics=['accuracy'])
-        with contextlib.redirect_stdout(open('trainout.txt', 'w')):
-            self.model.fit(x_train, y_train, epochs=2, verbose=0)
+        try:
+            with contextlib.redirect_stdout(open('trainout.txt', 'w')):
+                self.model.fit(x_train, y_train, epochs=2, verbose=0)
+        except Exception as e:
+            log(f'ERROR: {e}')
+            log(f'x_train: {x_train} with len: {len(x_train)} and shape: {x_train.shape}')
+            log(f'y_train: {y_train} with len: {len(y_train)} and shape: {y_train.shape}')
+            log(f'model: {self.model}')
+            log(f'predictions: {predictions}')
+            log(f'loss_fn: {loss_fn}')
+            log(f'self.environment.entire_history: {self.environment.entire_history}')
 
     def calc_input_tensors(self, given_window):
         '''
