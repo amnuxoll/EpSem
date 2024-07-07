@@ -114,6 +114,7 @@ class TFSocketModel:
         '''
         # Defining the inputs and expected outputs from a given history
         self.environment.update_avg_steps()
+        self.remove_duplicate_goal_paths()  # NOTE: We can maybe move this to remove duplicates after each goal instead
         x_train = self.calc_input_tensors(self.environment.entire_history)
         y_train = self.calc_desired_actions(self.environment.entire_history)
         x_train = tf.constant(x_train)
@@ -139,11 +140,30 @@ class TFSocketModel:
                 self.model.fit(x_train, y_train, epochs=2, verbose=0)
         except Exception as e:
             log(f'ERROR: {e}')
-            log(f'x_train: {x_train} with len: {len(x_train)} and shape: {x_train.shape}')
-            log(f'y_train: {y_train} with len: {len(y_train)} and shape: {y_train.shape}')
-            log(f'model: {self.model}')
-            log(f'loss_fn: {loss_fn}')
-            log(f'self.environment.entire_history: {self.environment.entire_history}')
+            log(f'\tx_train: {x_train} with len: {len(x_train)} and shape: {x_train.shape}')
+            log(f'\ty_train: {y_train} with len: {len(y_train)} and shape: {y_train.shape}')
+            log(f'\tmodel: {self.model}')
+            log(f'\tloss_fn: {loss_fn}')
+            log(f'\tself.environment.entire_history: {self.environment.entire_history}')
+    
+    def remove_duplicate_goal_paths(self):
+        '''
+        Remove duplicate actions from the history
+        '''
+        # Path that got us to a goal (e.g ["ababaB","bbbaB"])
+        goal_paths = []
+        last_goal = 0
+        
+        # Loop through the entire history and find the paths to a goal
+        for i in range(len(self.environment.entire_history)):
+            if self.environment.entire_history[i].isupper():
+                goal_paths.append(self.environment.entire_history[last_goal:i+1])
+                last_goal = i+1
+        
+        # Remove duplicate goal paths
+        ret = list(set(goal_paths))
+        self.environment.entire_history = "".join(ret)
+        
 
     def calc_input_tensors(self, given_window):
         '''
