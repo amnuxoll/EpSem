@@ -305,6 +305,7 @@ def main():
 
                     if strData.startswith('$$$alphabet:'):
                         environment.alphabet = list(strData[12:])
+                        environment.overall_alphabet = environment.alphabet + [let.upper() for let in environment.alphabet]
                         log(f'New alphabet: {environment.alphabet}')
                         log(f'Sending "ack"') # Acknowledge
                         conn.sendall('$$$ack'.encode('ASCII'))

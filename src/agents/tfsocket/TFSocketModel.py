@@ -1,5 +1,6 @@
 import tensorflow as tf
 import contextlib
+import random
 from TFSocketUtils import log
 
 class TFSocketModel:
@@ -16,33 +17,29 @@ class TFSocketModel:
         self.environment = environment
         self.window_size = window_size
         self.sim_path = None # Predicted shortest path to goal (e.g., abbabA)
+        self.model = None
+        
 
-        # Defining the model function as a variable
-        self.model = tf.keras.models.Sequential([
-            tf.keras.layers.Dense(16, activation='relu'),
-            tf.keras.layers.Dropout(0.2),
-            tf.keras.layers.Dense(4, activation='softmax')
-        ])
+        
 
     def get_letter(self, prediction):
         '''
         given a set of predictions, returns the letter corresponding to the action with the highest confidence
         '''
         max_index = 0 # index of the largest value in prediction[0][max_index]
+        
+        # Sanity check that the # of predictions matches the # of predictions that need to be made
+        if len(self.environment.overall_alphabet) != len(prediction[0]):
+            log('ERROR: # of predictions does not match the # of predictions that need to be made')
+            log(f'\toverall_alphabet = {self.environment.overall_alphabet}')
+            log(f'\tprediction = {prediction}')
+            exit(-1)
+        
         for i in range(len(prediction[0])):
             if prediction[0][i] > prediction[0][max_index]:
                 max_index = i
-        match max_index:
-            case 0:
-                return 'a'
-            case 1:
-                return 'A'
-            case 2:
-                return 'b'
-            case 3:
-                return 'B'
-        log(f'Error: There is no valid max-value (or most likely) of the prediction values: {prediction[0]}')
-        return
+        
+        return self.environment.overall_alphabet[max_index]
 
     def simulate_model(self):
         '''
@@ -58,24 +55,30 @@ class TFSocketModel:
         usually reached. This is undesirable so this method inserts a 'artificial' goal
         at the point where a goal was predicted most strongly.
         '''
+        if self.model is None:
+            log("ERROR: Model should not be None in simulate_model()")
         window = self.environment.entire_history[-self.window_size:]
         predictions = self.get_predictions(window)
         first_sim_action = self.get_letter(predictions)
 
         # While a non-goal letter may be best, at each step we want to track which goal-letter
         # had the highest prediction and when it occurred
+        # [a,b,c,A,B,C]
         predictions = predictions[0] # Reduce tensor to 1D list
-        best_goal = {'prediction': max(predictions[1], predictions[3]),
-                     'letter': 'A',
+        
+        # TODO: Double check the correctness/efficiency of this algorithm, Penny does not like this
+        goal_predictions = predictions[len(self.environment.alphabet):]
+        max_prediction = max(goal_predictions)  # Get the max prediction value for only goal letters
+        max_index = list(goal_predictions).index(max_prediction)+len(self.environment.alphabet)
+        best_goal = {'prediction': max_prediction,
+                     'letter': self.environment.overall_alphabet[max_index],
                      'index': 0}
-        if best_goal['prediction'] == predictions[3]:
-            best_goal['letter'] = 'B'
 
         max_len = 2*self.environment.avg_steps
         index = 0
         # Simulate future steps
         self.sim_path = first_sim_action
-        while not ((self.sim_path[-1:] == 'A') or (self.sim_path[-1:] == 'B')):
+        while not self.sim_path[-1:].isupper():
             if len(self.sim_path) >= max_len:
                 # log('sim_path reached max length, truncate to most probable goal prediction.')
                 break # I suspect the while loop exits here virtually always
@@ -91,14 +94,11 @@ class TFSocketModel:
             # Update best_goal data
             index += 1
             predictions = predictions[0] # Reduce tensor to 1D list
-            if predictions[1] > best_goal['prediction']:
-                best_goal['prediction'] = predictions[1]
-                best_goal['letter'] = 'A'
-                best_goal['index'] = index
-            if predictions[3] > best_goal['prediction']:
-                best_goal['prediction'] = predictions[3]
-                best_goal['letter'] = 'B'
-                best_goal['index'] = index
+            for i in range(len(self.environment.overall_alphabet))[len(self.environment.alphabet):]:
+                if predictions[i] > best_goal['prediction']:
+                    best_goal['prediction'] = predictions[i]
+                    best_goal['letter'] = self.environment.overall_alphabet[i]
+                    best_goal['index'] = index
 
         # If necessary, truncate the sim_path with an artificial goal
         if (len(self.sim_path) >= max_len) and (self.sim_path[-1:].islower()):
@@ -114,6 +114,7 @@ class TFSocketModel:
         '''
         # Defining the inputs and expected outputs from a given history
         self.environment.update_avg_steps()
+        self.remove_duplicate_goal_paths()  # NOTE: We can maybe move this to remove duplicates after each goal instead
         x_train = self.calc_input_tensors(self.environment.entire_history)
         y_train = self.calc_desired_actions(self.environment.entire_history)
         x_train = tf.constant(x_train)
@@ -121,7 +122,17 @@ class TFSocketModel:
 
         # Defining the model's loss function
         loss_fn = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
-
+        
+        # Defining the model function as a variable
+        # Note: We are guessing the size of the first dense layer should
+        # be about half the size of the input layer. We may want to do future
+        # experiments to see what actually works best
+        self.model = tf.keras.models.Sequential([
+            tf.keras.layers.Dense(int(len(x_train)/2), activation='relu'),
+            tf.keras.layers.Dropout(0.2),
+            tf.keras.layers.Dense(2*len(self.environment.alphabet), activation='softmax')   # Dense the layer with 2*len(alphabet) nodes for each action and goal actions
+        ])
+        
         # Optimize and train the model
         self.model.compile(optimizer='adam', loss=loss_fn, metrics=['accuracy'])
         try:
@@ -129,11 +140,30 @@ class TFSocketModel:
                 self.model.fit(x_train, y_train, epochs=2, verbose=0)
         except Exception as e:
             log(f'ERROR: {e}')
-            log(f'x_train: {x_train} with len: {len(x_train)} and shape: {x_train.shape}')
-            log(f'y_train: {y_train} with len: {len(y_train)} and shape: {y_train.shape}')
-            log(f'model: {self.model}')
-            log(f'loss_fn: {loss_fn}')
-            log(f'self.environment.entire_history: {self.environment.entire_history}')
+            log(f'\tx_train: {x_train} with len: {len(x_train)} and shape: {x_train.shape}')
+            log(f'\ty_train: {y_train} with len: {len(y_train)} and shape: {y_train.shape}')
+            log(f'\tmodel: {self.model}')
+            log(f'\tloss_fn: {loss_fn}')
+            log(f'\tself.environment.entire_history: {self.environment.entire_history}')
+    
+    def remove_duplicate_goal_paths(self):
+        '''
+        Remove duplicate actions from the history
+        '''
+        # Path that got us to a goal (e.g ["ababaB","bbbaB"])
+        goal_paths = []
+        last_goal = 0
+        
+        # Loop through the entire history and find the paths to a goal
+        for i in range(len(self.environment.entire_history)):
+            if self.environment.entire_history[i].isupper():
+                goal_paths.append(self.environment.entire_history[last_goal:i+1])
+                last_goal = i+1
+        
+        # Remove duplicate goal paths
+        ret = list(set(goal_paths))
+        self.environment.entire_history = "".join(ret)
+        
 
     def calc_input_tensors(self, given_window):
         '''
@@ -174,6 +204,9 @@ class TFSocketModel:
         This takes the form of a 2D array like this (to support TensorFlow):
             [[0.35471925 0.19711517 0.25747794 0.19068767]]
         '''
+        if self.model is None:
+            log("ERROR: Model should not be None in get_predictions()")
+            return None
         one_input = [self.flatten(window)]
         one_input = tf.constant(one_input)
         predictions = self.model(one_input)
@@ -209,19 +242,12 @@ class TFSocketModel:
                 if i + num_steps >= len(window):
                     break
 
-            # Calculate the index of the action at this position
-            # 0 = a, 1 = A, 2 = b, 3 = B
-            val = -1
-            match window[i]:
-                case 'a':
-                    val = 0
-                case 'A':
-                    val = 1
-                case 'b':
-                    val = 2
-                case 'B':
-                    val = 3
-            if val == -1:
+            # Calculate the index of the action at this position, [a,b,c,A,B,C]
+            # 0 = a, 1 = b, 2 = c, 3 = A, 4 = B, 5 = C
+            
+            val = self.environment.overall_alphabet.index(window[i])
+        
+            if val is None:
                 log('ERROR: invalid character in window')
                 return
 
@@ -232,10 +258,10 @@ class TFSocketModel:
             #   III. if val is 'b' (=2), set val to 'a' (=0)
             #   IV.  if val is 'B' (=3), set val to 'a' (=0)
             if num_steps >= self.window_size: 
-                if val < 1.5:
-                    val = 2
-                else:
-                    val = 0
+                orig = val
+                while orig == val:
+                    val = random.choice(range(len(self.environment.alphabet)))
+                    
 
             # Add to result
             desired_actions.append(val)
@@ -248,29 +274,34 @@ class TFSocketModel:
         Helper function for @calc_input_tensors()
         
         A window has this format:      'aabaBbbab'
-        the return object's length is 3*window_size
+        the return object's length is (len(self.environment.alphabet) + 1)*window_size
         being whether or not an 'a'/'A' is in that position
         the second set is for b/B. The third set is goal sensor.
 
-        TODO:  This is hard-coded for a two-letter ALPHABET. Change
-            the code to handle any ALPHABET size
         TODO:  In the future we may want to handle sensors. 
             Example input window:      '01a11B00b00a'
         '''
+        
+        # Set the indexes of the alphabet with a dictionary
+        indexes = dict()
+        for i in range(len(self.environment.alphabet)):
+            indexes[i] = self.environment.alphabet[i]
+        else:
+            indexes["GOAL"] = i+1
+            
         win_size = len(window)
-
-        # Split the window into goal part and action part
-        ays = [0.0 for i in range(win_size)]
-        bees = [0.0 for i in range(win_size)]
-        goals = [0.0 for i in range(win_size)]
-
+        return_tensor = []
+        for action in self.environment.alphabet:
+            return_tensor += [0.0 for i in range(win_size)]  # For each action, add a list of zeros
+        return_tensor += [0.0 for i in range(win_size)]      # Add a list of zeros for the goals
+        
         for i in range(win_size):
             let = window[i]
-            if let == 'a' or let == 'A':
-                ays[i] = 1.0
-            else:
-                bees[i] = 1.0
-            if let == 'A' or let == 'B':
-                goals[i] = 1.0
-
-        return ays + bees + goals
+            for key, val in indexes.items():
+                if let.lower() == val:
+                    return_tensor[i + key*win_size] = 1.0                
+                if let.isupper():
+                    key = indexes["GOAL"]
+                    return_tensor[i + key*win_size] = 1.0            
+                    break
+        return return_tensor
