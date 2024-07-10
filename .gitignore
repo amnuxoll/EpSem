@@ -112,10 +112,6 @@ out/
 .idea/**/shelf
 .idea/**/misc.xml
 
-# ignore csv files
-*.csv
-/**/*.csv
-
 *.class
 /**/*.class
 info.txt 
