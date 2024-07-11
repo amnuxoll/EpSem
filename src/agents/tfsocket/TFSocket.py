@@ -38,7 +38,7 @@ def send_letter(conn, letter, environment):
     conn.sendall(letter.encode('ASCII'))
     return letter
 
-def process_history_sentinel(strData, environment, models, model_window_sizes, epsilon):
+def process_history_sentinel(strData, environment, models, model_window_sizes):
     '''
     First use strData to update the TFSocketEnv object's variables.
     Then create and train a list of models of various window_sizes.
@@ -59,7 +59,7 @@ def process_history_sentinel(strData, environment, models, model_window_sizes, e
     # Use the random pseudo-model until we've collected enough data to train on
     if environment.num_goals < training_threshold:
         environment.last_step = '*' # Select the random pseudo-model
-        return models, epsilon # Return early to send random action
+        return models # Return early to send random action
 
     # If looping is suspected, use the random sudo-model and set all models to None for retraining
     elif environment.steps_since_last_goal >= loop_threshold:
@@ -72,30 +72,40 @@ def process_history_sentinel(strData, environment, models, model_window_sizes, e
 
         # Enable the random sudo-model
         environment.last_step = '*'
-        return models, epsilon # Return early to send random action
+        return models # Return early to send random action
 
-    # Epsilon-Greedy
-    # Randomly decide to use the models or take a random action, then shrink the
-    # likelyhood of taking a random action every time a random action is taken 
-    shrink_factor = (1e0) - (1e-1) # Just ever-so-slightly less than 1.0
-    
-    if random.random() < epsilon:
-        log('taking random action \'*\'')
-        environment.last_step = '*'
-        epsilon *= shrink_factor
+    def epsilon_greedy(environment):
+        # calculate an epsilon value from the number of steps the agent has taken, via a sigmoid function
+
+        # epsilon is defined by the sigmoid function:
+        #       y = (1 - 10**-k)) ** (2 ** (h * x))
+        # Where...
+        #   epsilon = y
+        #   k = the scientific notation exponent factor in the base of the sigmoid function
+        #   h = multiplicative inverse of the x-axis scaling factor (i.e. for h=0.25, the function decays 4x slower)
+        #   x = number of steps the agent has taken after reaching the training_threshold
+
+        h = 0.25    # TODO: Hardcoded value needs to be tweaked
+        k = 12      # TODO: Hardcoded value needs to be tweaked
+        x = max(0, len(environment.entire_history) - (environment.avg_steps * training_threshold)) # Always positive
+        epsilon = (1 - (10**-k)) ** (2 ** (h * x))
+
+        log(f'\nx = {len(environment.entire_history):.3f} - {environment.avg_steps * training_threshold:.3f} = {x}')
         log(f'epsilon: {epsilon:.3f}')
-        return models, epsilon
 
-    log('taking a trained action')
+        return epsilon
+
+    epsilon = epsilon_greedy(environment)
+    if random.random() < epsilon:
+        log('\nEpsilon got greedy: Taking a random action')
+        environment.last_step = '*'
+        return models # Return early to send random action
+
+    log('\nEpsilon wasn\'t greedy this time: Taking a trained action')
 
     # If we reached a goal, we need to retrain all the models
     # TODO: put this in a helper method
     if strData[-1:].isupper():
-
-        # When the agent reaches the training_threshold create the models
-        if environment.num_goals == training_threshold:
-            log(f'Reached training threshold: goal #{training_threshold}')
-
         # Find the model that predicted this goal
         predicting_model = None
         for model in models: # NOTE: This will favor higher indexed models
@@ -121,7 +131,6 @@ def process_history_sentinel(strData, environment, models, model_window_sizes, e
                 models[index].simulate_model()
             else:
                 models[index] = None
-        # return models, epsilon
 
     # Create and train models of various window_sizes then select
     # Which model simulates the shortest path to a goal
@@ -130,7 +139,7 @@ def process_history_sentinel(strData, environment, models, model_window_sizes, e
     # Select the next action from the shortest min_path_model, then adjust the sim_paths for all models
     models = get_best_prediction(environment, models, min_path_model)
 
-    return models, epsilon
+    return models
 
 def update_environment(strData, environment):
     '''
@@ -289,7 +298,6 @@ def main():
     # These numbers will change dynamically as the agent discovers a near-optimal size
     model_window_sizes = [4, 5, 6] # models[i].win_size = model_window_sizes[i] 
     # Chance of taking a random action
-    epsilon = (1e0) - (1e-16) # Just ever-so-slightly less than 1.0
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
             sock.bind(('127.0.0.1', portNum))
@@ -320,7 +328,7 @@ def main():
                         conn.sendall('$$$ack'.encode('ASCII'))
 
                     elif strData.startswith('$$$history:'):
-                        models, epsilon = process_history_sentinel(strData, environment, models, model_window_sizes, epsilon)
+                        models = process_history_sentinel(strData, environment, models, model_window_sizes)
                         # Send the model's prediction to the environment
                         send_letter(conn, environment.last_step, environment)
 
