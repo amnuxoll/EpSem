@@ -7,9 +7,6 @@ from TFSocketModel import TFSocketModel as tfmodel
 from TFSocketEnv import TFSocketEnv as tfenv
 from TFSocketUtils import log
 
-# Define global constants
-TRAINING_THRESHOLD = 100  # Number of random steps to take before training models
-
 '''
 This is the main script for the TFSocket python agent
 TFSocket communicates with the java-side proxy agent with the FSM framework
@@ -41,7 +38,7 @@ def send_letter(conn, letter, environment):
     conn.sendall(letter.encode('ASCII'))
     return letter
 
-def process_history_sentinel(strData, environment, models, model_window_sizes):
+def process_history_sentinel(strData, environment, models, model_window_sizes, epsilon):
     '''
     First use strData to update the TFSocketEnv object's variables.
     Then create and train a list of models of various window_sizes.
@@ -53,26 +50,51 @@ def process_history_sentinel(strData, environment, models, model_window_sizes):
         environment, TFSocketEnv object of the environment's details
         models, list (hardcoded length of 3) of TFSocketModel objects of various window_sizes
     '''
-    global TRAINING_THRESHOLD
-
     # Update environment variables
     environment = update_environment(strData, environment)
 
+    training_threshold = 10
+    loop_threshold = 2*environment.avg_steps # Suspect looping threshold
+
     # Use the random pseudo-model until we've collected enough data to train on
-    if environment.num_goals < TRAINING_THRESHOLD:
+    if environment.num_goals < training_threshold:
         environment.last_step = '*' # Select the random pseudo-model
-        return models # Return early to send random action
+        return models, epsilon # Return early to send random action
+
+    # If looping is suspected, use the random sudo-model and set all models to None for retraining
+    elif environment.steps_since_last_goal >= loop_threshold:
+        # Reset the models for training
+        if environment.steps_since_last_goal == loop_threshold:
+            log('Looks like the agent is stuck in a loop! Switching to random sudo-model')
+            log(f'avg_steps={environment.avg_steps:.2f}, steps_since_last_goal={environment.steps_since_last_goal}')
+            for index in range(len(models)):
+                models[index] = None
+
+        # Enable the random sudo-model
+        environment.last_step = '*'
+        return models, epsilon # Return early to send random action
+
+    # Epsilon-Greedy
+    # Randomly decide to use the models or take a random action, then shrink the
+    # likelyhood of taking a random action every time a random action is taken 
+    shrink_factor = (1e0) - (1e-1) # Just ever-so-slightly less than 1.0
+    
+    if random.random() < epsilon:
+        log('taking random action \'*\'')
+        environment.last_step = '*'
+        epsilon *= shrink_factor
+        log(f'epsilon: {epsilon:.3f}')
+        return models, epsilon
+
+    log('taking a trained action')
 
     # If we reached a goal, we need to retrain all the models
     # TODO: put this in a helper method
     if strData[-1:].isupper():
 
-        # When the agent reaches the TRAINING_THRESHOLD create the models
-        if environment.num_goals == TRAINING_THRESHOLD:
-            log(f'Reached training threshold: goal #{TRAINING_THRESHOLD}')
-            # Set all models to None to prepare for training
-            for index in range(len(models)):
-                models[index] = None
+        # When the agent reaches the training_threshold create the models
+        if environment.num_goals == training_threshold:
+            log(f'Reached training threshold: goal #{training_threshold}')
 
         # Find the model that predicted this goal
         predicting_model = None
@@ -99,21 +121,7 @@ def process_history_sentinel(strData, environment, models, model_window_sizes):
                 models[index].simulate_model()
             else:
                 models[index] = None
-        return models
-
-    # If looping is suspected, use the random sudo-model and set all models to None for retraining
-    loop_threshold = 2*environment.avg_steps # Suspect looping threshold
-    if environment.steps_since_last_goal >= loop_threshold:
-        # Reset the models for training
-        if environment.steps_since_last_goal == loop_threshold:
-            log('Looks like the agent is stuck in a loop! Switching to random sudo-model')
-            log(f'avg_steps={environment.avg_steps:.2f}, steps_since_last_goal={environment.steps_since_last_goal}')
-            for index in range(len(models)):
-                models[index] = None
-
-        # Enable the random sudo-model
-        environment.last_step = '*'
-        return models
+        # return models, epsilon
 
     # Create and train models of various window_sizes then select
     # Which model simulates the shortest path to a goal
@@ -122,7 +130,7 @@ def process_history_sentinel(strData, environment, models, model_window_sizes):
     # Select the next action from the shortest min_path_model, then adjust the sim_paths for all models
     models = get_best_prediction(environment, models, min_path_model)
 
-    return models
+    return models, epsilon
 
 def update_environment(strData, environment):
     '''
@@ -280,10 +288,8 @@ def main():
     # Defines how many models and the win_size param for each model
     # These numbers will change dynamically as the agent discovers a near-optimal size
     model_window_sizes = [4, 5, 6] # models[i].win_size = model_window_sizes[i] 
-
     # Chance of taking a random action
-    randChance = 1e0 - 1e-16 # Just ever-so-slightly less than 1.0
-
+    epsilon = (1e0) - (1e-16) # Just ever-so-slightly less than 1.0
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
             sock.bind(('127.0.0.1', portNum))
@@ -310,18 +316,11 @@ def main():
                         environment.alphabet = list(strData[12:])
                         environment.overall_alphabet = environment.alphabet + [let.upper() for let in environment.alphabet]
                         log(f'New alphabet: {environment.alphabet}')
-                        log(f'Sending "ack"') # Acknowledge
+                        log(f'Sending \'ack\'') # Acknowledge
                         conn.sendall('$$$ack'.encode('ASCII'))
 
                     elif strData.startswith('$$$history:'):
-                        models = process_history_sentinel(strData, environment, models, model_window_sizes)
-                        # Episilon-greedy
-                        if (environment.last_step != '*'):
-                            randChance *= randChance
-                        # log(f'randChance = {randChance}')
-                        if (random.random() < randChance):
-                            # log('EPSILON')
-                            environment.last_step = '*'
+                        models, epsilon = process_history_sentinel(strData, environment, models, model_window_sizes, epsilon)
                         # Send the model's prediction to the environment
                         send_letter(conn, environment.last_step, environment)
 

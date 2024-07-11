@@ -7,7 +7,7 @@ class TFSocketEnv:
     
     def __init__(self):
         self.alphabet = []              # The set of all valid actions an agent can take at any given point
-        self.entire_history = ''        # List of all actions the agent has taken so fara
+        self.entire_history = ''        # List of all actions the agent has taken so far
         self.last_step = ''             # Agent's most recent action
         self.steps_since_last_goal = 0  # Self explanatory lol
         self.num_goals = 0              # Number of goals the agent has found so far
