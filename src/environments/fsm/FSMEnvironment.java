@@ -131,7 +131,7 @@ public class FSMEnvironment implements IEnvironment {
         this.currentState = transitions.get(action);
         if (this.transitionTable.isGoalState(this.currentState)) {
             sensorData = new SensorData(true);
-            System.out.println("New state: s" + this.currentState + " is the goal state!");
+            // System.out.println("New state: s" + this.currentState + " is the goal state!");
             this.currentState = this.getRandomState();
             // System.out.println("\n**Teleporting to random state**");
         }

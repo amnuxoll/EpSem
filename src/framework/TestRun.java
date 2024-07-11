@@ -116,8 +116,8 @@ public class TestRun implements IIntrospector, Runnable {
                 FSMEnvironment env = (FSMEnvironment)this.environment;
                 Integer currState = env.getCurrentState();
 
-                System.out.println("Current State: s" + currState);
-                System.out.println("Agent's action: " + action);
+                // System.out.println("Current State: s" + currState);
+                // System.out.println("Agent's action: " + action);
 
                 sensorData = this.environment.applyAction(action);
                 moveCount++;
@@ -125,16 +125,16 @@ public class TestRun implements IIntrospector, Runnable {
                 if (sensorData.isGoal()) {
                     this.agent.onGoalFound();
                     this.fireGoalEvent(goalCount++, moveCount);
-                    System.out.println("\nGoal found:\n\tCurrent # of goals found: " + goalCount + "\n\tCurrent # of moves: " + moveCount);
+                    // System.out.println("\nGoal found:\n\tCurrent # of goals found: " + goalCount + "\n\tCurrent # of moves: " + moveCount);
                     moveCount = 0;
                 } else{
                     Integer newState = env.getCurrentState();
-                    System.out.print("New state: s" + newState);
-                    System.out.print("\t(shortest path: " + env.getShortestSequenceString(currState));
-                    System.out.println(", blind path: " + env.getBlindPathString(currState) + ")");
+                    // System.out.print("New state: s" + newState);
+                    // System.out.print("\t(shortest path: " + env.getShortestSequenceString(currState));
+                    // System.out.println(", blind path: " + env.getBlindPathString(currState) + ")");
                 }
 
-                System.out.println();
+                // System.out.println();
 
             } while (goalCount < this.numberOfGoalsToFind);
             this.agent.onTestRunComplete();

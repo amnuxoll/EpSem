@@ -257,7 +257,7 @@ public class TFSocketAgent implements IAgent {
         
         // Send history to the python agent
         String hist = buildHistoryString();
-        System.out.println(hist);
+        // System.out.println(hist);
         sendMessage(hist);
 
         //Retrieve/use the agent's response

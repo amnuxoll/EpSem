@@ -8,7 +8,7 @@ from TFSocketEnv import TFSocketEnv as tfenv
 from TFSocketUtils import log
 
 # Define global constants
-TRAINING_THRESHOLD = 200  # Number of random steps to take before training models
+TRAINING_THRESHOLD = 100  # Number of random steps to take before training models
 
 '''
 This is the main script for the TFSocket python agent
@@ -243,7 +243,7 @@ def get_best_prediction(environment, models, min_path_model):
     # Adjust sim_paths for all models based on selected action
     for index in range(len(models)):
         if models[index] is not None:
-            log(f'Model (window_size={models[index].window_size}); sim_path to goal: {models[index].sim_path}')
+            # log(f'Model (window_size={models[index].window_size}); sim_path to goal: {models[index].sim_path}')
             action = models[index].sim_path[0]
             if action.lower() != environment.last_step:
                 # This model's prediction does not match action selected by min_path_model
@@ -281,6 +281,9 @@ def main():
     # These numbers will change dynamically as the agent discovers a near-optimal size
     model_window_sizes = [4, 5, 6] # models[i].win_size = model_window_sizes[i] 
 
+    # Chance of taking a random action
+    randChance = 1e0 - 1e-16 # Just ever-so-slightly less than 1.0
+
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
             sock.bind(('127.0.0.1', portNum))
@@ -312,6 +315,13 @@ def main():
 
                     elif strData.startswith('$$$history:'):
                         models = process_history_sentinel(strData, environment, models, model_window_sizes)
+                        # Episilon-greedy
+                        if (environment.last_step != '*'):
+                            randChance *= randChance
+                        # log(f'randChance = {randChance}')
+                        if (random.random() < randChance):
+                            # log('EPSILON')
+                            environment.last_step = '*'
                         # Send the model's prediction to the environment
                         send_letter(conn, environment.last_step, environment)
 
