@@ -85,23 +85,17 @@ def process_history_sentinel(strData, environment, models, model_window_sizes):
         #   h = multiplicative inverse of the x-axis scaling factor (i.e. for h=0.25, the function decays 4x slower)
         #   x = number of steps the agent has taken after reaching the training_threshold
 
-        h = 0.25    # TODO: Hardcoded value needs to be tweaked
-        k = 12      # TODO: Hardcoded value needs to be tweaked
+        h = 0.175 # NOTE: This value has been hard coded to 0.175 after optimization testing
+        k = 3 # NOTE: This value is hard coded to be 3 because it defines the sigmoid y-intercept as 0.999
         x = max(0, len(environment.entire_history) - (environment.avg_steps * training_threshold)) # Always positive
         epsilon = (1 - (10**-k)) ** (2 ** (h * x))
-
-        log(f'\nx = {len(environment.entire_history):.3f} - {environment.avg_steps * training_threshold:.3f} = {x}')
-        log(f'epsilon: {epsilon:.3f}')
 
         return epsilon
 
     epsilon = epsilon_greedy(environment)
     if random.random() < epsilon:
-        log('\nEpsilon got greedy: Taking a random action')
         environment.last_step = '*'
         return models # Return early to send random action
-
-    log('\nEpsilon wasn\'t greedy this time: Taking a trained action')
 
     # If we reached a goal, we need to retrain all the models
     # TODO: put this in a helper method
