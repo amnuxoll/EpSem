@@ -67,9 +67,11 @@ class TFSocketModel:
         predictions = predictions[0] # Reduce tensor to 1D list
         
         # TODO: Double check the correctness/efficiency of this algorithm, Penny does not like this
-        goal_predictions = predictions[len(self.environment.alphabet):]
+        goal_predictions = list(predictions[len(self.environment.alphabet):])
+        for i in range(len(goal_predictions)):
+            goal_predictions[i] += predictions[i]
         max_prediction = max(goal_predictions)  # Get the max prediction value for only goal letters
-        max_index = list(goal_predictions).index(max_prediction)+len(self.environment.alphabet)
+        max_index = goal_predictions.index(max_prediction)+len(self.environment.alphabet)
         best_goal = {'prediction': max_prediction,
                      'letter': self.environment.overall_alphabet[max_index],
                      'index': 0}
@@ -95,11 +97,11 @@ class TFSocketModel:
             index += 1
             predictions = predictions[0] # Reduce tensor to 1D list
             for i in range(len(self.environment.overall_alphabet))[len(self.environment.alphabet):]:
-                if predictions[i] > best_goal['prediction']:
-                    best_goal['prediction'] = predictions[i]
+                if predictions[i] + predictions[i-len(self.environment.alphabet)] > best_goal['prediction']:
+                    best_goal['prediction'] = predictions[i] + predictions[i-len(self.environment.alphabet)]
                     best_goal['letter'] = self.environment.overall_alphabet[i]
                     best_goal['index'] = index
-
+        
         # If necessary, truncate the sim_path with an artificial goal
         if (len(self.sim_path) >= max_len) and (self.sim_path[-1:].islower()):
             self.sim_path = self.sim_path[:best_goal['index']]

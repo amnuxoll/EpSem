@@ -53,7 +53,7 @@ def process_history_sentinel(strData, environment, models, model_window_sizes):
     # Update environment variables
     environment = update_environment(strData, environment)
 
-    training_threshold = 10
+    training_threshold = 100
     loop_threshold = 2*environment.avg_steps # Suspect looping threshold
 
     # Use the random pseudo-model until we've collected enough data to train on
@@ -92,10 +92,10 @@ def process_history_sentinel(strData, environment, models, model_window_sizes):
 
         return epsilon
 
-    epsilon = epsilon_greedy(environment)
-    if random.random() < epsilon:
-        environment.last_step = '*'
-        return models # Return early to send random action
+    # epsilon = epsilon_greedy(environment)
+    # if random.random() < epsilon:
+        # environment.last_step = '*'
+        # return models # Return early to send random action
 
     # If we reached a goal, we need to retrain all the models
     # TODO: put this in a helper method
