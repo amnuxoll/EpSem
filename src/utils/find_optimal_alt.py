@@ -63,7 +63,7 @@ for depth in range(int(goal_state) +1):
             steps_to_goal[int(lhs)] = min(rhs_steps_to_goal) + 1
 
 # Average out the length to the goal state of all states
-avg_steps = sum(steps_to_goal)/len(steps_to_goal)
+avg_steps = sum(steps_to_goal) / (len(steps_to_goal) -1)
 
 print(f'steps to goal: {steps_to_goal}')
 print(f'average steps to goal: {avg_steps}')

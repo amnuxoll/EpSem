@@ -88,6 +88,8 @@ def process_history_sentinel(strData, environment, models, model_window_sizes):
         h = 0.175 # NOTE: This value has been hard coded to 0.175 after optimization testing
         k = 3 # NOTE: This value is hard coded to be 3 because it defines the sigmoid y-intercept as 0.999
         x = max(0, len(environment.entire_history) - (environment.avg_steps * training_threshold)) # Always positive
+        if x >= 73: # Hard cap to prevent infinitesimally small numbers python can't handle
+            return 0
         epsilon = (1 - (10**-k)) ** (2 ** (h * x))
 
         return epsilon
@@ -203,7 +205,7 @@ def train_models(environment, models, model_window_sizes):
             model[2].win_size = model_window_sizes[2] # = 6
     '''
     if all(model is None for model in models):
-        log(f'Training models')
+        # log(f'Training models')
         # If we've reached the end of random-action data gathering, create models using entire history
         for index in range(len(model_window_sizes)):
             models[index] = tfmodel(environment, model_window_sizes[index])
