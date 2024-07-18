@@ -315,13 +315,6 @@ def main():
 
                     elif strData.startswith('$$$history:'):
                         models = process_history_sentinel(strData, environment, models, model_window_sizes)
-                        # Episilon-greedy
-                        if (environment.last_step != '*'):
-                            randChance *= randChance
-                        # log(f'randChance = {randChance}')
-                        if (random.random() < randChance):
-                            # log('EPSILON')
-                            environment.last_step = '*'
                         # Send the model's prediction to the environment
                         send_letter(conn, environment.last_step, environment)
 
