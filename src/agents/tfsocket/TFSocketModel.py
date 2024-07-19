@@ -112,6 +112,7 @@ class TFSocketModel:
         Refer to the beginner tensorflow tutorial:
         https://www.tensorflow.org/tutorials/quickstart/beginner
         '''
+        
         # Defining the inputs and expected outputs from a given history
         self.environment.update_avg_steps()
         self.remove_duplicate_goal_paths()  # NOTE: We can maybe move this to remove duplicates after each goal instead
