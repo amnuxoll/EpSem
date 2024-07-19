@@ -239,9 +239,9 @@ public class TFSocketAgent implements IAgent {
             if (ep.hitGoal()) {
                 actStr = actStr.toUpperCase();
             }
+            retVal += ep.getSensorData().toStringShort();
             retVal += actStr;
         }
-
         return retVal;
     }
     

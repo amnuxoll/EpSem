@@ -310,7 +310,10 @@ public class Runner {
     private static TestSuite TF_SUITE = new TestSuite(
             TestSuiteConfiguration.TEST,
             new IEnvironmentProvider[] {
-                    new FSMEnvironmentProvider(new FSMTransitionTableBuilder(3, 50, Random.getTrue()), FSMEnvironment.Sensor.NO_SENSORS),
+                    new FSMEnvironmentProvider(new FSMTransitionTableBuilder(2, 10, Random.getTrue()), 
+                    EnumSet.of(FSMEnvironment.Sensor.IS_EVEN,FSMEnvironment.Sensor.IS_ODD),
+                    false,
+                    0.0),
             },
             new IAgentProvider[] {
                     new TFSocketAgentProvider()

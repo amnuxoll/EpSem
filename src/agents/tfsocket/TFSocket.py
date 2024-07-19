@@ -134,6 +134,10 @@ def process_history_sentinel(strData, environment, models, model_window_sizes):
 
     # Select the next action from the shortest min_path_model, then adjust the sim_paths for all models
     models = get_best_prediction(environment, models, min_path_model)
+    # if environment.last_step != '*':
+    #     log(f'Predicted action: {environment.last_step}')
+    # else:
+    #     log('Random action selected')
 
     return models
 
@@ -152,9 +156,18 @@ def update_environment(strData, environment):
     '''
     # Update entire_history
     window = strData[11:]
+    
+    if window == '':
+        return environment
+    if environment.num_sensors == 0:
+        environment.get_num_sensors(window)
+        log(f'num_sensors: {environment.num_sensors}')
+    
+
     # log(f'Window received: {window}')
-    if len(window) == 1:
-        window = window.lower()
+    if len(window[environment.num_sensors:]) == 1:
+        window = window[:environment.num_sensors] + window[environment.num_sensors:].lower()
+
     environment.entire_history = environment.entire_history + str(window[-1:])
 
     # Update num_goals and steps_since_last_goal
@@ -164,8 +177,8 @@ def update_environment(strData, environment):
         log(f'The agent found Goal #{environment.num_goals:<3} in {environment.steps_since_last_goal:>3} steps')
         environment.steps_since_last_goal = 0
 
-    # Update average steps per goal
-    environment.update_avg_steps()
+        # Update average steps per goal
+        environment.update_avg_steps()
 
     return environment
 
@@ -205,7 +218,7 @@ def train_models(environment, models, model_window_sizes):
             model[2].win_size = model_window_sizes[2] # = 6
     '''
     if all(model is None for model in models):
-        # log(f'Training models')
+        log('Training models')
         # If we've reached the end of random-action data gathering, create models using entire history
         for index in range(len(model_window_sizes)):
             models[index] = tfmodel(environment, model_window_sizes[index])
@@ -248,7 +261,7 @@ def get_best_prediction(environment, models, min_path_model):
     '''
     # If there is a trained model, use it to select the next action
     if min_path_model is None:
-        log(f'Error: All models are None; The training and selecting of models was unsuccessfull.')
+        log('Error: All models are None; The training and selecting of models was unsuccessful.')
         return models
 
     environment.last_step = min_path_model.sim_path[0].lower()
