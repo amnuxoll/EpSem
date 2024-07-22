@@ -3,7 +3,9 @@ import contextlib
 import random
 from TFSocketUtils import log
 import traceback
-
+"""
+NOTE: There are a bunch of logs that were included for testing that need to be taken out.
+"""
 class TFSocketModel:
     '''
     TFSocketModel uses tensorflow to read a history of past
