@@ -7,6 +7,7 @@ from TFSocketModel import TFSocketModel as tfmodel
 from TFSocketEnv import TFSocketEnv as tfenv
 from TFSocketUtils import log
 
+STEPS = 0 # Ignore this, this is used for testing purposes
 '''
 This is the main script for the TFSocket python agent
 TFSocket communicates with the java-side proxy agent with the FSM framework
@@ -154,6 +155,7 @@ def update_environment(strData, environment):
         environment, TFSocketEnv object of the environment's details
     Returns: The updated TFSocketEnv object
     '''
+    global STEPS
     # Update entire_history
     window = strData[11:]
     
@@ -168,7 +170,10 @@ def update_environment(strData, environment):
     if len(window[environment.num_sensors:]) == 1:
         window = window[:environment.num_sensors] + window[environment.num_sensors:].lower()
 
-    environment.entire_history = environment.entire_history + str(window[-1:])
+    log(f'Window: {window}')
+    log(f'Window modified: {window[-1*environment.num_sensors - 1:]}')
+    
+    environment.entire_history = environment.entire_history + str(window[-1*environment.num_sensors - 1:])
 
     # Update num_goals and steps_since_last_goal
     environment.steps_since_last_goal +=1

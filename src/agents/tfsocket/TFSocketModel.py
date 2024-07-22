@@ -2,6 +2,7 @@ import tensorflow as tf
 import contextlib
 import random
 from TFSocketUtils import log
+import traceback
 
 class TFSocketModel:
     '''
@@ -15,7 +16,7 @@ class TFSocketModel:
         define object variables and create the model function-variable
         '''
         self.environment = environment
-        self.window_size = window_size
+        self.window_size = window_size * (environment.num_sensors + 1)  # Accommodated to handle the amount of actions + sensors
         self.sim_path = None # Predicted shortest path to goal (e.g., abbabA)
         self.model = None
         
@@ -88,6 +89,7 @@ class TFSocketModel:
             # Simulate the next step from entire_path and sim_path so far
             sim_hist = self.environment.entire_history + self.sim_path
             window = sim_hist[-self.window_size:]
+            log(f'In the loop in simulate_model: window = {window}')
             predictions = self.get_predictions(window)
             self.sim_path += self.get_letter(predictions)
 
@@ -117,7 +119,7 @@ class TFSocketModel:
         self.environment.update_avg_steps()
         self.remove_duplicate_goal_paths()  # NOTE: We can maybe move this to remove duplicates after each goal instead
         x_train = self.calc_input_tensors(self.environment.entire_history)
-        y_train = self.calc_desired_actions(self.environment.entire_history)
+        y_train = self.calc_desired_actions(self.filter_for_actions())
         x_train = tf.constant(x_train)
         y_train = tf.constant(y_train)
 
@@ -141,11 +143,25 @@ class TFSocketModel:
                 self.model.fit(x_train, y_train, epochs=2, verbose=0)
         except Exception as e:
             log(f'ERROR: {e}')
-            log(f'\tx_train: {x_train} with len: {len(x_train)} and shape: {x_train.shape}')
-            log(f'\ty_train: {y_train} with len: {len(y_train)} and shape: {y_train.shape}')
+            log(f'\tx_train with len: {len(x_train)} and shape: {x_train.shape}')
+            log(f'\ty_train with len: {len(y_train)} and shape: {y_train.shape}')
             log(f'\tmodel: {self.model}')
             log(f'\tloss_fn: {loss_fn}')
             log(f'\tself.environment.entire_history: {self.environment.entire_history}')
+            toPrint = []
+            for elem in self.environment.entire_history:
+                if elem in self.environment.overall_alphabet:
+                    toPrint.append(elem)
+            toPrint = ''.join(toPrint)
+            log(f'\tself.environment.entire_history (actions):   {toPrint}, len: {len(toPrint)}')
+            exit()
+            
+    def filter_for_actions(self):
+        ret = []
+        for char in self.environment.entire_history:
+            if char in self.environment.overall_alphabet:
+                ret.append(char)
+        return ''.join(ret)
     
     def remove_duplicate_goal_paths(self):
         '''
@@ -162,7 +178,14 @@ class TFSocketModel:
                 last_goal = i+1
         
         # Remove duplicate goal paths
-        ret = list(set(goal_paths))
+        # Look up times are faster in sets than lists so use a set to check if an item is in the list
+        # NOTE: May want to adjust this since we are now using sensors in the history
+        seen = set()
+        ret = []
+        for path in goal_paths:
+            if path not in seen:
+                seen.add(path)
+                ret.append(path)
         self.environment.entire_history = ''.join(ret)
         
 
@@ -190,12 +213,11 @@ class TFSocketModel:
         # Example:
         #   If window_size = 3, and len(given_window) = 10,
         #   then it will output [3, 4, 5, 6, 7, 8, 9]
-        given_window_range = list(range(len(given_window)))[self.window_size:]
+        given_window_range = list(range(len(given_window)))[self.window_size::self.environment.num_sensors+1]
         tensor = []
         for i in given_window_range:
             window = given_window[i-self.window_size:i]
             tensor.append(self.flatten(window))
-
         return tensor
 
     def get_predictions(self, window):
@@ -208,6 +230,7 @@ class TFSocketModel:
         if self.model is None:
             log('ERROR: Model should not be None in get_predictions()')
             return None
+        log(f'in get_predictions: window = {window}')
         one_input = [self.flatten(window)]
         one_input = tf.constant(one_input)
         predictions = self.model(one_input)
@@ -224,8 +247,6 @@ class TFSocketModel:
         calc_input_tensors for the same window
 
         window - in a letter-based format (e.g., aabaBbbabaabaBbbab...)
-        cutoff - distance from curr pos to goal at which the agent prefers 
-                NOT to take the historical action
         '''
         # Sanity check
         if len(window) < self.window_size:
@@ -233,7 +254,8 @@ class TFSocketModel:
             return
 
         # Iterate over a range starting at index window_size in the window
-        hrange = list(range(len(window)))[self.window_size:]
+        win_size = self.window_size // (self.environment.num_sensors + 1)
+        hrange = list(range(len(window)))[win_size:]
         desired_actions = []
         for i in hrange:
             # Calculate how many steps from this position to the next goal
@@ -242,7 +264,6 @@ class TFSocketModel:
                 num_steps += 1
                 if i + num_steps >= len(window):
                     break
-
             # Calculate the index of the action at this position, [a,b,c,A,B,C]
             # 0 = a, 1 = b, 2 = c, 3 = A, 4 = B, 5 = C
             
@@ -263,7 +284,6 @@ class TFSocketModel:
                 while orig == val:
                     val = random.choice(range(len(self.environment.alphabet)))
                     
-
             # Add to result
             desired_actions.append(val)
 
@@ -284,25 +304,74 @@ class TFSocketModel:
         '''
         
         # Set the indexes of the alphabet with a dictionary
+        log(f'Initial window: {window}')
         indexes = dict()
         for i in range(len(self.environment.alphabet)):
             indexes[i] = self.environment.alphabet[i]
         else:
             indexes['GOAL'] = i+1
             
-        win_size = len(window)
+        # win_size represents the number of actions we want in the window
+        win_size = self.window_size // (self.environment.num_sensors + 1)
+        
         return_tensor = []
         for action in self.environment.alphabet:
             return_tensor += [0.0 for i in range(win_size)]  # For each action, add a list of zeros
         return_tensor += [0.0 for i in range(win_size)]      # Add a list of zeros for the goals
         
+        # Create a separate list for the actions and sensors in the window
+        action_only_window = [action for action in window if action in self.environment.overall_alphabet]
+        sensor_only_window = []
+        for i in range(0,len(window),4):
+            sensor_only_window.append(window[i:i+self.environment.num_sensors])
+        
+        # tensor_indexes is a variable to keep track of the indexes of the actions in the tensor
+        # while the sensors are added in the tensor
+        tensor_indexes = []
         for i in range(win_size):
-            let = window[i]
+            let = action_only_window[i]
             for key, val in indexes.items():
                 if let.lower() == val:
-                    return_tensor[i + key*win_size] = 1.0                
+                    return_tensor[i + key*win_size] = 1.0
+                    if let.islower():
+                        tensor_indexes.append(i + key*win_size)
                 if let.isupper():
                     key = indexes['GOAL']
-                    return_tensor[i + key*win_size] = 1.0            
+                    return_tensor[i + key*win_size] = 1.0  
+                    tensor_indexes.append(i + key*win_size)          
                     break
+        
+        # sensor_index is a variable to keep track of which sensor/action pair we are on
+        sensor_index = 0
+        # Loop through and add each sensor data point in front of the appropriate action
+        for t_index in tensor_indexes:
+            # Loop through the sensors in reverse order due to how insert() works
+            for i in range(self.environment.num_sensors)[::-1]:
+                try:
+                    return_tensor.insert(t_index, float(sensor_only_window[sensor_index][i]))
+                except Exception as e:
+                    log(f'Exception: {e}')
+                    log('-----')
+                    try:
+                        f = open('pyout.txt', 'a')
+                        traceback.print_tb(e.__traceback__, None, f)
+                        f.close()
+                    except Exception as errerr:
+                        log(f'Exception exception!: {errerr}')
+                    log(f'sensor_index: {sensor_index}')
+                    log(f'sensor_only_window: {sensor_only_window}')
+                    log(f'return_tensor: {return_tensor}')
+                    log(f'tensor_indexes: {tensor_indexes}')
+                    log(f'window: {window}')
+                    log(f'self.environment.entire_history: {self.environment.entire_history}')
+                    log('--- end of report ---')
+                    exit()
+            sensor_index += 1
+            
+            # Loop through the remaining indexes and check if the inserts affected their position in the tensor
+            # If so, adjust the index accordingly
+            for i in range(len(tensor_indexes))[sensor_index:]:
+                if tensor_indexes[i] > t_index:
+                    tensor_indexes[i] += self.environment.num_sensors
+
         return return_tensor
