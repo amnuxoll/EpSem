@@ -63,6 +63,20 @@ def process_history_sentinel(strData, environment, models, model_window_sizes):
         environment.last_step = '*' # Select the random pseudo-model
         return models # Return early to send random action
 
+    # If looping is suspected, use the random sudo-model and set all models to None for retraining
+    loop_threshold = 2*environment.avg_steps # Suspect looping threshold
+    if environment.steps_since_last_goal >= loop_threshold:
+        # Reset the models for training
+        if environment.steps_since_last_goal == loop_threshold:
+            log('Looks like the agent is stuck in a loop! Switching to random sudo-model')
+            log(f'avg_steps={environment.avg_steps:.2f}, steps_since_last_goal={environment.steps_since_last_goal}')
+            for index in range(len(models)):
+                models[index] = None
+
+        # Enable the random pseudo-model
+        environment.last_step = '*'
+        return models
+
     # If we reached a goal, we need to retrain all the models
     # TODO: put this in a helper method
     if strData[-1:].isupper():
@@ -99,20 +113,6 @@ def process_history_sentinel(strData, environment, models, model_window_sizes):
                 models[index].simulate_model()
             else:
                 models[index] = None
-        return models
-
-    # If looping is suspected, use the random sudo-model and set all models to None for retraining
-    loop_threshold = 2*environment.avg_steps # Suspect looping threshold
-    if environment.steps_since_last_goal >= loop_threshold:
-        # Reset the models for training
-        if environment.steps_since_last_goal == loop_threshold:
-            log('Looks like the agent is stuck in a loop! Switching to random sudo-model')
-            log(f'avg_steps={environment.avg_steps:.2f}, steps_since_last_goal={environment.steps_since_last_goal}')
-            for index in range(len(models)):
-                models[index] = None
-
-        # Enable the random sudo-model
-        environment.last_step = '*'
         return models
 
     # Create and train models of various window_sizes then select

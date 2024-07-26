@@ -74,7 +74,7 @@ class TFSocketModel:
                      'letter': self.environment.overall_alphabet[max_index],
                      'index': 0}
 
-        max_len = 2*self.environment.avg_steps
+        max_len = 2*self.environment.avg_steps # TODO: Change this var to be self tuning?
         index = 0
         # Simulate future steps
         self.sim_path = first_sim_action
@@ -130,7 +130,7 @@ class TFSocketModel:
         self.model = tf.keras.models.Sequential([
             tf.keras.layers.Dense(int(len(x_train)/2), activation='relu'),
             tf.keras.layers.Dropout(0.2),
-            tf.keras.layers.Dense(2*len(self.environment.alphabet), activation='softmax')   # Dense the layer with 2*len(alphabet) nodes for each action and goal actions
+            tf.keras.layers.Dense(2*len(self.environment.alphabet), activation='softmax')
         ])
         
         # Optimize and train the model
@@ -257,11 +257,10 @@ class TFSocketModel:
             #   II.  if val is 'A' (=1), set val to 'b' (=2)
             #   III. if val is 'b' (=2), set val to 'a' (=0)
             #   IV.  if val is 'B' (=3), set val to 'a' (=0)
-            if num_steps >= self.environment.avg_steps: 
+            if num_steps >= self.environment.rolling_avg_steps: # TODO: Change self.environment.avg_steps to be self tuning?
                 orig = val
                 while orig == val:
                     val = random.choice(range(len(self.environment.alphabet)))
-                    
 
             # Add to result
             desired_actions.append(val)
