@@ -257,7 +257,7 @@ class TFSocketModel:
             #   II.  if val is 'A' (=1), set val to 'b' (=2)
             #   III. if val is 'b' (=2), set val to 'a' (=0)
             #   IV.  if val is 'B' (=3), set val to 'a' (=0)
-            if num_steps >= self.window_size: 
+            if num_steps >= self.environment.avg_steps: 
                 orig = val
                 while orig == val:
                     val = random.choice(range(len(self.environment.alphabet)))
