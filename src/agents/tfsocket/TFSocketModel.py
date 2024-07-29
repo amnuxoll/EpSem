@@ -18,9 +18,6 @@ class TFSocketModel:
         self.window_size = window_size
         self.sim_path = None # Predicted shortest path to goal (e.g., abbabA)
         self.model = None
-        
-
-        
 
     def get_letter(self, prediction):
         '''
@@ -244,9 +241,9 @@ class TFSocketModel:
 
             # Calculate the index of the action at this position, [a,b,c,A,B,C]
             # 0 = a, 1 = b, 2 = c, 3 = A, 4 = B, 5 = C
-            
+
             val = self.environment.overall_alphabet.index(window[i])
-        
+
             if val is None:
                 log('ERROR: invalid character in window')
                 return
@@ -257,7 +254,7 @@ class TFSocketModel:
             #   II.  if val is 'A' (=1), set val to 'b' (=2)
             #   III. if val is 'b' (=2), set val to 'a' (=0)
             #   IV.  if val is 'B' (=3), set val to 'a' (=0)
-            if num_steps >= self.environment.rolling_avg_steps: # TODO: Change self.environment.avg_steps to be self tuning?
+            if num_steps >= 3*self.environment.avg_steps:
                 orig = val
                 while orig == val:
                     val = random.choice(range(len(self.environment.alphabet)))
@@ -271,7 +268,7 @@ class TFSocketModel:
         '''
         Convert a window into an input tensor
         Helper function for @calc_input_tensors()
-        
+
         A window has this format:      'aabaBbbab'
         the return object's length is (len(self.environment.alphabet) + 1)*window_size
         being whether or not an 'a'/'A' is in that position
@@ -280,20 +277,20 @@ class TFSocketModel:
         TODO:  In the future we may want to handle sensors. 
             Example input window:      '01a11B00b00a'
         '''
-        
+
         # Set the indexes of the alphabet with a dictionary
         indexes = dict()
         for i in range(len(self.environment.alphabet)):
             indexes[i] = self.environment.alphabet[i]
         else:
             indexes["GOAL"] = i+1
-            
+
         win_size = len(window)
         return_tensor = []
         for action in self.environment.alphabet:
             return_tensor += [0.0 for i in range(win_size)]  # For each action, add a list of zeros
         return_tensor += [0.0 for i in range(win_size)]      # Add a list of zeros for the goals
-        
+
         for i in range(win_size):
             let = window[i]
             for key, val in indexes.items():
