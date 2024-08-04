@@ -8,7 +8,7 @@ from TFSocketEnv import TFSocketEnv as tfenv
 from TFSocketUtils import log
 
 # Define global constants
-TRAINING_THRESHOLD = 100  # Number of random steps to take before training models
+TRAINING_THRESHOLD = 10  # Number of random steps to take before training models (MIN=10)
 
 '''
 This is the main script for the TFSocket python agent
@@ -66,7 +66,6 @@ def process_history_sentinel(strData, environment, models, model_window_sizes):
     # If we reached a goal, we need to retrain all the models
     # TODO: put this in a helper method
     if strData[-1:].isupper():
-
         # When the agent reaches the TRAINING_THRESHOLD create the models
         if environment.num_goals == TRAINING_THRESHOLD:
             log(f'Reached training threshold: goal #{TRAINING_THRESHOLD}')
@@ -88,7 +87,7 @@ def process_history_sentinel(strData, environment, models, model_window_sizes):
         # Adjust model sizes
         # TODO: Try something binary-search-like?
         if predicting_model is not None and predicting_model.window_size >= 2:
-            log(f'new model sizes centered around {predicting_model.window_size}')
+            # log(f'new model sizes centered around {predicting_model.window_size}')
             model_window_sizes[0] = predicting_model.window_size - 1
             model_window_sizes[1] = predicting_model.window_size
             model_window_sizes[2] = predicting_model.window_size + 1
@@ -106,8 +105,8 @@ def process_history_sentinel(strData, environment, models, model_window_sizes):
     if environment.steps_since_last_goal >= loop_threshold:
         # Reset the models for training
         if environment.steps_since_last_goal == loop_threshold:
-            log('Looks like the agent is stuck in a loop! Switching to random sudo-model')
-            log(f'avg_steps={environment.avg_steps:.2f}, steps_since_last_goal={environment.steps_since_last_goal}')
+            # log('Looks like the agent is stuck in a loop! Switching to random pseudo-model')
+            # log(f'avg_steps={environment.avg_steps:.2f}, steps_since_last_goal={environment.steps_since_last_goal}')
             for index in range(len(models)):
                 models[index] = None
 
@@ -192,7 +191,7 @@ def train_models(environment, models, model_window_sizes):
             model[2].win_size = model_window_sizes[2] # = 6
     '''
     if all(model is None for model in models):
-        log(f'Training models')
+        # log(f'Training models')
         # If we've reached the end of random-action data gathering, create models using entire history
         for index in range(len(model_window_sizes)):
             models[index] = tfmodel(environment, model_window_sizes[index])
@@ -280,9 +279,6 @@ def main():
     # Defines how many models and the win_size param for each model
     # These numbers will change dynamically as the agent discovers a near-optimal size
     model_window_sizes = [4, 5, 6] # models[i].win_size = model_window_sizes[i] 
-
-    # Chance of taking a random action
-    randChance = 1e0 - 1e-16 # Just ever-so-slightly less than 1.0
 
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:

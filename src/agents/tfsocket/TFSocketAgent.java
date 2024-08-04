@@ -36,7 +36,6 @@ public class TFSocketAgent implements IAgent {
     //This is how many previous actions we send to the python agent
     public static final int WINDOW_SIZE = 10;
 
-    
     public TFSocketAgent(Random random) {
         // For unit testing purposes we inject a Random object that can be seeded to
         // produce
