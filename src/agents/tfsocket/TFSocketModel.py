@@ -18,9 +18,6 @@ class TFSocketModel:
         self.window_size = window_size
         self.sim_path = None # Predicted shortest path to goal (e.g., abbabA)
         self.model = None
-        
-
-        
 
     def get_letter(self, prediction):
         '''
@@ -257,7 +254,7 @@ class TFSocketModel:
             #   II.  if val is 'A' (=1), set val to 'b' (=2)
             #   III. if val is 'b' (=2), set val to 'a' (=0)
             #   IV.  if val is 'B' (=3), set val to 'a' (=0)
-            if num_steps >= self.window_size: 
+            if num_steps >= 0.25*self.environment.avg_steps: 
                 orig = val
                 while orig == val:
                     val = random.choice(range(len(self.environment.alphabet)))

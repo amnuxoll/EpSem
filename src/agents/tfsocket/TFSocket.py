@@ -65,8 +65,8 @@ def process_history_sentinel(strData, environment, models, model_window_sizes):
     elif environment.steps_since_last_goal >= loop_threshold:
         # Reset the models for training
         if environment.steps_since_last_goal == loop_threshold:
-            log('Looks like the agent is stuck in a loop! Switching to random sudo-model')
-            log(f'avg_steps={environment.avg_steps:.2f}, steps_since_last_goal={environment.steps_since_last_goal}')
+            # log('Looks like the agent is stuck in a loop! Switching to random pseudo-model')
+            # log(f'avg_steps={environment.avg_steps:.2f}, steps_since_last_goal={environment.steps_since_last_goal}')
             for index in range(len(models)):
                 models[index] = None
 
@@ -116,7 +116,7 @@ def process_history_sentinel(strData, environment, models, model_window_sizes):
         # Adjust model sizes
         # TODO: Try something binary-search-like?
         if predicting_model is not None and predicting_model.window_size >= 2:
-            log(f'new model sizes centered around {predicting_model.window_size}')
+            # log(f'new model sizes centered around {predicting_model.window_size}')
             model_window_sizes[0] = predicting_model.window_size - 1
             model_window_sizes[1] = predicting_model.window_size
             model_window_sizes[2] = predicting_model.window_size + 1
