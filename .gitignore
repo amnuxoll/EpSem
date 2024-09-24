@@ -131,3 +131,5 @@ old_data/
 figure_data/
 LOOP_*
 THRESH=10*
+BENCHMARK*.txt
+THRESHOLD=10*

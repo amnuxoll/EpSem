@@ -9,6 +9,7 @@ import agents.marzrules.RulesAgentProvider;
 import agents.nsm.NSMAgentProvider;
 import agents.phujus.PhuJusAgentProvider;
 import agents.predr.PredrAgentProvider;
+import agents.pytorchDQN.pytorchDQNAgentProvider;
 import agents.wfc.WFCAgentProvider;
 import agents.ndxr.NdxrAgentProvider;
 import agents.tfsocket.TFSocketAgentProvider;
@@ -310,12 +311,22 @@ public class Runner {
     private static TestSuite TF_SUITE = new TestSuite(
             TestSuiteConfiguration.TEST,
             new IEnvironmentProvider[] {
-                    new FSMEnvironmentProvider(new FSMTransitionTableBuilder(2, 10, Random.getTrue()), FSMEnvironment.Sensor.NO_SENSORS),
+                    new FSMEnvironmentProvider(new FSMTransitionTableBuilder(3, 50, Random.getTrue()), FSMEnvironment.Sensor.NO_SENSORS),
             },
             new IAgentProvider[] {
                     new TFSocketAgentProvider()
             }
     );
+
+    private static TestSuite PYTORCH_SUITE = new TestSuite(
+        TestSuiteConfiguration.TEST,
+        new IEnvironmentProvider[] {
+                new FSMEnvironmentProvider(new FSMTransitionTableBuilder(2, 10, Random.getTrue()), FSMEnvironment.Sensor.NO_SENSORS),
+        },
+        new IAgentProvider[] {
+                new pytorchDQNAgentProvider()
+        }
+);
 
     //endregion
 
@@ -324,7 +335,7 @@ public class Runner {
 
         // The suite that's used is fed in as a command line argument. If an invalid command line argument is given,
         // it fails silently and uses the default suite instead. The name of the suite must match exactly.
-        TestSuite defaultSuite = TF_SUITE;
+        TestSuite defaultSuite = PYTORCH_SUITE;
 
         if (args.length >= 1) {
             String suiteName = args[0];
