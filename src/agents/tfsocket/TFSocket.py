@@ -44,9 +44,10 @@ def calculate_epsilon(environment):
     '''
     Calculate an epsilon value from the number of steps the agent has taken, via a sigmoid function
     '''
-    def update_epsilon(x, h_shift, upper_bound, lower_bound, inverse):
-        sigmoid = (1 / (1 + math.exp(inverse * (-x + h_shift))))
-        environment.epsilon = sigmoid * (upper_bound-lower_bound) + lower_bound
+    def update_epsilon(environment, x):
+        log(f'x={x}\nh_shift={environment.h_shift}\nbounds=[{environment.lower_bound},{environment.upper_bound}]\ninverse={environment.inverse}')
+        sigmoid = (1 / (1 + math.exp(environment.inverse * (-x + environment.h_shift))))
+        environment.epsilon = sigmoid * (environment.upper_bound-environment.lower_bound) + environment.lower_bound
     
     # Find the rolling avg of steps_to_goal for the last 5 goals
     num_goals_to_avg = 5
@@ -55,7 +56,7 @@ def calculate_epsilon(environment):
     substring = match.group(0) if match else ''
     rolling_avg_steps = len(substring) / num_goals_to_avg
 
-    prev_alert = environment.unlearning_alert # last iteration's alert
+    prev_alert = environment.unlearning_alert # last iteration's alert, unlearning_alert default value is True
 
     # TODO: describe perc_unlearning & unlearning_alert
     perc_unlearning = (max(rolling_avg_steps, environment.avg_steps) - environment.avg_steps) / environment.avg_steps
@@ -65,28 +66,26 @@ def calculate_epsilon(environment):
     x = environment.num_goals
     
     # Yay! The model is improving and no longer unlearning
-    if prev_alert and not environment.unlearning_alert and x >= 15:
+    if prev_alert and not environment.unlearning_alert:
         log('The agent apears to be learning:\nGenerating positive sigmoid function')
         log(f'perc_unlearning = {perc_unlearning:.3f}')
-        environment.h_shift = 13 + x
+        environment.h_shift = 3 + x
         environment.upper_bound = 1
         environment.lower_bound = environment.epsilon
         environment.inverse = -1 # =(1) by default, =(-1) to invert
-        log(f'x={x}\nh_shift={environment.h_shift}\nbounds=[{environment.lower_bound},{environment.upper_bound}]\ninverse={environment.inverse}')
     # Oh no! The model is unlearning and getting worse
-    elif not prev_alert and environment.unlearning_alert and x >= 15:
+    elif not prev_alert and environment.unlearning_alert:
         log('The agent apears to be unlearning:\nGenerating negative sigmoid function')
         log(f'\tperc_unlearning = {perc_unlearning:.3f}')
-        environment.h_shift = 13 + x
+        environment.h_shift = 3 + x
         environment.upper_bound = environment.epsilon
         environment.lower_bound = 0
         environment.inverse = 1 # =(1) by default, =(-1) to invert
-        log(f'x={x}\nh_shift={environment.h_shift}\nbounds=[{environment.lower_bound},{environment.upper_bound}]\ninverse={environment.inverse}')
     elif prev_alert == environment.unlearning_alert:
         # log('prev_alert == environment.unlearning_alert')
         pass # don't update the sigmoid vars (except for 'x')
     
-    update_epsilon(x, environment.h_shift, environment.upper_bound, environment.lower_bound, environment.inverse)
+    update_epsilon(environment, x)
 
 def process_history_sentinel(strData, environment, models, model_window_sizes):
     '''
@@ -198,7 +197,7 @@ def update_environment(strData, environment):
     if window[-1:].isupper():
         environment.num_goals += 1
         log(f'The agent found Goal #{environment.num_goals:<3} in {environment.steps_since_last_goal:>3} steps')
-        log(f'\tepsilon = {environment.epsilon}')
+        log(f'\tepsilon = {environment.epsilon:.3f}')
         environment.steps_since_last_goal = 0
 
     # Update average steps per goal
