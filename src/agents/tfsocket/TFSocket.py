@@ -3,6 +3,8 @@ import socket
 import os
 import random
 import traceback
+import math
+import re
 from TFSocketModel import TFSocketModel as tfmodel
 from TFSocketEnv import TFSocketEnv as tfenv
 from TFSocketUtils import log
@@ -38,6 +40,50 @@ def send_letter(conn, letter, environment):
     conn.sendall(letter.encode('ASCII'))
     return letter
 
+def calculate_epsilon(environment):
+    '''
+    Calculate an epsilon value from the number of steps the agent has taken, via a sigmoid function
+    '''
+    def update_epsilon(x, h_shift, upper_bound, lower_bound, inverse):
+        sigmoid = (1 / (1 + math.exp(inverse * (-x + h_shift))))
+        environment.epsilon = sigmoid * (upper_bound-lower_bound) + lower_bound
+    
+    # Find the rolling avg of steps_to_goal for the last 5 goals
+    num_goals_to_avg = 5
+    pattern = rf'([a-z]*[A-Z]){{{num_goals_to_avg}}}(?=[a-z]*\Z)'
+    match = re.search(pattern, str(environment.entire_history))
+    substring = match.group(0) if match else ''
+    rolling_avg_steps = len(substring) / num_goals_to_avg
+
+    prev_alert = environment.unlearning_alert # last iteration's alert
+
+    # TODO: describe perc_unlearning & unlearning_alert
+    perc_unlearning = (max(rolling_avg_steps, environment.avg_steps) - environment.avg_steps) / environment.avg_steps
+    if perc_unlearning > 0:
+        environment.unlearning_alert = True
+    
+    x = environment.num_goals
+    
+    # Yay! The model is improving and no longer unlearning
+    if prev_alert and not environment.unlearning_alert:
+        # log("prev_alert and not environment.unlearning_alert")
+        environment.h_shift = 13 + x
+        environment.upper_bound = 1
+        environment.lower_bound = environment.epsilon
+        environment.inverse = -1 # =(1) by default, =(-1) to invert
+    # Oh no! The model is unlearning and getting worse
+    elif not prev_alert and environment.unlearning_alert:
+        # log("not prev_alert and environment.unlearning_alert")
+        environment.h_shift = 13 + x
+        environment.upper_bound = environment.epsilon
+        environment.lower_bound = 0.05
+        environment.inverse = 1 # =(1) by default, =(-1) to invert
+    elif prev_alert == environment.unlearning_alert:
+        # log("prev_alert == environment.unlearning_alert")
+        pass # don't update the sigmoid vars (except for "x")
+    
+    update_epsilon(x, environment.h_shift, environment.upper_bound, environment.lower_bound, environment.inverse)
+
 def process_history_sentinel(strData, environment, models, model_window_sizes):
     '''
     First use strData to update the TFSocketEnv object's variables.
@@ -50,14 +96,19 @@ def process_history_sentinel(strData, environment, models, model_window_sizes):
         environment, TFSocketEnv object of the environment's details
         models, list (hardcoded length of 3) of TFSocketModel objects of various window_sizes
     '''
+    # Constant vars
+    TRAINING_THRESHOLD = 10 # Number of goals to find randomly before training the models
+    MIN_HISTORY_LENGTH = 10 # Mimimum history length that the model requires to train
+        
     # Update environment variables
     environment = update_environment(strData, environment)
-
-    training_threshold = 10
     loop_threshold = 2*environment.avg_steps # Suspect looping threshold
 
     # Use the random pseudo-model until we've collected enough data to train on
-    if environment.num_goals < training_threshold:
+    if (
+        environment.num_goals < TRAINING_THRESHOLD
+        or len(environment.entire_history) < MIN_HISTORY_LENGTH
+    ):
         environment.last_step = '*' # Select the random pseudo-model
         return models # Return early to send random action
 
@@ -74,28 +125,9 @@ def process_history_sentinel(strData, environment, models, model_window_sizes):
         environment.last_step = '*'
         return models # Return early to send random action
 
-    def epsilon_greedy(environment):
-        # calculate an epsilon value from the number of steps the agent has taken, via a sigmoid function
-
-        # epsilon is defined by the sigmoid function:
-        #       y = (1 - 10**-k)) ** (2 ** (h * x))
-        # Where...
-        #   epsilon = y
-        #   k = the scientific notation exponent factor in the base of the sigmoid function
-        #   h = multiplicative inverse of the x-axis scaling factor (i.e. for h=0.25, the function decays 4x slower)
-        #   x = number of steps the agent has taken after reaching the training_threshold
-
-        h = 0.175 # NOTE: This value has been hard coded to 0.175 after optimization testing
-        k = 3 # NOTE: This value is hard coded to be 3 because it defines the sigmoid y-intercept as 0.999
-        x = max(0, len(environment.entire_history) - (environment.avg_steps * training_threshold)) # Always positive
-        if x >= 73: # Hard cap to prevent infinitesimally small numbers python can't handle
-            return 0
-        epsilon = (1 - (10**-k)) ** (2 ** (h * x))
-
-        return epsilon
-
-    epsilon = epsilon_greedy(environment)
-    if random.random() < epsilon:
+    # Calculate epilson & perform E-Greedy
+    calculate_epsilon(environment)
+    if random.random() < environment.epsilon:
         environment.last_step = '*'
         return models # Return early to send random action
 
@@ -104,7 +136,7 @@ def process_history_sentinel(strData, environment, models, model_window_sizes):
     if strData[-1:].isupper():
         # Find the model that predicted this goal
         predicting_model = None
-        for model in models: # NOTE: This will favor higher indexed models
+        for model in models: # NOTE: This will favor lower indexed models
             if (
                 model is not None
                 and model.sim_path is not None
@@ -112,7 +144,7 @@ def process_history_sentinel(strData, environment, models, model_window_sizes):
             ):
                 predicting_model = model
                 break
-
+        
         # Adjust model sizes
         # TODO: Try something binary-search-like?
         if predicting_model is not None and predicting_model.window_size >= 2:
@@ -124,10 +156,10 @@ def process_history_sentinel(strData, environment, models, model_window_sizes):
         # Re-simulate models that correctly simulated the goal and trigger a retrain for the other models
         for index in range(len(models)):
             if models[index] is not None and models[index] == predicting_model:
-                models[index].simulate_model()
+                models[index].simulate_model() # resim model used to find the goal
             else:
-                models[index] = None
-
+                models[index] = None # trigger a model retrain
+    
     # Create and train models of various window_sizes then select
     # Which model simulates the shortest path to a goal
     models, min_path_model = manage_models(environment, models, model_window_sizes)
