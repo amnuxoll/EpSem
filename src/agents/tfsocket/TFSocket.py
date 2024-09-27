@@ -65,22 +65,26 @@ def calculate_epsilon(environment):
     x = environment.num_goals
     
     # Yay! The model is improving and no longer unlearning
-    if prev_alert and not environment.unlearning_alert:
-        # log("prev_alert and not environment.unlearning_alert")
+    if prev_alert and not environment.unlearning_alert and x >= 15:
+        log('The agent apears to be learning:\nGenerating positive sigmoid function')
+        log(f'perc_unlearning = {perc_unlearning:.3f}')
         environment.h_shift = 13 + x
         environment.upper_bound = 1
         environment.lower_bound = environment.epsilon
         environment.inverse = -1 # =(1) by default, =(-1) to invert
+        log(f'x={x}\nh_shift={environment.h_shift}\nbounds=[{environment.lower_bound},{environment.upper_bound}]\ninverse={environment.inverse}')
     # Oh no! The model is unlearning and getting worse
-    elif not prev_alert and environment.unlearning_alert:
-        # log("not prev_alert and environment.unlearning_alert")
+    elif not prev_alert and environment.unlearning_alert and x >= 15:
+        log('The agent apears to be unlearning:\nGenerating negative sigmoid function')
+        log(f'\tperc_unlearning = {perc_unlearning:.3f}')
         environment.h_shift = 13 + x
         environment.upper_bound = environment.epsilon
-        environment.lower_bound = 0.05
+        environment.lower_bound = 0
         environment.inverse = 1 # =(1) by default, =(-1) to invert
+        log(f'x={x}\nh_shift={environment.h_shift}\nbounds=[{environment.lower_bound},{environment.upper_bound}]\ninverse={environment.inverse}')
     elif prev_alert == environment.unlearning_alert:
-        # log("prev_alert == environment.unlearning_alert")
-        pass # don't update the sigmoid vars (except for "x")
+        # log('prev_alert == environment.unlearning_alert')
+        pass # don't update the sigmoid vars (except for 'x')
     
     update_epsilon(x, environment.h_shift, environment.upper_bound, environment.lower_bound, environment.inverse)
 
@@ -194,6 +198,7 @@ def update_environment(strData, environment):
     if window[-1:].isupper():
         environment.num_goals += 1
         log(f'The agent found Goal #{environment.num_goals:<3} in {environment.steps_since_last_goal:>3} steps')
+        log(f'\tepsilon = {environment.epsilon}')
         environment.steps_since_last_goal = 0
 
     # Update average steps per goal
