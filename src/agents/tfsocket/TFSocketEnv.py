@@ -18,7 +18,7 @@ class TFSocketEnv:
         self.unlearning_alert = False    # A boolean dictating if the model is actively performing worse than expected
         self.upper_bound = 1            # TODO: fill out comments for new env. vars
         self.lower_bound = 0
-        self.h_shift = 13
+        self.h_shift = 18
         self.inverse = -1
 
     def update_avg_steps(self):

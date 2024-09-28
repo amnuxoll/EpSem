@@ -49,7 +49,7 @@ def calculate_epsilon(environment):
         environment.epsilon = sigmoid * (environment.upper_bound-environment.lower_bound) + environment.lower_bound
     
     # Find the rolling avg of steps_to_goal for the last 5 goals
-    num_goals_to_avg = 3
+    num_goals_to_avg = 5
     pattern = rf'([a-z]*[A-Z]){{{num_goals_to_avg}}}(?=[a-z]*$)'
     match = re.search(pattern, str(environment.entire_history))
     substring = match.group(0) if match else ''
@@ -75,7 +75,7 @@ def calculate_epsilon(environment):
         log(f'perc_unlearning = {perc_unlearning:.3f}')
         if environment.epsilon == -1:
             environment.epsilon ==  0
-        environment.h_shift = 3 + x
+        environment.h_shift = 8 + x
         environment.upper_bound = environment.epsilon
         environment.lower_bound = 0
         environment.inverse = -1 # =(-1) to decrease epsilon, =(1) to increase epsilon
@@ -85,7 +85,7 @@ def calculate_epsilon(environment):
         log(f'perc_unlearning = {perc_unlearning:.3f}')
         if environment.epsilon == -1:
             environment.epsilon ==  0
-        environment.h_shift = 3 + x
+        environment.h_shift = 8 + x
         environment.upper_bound = 1
         environment.lower_bound = environment.epsilon
         environment.inverse = 1 # =(-1) to decrease epsilon, =(1) to increase epsilon
