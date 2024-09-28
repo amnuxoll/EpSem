@@ -45,16 +45,17 @@ def calculate_epsilon(environment):
     Calculate an epsilon value from the number of steps the agent has taken, via a sigmoid function
     '''
     def update_epsilon(environment, x):
-        log(f'x={x}\nh_shift={environment.h_shift}\nbounds=[{environment.lower_bound},{environment.upper_bound}]\ninverse={environment.inverse}')
         sigmoid = (1 / (1 + math.exp(environment.inverse * (-x + environment.h_shift))))
         environment.epsilon = sigmoid * (environment.upper_bound-environment.lower_bound) + environment.lower_bound
     
     # Find the rolling avg of steps_to_goal for the last 5 goals
-    num_goals_to_avg = 5
-    pattern = rf'([a-z]*[A-Z]){{{num_goals_to_avg}}}(?=[a-z]*\Z)'
+    num_goals_to_avg = 3
+    pattern = rf'([a-z]*[A-Z]){{{num_goals_to_avg}}}(?=[a-z]*$)'
     match = re.search(pattern, str(environment.entire_history))
     substring = match.group(0) if match else ''
     rolling_avg_steps = len(substring) / num_goals_to_avg
+    
+    log(f'match: {match}\nlen(substring): {len(substring)}\nrolling_avg_steps: {rolling_avg_steps}\n')
 
     prev_alert = environment.unlearning_alert # last iteration's alert, unlearning_alert default value is True
 
@@ -128,8 +129,7 @@ def process_history_sentinel(strData, environment, models, model_window_sizes):
         environment.last_step = '*'
         return models # Return early to send random action
 
-    # Calculate epilson & perform E-Greedy
-    calculate_epsilon(environment)
+    #TODO: comment this block
     if random.random() < environment.epsilon:
         environment.last_step = '*'
         return models # Return early to send random action
@@ -137,6 +137,9 @@ def process_history_sentinel(strData, environment, models, model_window_sizes):
     # If we reached a goal, we need to retrain all the models
     # TODO: put this in a helper method
     if strData[-1:].isupper():
+        # Calculate epilson & perform E-Greedy
+        calculate_epsilon(environment)
+        
         # Find the model that predicted this goal
         predicting_model = None
         for model in models: # NOTE: This will favor lower indexed models
@@ -195,9 +198,11 @@ def update_environment(strData, environment):
     # Update num_goals and steps_since_last_goal
     environment.steps_since_last_goal +=1
     if window[-1:].isupper():
-        environment.num_goals += 1
         log(f'The agent found Goal #{environment.num_goals:<3} in {environment.steps_since_last_goal:>3} steps')
-        log(f'\tepsilon = {environment.epsilon:.3f}')
+        if environment.epsilon != -1: # epsilon is not its default value
+            log(f'epsilon: {environment.epsilon:.3f}')
+            log(f'x: {environment.num_goals}\nh_shift: {environment.h_shift}\nbounds: [{environment.lower_bound:.3f},{environment.upper_bound:.3f}]\ninverse: {environment.inverse}\n')
+        environment.num_goals += 1
         environment.steps_since_last_goal = 0
 
     # Update average steps per goal
