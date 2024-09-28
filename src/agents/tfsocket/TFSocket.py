@@ -55,33 +55,40 @@ def calculate_epsilon(environment):
     substring = match.group(0) if match else ''
     rolling_avg_steps = len(substring) / num_goals_to_avg
     
-    log(f'match: {match}\nlen(substring): {len(substring)}\nrolling_avg_steps: {rolling_avg_steps}\n')
+    # log(f'rolling_avg_steps: {rolling_avg_steps}\ntotal_avg_steps: {environment.avg_steps}')
 
     prev_alert = environment.unlearning_alert # last iteration's alert, unlearning_alert default value is True
 
     # TODO: describe perc_unlearning & unlearning_alert
     perc_unlearning = (max(rolling_avg_steps, environment.avg_steps) - environment.avg_steps) / environment.avg_steps
-    if perc_unlearning > 0:
+    # log(f'perc_unlearning: {perc_unlearning:.3f}\n')
+    if perc_unlearning > 0.000:
         environment.unlearning_alert = True
+    else:
+        environment.unlearning_alert = False
     
     x = environment.num_goals
-    
+            
     # Yay! The model is improving and no longer unlearning
     if prev_alert and not environment.unlearning_alert:
-        log('The agent apears to be learning:\nGenerating positive sigmoid function')
+        log('The agent apears to be learning\nGenerating positive sigmoid function')
         log(f'perc_unlearning = {perc_unlearning:.3f}')
-        environment.h_shift = 3 + x
-        environment.upper_bound = 1
-        environment.lower_bound = environment.epsilon
-        environment.inverse = -1 # =(1) by default, =(-1) to invert
-    # Oh no! The model is unlearning and getting worse
-    elif not prev_alert and environment.unlearning_alert:
-        log('The agent apears to be unlearning:\nGenerating negative sigmoid function')
-        log(f'\tperc_unlearning = {perc_unlearning:.3f}')
+        if environment.epsilon == -1:
+            environment.epsilon ==  0
         environment.h_shift = 3 + x
         environment.upper_bound = environment.epsilon
         environment.lower_bound = 0
-        environment.inverse = 1 # =(1) by default, =(-1) to invert
+        environment.inverse = -1 # =(-1) to decrease epsilon, =(1) to increase epsilon
+    # Oh no! The model is unlearning and getting worse
+    elif not prev_alert and environment.unlearning_alert:
+        log('The agent apears to be unlearning\nGenerating negative sigmoid function')
+        log(f'perc_unlearning = {perc_unlearning:.3f}')
+        if environment.epsilon == -1:
+            environment.epsilon ==  0
+        environment.h_shift = 3 + x
+        environment.upper_bound = 1
+        environment.lower_bound = environment.epsilon
+        environment.inverse = 1 # =(-1) to decrease epsilon, =(1) to increase epsilon
     elif prev_alert == environment.unlearning_alert:
         # log('prev_alert == environment.unlearning_alert')
         pass # don't update the sigmoid vars (except for 'x')
@@ -129,11 +136,6 @@ def process_history_sentinel(strData, environment, models, model_window_sizes):
         environment.last_step = '*'
         return models # Return early to send random action
 
-    #TODO: comment this block
-    if random.random() < environment.epsilon:
-        environment.last_step = '*'
-        return models # Return early to send random action
-
     # If we reached a goal, we need to retrain all the models
     # TODO: put this in a helper method
     if strData[-1:].isupper():
@@ -165,6 +167,12 @@ def process_history_sentinel(strData, environment, models, model_window_sizes):
                 models[index].simulate_model() # resim model used to find the goal
             else:
                 models[index] = None # trigger a model retrain
+    
+    # TODO: comment this block
+    # EGreedy algo
+    if random.random() < environment.epsilon:
+        environment.last_step = '*'
+        return models # Return early to send random action
     
     # Create and train models of various window_sizes then select
     # Which model simulates the shortest path to a goal
@@ -199,9 +207,9 @@ def update_environment(strData, environment):
     environment.steps_since_last_goal +=1
     if window[-1:].isupper():
         log(f'The agent found Goal #{environment.num_goals:<3} in {environment.steps_since_last_goal:>3} steps')
-        if environment.epsilon != -1: # epsilon is not its default value
-            log(f'epsilon: {environment.epsilon:.3f}')
-            log(f'x: {environment.num_goals}\nh_shift: {environment.h_shift}\nbounds: [{environment.lower_bound:.3f},{environment.upper_bound:.3f}]\ninverse: {environment.inverse}\n')
+        # if environment.epsilon != -1: # epsilon is not its default value
+            # log(f'epsilon: {environment.epsilon:.3f}')
+            # log(f'x: {environment.num_goals}\nh_shift: {environment.h_shift}\nbounds: [{environment.lower_bound:.3f},{environment.upper_bound:.3f}]\ninverse: {environment.inverse}\n')
         environment.num_goals += 1
         environment.steps_since_last_goal = 0
 

@@ -15,8 +15,8 @@ class TFSocketEnv:
         self.overall_alphabet = []      # If alphabet is [a,b,c] then overall_alphabet = [a,b,c,A,B,C]
         
         self.epsilon = -1               # A value between 0, 1 for an explore vs exploit E-Greedy algorithm
-        self.unlearning_alert = True    # A boolean dictating if the model is actively performing worse than expected
-        self.upper_bound = 1            # TODO: fill out comments for new env.vars
+        self.unlearning_alert = False    # A boolean dictating if the model is actively performing worse than expected
+        self.upper_bound = 1            # TODO: fill out comments for new env. vars
         self.lower_bound = 0
         self.h_shift = 13
         self.inverse = -1
