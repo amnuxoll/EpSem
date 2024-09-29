@@ -61,7 +61,7 @@ def calculate_epsilon(environment):
     prev_perc_unlearning = environment.perc_unlearning
 
     # Calculate the rate of "unlearning" as a percentage of the total_avg
-    environment.perc_unlearning = max(0.0, rolling_avg_steps-environment.avg_steps) / (environment.avg_steps)# + rolling_avg_steps)
+    environment.perc_unlearning = max(0.0, rolling_avg_steps-environment.avg_steps) / (environment.avg_steps + rolling_avg_steps)
     
     # Oh no! The agent is "unlearning" (performing worse over time)
     if not prev_perc_unlearning > 0 and environment.perc_unlearning > 0:
