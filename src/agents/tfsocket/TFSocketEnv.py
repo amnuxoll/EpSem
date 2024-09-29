@@ -14,12 +14,10 @@ class TFSocketEnv:
         self.avg_steps = 0              # Average number of steps the agent has taken to find a goal
         self.overall_alphabet = []      # If alphabet is [a,b,c] then overall_alphabet = [a,b,c,A,B,C]
         
-        self.epsilon = -1               # A value between 0, 1 for an explore vs exploit E-Greedy algorithm
-        self.unlearning_alert = False    # A boolean dictating if the model is actively performing worse than expected
-        self.upper_bound = 1            # TODO: fill out comments for new env. vars
-        self.lower_bound = 0
-        self.h_shift = 18
-        self.inverse = -1
+        self.epsilon = -1.0               # A value between 0, 1 for an explore vs exploit E-Greedy algorithm
+        self.upper_bound = 1.0          # TODO: fill out comments for new env. vars
+        self.h_shift = 17
+        self.perc_unlearning = 0.0
 
     def update_avg_steps(self):
         '''
