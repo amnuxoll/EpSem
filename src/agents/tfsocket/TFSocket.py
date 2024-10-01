@@ -61,8 +61,7 @@ def calculate_epsilon(environment):
     prev_perc_unlearning = environment.perc_unlearning
 
     # Calculate the rate of "unlearning" as a percentage of the total_avg
-    # environment.perc_unlearning = max(0.0, rolling_avg_steps-environment.avg_steps) / (environment.avg_steps + rolling_avg_steps)
-    environment.perc_unlearning = math.log(rolling_avg_steps/environment.avg_steps, 2)
+    environment.perc_unlearning = max(math.log(rolling_avg_steps/environment.avg_steps, 2), 0)
     
     # Oh no! The agent is "unlearning" (performing worse over time)
     if not prev_perc_unlearning > 0 and environment.perc_unlearning > 0:
@@ -197,7 +196,7 @@ def update_environment(strData, environment):
         log(f'The agent found Goal #{environment.num_goals:<3} in {environment.steps_since_last_goal:>3} steps')
         if environment.epsilon != -1.0: # epsilon is not its default value
             log(f'epsilon: {environment.epsilon:.3f}')
-            # log(f'x: {environment.num_goals}\nh_shift: {environment.h_shift}\nbounds: [{environment.lower_bound:.3f},{environment.upper_bound:.3f}]\ninverse: {environment.inverse}\n')
+            log(f'x: {environment.num_goals}\nh_shift: {environment.h_shift}\nbounds: [0,{environment.upper_bound:.3f}]\n')
         environment.num_goals += 1
         environment.steps_since_last_goal = 0
 
