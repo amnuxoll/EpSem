@@ -45,7 +45,7 @@ def calculate_epsilon(environment):
     Calculate an epsilon value from the number of steps the agent has taken, via a sigmoid function
     '''
     x = environment.num_goals # Update the sigmoid function's "x" value
-    if environment.epsilon == -1.0: # Initialize epsilon
+    if environment.epsilon <= 0.0: # Initialize epsilon
         environment.epsilon ==  0.0
     
     # Find the rolling avg of steps_to_goal for the last 5 goals
@@ -196,7 +196,7 @@ def update_environment(strData, environment):
         log(f'The agent found Goal #{environment.num_goals:<3} in {environment.steps_since_last_goal:>3} steps')
         if environment.epsilon != -1.0: # epsilon is not its default value
             log(f'epsilon: {environment.epsilon:.3f}')
-            log(f'x: {environment.num_goals}\nh_shift: {environment.h_shift}\nbounds: [0,{environment.upper_bound:.3f}]\n')
+            # log(f'x: {environment.num_goals}\nh_shift: {environment.h_shift}\nbounds: [0,{environment.upper_bound:.3f}]\n')
         environment.num_goals += 1
         environment.steps_since_last_goal = 0
 
