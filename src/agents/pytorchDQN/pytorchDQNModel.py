@@ -78,14 +78,14 @@ class pytorchDQNModel:
         eps_threshold = self.eps_end + (self.eps_start - self.eps_end) * \
             math.exp(-1. * self.steps_done / self.eps_decay)
         self.steps_done += 1
-        log(f'eps_threshold: {eps_threshold}')
-        log(f'state_vector length: {len(state_vector)}')
-        log(f'state_vector: {state_vector}')
+        # log(f'eps_threshold: {eps_threshold}')
+        # log(f'state_vector length: {len(state_vector)}')
+        # log(f'state_vector: {state_vector}')
         if sample > eps_threshold:
             with torch.no_grad():
                 # Create state_tensor without wrapping in an extra list
                 state_tensor = torch.tensor([state_vector], dtype=torch.float32, device=self.device)
-                log(f'state_tensor shape: {state_tensor.shape}')  # Should be (1, window_size, feature_size)
+                # log(f'state_tensor shape: {state_tensor.shape}')  # Should be (1, window_size, feature_size)
                 # Flatten the state tensor if necessary
                 state_tensor = state_tensor.view(state_tensor.size(0), -1)  # Shape: (1, input_size)
                 action_values = self.policy_net(state_tensor)

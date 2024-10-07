@@ -96,14 +96,14 @@ class pytorchDQNEnv:
                 key = indexes[char]
                 index = i + key * window_size
                 # Add debugging statements
-                log(f"i: {i}, char: '{char}', key: {key}, index: {index}, state_vector length: {len(state_vector)}")
+                # log(f"i: {i}, char: '{char}', key: {key}, index: {index}, state_vector length: {len(state_vector)}")
                 if index >= len(state_vector) or index < 0:
                     log(f"Error: Calculated index {index} is out of bounds.")
                 state_vector[index] = 1.0
             else:
                 log(f"Warning: Character '{char}' not in overall_alphabet.")
-        log("Inside flatten...")
-        log(f"state_vector: {state_vector}")
-        log(f"window: {window}")
-        log("Leaving flatten...")
+        # log("Inside flatten...")
+        # log(f"state_vector: {state_vector}")
+        # log(f"window: {window}")
+        # log("Leaving flatten...")
         return state_vector

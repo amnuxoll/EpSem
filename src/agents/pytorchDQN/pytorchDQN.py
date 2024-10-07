@@ -48,7 +48,7 @@ def process_history_sentinel(strData, environment, model):
     # Select action using the model
     state = environment.get_state()
     state_vector, window = state  # Unpack the state tuple
-    action = model.select_action(state_vector)
+    action = model.select_action(state_vector).lower()
     environment.last_step = action
 
     return model
