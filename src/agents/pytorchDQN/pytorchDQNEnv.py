@@ -36,14 +36,6 @@ class pytorchDQNEnv:
         state_vector = self.flatten(window)
         return state_vector, window
 
-    def get_initial_state(self):
-        '''
-        Get an initial random state for training.
-        '''
-        window = ''.join(random.choices(self.overall_alphabet, k=self.window_size))
-        state_vector = self.flatten(window)
-        return state_vector, window
-
     def step(self, state, action):
         '''
         Simulate taking an action in the environment.
@@ -67,19 +59,6 @@ class pytorchDQNEnv:
             return 1.0  # Reward for reaching a goal
         else:
             return -0.1  # Small penalty to encourage reaching goals
-        
-    def reset(self):
-        '''
-        Reset the environment to an initial state.
-        '''
-        # Initialize the environment's state variables
-        self.entire_history = ''
-        self.steps_since_last_goal = 0
-        self.num_goals = 0
-        # Generate an initial state
-        window = ''.join(random.choices(self.overall_alphabet, k=self.window_size))
-        state_vector = self.flatten(window)
-        return state_vector, window
     
     def flatten(self, window):
         '''

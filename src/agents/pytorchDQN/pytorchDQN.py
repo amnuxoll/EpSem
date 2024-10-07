@@ -79,7 +79,6 @@ def main():
     '''
     Main function to run the agent.
     '''
-    global g_environment
     conn = None
 
     if os.path.isfile('pyout.txt'):
