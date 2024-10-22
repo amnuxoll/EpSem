@@ -26,14 +26,14 @@ class TFSocketModel:
         max_index = 0 # index of the largest value in prediction[0][max_index]
         
         # Sanity check that the # of predictions matches the # of predictions that need to be made
-        if len(self.environment.overall_alphabet) != len(prediction[0]):
-            log('ERROR: # of predictions does not match the # of predictions that need to be made')
-            log(f'\toverall_alphabet = {self.environment.overall_alphabet}')
-            log(f'\tprediction = {prediction}')
-            exit(-1)
+        # if len(self.environment.overall_alphabet) != len(prediction[0]):
+        #     log('ERROR: # of predictions does not match the # of predictions that need to be made')
+        #     log(f'\toverall_alphabet = {self.environment.overall_alphabet}')
+        #     log(f'\tprediction = {prediction}')
+        #     exit(-1)
         
-        for i in range(len(prediction[0])):
-            if prediction[0][i] > prediction[0][max_index]:
+        for i in range(len(prediction[0][0])):
+            if prediction[0][0][i] > prediction[0][0][max_index]:
                 max_index = i
         
         return self.environment.overall_alphabet[max_index]
@@ -126,6 +126,7 @@ class TFSocketModel:
         # experiments to see what actually works best
         self.model = tf.keras.models.Sequential([
             tf.keras.layers.Dense(int(len(x_train)/2), activation='relu'),
+            tf.keras.layers.LSTM(len(self.environment.alphabet), return_sequences=True),
             tf.keras.layers.Dropout(0.2),
             tf.keras.layers.Dense(2*len(self.environment.alphabet), activation='softmax')   # Dense the layer with 2*len(alphabet) nodes for each action and goal actions
         ])
@@ -203,9 +204,12 @@ class TFSocketModel:
         if self.model is None:
             log("ERROR: Model should not be None in get_predictions()")
             return None
-        one_input = [self.flatten(window)]
+        one_input = [[1]*12, self.flatten(window)],
         one_input = tf.constant(one_input)
-        predictions = self.model(one_input)
+        try:
+            predictions = self.model(one_input)
+        except:
+            log(f'one_input: {one_input}')
         return predictions
 
     def calc_desired_actions(self, window):

@@ -311,7 +311,7 @@ public class Runner {
     private static TestSuite TF_SUITE = new TestSuite(
             TestSuiteConfiguration.TEST,
             new IEnvironmentProvider[] {
-                    new FSMEnvironmentProvider(new FSMTransitionTableBuilder(3, 50, Random.getTrue()), FSMEnvironment.Sensor.NO_SENSORS),
+                    new FSMEnvironmentProvider(new FSMTransitionTableBuilder(2, 10, Random.getTrue()), FSMEnvironment.Sensor.NO_SENSORS),
             },
             new IAgentProvider[] {
                     new TFSocketAgentProvider()
@@ -335,7 +335,7 @@ public class Runner {
 
         // The suite that's used is fed in as a command line argument. If an invalid command line argument is given,
         // it fails silently and uses the default suite instead. The name of the suite must match exactly.
-        TestSuite defaultSuite = PYTORCH_SUITE;
+        TestSuite defaultSuite = TF_SUITE;
 
         if (args.length >= 1) {
             String suiteName = args[0];
