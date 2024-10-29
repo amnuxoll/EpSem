@@ -66,8 +66,6 @@ class TFSocketModel:
 
         # TODO: Double check the correctness/efficiency of this algorithm, Penny does not like this
         goal_predictions = predictions[len(self.environment.alphabet):]
-        log(f'goal_predictions: {goal_predictions}')
-        log('\n*******************************\n')
         max_prediction = max(goal_predictions)  # Get the max prediction value for only goal letters
         max_index = list(goal_predictions).index(max_prediction)+len(self.environment.alphabet)
         best_goal = {'prediction': max_prediction,
@@ -204,17 +202,15 @@ class TFSocketModel:
         This takes the form of a 2D array like this (to support TensorFlow):
             [[0.35471925 0.19711517 0.25747794 0.19068767]]
         '''
-        log('\n*******************************\n')
         if self.model is None:
             log("ERROR: Model should not be None in get_predictions()")
             return None
         
         one_input = [[self.flatten(window), self.flatten(window)]]
         one_input = tf.constant(one_input)
-        log(f'one_input: {one_input}')
+        # log(f'one_input: {one_input}')
 
         predictions = self.model(one_input)
-        log(f'predictions: {predictions}')
 
         return predictions
 
