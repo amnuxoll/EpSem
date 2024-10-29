@@ -93,7 +93,7 @@ class TFSocketModel:
 
             # Update best_goal data
             index += 1
-            predictions = predictions[0] # Reduce tensor to 1D list
+            predictions = predictions[0][1] # Reduce tensor to 1D list
             for i in range(len(self.environment.overall_alphabet))[len(self.environment.alphabet):]:
                 if predictions[i] > best_goal['prediction']:
                     best_goal['prediction'] = predictions[i]
@@ -208,11 +208,8 @@ class TFSocketModel:
         if self.model is None:
             log("ERROR: Model should not be None in get_predictions()")
             return None
-        if self.environment.num_goals == 10 and self.environment.steps_since_last_goal == 0:
-            log('this is true')
-            one_input = [[1]*12, self.flatten(window)]
-        else:
-            one_input = [[[1]*12, self.flatten(window)]]
+        
+        one_input = [[self.flatten(window), self.flatten(window)]]
         one_input = tf.constant(one_input)
         log(f'one_input: {one_input}')
 
