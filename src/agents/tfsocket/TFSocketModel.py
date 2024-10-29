@@ -61,13 +61,13 @@ class TFSocketModel:
         # While a non-goal letter may be best, at each step we want to track which goal-letter
         # had the highest prediction and when it occurred
         # [a,b,c,A,B,C]
-        log(f'predictions {predictions}')
-        predictions = predictions[0] # Reduce tensor to 1D list
+        predictions = predictions[0][1] # Reduce tensor to 1D list
         log(f'predictions[0] {predictions}')
 
         # TODO: Double check the correctness/efficiency of this algorithm, Penny does not like this
         goal_predictions = predictions[len(self.environment.alphabet):]
         log(f'goal_predictions: {goal_predictions}')
+        log('\n*******************************\n')
         max_prediction = max(goal_predictions)  # Get the max prediction value for only goal letters
         max_index = list(goal_predictions).index(max_prediction)+len(self.environment.alphabet)
         best_goal = {'prediction': max_prediction,
@@ -204,17 +204,20 @@ class TFSocketModel:
         This takes the form of a 2D array like this (to support TensorFlow):
             [[0.35471925 0.19711517 0.25747794 0.19068767]]
         '''
+        log('\n*******************************\n')
         if self.model is None:
             log("ERROR: Model should not be None in get_predictions()")
             return None
-        one_input = [[1]*12, self.flatten(window)],
+        if self.environment.num_goals == 10 and self.environment.steps_since_last_goal == 0:
+            log('this is true')
+            one_input = [[1]*12, self.flatten(window)]
+        else:
+            one_input = [[[1]*12, self.flatten(window)]]
         one_input = tf.constant(one_input)
-        log('\n*******************************\n')
         log(f'one_input: {one_input}')
 
         predictions = self.model(one_input)
         log(f'predictions: {predictions}')
-        log('\n*******************************\n')
 
         return predictions
 
