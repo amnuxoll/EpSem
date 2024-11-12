@@ -125,9 +125,11 @@ class TFSocketModel:
         # be about half the size of the input layer. We may want to do future
         # experiments to see what actually works best
         self.model = tf.keras.models.Sequential([
-            tf.keras.layers.Dense(int(len(x_train)/2), activation='relu'),
+            tf.keras.layers.InputLayer(input_shape=(self.window_size, len(self.environment.overall_alphabet))),
+            tf.keras.layers.LSTM(int(len(x_train) / 2), activation='relu'),
             tf.keras.layers.Dropout(0.2),
-            tf.keras.layers.Dense(2*len(self.environment.alphabet), activation='softmax')   # Dense the layer with 2*len(alphabet) nodes for each action and goal actions
+            tf.keras.layers.Dense(int(len(x_train) / 4), activation='relu'), 
+            tf.keras.layers.Dense(len(self.environment.overall_alphabet), activation='softmax')
         ])
 
         # Optimize and train the model
@@ -264,39 +266,17 @@ class TFSocketModel:
         return desired_actions
 
     def flatten(self, window):
-        '''
-        Convert a window into an input tensor
-        Helper function for @calc_input_tensors()
-
-        A window has this format:      'aabaBbbab'
-        the return object's length is (len(self.environment.alphabet) + 1)*window_size
-        being whether or not an 'a'/'A' is in that position
-        the second set is for b/B. The third set is goal sensor.
-
-        TODO:  In the future we may want to handle sensors. 
-            Example input window:      '01a11B00b00a'
-        '''
-
-        # Set the indexes of the alphabet with a dictionary
-        indexes = dict()
-        for i in range(len(self.environment.alphabet)):
-            indexes[i] = self.environment.alphabet[i]
-        else:
-            indexes["GOAL"] = i+1
-
-        win_size = len(window)
-        return_tensor = []
-        for action in self.environment.alphabet:
-            return_tensor += [0.0 for i in range(win_size)]  # For each action, add a list of zeros
-        return_tensor += [0.0 for i in range(win_size)]      # Add a list of zeros for the goals
-
-        for i in range(win_size):
-            let = window[i]
-            for key, val in indexes.items():
-                if let.lower() == val:
-                    return_tensor[i + key*win_size] = 1.0                
-                if let.isupper():
-                    key = indexes["GOAL"]
-                    return_tensor[i + key*win_size] = 1.0            
-                    break
-        return return_tensor
+        # Mapping characters to indices
+        char_to_index = {char: idx for idx, char in enumerate(self.environment.overall_alphabet)}
+        
+        # One-hot encode each character in the window
+        encoded_window = []
+        for char in window:
+            vector = [0] * len(self.environment.overall_alphabet)
+            index = char_to_index[char]
+            vector[index] = 1
+            if char.isupper():
+                index = char_to_index[char.lower()]
+                vector[index] = 1
+            encoded_window.append(vector)
+        return encoded_window
