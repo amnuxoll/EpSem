@@ -336,8 +336,6 @@ def main():
         except Exception as errerr:
             log(f'Exception exception!: {errerr}')
         log('--- end of report ---')
-    log(environment.entire_history)
-    log(f"avg_steps: {environment.avg_steps}")
     log('Agent Exit')
 
 if __name__ == '__main__':

@@ -1,4 +1,5 @@
 import tensorflow as tf
+import keras_tuner as kt
 import contextlib
 import random
 from TFSocketUtils import log
@@ -18,6 +19,7 @@ class TFSocketModel:
         self.window_size = window_size
         self.sim_path = None # Predicted shortest path to goal (e.g., abbabA)
         self.model = None
+        self.is_tuned = False
 
     def get_letter(self, prediction):
         '''
@@ -102,6 +104,30 @@ class TFSocketModel:
             self.sim_path = self.sim_path[:best_goal['index']]
             self.sim_path += best_goal['letter'] 
 
+    # Define a model-building function for Keras Tuner
+    def build_model(self, hp):
+        model = tf.keras.Sequential()
+        model.add(tf.keras.Input(shape=(self.window_size, len(self.environment.overall_alphabet))))
+        
+        lstm_units = hp.Int('lstm_units', min_value=1, max_value=512, step=1)
+        model.add(tf.keras.layers.LSTM(units=lstm_units, activation='relu'))
+        
+        model.add(tf.keras.layers.Dropout(0.2))
+        
+        dense_units = hp.Int('dense_units', min_value=1, max_value=512, step=1)
+        model.add(tf.keras.layers.Dense(units=dense_units, activation='relu'))
+
+        model.add(tf.keras.layers.Dense(len(self.environment.overall_alphabet),activation='softmax'))
+        
+        # Tune the learning rate for the optimizer
+        learning_rate = hp.Choice('learning_rate', values=[1e-2, 1e-3, 1e-4])
+        
+        loss_fn = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
+        model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate),
+                    loss=loss_fn,
+                    metrics=['accuracy'])
+        return model
+    
     def train_model(self):
         '''
         Train and optimize a new ANN model
@@ -118,22 +144,29 @@ class TFSocketModel:
         y_train = tf.constant(y_train)
 
         # Defining the model's loss function
-        loss_fn = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
 
         # Defining the model function as a variable
         # Note: We are guessing the size of the first dense layer should
         # be about half the size of the input layer. We may want to do future
         # experiments to see what actually works best
-        self.model = tf.keras.models.Sequential([
-            tf.keras.layers.InputLayer(input_shape=(self.window_size, len(self.environment.overall_alphabet))),
-            tf.keras.layers.LSTM(int(len(x_train) / 2), activation='relu'),
-            tf.keras.layers.Dropout(0.2),
-            tf.keras.layers.Dense(int(len(x_train) / 4), activation='relu'), 
-            tf.keras.layers.Dense(len(self.environment.overall_alphabet), activation='softmax')
-        ])
+        tuner = kt.RandomSearch(
+            self.build_model,
+            objective='loss',
+            max_trials=5,
+            executions_per_trial=1,
+            directory='my_dir',
+            project_name='model_tuning'
+        )
 
-        # Optimize and train the model
-        self.model.compile(optimizer='adam', loss=loss_fn, metrics=['accuracy'])
+        tuner.search(x_train, y_train,
+                    epochs=2,
+                    verbose=0
+                    )
+        
+        # Get the optimal hyperparameters
+        best_hps = tuner.get_best_hyperparameters(num_trials=1)[0]
+        self.model = tuner.hypermodel.build(best_hps)
+        
         try:
             with contextlib.redirect_stdout(open('trainout.txt', 'w')):
                 self.model.fit(x_train, y_train, epochs=2, verbose=0)
