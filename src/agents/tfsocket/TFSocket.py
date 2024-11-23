@@ -3,6 +3,7 @@ import socket
 import os
 import random
 import traceback
+import shutil
 from TFSocketModel import TFSocketModel as tfmodel
 from TFSocketEnv import TFSocketEnv as tfenv
 from TFSocketUtils import log
@@ -104,6 +105,9 @@ def process_history_sentinel(strData, environment, models, model_window_sizes):
     loop_threshold = 2*environment.avg_steps # Suspect looping threshold
     if environment.steps_since_last_goal >= loop_threshold:
         # Reset the models for training
+        
+        # TODO: Try checking if we should be resetting to train everytime we're over the 
+        # loop threshold, i.e get rid of this if and un-indent the for loop
         if environment.steps_since_last_goal == loop_threshold:
             # log('Looks like the agent is stuck in a loop! Switching to random pseudo-model')
             # log(f'avg_steps={environment.avg_steps:.2f}, steps_since_last_goal={environment.steps_since_last_goal}')
@@ -272,13 +276,20 @@ def main():
     timeout = 0
     log(f'port number: {portNum}')
     log('Creating server for the Java environment to connect to...')
-
+        
     # Initialize FSM scoped variables
     environment = tfenv()
     models = [None, None, None]
     # Defines how many models and the win_size param for each model
     # These numbers will change dynamically as the agent discovers a near-optimal size
     model_window_sizes = [4, 5, 6] # models[i].win_size = model_window_sizes[i] 
+    cwd = os.getcwd()
+    
+    for entry in os.listdir(cwd):
+        dir_path = os.path.join(cwd, entry)
+        if os.path.isdir(dir_path):
+            if entry.startswith('tuning_dir'):
+                shutil.rmtree(dir_path)
 
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
@@ -335,7 +346,7 @@ def main():
             f.close()
         except Exception as errerr:
             log(f'Exception exception!: {errerr}')
-        log('--- end of report ---')
+        log('--- end of report ---')        
     log('Agent Exit')
 
 if __name__ == '__main__':

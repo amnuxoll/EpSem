@@ -2,6 +2,7 @@ import tensorflow as tf
 import keras_tuner as kt
 import contextlib
 import random
+import os
 from TFSocketUtils import log
 
 class TFSocketModel:
@@ -135,8 +136,9 @@ class TFSocketModel:
         Refer to the beginner tensorflow tutorial:
         https://www.tensorflow.org/tutorials/quickstart/beginner
         '''
+        
         # Defining the inputs and expected outputs from a given history
-        self.environment.update_avg_steps()
+        self.environment.update_avg_steps()                
         self.remove_duplicate_goal_paths()  # NOTE: We can maybe move this to remove duplicates after each goal instead
         x_train = self.calc_input_tensors(self.environment.entire_history)
         y_train = self.calc_desired_actions(self.environment.entire_history)
@@ -149,12 +151,13 @@ class TFSocketModel:
         # Note: We are guessing the size of the first dense layer should
         # be about half the size of the input layer. We may want to do future
         # experiments to see what actually works best
+        tuning_dir = os.path.join(os.getcwd(), f'tuning_dir_{self.window_size}')
         tuner = kt.RandomSearch(
             self.build_model,
             objective='loss',
             max_trials=5,
             executions_per_trial=1,
-            directory='my_dir',
+            directory=tuning_dir,
             project_name='model_tuning'
         )
 
@@ -175,7 +178,6 @@ class TFSocketModel:
             log(f'\tx_train: {x_train} with len: {len(x_train)} and shape: {x_train.shape}')
             log(f'\ty_train: {y_train} with len: {len(y_train)} and shape: {y_train.shape}')
             log(f'\tmodel: {self.model}')
-            log(f'\tloss_fn: {loss_fn}')
             log(f'\tself.environment.entire_history: {self.environment.entire_history}')
 
     def remove_duplicate_goal_paths(self):
