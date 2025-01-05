@@ -134,4 +134,4 @@ THRESH=10*
 BENCHMARK*.txt
 THRESHOLD=10*
 my_dir/
-tuning_dir_*/
+tuning_dir*/
