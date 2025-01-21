@@ -21,6 +21,7 @@ class TFSocketModel:
         self.sim_path = None # Predicted shortest path to goal (e.g., abbabA)
         self.model = None
         self.is_tuned = False
+        tf.random.set_seed(42)
 
     def get_letter(self, prediction):
         '''
@@ -109,10 +110,7 @@ class TFSocketModel:
     def build_model(self, hp):
         model = tf.keras.Sequential()
         model.add(tf.keras.Input(shape=(self.window_size, len(self.environment.overall_alphabet))))
-        
-        lstm_units = hp.Int('lstm_units', min_value=1, max_value=512, step=1)
-        model.add(tf.keras.layers.LSTM(units=lstm_units, activation='relu'))
-        
+        model.add(tf.keras.layers.LSTM(units=1, activation='relu'))
         model.add(tf.keras.layers.Dropout(0.2))
         
         dense_units = hp.Int('dense_units', min_value=1, max_value=512, step=1)
