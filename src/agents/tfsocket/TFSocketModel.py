@@ -3,6 +3,7 @@ import keras_tuner as kt
 import contextlib
 import random
 import os
+import inspect
 from TFSocketUtils import log
 
 class TFSocketModel:
@@ -113,7 +114,7 @@ class TFSocketModel:
         model.add(tf.keras.layers.LSTM(units=1, activation='relu'))
         model.add(tf.keras.layers.Dropout(0.2))
         
-        dense_units = hp.Int('dense_units', min_value=1, max_value=512, step=1)
+        dense_units = hp.Int('dense_units', min_value=1, max_value=5, step=1)
         model.add(tf.keras.layers.Dense(units=dense_units, activation='relu'))
 
         model.add(tf.keras.layers.Dense(len(self.environment.overall_alphabet),activation='softmax'))
@@ -134,7 +135,6 @@ class TFSocketModel:
         Refer to the beginner tensorflow tutorial:
         https://www.tensorflow.org/tutorials/quickstart/beginner
         '''
-        
         # Defining the inputs and expected outputs from a given history
         self.environment.update_avg_steps()                
         self.remove_duplicate_goal_paths()  # NOTE: We can maybe move this to remove duplicates after each goal instead

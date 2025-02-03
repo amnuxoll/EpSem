@@ -98,7 +98,10 @@ def process_history_sentinel(strData, environment, models, model_window_sizes):
             if models[index] is not None and models[index] == predicting_model:
                 models[index].simulate_model()
             else:
-                models[index] = None
+                # RETRAIN HERE
+                # log("Called for retrain in PHS #1")
+                # models[index] = None
+                pass
         return models
 
     # If looping is suspected, use the random sudo-model and set all models to None for retraining
@@ -111,8 +114,11 @@ def process_history_sentinel(strData, environment, models, model_window_sizes):
         if environment.steps_since_last_goal == loop_threshold:
             # log('Looks like the agent is stuck in a loop! Switching to random pseudo-model')
             # log(f'avg_steps={environment.avg_steps:.2f}, steps_since_last_goal={environment.steps_since_last_goal}')
+            # RETRAIN HERE
+            # log("Called for retrain in PHS #2")
             for index in range(len(models)):
-                models[index] = None
+                # models[index] = None
+                pass
 
         # Enable the random sudo-model
         environment.last_step = '*'
@@ -218,6 +224,8 @@ def select_min_path_model(models, min_path_model):
             # At this point if a model is NOT None it is garenteed to have a sim_path that is NOT None
             if len(models[index].sim_path) <= 0:
                 # Set to None so the model can be re-trained
+                # RETRAIN HERE
+                # log("Called for retrain in select_min_path_model")
                 models[index] = None
                 continue
 
