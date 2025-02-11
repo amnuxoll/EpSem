@@ -87,11 +87,11 @@ def process_history_sentinel(strData, environment, models, model_window_sizes):
 
         # Adjust model sizes
         # TODO: Try something binary-search-like?
-        if predicting_model is not None and predicting_model.window_size >= 2:
+        # if predicting_model is not None and predicting_model.window_size >= 2:
             # log(f'new model sizes centered around {predicting_model.window_size}')
-            model_window_sizes[0] = predicting_model.window_size - 1
-            model_window_sizes[1] = predicting_model.window_size
-            model_window_sizes[2] = predicting_model.window_size + 1
+            # model_window_sizes[0] = predicting_model.window_size - 1
+            # model_window_sizes[1] = predicting_model.window_size
+            # model_window_sizes[2] = predicting_model.window_size + 1
 
         # Re-simulate models that correctly simulated the goal and trigger a retrain for the other models
         for index in range(len(models)):
@@ -287,10 +287,10 @@ def main():
         
     # Initialize FSM scoped variables
     environment = tfenv()
-    models = [None, None, None]
+    models = [None]
     # Defines how many models and the win_size param for each model
     # These numbers will change dynamically as the agent discovers a near-optimal size
-    model_window_sizes = [4, 5, 6] # models[i].win_size = model_window_sizes[i] 
+    model_window_sizes = [5] # models[i].win_size = model_window_sizes[i] 
     cwd = os.getcwd()
     
     for entry in os.listdir(cwd):
@@ -329,6 +329,7 @@ def main():
                         conn.sendall('$$$ack'.encode('ASCII'))
 
                     elif strData.startswith('$$$history:'):
+                        # log('python agent received history:')
                         models = process_history_sentinel(strData, environment, models, model_window_sizes)
                         # Send the model's prediction to the environment
                         send_letter(conn, environment.last_step, environment)

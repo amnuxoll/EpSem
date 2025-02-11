@@ -44,6 +44,7 @@ class TFSocketModel:
         return self.environment.overall_alphabet[max_index]
 
     def simulate_model(self):
+        log("Simulating model")
         '''
         Simulate the model's prediction of the next step and place it in self.sim_path
 
@@ -108,19 +109,20 @@ class TFSocketModel:
             self.sim_path += best_goal['letter'] 
 
     # Define a model-building function for Keras Tuner
-    def build_model(self, hp):
+    def build_model(self):
         model = tf.keras.Sequential()
         model.add(tf.keras.Input(shape=(self.window_size, len(self.environment.overall_alphabet))))
-        model.add(tf.keras.layers.LSTM(units=1, activation='relu'))
+        alph_size = len(self.environment.overall_alphabet)
+        model.add(tf.keras.layers.LSTM(units=alph_size, activation='relu'))
         model.add(tf.keras.layers.Dropout(0.2))
-        
-        dense_units = hp.Int('dense_units', min_value=1, max_value=5, step=1)
-        model.add(tf.keras.layers.Dense(units=dense_units, activation='relu'))
+        # dense_units = hp.Int('dense_units', min_value=1, max_value=5, step=1)
+        model.add(tf.keras.layers.Dense(units=alph_size, activation='relu'))
 
         model.add(tf.keras.layers.Dense(len(self.environment.overall_alphabet),activation='softmax'))
         
         # Tune the learning rate for the optimizer
-        learning_rate = hp.Choice('learning_rate', values=[1e-2, 1e-3, 1e-4])
+        # learning_rate = hp.Choice('learning_rate', values=[1e-2, 1e-3, 1e-4])
+        learning_rate = 1e-2
         
         loss_fn = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
         model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate),
@@ -136,37 +138,41 @@ class TFSocketModel:
         https://www.tensorflow.org/tutorials/quickstart/beginner
         '''
         # Defining the inputs and expected outputs from a given history
-        self.environment.update_avg_steps()                
-        self.remove_duplicate_goal_paths()  # NOTE: We can maybe move this to remove duplicates after each goal instead
+        self.environment.update_avg_steps()    
+        # self.remove_duplicate_goal_paths()  # NOTE: We can maybe move this to remove duplicates after each goal instead
         x_train = self.calc_input_tensors(self.environment.entire_history)
         y_train = self.calc_desired_actions(self.environment.entire_history)
         x_train = tf.constant(x_train)
         y_train = tf.constant(y_train)
-
         # Defining the model's loss function
 
         # Defining the model function as a variable
         # Note: We are guessing the size of the first dense layer should
         # be about half the size of the input layer. We may want to do future
         # experiments to see what actually works best
-        tuning_dir = os.path.join(os.getcwd(), f'tuning_dir_{self.window_size}')
-        tuner = kt.RandomSearch(
-            self.build_model,
-            objective='loss',
-            max_trials=5,
-            executions_per_trial=1,
-            directory=tuning_dir,
-            project_name='model_tuning'
-        )
+        # tuning_dir = os.path.join(os.getcwd(), f'tuning_dir_{self.window_size}')
+        # log("Completed tuning_dir = os.path.join(os.getcwd(), 'tuning_dir_{self.window_size}')")
+        # tuner = kt.RandomSearch(
+        #     self.build_model,
+        #     objective='loss',
+        #     max_trials=5,
+        #     executions_per_trial=1,
+        #     directory=tuning_dir,
+        #     project_name='model_tuning'
+        # )
+        # log("Completed tuner initialize")
 
-        tuner.search(x_train, y_train,
-                    epochs=2,
-                    verbose=0
-                    )
-        
+        # tuner.search(x_train, y_train,
+        #             epochs=2,
+        #             verbose=0
+        #             )
+        # log("Completed Tuner Search")
         # Get the optimal hyperparameters
-        best_hps = tuner.get_best_hyperparameters(num_trials=1)[0]
-        self.model = tuner.hypermodel.build(best_hps)
+        # best_hps = tuner.get_best_hyperparameters(num_trials=1)[0]
+        # log("Completed best_hps = tuner.get_best_hyperparameters(num_trials=1)[0]")
+        # self.model = tuner.hypermodel.build(best_hps)
+        # log("Completed self.model = tuner.hypermodel.build(best_hps)")
+        self.model = self.build_model()
         
         try:
             with contextlib.redirect_stdout(open('trainout.txt', 'w')):
@@ -265,6 +271,7 @@ class TFSocketModel:
         # Iterate over a range starting at index window_size in the window
         hrange = list(range(len(window)))[self.window_size:]
         desired_actions = []
+        log("In calc_desired_actions()")
         for i in hrange:
             # Calculate how many steps from this position to the next goal
             num_steps = 0
