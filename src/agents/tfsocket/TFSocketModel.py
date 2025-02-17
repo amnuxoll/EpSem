@@ -3,7 +3,7 @@ import keras_tuner as kt
 import contextlib
 import random
 import os
-import inspect
+# import inspect
 from TFSocketUtils import log
 
 class TFSocketModel:
@@ -44,7 +44,7 @@ class TFSocketModel:
         return self.environment.overall_alphabet[max_index]
 
     def simulate_model(self):
-        log("Simulating model")
+        # log("Simulating model")
         '''
         Simulate the model's prediction of the next step and place it in self.sim_path
 
@@ -271,7 +271,7 @@ class TFSocketModel:
         # Iterate over a range starting at index window_size in the window
         hrange = list(range(len(window)))[self.window_size:]
         desired_actions = []
-        log("In calc_desired_actions()")
+        # log("In calc_desired_actions()")
         for i in hrange:
             # Calculate how many steps from this position to the next goal
             num_steps = 0
