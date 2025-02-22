@@ -3,11 +3,15 @@ import socket
 import os
 import random
 import traceback
+import shutil
 import math
 import re
 from TFSocketModel import TFSocketModel as tfmodel
 from TFSocketEnv import TFSocketEnv as tfenv
 from TFSocketUtils import log
+
+# Define global constants
+TRAINING_THRESHOLD = 10  # Number of random steps to take before training models (MIN=10)
 
 '''
 This is the main script for the TFSocket python agent
@@ -147,20 +151,43 @@ def process_history_sentinel(strData, environment, models, model_window_sizes):
         
         # Adjust model sizes
         # TODO: Try something binary-search-like?
-        if predicting_model is not None and predicting_model.window_size >= 2:
+        # if predicting_model is not None and predicting_model.window_size >= 2:
             # log(f'new model sizes centered around {predicting_model.window_size}')
-            model_window_sizes[0] = predicting_model.window_size - 1
-            model_window_sizes[1] = predicting_model.window_size
-            model_window_sizes[2] = predicting_model.window_size + 1
+            # model_window_sizes[0] = predicting_model.window_size - 1
+            # model_window_sizes[1] = predicting_model.window_size
+            # model_window_sizes[2] = predicting_model.window_size + 1
 
         # Re-simulate models that correctly simulated the goal and trigger a retrain for the other models
         for index in range(len(models)):
             if models[index] is not None and models[index] == predicting_model:
                 models[index].simulate_model() # resim model used to find the goal
             else:
-                models[index] = None # trigger a model retrain
+                # RETRAIN HERE
+                # log("Called for retrain in PHS #1")
+                # models[index] = None
+                pass
+        return models
 
-    
+    # If looping is suspected, use the random sudo-model and set all models to None for retraining
+    loop_threshold = 2*environment.avg_steps # Suspect looping threshold
+    if environment.steps_since_last_goal >= loop_threshold:
+        # Reset the models for training
+        
+        # TODO: Try checking if we should be resetting to train everytime we're over the 
+        # loop threshold, i.e get rid of this if and un-indent the for loop
+        if environment.steps_since_last_goal == loop_threshold:
+            # log('Looks like the agent is stuck in a loop! Switching to random pseudo-model')
+            # log(f'avg_steps={environment.avg_steps:.2f}, steps_since_last_goal={environment.steps_since_last_goal}')
+            # RETRAIN HERE
+            # log("Called for retrain in PHS #2")
+            for index in range(len(models)):
+                # models[index] = None
+                pass
+
+        # Enable the random sudo-model
+        environment.last_step = '*'
+        return models
+
     # Create and train models of various window_sizes then select
     # Which model simulates the shortest path to a goal
     models, min_path_model = manage_models(environment, models, model_window_sizes)
@@ -242,6 +269,7 @@ def train_models(environment, models, model_window_sizes):
     '''
     if all(model is None for model in models):
         # log(f'Training models')
+        # log(f'Training models')
         # If we've reached the end of random-action data gathering, create models using entire history
         for index in range(len(model_window_sizes)):
             models[index] = tfmodel(environment, model_window_sizes[index])
@@ -264,6 +292,8 @@ def select_min_path_model(models, min_path_model):
             # At this point if a model is NOT None it is garenteed to have a sim_path that is NOT None
             if len(models[index].sim_path) <= 0:
                 # Set to None so the model can be re-trained
+                # RETRAIN HERE
+                # log("Called for retrain in select_min_path_model")
                 models[index] = None
                 continue
 
@@ -322,14 +352,21 @@ def main():
     timeout = 0
     log(f'port number: {portNum}')
     log('Creating server for the Java environment to connect to...')
-
+        
     # Initialize FSM scoped variables
     environment = tfenv()
-    models = [None, None, None]
+    models = [None]
     # Defines how many models and the win_size param for each model
     # These numbers will change dynamically as the agent discovers a near-optimal size
-    model_window_sizes = [4, 5, 6] # models[i].win_size = model_window_sizes[i] 
-    # Chance of taking a random action
+    model_window_sizes = [5] # models[i].win_size = model_window_sizes[i] 
+    cwd = os.getcwd()
+    
+    for entry in os.listdir(cwd):
+        dir_path = os.path.join(cwd, entry)
+        if os.path.isdir(dir_path):
+            if entry.startswith('tuning_dir'):
+                shutil.rmtree(dir_path)
+
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
             sock.bind(('127.0.0.1', portNum))
@@ -360,6 +397,7 @@ def main():
                         conn.sendall('$$$ack'.encode('ASCII'))
 
                     elif strData.startswith('$$$history:'):
+                        # log('python agent received history:')
                         models = process_history_sentinel(strData, environment, models, model_window_sizes)
                         # Send the model's prediction to the environment
                         send_letter(conn, environment.last_step, environment)
@@ -385,8 +423,7 @@ def main():
             f.close()
         except Exception as errerr:
             log(f'Exception exception!: {errerr}')
-        log('--- end of report ---')
-
+        log('--- end of report ---')        
     log('Agent Exit')
 
 if __name__ == '__main__':

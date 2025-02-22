@@ -9,6 +9,7 @@ import agents.marzrules.RulesAgentProvider;
 import agents.nsm.NSMAgentProvider;
 import agents.phujus.PhuJusAgentProvider;
 import agents.predr.PredrAgentProvider;
+import agents.pytorchDQN.pytorchDQNAgentProvider;
 import agents.wfc.WFCAgentProvider;
 import agents.ndxr.NdxrAgentProvider;
 import agents.tfsocket.TFSocketAgentProvider;
@@ -316,6 +317,16 @@ public class Runner {
                     new TFSocketAgentProvider()
             }
     );
+
+    private static TestSuite PYTORCH_SUITE = new TestSuite(
+        TestSuiteConfiguration.TEST,
+        new IEnvironmentProvider[] {
+                new FSMEnvironmentProvider(new FSMTransitionTableBuilder(2, 10, Random.getTrue()), FSMEnvironment.Sensor.NO_SENSORS),
+        },
+        new IAgentProvider[] {
+                new pytorchDQNAgentProvider()
+        }
+);
 
     //endregion
 

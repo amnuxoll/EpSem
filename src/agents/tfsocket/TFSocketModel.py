@@ -1,6 +1,9 @@
 import tensorflow as tf
+import keras_tuner as kt
 import contextlib
 import random
+import os
+import inspect
 from TFSocketUtils import log
 
 class TFSocketModel:
@@ -18,6 +21,8 @@ class TFSocketModel:
         self.window_size = window_size
         self.sim_path = None # Predicted shortest path to goal (e.g., abbabA)
         self.model = None
+        self.is_tuned = False
+        # tf.random.set_seed(42)
 
     def get_letter(self, prediction):
         '''
@@ -39,6 +44,7 @@ class TFSocketModel:
         return self.environment.overall_alphabet[max_index]
 
     def simulate_model(self):
+        log("Simulating model")
         '''
         Simulate the model's prediction of the next step and place it in self.sim_path
 
@@ -71,7 +77,7 @@ class TFSocketModel:
                      'letter': self.environment.overall_alphabet[max_index],
                      'index': 0}
 
-        max_len = 2*self.environment.avg_steps
+        max_len = self.environment.avg_steps
         index = 0
         # Simulate future steps
         self.sim_path = first_sim_action
@@ -102,6 +108,28 @@ class TFSocketModel:
             self.sim_path = self.sim_path[:best_goal['index']]
             self.sim_path += best_goal['letter'] 
 
+    # Define a model-building function for Keras Tuner
+    def build_model(self):
+        model = tf.keras.Sequential()
+        model.add(tf.keras.Input(shape=(self.window_size, len(self.environment.overall_alphabet))))
+        alph_size = len(self.environment.overall_alphabet)
+        model.add(tf.keras.layers.LSTM(units=alph_size, activation='relu'))
+        model.add(tf.keras.layers.Dropout(0.2))
+        # dense_units = hp.Int('dense_units', min_value=1, max_value=5, step=1)
+        model.add(tf.keras.layers.Dense(units=alph_size, activation='relu'))
+
+        model.add(tf.keras.layers.Dense(len(self.environment.overall_alphabet),activation='softmax'))
+        
+        # Tune the learning rate for the optimizer
+        # learning_rate = hp.Choice('learning_rate', values=[1e-2, 1e-3, 1e-4])
+        learning_rate = 1e-2
+        
+        loss_fn = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
+        model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate),
+                    loss=loss_fn,
+                    metrics=['accuracy'])
+        return model
+    
     def train_model(self):
         '''
         Train and optimize a new ANN model
@@ -110,28 +138,42 @@ class TFSocketModel:
         https://www.tensorflow.org/tutorials/quickstart/beginner
         '''
         # Defining the inputs and expected outputs from a given history
-        self.environment.update_avg_steps()
-        self.remove_duplicate_goal_paths()  # NOTE: We can maybe move this to remove duplicates after each goal instead
+        self.environment.update_avg_steps()    
+        # self.remove_duplicate_goal_paths()  # NOTE: We can maybe move this to remove duplicates after each goal instead
         x_train = self.calc_input_tensors(self.environment.entire_history)
         y_train = self.calc_desired_actions(self.environment.entire_history)
         x_train = tf.constant(x_train)
         y_train = tf.constant(y_train)
-
         # Defining the model's loss function
-        loss_fn = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
-        
+
         # Defining the model function as a variable
         # Note: We are guessing the size of the first dense layer should
         # be about half the size of the input layer. We may want to do future
         # experiments to see what actually works best
-        self.model = tf.keras.models.Sequential([
-            tf.keras.layers.Dense(int(len(x_train)/2), activation='relu'),
-            tf.keras.layers.Dropout(0.2),
-            tf.keras.layers.Dense(2*len(self.environment.alphabet), activation='softmax')   # Dense the layer with 2*len(alphabet) nodes for each action and goal actions
-        ])
+        # tuning_dir = os.path.join(os.getcwd(), f'tuning_dir_{self.window_size}')
+        # log("Completed tuning_dir = os.path.join(os.getcwd(), 'tuning_dir_{self.window_size}')")
+        # tuner = kt.RandomSearch(
+        #     self.build_model,
+        #     objective='loss',
+        #     max_trials=5,
+        #     executions_per_trial=1,
+        #     directory=tuning_dir,
+        #     project_name='model_tuning'
+        # )
+        # log("Completed tuner initialize")
+
+        # tuner.search(x_train, y_train,
+        #             epochs=2,
+        #             verbose=0
+        #             )
+        # log("Completed Tuner Search")
+        # Get the optimal hyperparameters
+        # best_hps = tuner.get_best_hyperparameters(num_trials=1)[0]
+        # log("Completed best_hps = tuner.get_best_hyperparameters(num_trials=1)[0]")
+        # self.model = tuner.hypermodel.build(best_hps)
+        # log("Completed self.model = tuner.hypermodel.build(best_hps)")
+        self.model = self.build_model()
         
-        # Optimize and train the model
-        self.model.compile(optimizer='adam', loss=loss_fn, metrics=['accuracy'])
         try:
             with contextlib.redirect_stdout(open('trainout.txt', 'w')):
                 self.model.fit(x_train, y_train, epochs=2, verbose=0)
@@ -140,9 +182,8 @@ class TFSocketModel:
             log(f'\tx_train: {x_train} with len: {len(x_train)} and shape: {x_train.shape}')
             log(f'\ty_train: {y_train} with len: {len(y_train)} and shape: {y_train.shape}')
             log(f'\tmodel: {self.model}')
-            log(f'\tloss_fn: {loss_fn}')
             log(f'\tself.environment.entire_history: {self.environment.entire_history}')
-    
+
     def remove_duplicate_goal_paths(self):
         '''
         Remove duplicate actions from the history
@@ -150,13 +191,13 @@ class TFSocketModel:
         # Path that got us to a goal (e.g ['ababaB','bbbaB'])
         goal_paths = []
         last_goal = 0
-        
+
         # Loop through the entire history and find the paths to a goal
         for i in range(len(self.environment.entire_history)):
             if self.environment.entire_history[i].isupper():
                 goal_paths.append(self.environment.entire_history[last_goal:i+1])
                 last_goal = i+1
-        
+
         # Remove duplicate goal paths
         ret = list(set(goal_paths))
         self.environment.entire_history = ''.join(ret)
@@ -231,6 +272,7 @@ class TFSocketModel:
         # Iterate over a range starting at index window_size in the window
         hrange = list(range(len(window)))[self.window_size:]
         desired_actions = []
+        log("In calc_desired_actions()")
         for i in hrange:
             # Calculate how many steps from this position to the next goal
             num_steps = 0
@@ -241,9 +283,9 @@ class TFSocketModel:
 
             # Calculate the index of the action at this position, [a,b,c,A,B,C]
             # 0 = a, 1 = b, 2 = c, 3 = A, 4 = B, 5 = C
-            
+
             val = self.environment.overall_alphabet.index(window[i])
-        
+
             if val is None:
                 log('ERROR: invalid character in window')
                 return
@@ -254,11 +296,10 @@ class TFSocketModel:
             #   II.  if val is 'A' (=1), set val to 'b' (=2)
             #   III. if val is 'b' (=2), set val to 'a' (=0)
             #   IV.  if val is 'B' (=3), set val to 'a' (=0)
-            if num_steps >= 0.25*self.environment.avg_steps: 
+            if num_steps >= 0.25*self.environment.avg_steps:
                 orig = val
                 while orig == val:
-                    val = random.choice(range(len(self.environment.alphabet)))
-                    
+                    val = random.choice(range(len(self.environment.alphabet)))  
 
             # Add to result
             desired_actions.append(val)
@@ -266,39 +307,17 @@ class TFSocketModel:
         return desired_actions
 
     def flatten(self, window):
-        '''
-        Convert a window into an input tensor
-        Helper function for @calc_input_tensors()
+        # Mapping characters to indices
+        char_to_index = {char: idx for idx, char in enumerate(self.environment.overall_alphabet)}
         
-        A window has this format:      'aabaBbbab'
-        the return object's length is (len(self.environment.alphabet) + 1)*window_size
-        being whether or not an 'a'/'A' is in that position
-        the second set is for b/B. The third set is goal sensor.
-
-        TODO:  In the future we may want to handle sensors. 
-            Example input window:      '01a11B00b00a'
-        '''
-        
-        # Set the indexes of the alphabet with a dictionary
-        indexes = dict()
-        for i in range(len(self.environment.alphabet)):
-            indexes[i] = self.environment.alphabet[i]
-        else:
-            indexes['GOAL'] = i+1
-            
-        win_size = len(window)
-        return_tensor = []
-        for action in self.environment.alphabet:
-            return_tensor += [0.0 for i in range(win_size)]  # For each action, add a list of zeros
-        return_tensor += [0.0 for i in range(win_size)]      # Add a list of zeros for the goals
-        
-        for i in range(win_size):
-            let = window[i]
-            for key, val in indexes.items():
-                if let.lower() == val:
-                    return_tensor[i + key*win_size] = 1.0                
-                if let.isupper():
-                    key = indexes['GOAL']
-                    return_tensor[i + key*win_size] = 1.0            
-                    break
-        return return_tensor
+        # One-hot encode each character in the window
+        encoded_window = []
+        for char in window:
+            vector = [0] * len(self.environment.overall_alphabet)
+            index = char_to_index[char]
+            vector[index] = 1
+            if char.isupper():
+                index = char_to_index[char.lower()]
+                vector[index] = 1
+            encoded_window.append(vector)
+        return encoded_window

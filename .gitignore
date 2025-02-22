@@ -127,3 +127,11 @@ pyout.txt
 collecting-data-points.txt
 trainout.txt
 src/utils/input.txt
+old_data/
+figure_data/
+LOOP_*
+THRESH=10*
+BENCHMARK*.txt
+THRESHOLD=10*
+my_dir/
+tuning_dir*/
