@@ -22,7 +22,7 @@ class TFSocketModel:
         self.sim_path = None # Predicted shortest path to goal (e.g., abbabA)
         self.model = None
         self.is_tuned = False
-        tf.random.set_seed(42)
+        # tf.random.set_seed(42)
 
     def get_letter(self, prediction):
         '''
@@ -59,7 +59,7 @@ class TFSocketModel:
         at the point where a goal was predicted most strongly.
         '''
         if self.model is None:
-            log("ERROR: Model should not be None in simulate_model()")
+            log('ERROR: Model should not be None in simulate_model()')
         window = self.environment.entire_history[-self.window_size:]
         predictions = self.get_predictions(window)
         first_sim_action = self.get_letter(predictions)
@@ -188,7 +188,7 @@ class TFSocketModel:
         '''
         Remove duplicate actions from the history
         '''
-        # Path that got us to a goal (e.g ["ababaB","bbbaB"])
+        # Path that got us to a goal (e.g ['ababaB','bbbaB'])
         goal_paths = []
         last_goal = 0
 
@@ -200,7 +200,8 @@ class TFSocketModel:
 
         # Remove duplicate goal paths
         ret = list(set(goal_paths))
-        self.environment.entire_history = "".join(ret)
+        self.environment.entire_history = ''.join(ret)
+        
 
     def calc_input_tensors(self, given_window):
         '''
@@ -242,7 +243,7 @@ class TFSocketModel:
             [[0.35471925 0.19711517 0.25747794 0.19068767]]
         '''
         if self.model is None:
-            log("ERROR: Model should not be None in get_predictions()")
+            log('ERROR: Model should not be None in get_predictions()')
             return None
         one_input = [self.flatten(window)]
         one_input = tf.constant(one_input)

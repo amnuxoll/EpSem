@@ -7,14 +7,17 @@ class TFSocketEnv:
     
     def __init__(self):
         self.alphabet = []              # The set of all valid actions an agent can take at any given point
-        self.entire_history = ''        # List of all actions the agent has taken so fara
+        self.entire_history = ''        # List of all actions the agent has taken so far
         self.last_step = ''             # Agent's most recent action
         self.steps_since_last_goal = 0  # Self explanatory lol
         self.num_goals = 0              # Number of goals the agent has found so far
         self.avg_steps = 0              # Average number of steps the agent has taken to find a goal
         self.overall_alphabet = []      # If alphabet is [a,b,c] then overall_alphabet = [a,b,c,A,B,C]
         self.retrained = False          # When in a loop, make sure to retrain the models only once
-
+        self.epsilon = -1.0               # A value between 0, 1 for an explore vs exploit E-Greedy algorithm
+        self.upper_bound = 1.0          # TODO: fill out comments for new env. vars
+        self.h_shift = 17
+        self.perc_unlearning = 0.0
 
     def update_avg_steps(self):
         '''

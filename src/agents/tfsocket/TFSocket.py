@@ -4,6 +4,8 @@ import os
 import random
 import traceback
 import shutil
+import math
+import re
 from TFSocketModel import TFSocketModel as tfmodel
 from TFSocketEnv import TFSocketEnv as tfenv
 from TFSocketUtils import log
@@ -42,6 +44,50 @@ def send_letter(conn, letter, environment):
     conn.sendall(letter.encode('ASCII'))
     return letter
 
+def calculate_epsilon(environment):
+    '''
+    Calculate an epsilon value from the number of steps the agent has taken, via a sigmoid function
+    '''
+    x = environment.num_goals # Update the sigmoid function's "x" value
+    if environment.epsilon <= 0.0: # Initialize epsilon
+        environment.epsilon ==  0.0
+    
+    # Find the rolling avg of steps_to_goal for the last 5 goals
+    num_goals_to_avg = 5
+    pattern = rf'([a-z]*[A-Z]){{{num_goals_to_avg}}}(?=[a-z]*$)'
+    match = re.search(pattern, str(environment.entire_history))
+    substring = match.group(0) if match else ''
+    rolling_avg_steps = len(substring) / num_goals_to_avg
+    
+    # Last iteration's alert, unlearning_alert default value is True
+    # prev_alert = environment.unlearning_alert
+    # Last iteration's perc_unlearning, perc_unlearning default value is 0.0
+    prev_perc_unlearning = environment.perc_unlearning
+
+    # Calculate the rate of "unlearning" as a percentage of the total_avg
+    environment.perc_unlearning = max(math.log(rolling_avg_steps/environment.avg_steps, 2), 0)
+    
+    # Oh no! The agent is "unlearning" (performing worse over time)
+    if not prev_perc_unlearning > 0 and environment.perc_unlearning > 0:
+        log('The agent appears to be unlearning')
+        # log('Generating negative sigmoid function')
+        log(f'perc_unlearning = {environment.perc_unlearning:.3f}')
+        environment.h_shift = 7 + x # Offset by 7 for a TRAINING_THRESHOLD = 10
+        environment.upper_bound = environment.epsilon + environment.perc_unlearning
+    
+    # Yay! The agent is improving and no longer "unlearning"
+    elif prev_perc_unlearning > 0 and not environment.perc_unlearning > 0:
+        log('The agent appears to be learning')
+    
+    # Dang! The agent is still unlearning
+    elif prev_perc_unlearning > 0 and environment.perc_unlearning > 0:
+        # If the agent in "unlearning" at an increasing rate, then increase epsilon by the same amount
+        if environment.perc_unlearning > prev_perc_unlearning:
+            environment.upper_bound += (environment.perc_unlearning - prev_perc_unlearning)
+
+    # Calculate the next interation of epsilon with the sigmoid function    
+    environment.epsilon = environment.upper_bound * (1 / (1 + math.exp((x - environment.h_shift))))
+
 def process_history_sentinel(strData, environment, models, model_window_sizes):
     '''
     First use strData to update the TFSocketEnv object's variables.
@@ -54,14 +100,33 @@ def process_history_sentinel(strData, environment, models, model_window_sizes):
         environment, TFSocketEnv object of the environment's details
         models, list (hardcoded length of 3) of TFSocketModel objects of various window_sizes
     '''
-    global TRAINING_THRESHOLD
-
+    # Constant vars
+    TRAINING_THRESHOLD = 10 # Number of goals to find randomly before training the models
+    MIN_HISTORY_LENGTH = 10 # Mimimum history length that the model requires to train
+        
     # Update environment variables
     environment = update_environment(strData, environment)
+    loop_threshold = 2*environment.avg_steps # Suspect looping threshold
 
     # Use the random pseudo-model until we've collected enough data to train on
-    if environment.num_goals < TRAINING_THRESHOLD:
+    if (
+        environment.num_goals < TRAINING_THRESHOLD
+        or len(environment.entire_history) < MIN_HISTORY_LENGTH
+    ):
         environment.last_step = '*' # Select the random pseudo-model
+        return models # Return early to send random action
+
+    # If looping is suspected, use the random sudo-model and set all models to None for retraining
+    elif environment.steps_since_last_goal >= loop_threshold:
+        # Reset the models for training
+        if environment.steps_since_last_goal == loop_threshold:
+            # log('Looks like the agent is stuck in a loop! Switching to random pseudo-model')
+            # log(f'avg_steps={environment.avg_steps:.2f}, steps_since_last_goal={environment.steps_since_last_goal}')
+            for index in range(len(models)):
+                models[index] = None
+
+        # Enable the random sudo-model
+        environment.last_step = '*'
         return models # Return early to send random action
 
     # If we reached a goal, we need to retrain all the models
@@ -69,16 +134,15 @@ def process_history_sentinel(strData, environment, models, model_window_sizes):
     if strData[-1:].isupper():
         environment.retrained = False # Reset the retrained bool once the model has left the loop
         
-        # When the agent reaches the TRAINING_THRESHOLD create the models
-        if environment.num_goals == TRAINING_THRESHOLD:
-            log(f'Reached training threshold: goal #{TRAINING_THRESHOLD}')
-            # Set all models to None to prepare for training
-            for index in range(len(models)):
-                models[index] = None
-
+        # Calculate epilson & perform E-Greedy exploit/explore decision making
+        calculate_epsilon(environment)
+        if random.random() < environment.epsilon:
+            environment.last_step = '*'
+            return models # Return early to send random action
+        
         # Find the model that predicted this goal
         predicting_model = None
-        for model in models: # NOTE: This will favor higher indexed models
+        for model in models: # NOTE: This will favor lower indexed models
             if (
                 model is not None
                 and model.sim_path is not None
@@ -86,7 +150,7 @@ def process_history_sentinel(strData, environment, models, model_window_sizes):
             ):
                 predicting_model = model
                 break
-
+        
         # Adjust model sizes
         # TODO: Try something binary-search-like?
         # if predicting_model is not None and predicting_model.window_size >= 2:
@@ -98,7 +162,7 @@ def process_history_sentinel(strData, environment, models, model_window_sizes):
         # Re-simulate models that correctly simulated the goal and trigger a retrain for the other models
         for index in range(len(models)):
             if models[index] is not None and models[index] == predicting_model:
-                models[index].simulate_model()
+                models[index].simulate_model() # resim model used to find the goal
             else:
                 # RETRAIN HERE
                 # log("Called for retrain in PHS #1")
@@ -157,8 +221,11 @@ def update_environment(strData, environment):
     # Update num_goals and steps_since_last_goal
     environment.steps_since_last_goal +=1
     if window[-1:].isupper():
-        environment.num_goals += 1
         log(f'The agent found Goal #{environment.num_goals:<3} in {environment.steps_since_last_goal:>3} steps')
+        if environment.epsilon != -1.0: # epsilon is not its default value
+            log(f'epsilon: {environment.epsilon:.3f}')
+            # log(f'x: {environment.num_goals}\nh_shift: {environment.h_shift}\nbounds: [0,{environment.upper_bound:.3f}]\n')
+        environment.num_goals += 1
         environment.steps_since_last_goal = 0
 
     # Update average steps per goal
@@ -202,6 +269,7 @@ def train_models(environment, models, model_window_sizes):
             model[2].win_size = model_window_sizes[2] # = 6
     '''
     if all(model is None for model in models):
+        # log(f'Training models')
         # log(f'Training models')
         # If we've reached the end of random-action data gathering, create models using entire history
         for index in range(len(model_window_sizes)):
@@ -326,7 +394,7 @@ def main():
                         environment.alphabet = list(strData[12:])
                         environment.overall_alphabet = environment.alphabet + [let.upper() for let in environment.alphabet]
                         log(f'New alphabet: {environment.alphabet}')
-                        log(f'Sending "ack"') # Acknowledge
+                        log(f'Sending \'ack\'') # Acknowledge
                         conn.sendall('$$$ack'.encode('ASCII'))
 
                     elif strData.startswith('$$$history:'):
