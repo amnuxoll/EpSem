@@ -116,19 +116,6 @@ def process_history_sentinel(strData, environment, models, model_window_sizes):
         environment.last_step = '*' # Select the random pseudo-model
         return models # Return early to send random action
 
-    # If looping is suspected, use the random sudo-model and set all models to None for retraining
-    elif environment.steps_since_last_goal >= loop_threshold:
-        # Reset the models for training
-        if environment.steps_since_last_goal == loop_threshold:
-            # log('Looks like the agent is stuck in a loop! Switching to random pseudo-model')
-            # log(f'avg_steps={environment.avg_steps:.2f}, steps_since_last_goal={environment.steps_since_last_goal}')
-            for index in range(len(models)):
-                models[index] = None
-
-        # Enable the random sudo-model
-        environment.last_step = '*'
-        return models # Return early to send random action
-
     # If we reached a goal, we need to retrain all the models
     # TODO: put this in a helper method
     if strData[-1:].isupper():
