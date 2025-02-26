@@ -59,31 +59,31 @@ def calculate_epsilon(environment):
     substring = match.group(0) if match else ''
     rolling_avg_steps = len(substring) / num_goals_to_avg
     
-    # Last iteration's alert, unlearning_alert default value is True
-    # prev_alert = environment.unlearning_alert
-    # Last iteration's perc_unlearning, perc_unlearning default value is 0.0
-    prev_perc_unlearning = environment.perc_unlearning
+    # Last iteration's alert, forgetting_alert default value is True
+    # prev_alert = environment.forgetting_alert
+    # Last iteration's perc_forgetting, perc_forgetting default value is 0.0
+    prev_perc_forgetting = environment.perc_forgetting
 
-    # Calculate the rate of "unlearning" as a percentage of the total_avg
-    environment.perc_unlearning = max(math.log(rolling_avg_steps/environment.avg_steps, 2), 0)
+    # Calculate the rate of "forgetting" as a percentage of the total_avg
+    environment.perc_forgetting = max(math.log(rolling_avg_steps/environment.avg_steps, 2), 0)
     
-    # Oh no! The agent is "unlearning" (performing worse over time)
-    if not prev_perc_unlearning > 0 and environment.perc_unlearning > 0:
-        log('The agent appears to be unlearning')
+    # Oh no! The agent is "forgetting" (performing worse over time)
+    if not prev_perc_forgetting > 0 and environment.perc_forgetting > 0:
+        log('The agent appears to be forgetting')
         # log('Generating negative sigmoid function')
-        log(f'perc_unlearning = {environment.perc_unlearning:.3f}')
+        log(f'perc_forgetting = {environment.perc_forgetting:.3f}')
         environment.h_shift = 7 + x # Offset by 7 for a TRAINING_THRESHOLD = 10
-        environment.upper_bound = environment.epsilon + environment.perc_unlearning
+        environment.upper_bound = environment.epsilon + environment.perc_forgetting
     
-    # Yay! The agent is improving and no longer "unlearning"
-    elif prev_perc_unlearning > 0 and not environment.perc_unlearning > 0:
+    # Yay! The agent is improving and no longer "forgetting"
+    elif prev_perc_forgetting > 0 and not environment.perc_forgetting > 0:
         log('The agent appears to be learning')
     
-    # Dang! The agent is still unlearning
-    elif prev_perc_unlearning > 0 and environment.perc_unlearning > 0:
-        # If the agent in "unlearning" at an increasing rate, then increase epsilon by the same amount
-        if environment.perc_unlearning > prev_perc_unlearning:
-            environment.upper_bound += (environment.perc_unlearning - prev_perc_unlearning)
+    # Dang! The agent is still forgetting
+    elif prev_perc_forgetting > 0 and environment.perc_forgetting > 0:
+        # If the agent in "forgetting" at an increasing rate, then increase epsilon by the same amount TODO: check this math do we want to be doing this?
+        if environment.perc_forgetting > prev_perc_forgetting:
+            environment.upper_bound += (environment.perc_forgetting - prev_perc_forgetting)
 
     # Calculate the next interation of epsilon with the sigmoid function    
     environment.epsilon = environment.upper_bound * (1 / (1 + math.exp((x - environment.h_shift))))
@@ -132,12 +132,6 @@ def process_history_sentinel(strData, environment, models, model_window_sizes):
     # If we reached a goal, we need to retrain all the models
     # TODO: put this in a helper method
     if strData[-1:].isupper():
-        # Calculate epilson & perform E-Greedy exploit/explore decision making
-        calculate_epsilon(environment)
-        if random.random() < environment.epsilon:
-            environment.last_step = '*'
-            return models # Return early to send random action
-        
         # Find the model that predicted this goal
         predicting_model = None
         for model in models: # NOTE: This will favor lower indexed models
@@ -166,26 +160,13 @@ def process_history_sentinel(strData, environment, models, model_window_sizes):
                 # log("Called for retrain in PHS #1")
                 # models[index] = None
                 pass
-        return models
-
-    # If looping is suspected, use the random sudo-model and set all models to None for retraining
-    loop_threshold = 2*environment.avg_steps # Suspect looping threshold
-    if environment.steps_since_last_goal >= loop_threshold:
-        # Reset the models for training
+    
+        # Calculate epilson & perform E-Greedy exploit/explore decision making
+        calculate_epsilon(environment)
+        if random.random() < environment.epsilon:
+            environment.last_step = '*'
+            return models # Return early to send random action
         
-        # TODO: Try checking if we should be resetting to train everytime we're over the 
-        # loop threshold, i.e get rid of this if and un-indent the for loop
-        if environment.steps_since_last_goal == loop_threshold:
-            # log('Looks like the agent is stuck in a loop! Switching to random pseudo-model')
-            # log(f'avg_steps={environment.avg_steps:.2f}, steps_since_last_goal={environment.steps_since_last_goal}')
-            # RETRAIN HERE
-            # log("Called for retrain in PHS #2")
-            for index in range(len(models)):
-                # models[index] = None
-                pass
-
-        # Enable the random sudo-model
-        environment.last_step = '*'
         return models
 
     # Create and train models of various window_sizes then select
@@ -252,7 +233,7 @@ def manage_models(environment, models, model_window_sizes):
         min_path_model = select_min_path_model(models, min_path_model)
         index += 1
     if min_path_model is None:
-        log('ERROR: The training and selecting of models was unsuccessfull.')
+        log('ERROR: The training and selecting of models was unsuccessful.')
 
     return models, min_path_model
 
@@ -329,7 +310,7 @@ def get_best_prediction(environment, models, min_path_model):
                 if models[index] is not None:
                     models[index].simulate_model()
             else:
-                models[index].sim_path = models[index].sim_path[1:]
+                models[index].sim_path = models[index].sim_path[1:] # TODO: This should be ran each time we take any step ever (even when it is done by the random agent) OR this function must be called everytime the simpaths are used
 
     return models
 

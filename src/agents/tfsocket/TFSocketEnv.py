@@ -17,7 +17,7 @@ class TFSocketEnv:
         self.epsilon = -1.0               # A value between 0, 1 for an explore vs exploit E-Greedy algorithm
         self.upper_bound = 1.0          # TODO: fill out comments for new env. vars
         self.h_shift = 17
-        self.perc_unlearning = 0.0
+        self.perc_forgetting = 0.0
 
     def update_avg_steps(self):
         '''

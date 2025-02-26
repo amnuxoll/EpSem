@@ -1,5 +1,5 @@
 import tensorflow as tf
-import keras_tuner as kt
+#import keras_tuner as kt
 import contextlib
 import random
 import os
@@ -106,7 +106,7 @@ class TFSocketModel:
         # If necessary, truncate the sim_path with an artificial goal
         if (len(self.sim_path) >= max_len) and (self.sim_path[-1:].islower()):
             self.sim_path = self.sim_path[:best_goal['index']]
-            self.sim_path += best_goal['letter'] 
+            self.sim_path += best_goal['letter']
 
     # Define a model-building function for Keras Tuner
     def build_model(self):
