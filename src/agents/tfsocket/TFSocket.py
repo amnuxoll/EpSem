@@ -125,6 +125,44 @@ def process_history_sentinel(strData, environment, models, model_window_sizes):
         environment.last_step = '*'
         return models
 
+    # If we reached a goal, we must resimulate or retrain the models
+    # TODO: put this in a helper method
+    if strData[-1:].isupper():
+        # When the agent reaches the TRAINING_THRESHOLD create the models
+        if environment.num_goals == TRAINING_THRESHOLD:
+            log(f'Reached training threshold: goal #{TRAINING_THRESHOLD}')
+            models = train_models(environment, models, model_window_sizes)
+
+        # Find the model that predicted this goal
+        # predicting_model = None
+        # for model in models: # NOTE: This will favor higher indexed models
+        #     if (
+        #         model is not None
+        #         and model.sim_path is not None
+        #         and len(model.sim_path) == 0
+        #     ):
+        #         predicting_model = model
+        #         break
+
+        # Adjust model sizes
+        # TODO: Try something binary-search-like?
+        # if predicting_model is not None and predicting_model.window_size >= 2:
+            # log(f'new model sizes centered around {predicting_model.window_size}')
+            # model_window_sizes[0] = predicting_model.window_size - 1
+            # model_window_sizes[1] = predicting_model.window_size
+            # model_window_sizes[2] = predicting_model.window_size + 1
+
+        # Re-simulate models that correctly simulated the goal and trigger a retrain for the other models
+        models[0].simulate_model()
+        # for index in range(len(models)):
+        #     if models[index] is not None and models[index] == predicting_model:
+        #         models[index].simulate_model()
+        #     else:
+        #         # RETRAIN HERE
+        #         # log("Called for retrain in PHS #1")
+        #         # models[index] = None
+        #         pass
+
     # Create and train models of various window_sizes then select
     # Which model simulates the shortest path to a goal
     models, min_path_model = manage_models(environment, models, model_window_sizes)
@@ -262,7 +300,8 @@ def get_best_prediction(environment, models, min_path_model):
                 if models[index] is not None:
                     models[index].simulate_model()
             else:
-                models[index].sim_path = models[index].sim_path[1:]
+                pass
+                # models[index].sim_path = models[index].sim_path[1:]
 
     return models
 
@@ -332,6 +371,13 @@ def main():
                     elif strData.startswith('$$$history:'):
                         # log('python agent received history:')
                         models = process_history_sentinel(strData, environment, models, model_window_sizes)
+                        
+                        if len(models) != 0 and models[0] != None and len(models[0].sim_path) > 0:
+                            if models[0].sim_path[0] == environment.last_step:
+                                models[0].sim_path = models[0].sim_path[1:]
+                            else:
+                                models[0].simulate_model()
+                        
                         # Send the model's prediction to the environment
                         send_letter(conn, environment.last_step, environment)
 
