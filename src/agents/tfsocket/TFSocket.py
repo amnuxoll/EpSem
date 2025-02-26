@@ -64,48 +64,6 @@ def process_history_sentinel(strData, environment, models, model_window_sizes):
         environment.last_step = '*' # Select the random pseudo-model
         return models # Return early to send random action
 
-    # If we reached a goal, we need to retrain all the models
-    # TODO: put this in a helper method
-    if strData[-1:].isupper():
-        environment.retrained = False # Reset the retrained bool once the model has left the loop
-        
-        # When the agent reaches the TRAINING_THRESHOLD create the models
-        if environment.num_goals == TRAINING_THRESHOLD:
-            log(f'Reached training threshold: goal #{TRAINING_THRESHOLD}')
-            # Set all models to None to prepare for training
-            for index in range(len(models)):
-                models[index] = None
-
-        # Find the model that predicted this goal
-        predicting_model = None
-        for model in models: # NOTE: This will favor higher indexed models
-            if (
-                model is not None
-                and model.sim_path is not None
-                and len(model.sim_path) == 0
-            ):
-                predicting_model = model
-                break
-
-        # Adjust model sizes
-        # TODO: Try something binary-search-like?
-        # if predicting_model is not None and predicting_model.window_size >= 2:
-            # log(f'new model sizes centered around {predicting_model.window_size}')
-            # model_window_sizes[0] = predicting_model.window_size - 1
-            # model_window_sizes[1] = predicting_model.window_size
-            # model_window_sizes[2] = predicting_model.window_size + 1
-
-        # Re-simulate models that correctly simulated the goal and trigger a retrain for the other models
-        for index in range(len(models)):
-            if models[index] is not None and models[index] == predicting_model:
-                models[index].simulate_model()
-            else:
-                # RETRAIN HERE
-                # log("Called for retrain in PHS #1")
-                # models[index] = None
-                pass
-        return models
-
     # If looping is suspected, use the random sudo-model and set all models to None for retraining
     loop_threshold = 2*environment.avg_steps # Suspect looping threshold
     if environment.steps_since_last_goal >= loop_threshold:
@@ -118,8 +76,9 @@ def process_history_sentinel(strData, environment, models, model_window_sizes):
             log('It appears the agent is looping, switching to random steps')
             log(f'\tavg_steps={environment.avg_steps:.2f}\n\tsteps_since_last_goal={environment.steps_since_last_goal}')
             # log("Called for retrain in PHS #2")
-            for index in range(len(models)):
-                models[index] = None
+            # for index in range(len(models)):
+            #     models[index] = None
+            train_models(environment, models, model_window_sizes)
 
         # Enable the random sudo-model
         environment.last_step = '*'
@@ -128,6 +87,7 @@ def process_history_sentinel(strData, environment, models, model_window_sizes):
     # If we reached a goal, we must resimulate or retrain the models
     # TODO: put this in a helper method
     if strData[-1:].isupper():
+        environment.retrained = False # Reset the retrained bool once the model has left the loop
         # When the agent reaches the TRAINING_THRESHOLD create the models
         if environment.num_goals == TRAINING_THRESHOLD:
             log(f'Reached training threshold: goal #{TRAINING_THRESHOLD}')
