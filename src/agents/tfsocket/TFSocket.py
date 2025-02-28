@@ -101,7 +101,7 @@ def process_history_sentinel(strData, environment, models, model_window_sizes):
         models, list (hardcoded length of 3) of TFSocketModel objects of various window_sizes
     '''
     # Constant vars
-    TRAINING_THRESHOLD = 10 # Number of goals to find randomly before training the models
+    global TRAINING_THRESHOLD # Number of goals to find randomly before training the models
     MIN_HISTORY_LENGTH = 10 # Mimimum history length that the model requires to train
         
     # Update environment variables
@@ -116,47 +116,6 @@ def process_history_sentinel(strData, environment, models, model_window_sizes):
         environment.last_step = '*' # Select the random pseudo-model
         return models # Return early to send random action
 
-    # If we reached a goal, we need to retrain all the models
-    # TODO: put this in a helper method
-    if strData[-1:].isupper():
-        environment.retrained = False # Reset the retrained bool once the model has left the loop
-        
-        # Calculate epilson & perform E-Greedy exploit/explore decision making
-        calculate_epsilon(environment)
-        if random.random() < environment.epsilon:
-            environment.last_step = '*'
-            return models # Return early to send random action
-        
-        # Find the model that predicted this goal
-        predicting_model = None
-        for model in models: # NOTE: This will favor lower indexed models
-            if (
-                model is not None
-                and model.sim_path is not None
-                and len(model.sim_path) == 0
-            ):
-                predicting_model = model
-                break
-        
-        # Adjust model sizes
-        # TODO: Try something binary-search-like?
-        # if predicting_model is not None and predicting_model.window_size >= 2:
-            # log(f'new model sizes centered around {predicting_model.window_size}')
-            # model_window_sizes[0] = predicting_model.window_size - 1
-            # model_window_sizes[1] = predicting_model.window_size
-            # model_window_sizes[2] = predicting_model.window_size + 1
-
-        # Re-simulate models that correctly simulated the goal and trigger a retrain for the other models
-        for index in range(len(models)):
-            if models[index] is not None and models[index] == predicting_model:
-                models[index].simulate_model() # resim model used to find the goal
-            else:
-                # RETRAIN HERE
-                # log("Called for retrain in PHS #1")
-                # models[index] = None
-                pass
-        return models
-
     # If looping is suspected, use the random sudo-model and set all models to None for retraining
     loop_threshold = 2*environment.avg_steps # Suspect looping threshold
     if environment.steps_since_last_goal >= loop_threshold:
@@ -167,11 +126,57 @@ def process_history_sentinel(strData, environment, models, model_window_sizes):
         if environment.retrained == False:
             environment.retrained = True # Make sure to only retrain the models once
             log('It appears the agent is looping, switching to random steps')
-            log(f'\tavg_steps={environment.avg_steps:.2f}\n\tsteps_since_last_goal={environment.steps_since_last_goal}')
+            # log(f'\tavg_steps={environment.avg_steps:.2f}\n\tsteps_since_last_goal={environment.steps_since_last_goal}')
             # log("Called for retrain in PHS #2")
-            for index in range(len(models)):
-                models[index] = None
+            # for index in range(len(models)):
+            #     models[index] = None
+            train_models(environment, models, model_window_sizes)
 
+        # Enable the random sudo-model
+        environment.last_step = '*'
+        return models
+
+    # If we reached a goal, we must resimulate or retrain the models
+    # TODO: put this in a helper method
+    if strData[-1:].isupper():
+        environment.retrained = False # Reset the retrained bool once the model has left the loop
+        # When the agent reaches the TRAINING_THRESHOLD create the models
+        if environment.num_goals == TRAINING_THRESHOLD:
+            log(f'Reached training threshold: goal #{TRAINING_THRESHOLD}')
+            models = train_models(environment, models, model_window_sizes)
+
+        # Find the model that predicted this goal
+        # predicting_model = None
+        # for model in models: # NOTE: This will favor higher indexed models
+        #     if (
+        #         model is not None
+        #         and model.sim_path is not None
+        #         and len(model.sim_path) == 0
+        #     ):
+        #         predicting_model = model
+        #         break
+
+        # Adjust model sizes
+        # TODO: Try something binary-search-like?
+        # if predicting_model is not None and predicting_model.window_size >= 2:
+            # log(f'new model sizes centered around {predicting_model.window_size}')
+            # model_window_sizes[0] = predicting_model.window_size - 1
+            # model_window_sizes[1] = predicting_model.window_size
+            # model_window_sizes[2] = predicting_model.window_size + 1
+
+        # Re-simulate models that correctly simulated the goal and trigger a retrain for the other models
+        models[0].simulate_model()
+        # for index in range(len(models)):
+        #     if models[index] is not None and models[index] == predicting_model:
+        #         models[index].simulate_model()
+        #     else:
+        #         # RETRAIN HERE
+        #         # log("Called for retrain in PHS #1")
+        #         # models[index] = None
+        #         pass
+
+    calculate_epsilon(environment)
+    if random.random() < environment.epsilon():
         # Enable the random sudo-model
         environment.last_step = '*'
         return models
@@ -317,7 +322,8 @@ def get_best_prediction(environment, models, min_path_model):
                 if models[index] is not None:
                     models[index].simulate_model()
             else:
-                models[index].sim_path = models[index].sim_path[1:]
+                pass
+                # models[index].sim_path = models[index].sim_path[1:]
 
     return models
 
@@ -387,6 +393,26 @@ def main():
                     elif strData.startswith('$$$history:'):
                         # log('python agent received history:')
                         models = process_history_sentinel(strData, environment, models, model_window_sizes)
+                        
+                        # Only works with 1 model
+                        if environment.last_step == '*':
+                            models[0].sim_path = None
+                        else:
+                            models[0].sim_path = models[0].sim_path[1:]
+                        
+                        
+                        # if(
+                        #     len(models) != 0 and 
+                        #     models[0] != None and 
+                        #     models[0].sim_path != None and
+                        #     len(models[0].sim_path) > 0
+                        # ):
+                        #     if models[0].sim_path[0] == environment.last_step:
+                        #         models[0].sim_path = models[0].sim_path[1:]
+                        #     else:
+                        #         # Calling simulate model here is redundant because the it will become outdated as soon as the agent takes the next step, TODO: edit simulate_model to be able to include the environment.next_step if we so choose (only would do so here, to leave the other calls alone)
+                        #         models[0].sim_path = None 
+                        
                         # Send the model's prediction to the environment
                         send_letter(conn, environment.last_step, environment)
 
