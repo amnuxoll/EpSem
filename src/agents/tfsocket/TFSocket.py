@@ -364,4 +364,14 @@ def main():
     log('Agent Exit')
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except Exception as e:
+        log(f'Exception: {e}')
+        log('-----')
+        try:
+            f = open('pyout.txt', 'a')
+            traceback.print_tb(e.__traceback__, None, f)
+            f.close()
+        except Exception as errerr:
+            log(f'Exception exception!: {errerr}')
