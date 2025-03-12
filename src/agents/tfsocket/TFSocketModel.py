@@ -145,7 +145,7 @@ class TFSocketModel:
         x_train = tf.constant(x_train)
         y_train = tf.constant(y_train)
         # Defining the model's loss function
-        log('training')
+        # log('training')
 
         # Defining the model function as a variable
         # Note: We are guessing the size of the first dense layer should

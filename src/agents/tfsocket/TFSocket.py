@@ -78,7 +78,8 @@ def process_history_sentinel(strData, environment, models, model_window_sizes):
             # log("Called for retrain in PHS #2")
             # for index in range(len(models)):
             #     models[index] = None
-            train_models(environment, models, model_window_sizes)
+            log('in a loop retraining')
+            models = train_models(environment, models, model_window_sizes)
 
         # Enable the random sudo-model
         environment.last_step = '*'
@@ -90,7 +91,7 @@ def process_history_sentinel(strData, environment, models, model_window_sizes):
         environment.retrained = False # Reset the retrained bool once the model has left the loop
         # When the agent reaches the TRAINING_THRESHOLD create the models
         if environment.num_goals == TRAINING_THRESHOLD:
-            log(f'Reached training threshold: goal #{TRAINING_THRESHOLD}')
+            log(f'Reached training threshold: goal #{TRAINING_THRESHOLD}\nretraining')
             models = train_models(environment, models, model_window_sizes)
 
         # Find the model that predicted this goal
@@ -179,9 +180,10 @@ def manage_models(environment, models, model_window_sizes):
     index = 0
     while (min_path_model is None) and (index < max_iterations):
         # Create models using entire history
-        models = train_models(environment, models, model_window_sizes)
+        # log("manage_models: retraining")
+        # models = train_models(environment, models, model_window_sizes)
         # Find the model with the shortest sim_path
-        min_path_model = select_min_path_model(models, min_path_model)
+        min_path_model = select_min_path_model(environment, models, min_path_model, model_window_sizes)
         index += 1
     if min_path_model is None:
         log('ERROR: The training and selecting of models was unsuccessfull.')
@@ -199,17 +201,21 @@ def train_models(environment, models, model_window_sizes):
             model[1].win_size = model_window_sizes[1] # = 5
             model[2].win_size = model_window_sizes[2] # = 6
     '''
-    if all(model is None for model in models):
-        # log(f'Training models')
-        # If we've reached the end of random-action data gathering, create models using entire history
-        for index in range(len(model_window_sizes)):
-            models[index] = tfmodel(environment, model_window_sizes[index])
-            models[index].train_model()
-            models[index].simulate_model()
+    # if all(model is None for model in models):
+    # log(f'Training models')
+    # If we've reached the end of random-action data gathering, create models using entire history
+    # for index in range(len(model_window_sizes)):
+        # models[index] = tfmodel(environment, model_window_sizes[index])
+        # models[index].train_model()
+        # models[index].simulate_model()
+    
+    models[0] = tfmodel(environment, model_window_sizes[0])
+    models[0].train_model()
+    models[0].simulate_model()
 
     return models
 
-def select_min_path_model(models, min_path_model):
+def select_min_path_model(environment, models, min_path_model, model_window_sizes):
     '''
     Finds which model in models had the shortest sim_path and returns the model
     If any models have an empty sim_path, then set the model to None for it to be retrained
@@ -218,6 +224,12 @@ def select_min_path_model(models, min_path_model):
     process_history_sentinal() will then retrain and re-run this function with
     a new list of models that are gaurenteed to have sim_paths of length >= 1
     '''
+    if len(models[0].sim_path) <=0:
+        log("selet_min_path_model: retraining")
+        models = train_models(environment, models, model_window_sizes)
+    
+    return models[0]
+    
     for index in range(len(models)):
         if models[index] is not None:
             # At this point if a model is NOT None it is garenteed to have a sim_path that is NOT None
@@ -225,7 +237,10 @@ def select_min_path_model(models, min_path_model):
                 # Set to None so the model can be re-trained
                 # RETRAIN HERE
                 # log("Called for retrain in select_min_path_model")
-                models[index] = None
+                # models[index] = None
+                
+                log("selet_min_path_model: retraining")
+                models = train_models(environment, models, model_window_sizes)
                 continue
 
             if min_path_model is None:
