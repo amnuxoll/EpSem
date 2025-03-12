@@ -13,6 +13,8 @@ class TFSocketEnv:
         self.num_goals = 0              # Number of goals the agent has found so far
         self.avg_steps = 0              # Average number of steps the agent has taken to find a goal
         self.overall_alphabet = []      # If alphabet is [a,b,c] then overall_alphabet = [a,b,c,A,B,C]
+        self.retrained = False          # When in a loop, make sure to retrain the models only once
+
 
     def update_avg_steps(self):
         '''
