@@ -9,7 +9,7 @@ from TFSocketEnv import TFSocketEnv as tfenv
 from TFSocketUtils import log
 
 # Define global constants
-TRAINING_THRESHOLD = 10  # Number of random steps to take before training models (MIN=10)
+TRAINING_THRESHOLD = 10  # Number of goals that must be found using random steps before training
 
 '''
 This is the main script for the TFSocket python agent
@@ -42,101 +42,62 @@ def send_letter(conn, letter, environment):
     conn.sendall(letter.encode('ASCII'))
     return letter
 
-def process_history_sentinel(strData, environment, models, model_window_sizes):
+def process_history_sentinel(strData, environment, model):
     '''
     First use strData to update the TFSocketEnv object's variables.
-    Then create and train a list of models of various window_sizes.
-    Select the model in the list that will reach the goal in the fewest steps.
-    Use the min_steps_model to commit the agent's action to the environment.
+    Then create and train the model.
+    Simulate the model's ideal path to the goal.
+    Commit the agent's action first step to the Java socket.
 
     Params:
         strData, the agent's window (of size WINDOW_SIZE) of the total history from the java agent
         environment, TFSocketEnv object of the environment's details
-        models, list (hardcoded length of 3) of TFSocketModel objects of various window_sizes
+        model, a TFSocketModel object
     '''
     global TRAINING_THRESHOLD
 
-    # Update environment variables
-    environment = update_environment(strData, environment)
-
     # Use the random pseudo-model until we've collected enough data to train on
     if environment.num_goals < TRAINING_THRESHOLD:
-        environment.last_step = '*' # Select the random pseudo-model
-        return models # Return early to send random action
+        environment.next_step = '*' # Select the random pseudo-model
+        return model # Return early to send random action
 
-    # If looping is suspected, use the random sudo-model and set all models to None for retraining
+    # If looping is suspected, use the random pseuo-model and retrain the model
     loop_threshold = 2*environment.avg_steps # Suspect looping threshold
     if environment.steps_since_last_goal >= loop_threshold:
-        # Reset the models for training
-        
-        # TODO: Try checking if we should be resetting to train everytime we're over the 
-        # loop threshold, i.e get rid of this "if:" and un-indent the forloop inside of it
+        # Ensure the model is only retrained once until it escapes the loop
         if environment.retrained == False:
-            environment.retrained = True # Make sure to only retrain the models once
-            log('It appears the agent is looping, switching to random steps')
-            log(f'\tavg_steps={environment.avg_steps:.2f}\n\tsteps_since_last_goal={environment.steps_since_last_goal}')
-            # log("Called for retrain in PHS #2")
-            # for index in range(len(models)):
-            #     models[index] = None
-            log('in a loop retraining')
-            models = train_models(environment, models, model_window_sizes)
+            environment.retrained = True
+            log(f'Detected looping at step {environment.steps_since_last_goal}, going random!')
+            model = train_model(environment, model)
 
-        # Enable the random sudo-model
-        environment.last_step = '*'
-        return models
+        # Enable the random pseudo-model
+        environment.next_step = '*'
+        return model
 
-    # If we reached a goal, we must resimulate or retrain the models
-    # TODO: put this in a helper method
+    # If we reached a goal, we must resimulate or retrain the model
     if strData[-1:].isupper():
         environment.retrained = False # Reset the retrained bool once the model has left the loop
-        # When the agent reaches the TRAINING_THRESHOLD create the models
+        # When the agent reaches the TRAINING_THRESHOLD create the model
         if environment.num_goals == TRAINING_THRESHOLD:
-            log(f'Reached training threshold: goal #{TRAINING_THRESHOLD}\nretraining')
-            models = train_models(environment, models, model_window_sizes)
+            log('Agent has reached the training threshold')
+            model = train_model(environment, model) # Create and train model
+        else:
+            # Re-simulate the model
+            model.simulate_model()
 
-        # Find the model that predicted this goal
-        # predicting_model = None
-        # for model in models: # NOTE: This will favor higher indexed models
-        #     if (
-        #         model is not None
-        #         and model.sim_path is not None
-        #         and len(model.sim_path) == 0
-        #     ):
-        #         predicting_model = model
-        #         break
-
-        # Adjust model sizes
-        # TODO: Try something binary-search-like?
-        # if predicting_model is not None and predicting_model.window_size >= 2:
-            # log(f'new model sizes centered around {predicting_model.window_size}')
-            # model_window_sizes[0] = predicting_model.window_size - 1
-            # model_window_sizes[1] = predicting_model.window_size
-            # model_window_sizes[2] = predicting_model.window_size + 1
-
-        # Re-simulate models that correctly simulated the goal and trigger a retrain for the other models
-        models[0].simulate_model()
-        # for index in range(len(models)):
-        #     if models[index] is not None and models[index] == predicting_model:
-        #         models[index].simulate_model()
-        #     else:
-        #         # RETRAIN HERE
-        #         # log("Called for retrain in PHS #1")
-        #         # models[index] = None
-        #         pass
-
-    # Create and train models of various window_sizes then select
-    # Which model simulates the shortest path to a goal
-    models, min_path_model = manage_models(environment, models, model_window_sizes)
-
-    # Select the next action from the shortest min_path_model, then adjust the sim_paths for all models
-    models = get_best_prediction(environment, models, min_path_model)
-
-    return models
+    # Update the model and get the next step
+    if len(model.sim_path) <= 0 or None:
+        model.simulate_model()
+        
+    # Take the first step of the simulated path to goal
+    environment.next_step = model.sim_path[0].lower()
+    
+    return model
 
 def update_environment(strData, environment):
     '''
     Update environment variables from strData:
-        entire_history
+        history
         steps_since_last_goal
         num_goals
         avg_steps
@@ -144,14 +105,17 @@ def update_environment(strData, environment):
     Params:
         strData, the agent's window (of size WINDOW_SIZE) of the total history from the java agent
         environment, TFSocketEnv object of the environment's details
+    
     Returns: The updated TFSocketEnv object
     '''
-    # Update entire_history
+    environment.next_step = ''
+    
+    # Update history
     window = strData[11:]
     # log(f'Window received: {window}')
     if len(window) == 1:
         window = window.lower()
-    environment.entire_history = environment.entire_history + str(window[-1:])
+    environment.history = environment.history + str(window[-1:])
 
     # Update num_goals and steps_since_last_goal
     environment.steps_since_last_goal +=1
@@ -165,120 +129,17 @@ def update_environment(strData, environment):
 
     return environment
 
-def manage_models(environment, models, model_window_sizes):
+def train_model(environment, model):
     '''
-    1. Train each model
-    2. Simulate each model
-    3. Select the best model
-
-    Returns:
-        models, list of TFSocketModel objects of various window_sizes
-        min_path_model, the model with the shortest sim_path in models
+    If the random-action data gathering is complete, create a model
+    using the environment's history
     '''
-    min_path_model = None
-    max_iterations = 2 # Infinite loop precaution, should never need to run more than twice.
-    index = 0
-    while (min_path_model is None) and (index < max_iterations):
-        # Create models using entire history
-        # log("manage_models: retraining")
-        # models = train_models(environment, models, model_window_sizes)
-        # Find the model with the shortest sim_path
-        min_path_model = select_min_path_model(environment, models, min_path_model, model_window_sizes)
-        index += 1
-    if min_path_model is None:
-        log('ERROR: The training and selecting of models was unsuccessfull.')
+    # log(f'Training model')
+    model = tfmodel(environment)
+    model.train_model()
+    model.simulate_model()
 
-    return models, min_path_model
-
-def train_models(environment, models, model_window_sizes):
-    '''
-    If the random-action data gathering is complete, create a list of models
-    using the environment's entire_history and a window_size defined by model_window_sizes
-
-    Example: models[i].win_size = model_window_sizes[i]
-        If model_window_sizes = [4, 5, 6], then...
-            model[0].win_size = model_window_sizes[0] # = 4
-            model[1].win_size = model_window_sizes[1] # = 5
-            model[2].win_size = model_window_sizes[2] # = 6
-    '''
-    # if all(model is None for model in models):
-    # log(f'Training models')
-    # If we've reached the end of random-action data gathering, create models using entire history
-    # for index in range(len(model_window_sizes)):
-        # models[index] = tfmodel(environment, model_window_sizes[index])
-        # models[index].train_model()
-        # models[index].simulate_model()
-    
-    models[0] = tfmodel(environment, model_window_sizes[0])
-    models[0].train_model()
-    models[0].simulate_model()
-
-    return models
-
-def select_min_path_model(environment, models, min_path_model, model_window_sizes):
-    '''
-    Finds which model in models had the shortest sim_path and returns the model
-    If any models have an empty sim_path, then set the model to None for it to be retrained
-    
-    If all models have an empty sim_path, then return None
-    process_history_sentinal() will then retrain and re-run this function with
-    a new list of models that are gaurenteed to have sim_paths of length >= 1
-    '''
-    if len(models[0].sim_path) <=0:
-        log("selet_min_path_model: retraining")
-        models = train_models(environment, models, model_window_sizes)
-    
-    return models[0]
-    
-    for index in range(len(models)):
-        if models[index] is not None:
-            # At this point if a model is NOT None it is garenteed to have a sim_path that is NOT None
-            if len(models[index].sim_path) <= 0:
-                # Set to None so the model can be re-trained
-                # RETRAIN HERE
-                # log("Called for retrain in select_min_path_model")
-                # models[index] = None
-                
-                log("selet_min_path_model: retraining")
-                models = train_models(environment, models, model_window_sizes)
-                continue
-
-            if min_path_model is None:
-                min_path_model = models[index]
-            # NOTE: '<=' favors larger indexed models, and '<' favors smaller index models
-            elif len(models[index].sim_path) < len(min_path_model.sim_path):
-                min_path_model = models[index]
-
-    # Could possibly return None if all models are None
-    return min_path_model
-
-def get_best_prediction(environment, models, min_path_model):
-    '''
-    Update environment.last_step with the most recent prediction from the best
-    model with the shortest sim_path.
-    Then adjust each model's sim_path to reflect the environment change.
-    '''
-    # If there is a trained model, use it to select the next action
-    if min_path_model is None:
-        log(f'Error: All models are None; The training and selecting of models was unsuccessfull.')
-        return models
-
-    environment.last_step = min_path_model.sim_path[0].lower()
-
-    # Adjust sim_paths for all models based on selected action
-    for index in range(len(models)):
-        if models[index] is not None:
-            # log(f'Model (window_size={models[index].window_size}); sim_path to goal: {models[index].sim_path}')
-            action = models[index].sim_path[0]
-            if action.lower() != environment.last_step:
-                # This model's prediction does not match action selected by min_path_model
-                if models[index] is not None:
-                    models[index].simulate_model()
-            else:
-                pass
-                # models[index].sim_path = models[index].sim_path[1:]
-
-    return models
+    return model
 
 def main():
     '''
@@ -299,13 +160,10 @@ def main():
     timeout = 0
     log(f'port number: {portNum}')
     log('Creating server for the Java environment to connect to...')
-        
+
     # Initialize FSM scoped variables
     environment = tfenv()
-    models = [None]
-    # Defines how many models and the win_size param for each model
-    # These numbers will change dynamically as the agent discovers a near-optimal size
-    model_window_sizes = [5] # models[i].win_size = model_window_sizes[i] 
+    model = None
     cwd = os.getcwd()
     
     for entry in os.listdir(cwd):
@@ -340,21 +198,26 @@ def main():
                         environment.alphabet = list(strData[12:])
                         environment.overall_alphabet = environment.alphabet + [let.upper() for let in environment.alphabet]
                         log(f'New alphabet: {environment.alphabet}')
-                        log(f'Sending "ack"') # Acknowledge
+                        log(f'Sending acknowledgment')
                         conn.sendall('$$$ack'.encode('ASCII'))
 
                     elif strData.startswith('$$$history:'):
-                        # log('python agent received history:')
-                        models = process_history_sentinel(strData, environment, models, model_window_sizes)
+                        # Update environment variables
+                        environment = update_environment(strData, environment)
                         
-                        if len(models) != 0 and models[0] != None and len(models[0].sim_path) > 0:
-                            if models[0].sim_path[0] == environment.last_step:
-                                models[0].sim_path = models[0].sim_path[1:]
+                        # log('python agent received history:')
+                        model = process_history_sentinel(strData, environment, model)
+                        
+                        if model != None and len(model.sim_path) > 0:
+                            # Adjust the model's predicted steps_to_goal
+                            if model.sim_path[0] == environment.next_step:
+                                model.sim_path = model.sim_path[1:]
                             else:
-                                models[0].simulate_model()
+                                # Re-simulate the model's predicted steps_to_goal
+                                model.simulate_model()
                         
                         # Send the model's prediction to the environment
-                        send_letter(conn, environment.last_step, environment)
+                        send_letter(conn, environment.next_step, environment)
 
                     elif strData.startswith('$$$quit'):
                         # Add the last step to complete the history.
