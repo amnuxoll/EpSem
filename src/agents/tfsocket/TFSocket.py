@@ -29,65 +29,6 @@ Commonly used variable names:
         actions where N = WINDOW_SIZE
 '''
 
-def send_letter(conn, letter, environment):
-    '''
-    Send an action to the environment through the socket
-    If letter = '*' send a random action
-    '''
-    if not environment.alphabet:
-        # log('ALPHABET has not been intialized')
-        return None
-
-    if letter == '*':
-        letter = random.choice(environment.alphabet)
-    # log(f'sending {letter}')
-    conn.sendall(letter.encode('ASCII'))
-    return letter
-
-def calculate_epsilon(environment):
-    '''
-    Calculate an epsilon value from the number of steps the agent has taken, via a sigmoid function
-    '''
-    x = environment.num_goals # Update the sigmoid function's "x" value
-    if environment.epsilon <= 0.0: # Initialize epsilon
-        environment.epsilon ==  0.0
-    
-    # Find the rolling avg of steps_to_goal for the last 5 goals
-    num_goals_to_avg = 5
-    pattern = rf'([a-z]*[A-Z]){{{num_goals_to_avg}}}(?=[a-z]*$)'
-    match = re.search(pattern, str(environment.entire_history))
-    substring = match.group(0) if match else ''
-    rolling_avg_steps = len(substring) / num_goals_to_avg
-    
-    # Last iteration's alert, unlearning_alert default value is True
-    # prev_alert = environment.unlearning_alert
-    # Last iteration's perc_unlearning, perc_unlearning default value is 0.0
-    prev_perc_unlearning = environment.perc_unlearning
-
-    # Calculate the rate of "unlearning" as a percentage of the total_avg
-    environment.perc_unlearning = max(math.log(rolling_avg_steps/environment.avg_steps, 2), 0)
-    
-    # Oh no! The agent is "unlearning" (performing worse over time)
-    if not prev_perc_unlearning > 0 and environment.perc_unlearning > 0:
-        log('The agent appears to be unlearning')
-        # log('Generating negative sigmoid function')
-        log(f'perc_unlearning = {environment.perc_unlearning:.3f}')
-        environment.h_shift = 7 + x # Offset by 7 for a TRAINING_THRESHOLD = 10
-        environment.upper_bound = environment.epsilon + environment.perc_unlearning
-    
-    # Yay! The agent is improving and no longer "unlearning"
-    elif prev_perc_unlearning > 0 and not environment.perc_unlearning > 0:
-        log('The agent appears to be learning')
-    
-    # Dang! The agent is still unlearning
-    elif prev_perc_unlearning > 0 and environment.perc_unlearning > 0:
-        # If the agent in "unlearning" at an increasing rate, then increase epsilon by the same amount
-        if environment.perc_unlearning > prev_perc_unlearning:
-            environment.upper_bound += (environment.perc_unlearning - prev_perc_unlearning)
-
-    # Calculate the next interation of epsilon with the sigmoid function    
-    environment.epsilon = environment.upper_bound * (1 / (1 + math.exp((x - environment.h_shift))))
-
 def process_history_sentinel(strData, environment, model):
     '''
     First use strData to update the TFSocketEnv object's variables.
@@ -109,7 +50,7 @@ def process_history_sentinel(strData, environment, model):
         environment.num_goals < TRAINING_THRESHOLD
         or len(environment.history) < MIN_HISTORY_LENGTH
     ):
-        environment.last_step = '*' # Select the random pseudo-model
+        environment.next_step = '*' # Select the random pseudo-model
         return model # Return early to send random action
 
     # If looping is suspected, use the random pseuo-model and retrain the model
@@ -129,12 +70,6 @@ def process_history_sentinel(strData, environment, model):
     if strData[-1:].isupper():
         environment.retrained = False # Reset the retrained bool once the model has left the loop
         
-        # Calculate epilson & perform E-Greedy exploit/explore decision making
-        calculate_epsilon(environment)
-        if random.random() < environment.epsilon:
-            environment.last_step = '*'
-            return model # Return early to send random action
-        
         # When the agent reaches the TRAINING_THRESHOLD create the model
         if environment.num_goals == TRAINING_THRESHOLD:
             log('Agent has reached the training threshold')
@@ -143,13 +78,80 @@ def process_history_sentinel(strData, environment, model):
             # Re-simulate the model
             model.simulate_model()
 
+        # Calculate epilson
+        calculate_epsilon(environment)
+    
+    # Perform E-Greedy exploit/explore decision making
+    if random.random() < environment.epsilon:
+        environment.next_step = '*'
+        return model # Return early to send random action
+
+    log(f'model.sim_path = {model.sim_path}')
+
     # Update the model and get the next step
-    if len(model.sim_path) <= 0 or None:
+    if len(model.sim_path) <= 0:
         model.simulate_model()
         
     # Take the first step of the simulated path to goal
     environment.next_step = model.sim_path[0].lower()
     
+    return model
+
+def calculate_epsilon(environment):
+    '''
+    Calculate an epsilon value from the number of steps the agent has taken, via a sigmoid function
+    '''
+    x = environment.num_goals # Update the sigmoid function's "x" value
+    if environment.epsilon <= 0.0: # Initialize epsilon
+        environment.epsilon ==  0.0
+    
+    # Find the rolling avg of steps_to_goal for the last 5 goals
+    num_goals_to_avg = 5
+    pattern = rf'([a-z]*[A-Z]){{{num_goals_to_avg}}}(?=[a-z]*$)'
+    match = re.search(pattern, str(environment.history))
+    substring = match.group(0) if match else ''
+    rolling_avg_steps = len(substring) / num_goals_to_avg
+    
+    # Last iteration's alert, forgetting_alert default value is True
+    # prev_alert = environment.forgetting_alert
+    # Last iteration's perc_forgetting, perc_forgetting default value is 0.0
+    prev_perc_forgetting = environment.perc_forgetting
+
+    # Calculate the rate of "forgetting" as a percentage of the total_avg
+    environment.perc_forgetting = max(math.log(rolling_avg_steps/environment.avg_steps, 2), 0)
+    environment.perc_forgetting = min(environment.perc_forgetting, 1)
+    
+    # Oh no! The agent is "forgetting" (performing worse over time)
+    if not prev_perc_forgetting > 0 and environment.perc_forgetting > 0:
+        log('The agent appears to be forgetting')
+        # log('Generating negative sigmoid function')
+        log(f'perc_forgetting = {environment.perc_forgetting:.3f}')
+        environment.h_shift = 7 + x # Offset by 7 for a TRAINING_THRESHOLD = 10
+        environment.upper_bound = environment.epsilon + environment.perc_forgetting
+    
+    # Yay! The agent is improving and no longer "forgetting"
+    elif prev_perc_forgetting > 0 and not environment.perc_forgetting > 0:
+        log('The agent appears to be learning')
+    
+    # Dang! The agent is still forgetting
+    elif prev_perc_forgetting > 0 and environment.perc_forgetting > 0:
+        # If the agent in "forgetting" at an increasing rate, then increase epsilon by the same amount
+        if environment.perc_forgetting > prev_perc_forgetting:
+            environment.upper_bound += (environment.perc_forgetting - prev_perc_forgetting)
+
+    # Calculate the next interation of epsilon with the sigmoid function    
+    environment.epsilon = environment.upper_bound * (1 / (1 + math.exp((x - environment.h_shift))))
+
+def train_model(environment, model):
+    '''
+    If the random-action data gathering is complete, create a model
+    using the environment's history
+    '''
+    # log(f'Training model')
+    model = tfmodel(environment)
+    model.train_model()
+    model.simulate_model()
+
     return model
 
 def update_environment(strData, environment):
@@ -190,17 +192,19 @@ def update_environment(strData, environment):
 
     return environment
 
-def train_model(environment, model):
+def send_letter(conn, letter, environment):
     '''
-    If the random-action data gathering is complete, create a model
-    using the environment's history
+    Send an action to the environment through the socket
+    If letter = '*' send a random action
     '''
-    # log(f'Training model')
-    model = tfmodel(environment)
-    model.train_model()
-    model.simulate_model()
+    if not environment.alphabet:
+        # log('ALPHABET has not been intialized')
+        return None
 
-    return model
+    if letter == '*':
+        letter = random.choice(environment.alphabet)
+    conn.sendall(letter.encode('ASCII'))
+    return letter
 
 def main():
     '''
@@ -276,7 +280,7 @@ def main():
                             else:
                                 # Re-simulate the model's predicted steps_to_goal
                                 model.simulate_model()
-                        
+                                                
                         # Send the model's prediction to the environment
                         send_letter(conn, environment.next_step, environment)
 

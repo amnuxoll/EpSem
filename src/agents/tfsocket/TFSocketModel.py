@@ -21,7 +21,7 @@ class TFSocketModel:
         self.sim_path = None # Predicted shortest path to goal (e.g., abbabA)
         self.model = None
         self.is_tuned = False
-        # tf.random.set_seed(42)
+        tf.random.set_seed(42)
 
     def get_letter(self, prediction):
         '''
@@ -140,7 +140,7 @@ class TFSocketModel:
         y_train = self.calc_desired_actions(self.environment.history)
         x_train = tf.constant(x_train)
         y_train = tf.constant(y_train)
-        log('training')
+        # log('training')
         self.model = self.build_model()
         
         try:
