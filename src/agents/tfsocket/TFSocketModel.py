@@ -1,5 +1,4 @@
 import tensorflow as tf
-import keras_tuner as kt
 import contextlib
 import random
 import os
@@ -13,12 +12,12 @@ class TFSocketModel:
     step to reach the goal.
     '''
 
-    def __init__(self, environment, window_size):
+    def __init__(self, environment):
         '''
         define object variables and create the model function-variable
         '''
         self.environment = environment
-        self.window_size = window_size
+        self.window_size = 5
         self.sim_path = None # Predicted shortest path to goal (e.g., abbabA)
         self.model = None
         self.is_tuned = False
@@ -44,7 +43,6 @@ class TFSocketModel:
         return self.environment.overall_alphabet[max_index]
 
     def simulate_model(self):
-        # log("Simulating model")
         '''
         Simulate the model's prediction of the next step and place it in self.sim_path
 
@@ -58,9 +56,11 @@ class TFSocketModel:
         usually reached. This is undesirable so this method inserts a 'artificial' goal
         at the point where a goal was predicted most strongly.
         '''
+        # log("Simulating model")
+
         if self.model is None:
             log("ERROR: Model should not be None in simulate_model()")
-        window = self.environment.entire_history[-self.window_size:]
+        window = self.environment.history[-self.window_size:]
         predictions = self.get_predictions(window)
         first_sim_action = self.get_letter(predictions)
 
@@ -86,10 +86,10 @@ class TFSocketModel:
                 # log('sim_path reached max length, truncate to most probable goal prediction.')
                 break # I suspect the while loop exits here virtually always
 
-            # log(f'Model (window_size={window}); sim_path: {self.sim_path}')
+            # log(f'Model sim_path: {self.sim_path}')
 
             # Simulate the next step from entire_path and sim_path so far
-            sim_hist = self.environment.entire_history + self.sim_path
+            sim_hist = self.environment.history + self.sim_path
             window = sim_hist[-self.window_size:]
             predictions = self.get_predictions(window)
             self.sim_path += self.get_letter(predictions)
@@ -115,13 +115,10 @@ class TFSocketModel:
         alph_size = len(self.environment.overall_alphabet)
         model.add(tf.keras.layers.LSTM(units=alph_size, activation='relu'))
         model.add(tf.keras.layers.Dropout(0.2))
-        # dense_units = hp.Int('dense_units', min_value=1, max_value=5, step=1)
         model.add(tf.keras.layers.Dense(units=alph_size, activation='relu'))
-
         model.add(tf.keras.layers.Dense(len(self.environment.overall_alphabet),activation='softmax'))
         
         # Tune the learning rate for the optimizer
-        # learning_rate = hp.Choice('learning_rate', values=[1e-2, 1e-3, 1e-4])
         learning_rate = 1e-2
         
         loss_fn = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
@@ -139,40 +136,11 @@ class TFSocketModel:
         '''
         # Defining the inputs and expected outputs from a given history
         self.environment.update_avg_steps()    
-        # self.remove_duplicate_goal_paths()  # NOTE: We can maybe move this to remove duplicates after each goal instead
-        x_train = self.calc_input_tensors(self.environment.entire_history)
-        y_train = self.calc_desired_actions(self.environment.entire_history)
+        x_train = self.calc_input_tensors(self.environment.history)
+        y_train = self.calc_desired_actions(self.environment.history)
         x_train = tf.constant(x_train)
         y_train = tf.constant(y_train)
-        # Defining the model's loss function
-        # log('training')
-
-        # Defining the model function as a variable
-        # Note: We are guessing the size of the first dense layer should
-        # be about half the size of the input layer. We may want to do future
-        # experiments to see what actually works best
-        # tuning_dir = os.path.join(os.getcwd(), f'tuning_dir_{self.window_size}')
-        # log("Completed tuning_dir = os.path.join(os.getcwd(), 'tuning_dir_{self.window_size}')")
-        # tuner = kt.RandomSearch(
-        #     self.build_model,
-        #     objective='loss',
-        #     max_trials=5,
-        #     executions_per_trial=1,
-        #     directory=tuning_dir,
-        #     project_name='model_tuning'
-        # )
-        # log("Completed tuner initialize")
-
-        # tuner.search(x_train, y_train,
-        #             epochs=2,
-        #             verbose=0
-        #             )
-        # log("Completed Tuner Search")
-        # Get the optimal hyperparameters
-        # best_hps = tuner.get_best_hyperparameters(num_trials=1)[0]
-        # log("Completed best_hps = tuner.get_best_hyperparameters(num_trials=1)[0]")
-        # self.model = tuner.hypermodel.build(best_hps)
-        # log("Completed self.model = tuner.hypermodel.build(best_hps)")
+        log('training')
         self.model = self.build_model()
         
         try:
@@ -183,25 +151,7 @@ class TFSocketModel:
             log(f'\tx_train: {x_train} with len: {len(x_train)} and shape: {x_train.shape}')
             log(f'\ty_train: {y_train} with len: {len(y_train)} and shape: {y_train.shape}')
             log(f'\tmodel: {self.model}')
-            log(f'\tself.environment.entire_history: {self.environment.entire_history}')
-
-    def remove_duplicate_goal_paths(self):
-        '''
-        Remove duplicate actions from the history
-        '''
-        # Path that got us to a goal (e.g ["ababaB","bbbaB"])
-        goal_paths = []
-        last_goal = 0
-
-        # Loop through the entire history and find the paths to a goal
-        for i in range(len(self.environment.entire_history)):
-            if self.environment.entire_history[i].isupper():
-                goal_paths.append(self.environment.entire_history[last_goal:i+1])
-                last_goal = i+1
-
-        # Remove duplicate goal paths
-        ret = list(set(goal_paths))
-        self.environment.entire_history = "".join(ret)
+            log(f'\tself.environment.history: {self.environment.history}')
 
     def calc_input_tensors(self, given_window):
         '''
@@ -252,7 +202,7 @@ class TFSocketModel:
 
     def calc_desired_actions(self, window):
         '''
-        Calculates the desired action for each window in the entire_history
+        Calculates the desired action for each window in the history
 
         The model wants expected outputs to be a set of integer categories.
         So we arbitrarily assign: a=0, A=1, b=2, B=3
