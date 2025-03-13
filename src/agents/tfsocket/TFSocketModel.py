@@ -21,7 +21,7 @@ class TFSocketModel:
         self.sim_path = None # Predicted shortest path to goal (e.g., abbabA)
         self.model = None
         self.is_tuned = False
-        tf.random.set_seed(42)
+        # tf.random.set_seed(42)
 
     def get_letter(self, prediction):
         '''
@@ -193,7 +193,7 @@ class TFSocketModel:
             [[0.35471925 0.19711517 0.25747794 0.19068767]]
         '''
         if self.model is None:
-            log("ERROR: Model should not be None in get_predictions()")
+            log('ERROR: Model should not be None in get_predictions()')
             return None
         one_input = [self.flatten(window)]
         one_input = tf.constant(one_input)

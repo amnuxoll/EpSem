@@ -4,6 +4,8 @@ import os
 import random
 import traceback
 import shutil
+import math
+import re
 from TFSocketModel import TFSocketModel as tfmodel
 from TFSocketEnv import TFSocketEnv as tfenv
 from TFSocketUtils import log
@@ -42,6 +44,50 @@ def send_letter(conn, letter, environment):
     conn.sendall(letter.encode('ASCII'))
     return letter
 
+def calculate_epsilon(environment):
+    '''
+    Calculate an epsilon value from the number of steps the agent has taken, via a sigmoid function
+    '''
+    x = environment.num_goals # Update the sigmoid function's "x" value
+    if environment.epsilon <= 0.0: # Initialize epsilon
+        environment.epsilon ==  0.0
+    
+    # Find the rolling avg of steps_to_goal for the last 5 goals
+    num_goals_to_avg = 5
+    pattern = rf'([a-z]*[A-Z]){{{num_goals_to_avg}}}(?=[a-z]*$)'
+    match = re.search(pattern, str(environment.entire_history))
+    substring = match.group(0) if match else ''
+    rolling_avg_steps = len(substring) / num_goals_to_avg
+    
+    # Last iteration's alert, unlearning_alert default value is True
+    # prev_alert = environment.unlearning_alert
+    # Last iteration's perc_unlearning, perc_unlearning default value is 0.0
+    prev_perc_unlearning = environment.perc_unlearning
+
+    # Calculate the rate of "unlearning" as a percentage of the total_avg
+    environment.perc_unlearning = max(math.log(rolling_avg_steps/environment.avg_steps, 2), 0)
+    
+    # Oh no! The agent is "unlearning" (performing worse over time)
+    if not prev_perc_unlearning > 0 and environment.perc_unlearning > 0:
+        log('The agent appears to be unlearning')
+        # log('Generating negative sigmoid function')
+        log(f'perc_unlearning = {environment.perc_unlearning:.3f}')
+        environment.h_shift = 7 + x # Offset by 7 for a TRAINING_THRESHOLD = 10
+        environment.upper_bound = environment.epsilon + environment.perc_unlearning
+    
+    # Yay! The agent is improving and no longer "unlearning"
+    elif prev_perc_unlearning > 0 and not environment.perc_unlearning > 0:
+        log('The agent appears to be learning')
+    
+    # Dang! The agent is still unlearning
+    elif prev_perc_unlearning > 0 and environment.perc_unlearning > 0:
+        # If the agent in "unlearning" at an increasing rate, then increase epsilon by the same amount
+        if environment.perc_unlearning > prev_perc_unlearning:
+            environment.upper_bound += (environment.perc_unlearning - prev_perc_unlearning)
+
+    # Calculate the next interation of epsilon with the sigmoid function    
+    environment.epsilon = environment.upper_bound * (1 / (1 + math.exp((x - environment.h_shift))))
+
 def process_history_sentinel(strData, environment, model):
     '''
     First use strData to update the TFSocketEnv object's variables.
@@ -54,11 +100,16 @@ def process_history_sentinel(strData, environment, model):
         environment, TFSocketEnv object of the environment's details
         model, a TFSocketModel object
     '''
-    global TRAINING_THRESHOLD
+    # Constant vars
+    TRAINING_THRESHOLD = 10 # Number of goals to find randomly before training the models
+    MIN_HISTORY_LENGTH = 10 # Mimimum history length that the model requires to train
 
     # Use the random pseudo-model until we've collected enough data to train on
-    if environment.num_goals < TRAINING_THRESHOLD:
-        environment.next_step = '*' # Select the random pseudo-model
+    if (
+        environment.num_goals < TRAINING_THRESHOLD
+        or len(environment.history) < MIN_HISTORY_LENGTH
+    ):
+        environment.last_step = '*' # Select the random pseudo-model
         return model # Return early to send random action
 
     # If looping is suspected, use the random pseuo-model and retrain the model
@@ -77,6 +128,13 @@ def process_history_sentinel(strData, environment, model):
     # If we reached a goal, we must resimulate or retrain the model
     if strData[-1:].isupper():
         environment.retrained = False # Reset the retrained bool once the model has left the loop
+        
+        # Calculate epilson & perform E-Greedy exploit/explore decision making
+        calculate_epsilon(environment)
+        if random.random() < environment.epsilon:
+            environment.last_step = '*'
+            return model # Return early to send random action
+        
         # When the agent reaches the TRAINING_THRESHOLD create the model
         if environment.num_goals == TRAINING_THRESHOLD:
             log('Agent has reached the training threshold')
@@ -120,8 +178,11 @@ def update_environment(strData, environment):
     # Update num_goals and steps_since_last_goal
     environment.steps_since_last_goal +=1
     if window[-1:].isupper():
-        environment.num_goals += 1
         log(f'The agent found Goal #{environment.num_goals:<3} in {environment.steps_since_last_goal:>3} steps')
+        if environment.epsilon != -1.0: # epsilon is not its default value
+            log(f'epsilon: {environment.epsilon:.3f}')
+            # log(f'x: {environment.num_goals}\nh_shift: {environment.h_shift}\nbounds: [0,{environment.upper_bound:.3f}]\n')
+        environment.num_goals += 1
         environment.steps_since_last_goal = 0
 
     # Update average steps per goal

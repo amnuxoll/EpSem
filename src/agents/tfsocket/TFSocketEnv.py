@@ -14,6 +14,10 @@ class TFSocketEnv:
         self.overall_alphabet = []      # If alphabet is [a,b,c] then overall_alphabet = [a,b,c,A,B,C]
         self.retrained = False          # When in a loop, make sure to retrain the models only once
         self.next_step = ''             # Agent's next action
+        self.epsilon = -1.0             # A value between 0, 1 for an explore vs exploit E-Greedy algorithm
+        self.upper_bound = 1.0          # TODO: fill out comments for new egreedy vars
+        self.h_shift = 17
+        self.perc_forgetting = 0.0
 
     def update_avg_steps(self):
         '''
