@@ -51,6 +51,7 @@ def process_history_sentinel(strData, environment, model):
         or len(environment.history) < MIN_HISTORY_LENGTH
     ):
         environment.next_step = '*' # Select the random pseudo-model
+        environment.history_since_last_goal += environment.next_step
         return model # Return early to send random action
 
     # If looping is suspected, use the random pseuo-model and retrain the model
@@ -64,6 +65,7 @@ def process_history_sentinel(strData, environment, model):
 
         # Enable the random pseudo-model
         environment.next_step = '*'
+        environment.history_since_last_goal += environment.next_step
         return model
 
     # If we reached a goal, we must resimulate or retrain the model
@@ -84,9 +86,10 @@ def process_history_sentinel(strData, environment, model):
     # Perform E-Greedy exploit/explore decision making
     if random.random() < environment.epsilon:
         environment.next_step = '*'
+        environment.history_since_last_goal += environment.next_step
         return model # Return early to send random action
 
-    log(f'model.sim_path = {model.sim_path}')
+    # log(f'model.sim_path = {model.sim_path}')
 
     # Update the model and get the next step
     if len(model.sim_path) <= 0:
@@ -94,6 +97,7 @@ def process_history_sentinel(strData, environment, model):
         
     # Take the first step of the simulated path to goal
     environment.next_step = model.sim_path[0].lower()
+    environment.history_since_last_goal += model.sim_path[0]
     
     return model
 
@@ -104,13 +108,10 @@ def calculate_epsilon(environment):
     x = environment.num_goals # Update the sigmoid function's "x" value
     if environment.epsilon <= 0.0: # Initialize epsilon
         environment.epsilon ==  0.0
-    
-    # Find the rolling avg of steps_to_goal for the last 5 goals
-    num_goals_to_avg = 5
-    pattern = rf'([a-z]*[A-Z]){{{num_goals_to_avg}}}(?=[a-z]*$)'
-    match = re.search(pattern, str(environment.history))
-    substring = match.group(0) if match else ''
-    rolling_avg_steps = len(substring) / num_goals_to_avg
+
+    environment.avg_of_last_five_goals # Average number of steps the agent has taken to find the last 5 goals
+    environment.avg_of_last_ten_goals # Average number of steps the agent has taken to find the last 10 goals
+
     
     # Last iteration's alert, forgetting_alert default value is True
     # prev_alert = environment.forgetting_alert
@@ -118,8 +119,7 @@ def calculate_epsilon(environment):
     prev_perc_forgetting = environment.perc_forgetting
 
     # Calculate the rate of "forgetting" as a percentage of the total_avg
-    environment.perc_forgetting = max(math.log(rolling_avg_steps/environment.avg_steps, 2), 0)
-    environment.perc_forgetting = min(environment.perc_forgetting, 1)
+    environment.perc_forgetting = max(math.log(environment.avg_of_last_five_goals/environment.avg_steps, 2), 0)
     
     # Oh no! The agent is "forgetting" (performing worse over time)
     if not prev_perc_forgetting > 0 and environment.perc_forgetting > 0:
@@ -140,7 +140,10 @@ def calculate_epsilon(environment):
             environment.upper_bound += (environment.perc_forgetting - prev_perc_forgetting)
 
     # Calculate the next interation of epsilon with the sigmoid function    
-    environment.epsilon = environment.upper_bound * (1 / (1 + math.exp((x - environment.h_shift))))
+    environment.epsilon = min(1, max(0, environment.upper_bound * (1 / (1 + math.exp((x - environment.h_shift))))))
+    
+    log(f'epsilon: {environment.epsilon:.3f}')
+    # log(f'x: {environment.num_goals}\nh_shift: {environment.h_shift}\nbounds: [0,{environment.upper_bound:.3f}]\n')
 
 def train_model(environment, model):
     '''
@@ -180,16 +183,20 @@ def update_environment(strData, environment):
     # Update num_goals and steps_since_last_goal
     environment.steps_since_last_goal +=1
     if window[-1:].isupper():
+        pattern = rf'([a-z]*[A-Z])(?=[a-z]*$)'
+        matchre = re.search(pattern, (environment.history)).group()
         log(f'The agent found Goal #{environment.num_goals:<3} in {environment.steps_since_last_goal:>3} steps')
-        if environment.epsilon != -1.0: # epsilon is not its default value
-            log(f'epsilon: {environment.epsilon:.3f}')
-            # log(f'x: {environment.num_goals}\nh_shift: {environment.h_shift}\nbounds: [0,{environment.upper_bound:.3f}]\n')
+        log(f'steps taken:    {matchre}\nactions chosen: {environment.history_since_last_goal}')
+        
         environment.num_goals += 1
         environment.steps_since_last_goal = 0
+        environment.history_since_last_goal = ''
 
     # Update average steps per goal
     environment.update_avg_steps()
-
+    # Update average steps of the last 5 and 10 goals found
+    environment.update_rolling_step_averages()
+    
     return environment
 
 def send_letter(conn, letter, environment):
