@@ -53,7 +53,7 @@ class TFSocketModel:
 
         The iteration stops when a goal is reached or, otherwise, when some maximum is reached.
         Because goal states are rare, the agent rarely predicts one. Thus, the maximum is
-        usually reached. This is undesirable so this method inserts a 'artificial' goal
+        usually reached. This is undesirable so this method inserts an 'artificial' goal
         at the point where a goal was predicted most strongly.
         '''
         # log("Simulating model")
@@ -140,7 +140,7 @@ class TFSocketModel:
         y_train = self.calc_desired_actions(self.environment.history)
         x_train = tf.constant(x_train)
         y_train = tf.constant(y_train)
-        # log('training')
+        log('Training')
         self.model = self.build_model()
         
         try:
@@ -151,7 +151,9 @@ class TFSocketModel:
             log(f'\tx_train: {x_train} with len: {len(x_train)} and shape: {x_train.shape}')
             log(f'\ty_train: {y_train} with len: {len(y_train)} and shape: {y_train.shape}')
             log(f'\tmodel: {self.model}')
-            log(f'\tself.environment.history: {self.environment.history}')
+            log(f'\tenvironment.history: {self.environment.history}')
+        
+        log('Complete')
 
     def calc_input_tensors(self, given_window):
         '''

@@ -60,7 +60,7 @@ def process_history_sentinel(strData, environment, model):
         # Ensure the model is only retrained once until it escapes the loop
         if environment.retrained == False:
             environment.retrained = True
-            log(f'Detected looping at step {environment.steps_since_last_goal}, going random!')
+            log(f'\nDetected looping, going random!')
             model = train_model(environment, model)
 
         # Enable the random pseudo-model
@@ -84,12 +84,12 @@ def process_history_sentinel(strData, environment, model):
         calculate_epsilon(environment)
     
     # Perform E-Greedy exploit/explore decision making
-    if random.random() < environment.epsilon:
+    environment.local_epsilon = (abs(environment.avg_steps - environment.steps_since_last_goal)) / (environment.avg_steps)
+    epsilon = environment.global_epsilon * environment.local_epsilon
+    if random.random() < epsilon:
         environment.next_step = '*'
         environment.history_since_last_goal += environment.next_step
         return model # Return early to send random action
-
-    # log(f'model.sim_path = {model.sim_path}')
 
     # Update the model and get the next step
     if len(model.sim_path) <= 0:
@@ -105,44 +105,46 @@ def calculate_epsilon(environment):
     '''
     Calculate an epsilon value from the number of steps the agent has taken, via a sigmoid function
     '''
-    x = environment.num_goals # Update the sigmoid function's "x" value
-    if environment.epsilon <= 0.0: # Initialize epsilon
-        environment.epsilon ==  0.0
-
-    environment.avg_of_last_five_goals # Average number of steps the agent has taken to find the last 5 goals
-    environment.avg_of_last_ten_goals # Average number of steps the agent has taken to find the last 10 goals
-
+    # TODO: print out and graph all of the sigmoids being defined, and when they are being re-defined.
+    # There is possibly some bugs in this function:
+    # 1. When the agent detects that it is learning again.
+    # 2. When the agent detects that it is forgetting again and forgetting more than last time.
+    # And yet, epsilon is still improving the model, though if these are bugs it could be improving the model more
     
-    # Last iteration's alert, forgetting_alert default value is True
-    # prev_alert = environment.forgetting_alert
+    x = environment.num_goals # Update the sigmoid function's "x" value
+    environment.global_epsilon = max(0, environment.global_epsilon)
+    # environment.avg_of_last_five_goals # Average number of steps the agent has taken to find the last 5 goals
+    
     # Last iteration's perc_forgetting, perc_forgetting default value is 0.0
     prev_perc_forgetting = environment.perc_forgetting
 
     # Calculate the rate of "forgetting" as a percentage of the total_avg
-    environment.perc_forgetting = max(math.log(environment.avg_of_last_five_goals/environment.avg_steps, 2), 0)
+    environment.perc_forgetting = math.log(environment.avg_of_last_five_goals/environment.avg_steps, 2)
     
     # Oh no! The agent is "forgetting" (performing worse over time)
     if not prev_perc_forgetting > 0 and environment.perc_forgetting > 0:
-        log('The agent appears to be forgetting')
+        # log('The agent appears to be forgetting')
         # log('Generating negative sigmoid function')
-        log(f'perc_forgetting = {environment.perc_forgetting:.3f}')
+        # log(f'perc_forgetting = {environment.perc_forgetting:.3f}')
         environment.h_shift = 7 + x # Offset by 7 for a TRAINING_THRESHOLD = 10
-        environment.upper_bound = environment.epsilon + environment.perc_forgetting
+        environment.upper_bound = environment.global_epsilon + environment.perc_forgetting
     
+    # TODO: Should we defining the decreasing sigmoid? I (Penny) think we should be re-defining the upper/lower bounds and h_shift of the sigmoid here.
     # Yay! The agent is improving and no longer "forgetting"
-    elif prev_perc_forgetting > 0 and not environment.perc_forgetting > 0:
-        log('The agent appears to be learning')
+    # elif prev_perc_forgetting > 0 and not environment.perc_forgetting > 0:
+    #     log('The agent appears to be learning')
     
     # Dang! The agent is still forgetting
     elif prev_perc_forgetting > 0 and environment.perc_forgetting > 0:
+        # TODO: is this a good idea? I (Penny) may scrap this block.
         # If the agent in "forgetting" at an increasing rate, then increase epsilon by the same amount
         if environment.perc_forgetting > prev_perc_forgetting:
             environment.upper_bound += (environment.perc_forgetting - prev_perc_forgetting)
 
-    # Calculate the next interation of epsilon with the sigmoid function    
-    environment.epsilon = min(1, max(0, environment.upper_bound * (1 / (1 + math.exp((x - environment.h_shift))))))
-    
-    log(f'epsilon: {environment.epsilon:.3f}')
+    # Calculate the next interation of epsilon with the sigmoid function
+    environment.global_epsilon = environment.upper_bound * (1 / (1 + math.exp((x - environment.h_shift))))
+
+    # log(f'global_epsilon: {environment.global_epsilon:.3f}')
     # log(f'x: {environment.num_goals}\nh_shift: {environment.h_shift}\nbounds: [0,{environment.upper_bound:.3f}]\n')
 
 def train_model(environment, model):
@@ -185,17 +187,29 @@ def update_environment(strData, environment):
     if window[-1:].isupper():
         pattern = rf'([a-z]*[A-Z])(?=[a-z]*$)'
         matchre = re.search(pattern, (environment.history)).group()
-        log(f'The agent found Goal #{environment.num_goals:<3} in {environment.steps_since_last_goal:>3} steps')
-        log(f'steps taken:    {matchre}\nactions chosen: {environment.history_since_last_goal}')
+        steps_taken = '.'.join(matchre[i:i+10] for i in range(0, len(matchre), 10))
+        actions_chosen = '.'.join(environment.history_since_last_goal[i:i+10] for i in range(0, len(environment.history_since_last_goal), 10))
         
         environment.num_goals += 1
+
+        print_out  = f'\nThe Agent found Goal #{environment.num_goals:<3} in {environment.steps_since_last_goal:>3} steps'
+        print_out += f'\nsteps taken:    {steps_taken}'
+        print_out += f'\nactions chosen: {actions_chosen}'
+
+        # Update average steps per goal
+        environment.update_avg_steps()
         environment.steps_since_last_goal = 0
         environment.history_since_last_goal = ''
+        
+        print_out += f'\ngoals stepAvg:  {environment.avg_steps:.3f}'
+        print_out += f'\n5 goal stepAvg: {environment.avg_of_last_five_goals:.3f}'
+        print_out += f'\nperc_improving: {-100*environment.perc_forgetting:.2f}%' # (pos=learning, neg=forgetting)
+        print_out += f'\nglobal_epsilon: {environment.global_epsilon:.3f}'
+        log(f'{print_out}')
 
-    # Update average steps per goal
-    environment.update_avg_steps()
-    # Update average steps of the last 5 and 10 goals found
-    environment.update_rolling_step_averages()
+    else:
+        # Update average steps per goal
+        environment.update_avg_steps()
     
     return environment
 
