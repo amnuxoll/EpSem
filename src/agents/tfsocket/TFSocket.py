@@ -74,7 +74,7 @@ def process_history_sentinel(strData, environment, model):
         
         # When the agent reaches the TRAINING_THRESHOLD create the model
         if environment.num_goals == TRAINING_THRESHOLD:
-            log('Agent has reached the training threshold')
+            log('\nAgent has reached the training threshold')
             model = train_model(environment, model) # Create and train model
         else:
             # Re-simulate the model
