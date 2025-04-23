@@ -129,14 +129,15 @@ def calculate_epsilon(environment):
         environment.h_shift = 7 + x # Offset by 7 for a TRAINING_THRESHOLD = 10
         environment.upper_bound = environment.global_epsilon + environment.perc_forgetting
     
-    # TODO: Should we defining the decreasing sigmoid? I (Penny) think we should be re-defining the upper/lower bounds and h_shift of the sigmoid here.
+    # TODO: Should we define the decreasing sigmoid here?
+    # i.e., re-defining the upper/lower bounds and h_shift of the sigmoid function
     # Yay! The agent is improving and no longer "forgetting"
     # elif prev_perc_forgetting > 0 and not environment.perc_forgetting > 0:
     #     log('The agent appears to be learning')
     
     # Dang! The agent is still forgetting
     elif prev_perc_forgetting > 0 and environment.perc_forgetting > 0:
-        # TODO: is this a good idea? I (Penny) may scrap this block.
+        # TODO: is this a good idea or should this block get scrapped.
         # If the agent in "forgetting" at an increasing rate, then increase epsilon by the same amount
         if environment.perc_forgetting > prev_perc_forgetting:
             environment.upper_bound += (environment.perc_forgetting - prev_perc_forgetting)
