@@ -67,7 +67,7 @@ def process_history_sentinel(strData, environment, model):
         # Ensure the model is only retrained once until it escapes the loop
         if environment.retrained == False:
             environment.retrained = True
-            log(f'Detected looping at step {environment.steps_since_last_goal}, going random!')
+            log(f'Detected looping: step {environment.steps_since_last_goal}, searching for goal #{environment.num_goals}')
             model = train_model(environment, model)
 
         # Enable the random pseudo-model
@@ -86,9 +86,9 @@ def process_history_sentinel(strData, environment, model):
             model.simulate_model()
 
     # Update the model and get the next step
-    if len(model.sim_path) <= 0 or None:
+    if len(model.sim_path) <= 0:
         model.simulate_model()
-        
+    
     # Take the first step of the simulated path to goal
     environment.next_step = model.sim_path[0].lower()
     
@@ -240,7 +240,7 @@ def main():
             f.close()
         except Exception as errerr:
             log(f'Exception exception!: {errerr}')
-        log('--- end of report ---')        
+        log('--- end of report ---')
     log('Agent Exit')
 
 if __name__ == '__main__':
