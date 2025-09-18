@@ -13,6 +13,7 @@ import agents.pytorchDQN.pytorchDQNAgentProvider;
 import agents.wfc.WFCAgentProvider;
 import agents.ndxr.NdxrAgentProvider;
 import agents.tfsocket.TFSocketAgentProvider;
+import agents.demosocketagent.DemoSocketAgentProvider;
 import environments.fsm.FSMEnvironment;
 import environments.fsm.FSMEnvironmentProvider;
 import environments.meta.MetaConfiguration;
@@ -328,6 +329,17 @@ public class Runner {
         }
 );
 
+    private static TestSuite DS_SUITE = new TestSuite(
+        TestSuiteConfiguration.TEST,
+        new IEnvironmentProvider[] {
+                new FSMEnvironmentProvider(new FSMTransitionTableBuilder(2, 10, Random.getTrue()), FSMEnvironment.Sensor.NO_SENSORS),
+        },
+        new IAgentProvider[] {
+                new DemoSocketAgentProvider()
+        }
+);
+
+
     //endregion
 
     //region Main
@@ -335,7 +347,7 @@ public class Runner {
 
         // The suite that's used is fed in as a command line argument. If an invalid command line argument is given,
         // it fails silently and uses the default suite instead. The name of the suite must match exactly.
-        TestSuite defaultSuite = TF_SUITE;
+        TestSuite defaultSuite = DS_SUITE; //prev. TF SUITE
 
         if (args.length >= 1) {
             String suiteName = args[0];
