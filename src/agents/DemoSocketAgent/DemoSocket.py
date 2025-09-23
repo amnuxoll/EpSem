@@ -35,15 +35,10 @@ def main():
     log('Creating server for the Java environment to connect to...')
 
     try:
-        log('entered try statement')
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-            #TODO: ISSUE HERE 
-            log(f'entered the sock statement with port {portNum} ')
             sock.bind(('127.0.0.1', portNum))
             sock.listen()
             conn, addr = sock.accept()
-            log('did we reach this line?') 
-            #TODO: No, we did not reach this line...
             with conn:
                 log(f'Connected by {addr}')
                 while True:
