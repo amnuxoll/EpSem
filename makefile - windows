@@ -1,0 +1,189 @@
+JC = javac
+JARGS = -Xlint:unchecked -d out
+JVM = java
+FILES = *.class
+#SHELL := git-bash.exe
+
+.SUFFIXES:
+.SUFFIXES: .java .class
+
+SRCDIR :=  src
+
+OUTDIR := out
+
+ALLSRC := src/agents/demo/DemoSocketAgent.java \
+src/agents/demo/DemoSocketAgentProvider.java \
+src/agents/discr/MaRzLearner.java \
+src/agents/discr/MaRzLearnerProvider.java \
+src/agents/juno/EpisodeWeights.java \
+src/agents/juno/JunoAgent.java \
+src/agents/juno/JunoAgentProvider.java \
+src/agents/juno/JunoConfiguration.java \
+src/agents/juno/WeightTable.java \
+src/agents/juno/WindowContainsGoalException.java \
+src/agents/marz/MaRzAgent.java \
+src/agents/marz/MaRzAgentProvider.java \
+src/agents/marz/SuffixNode.java \
+src/agents/marz/SuffixTree.java \
+src/agents/marzrules/Heuristic.java \
+src/agents/marzrules/RuleNode.java \
+src/agents/marzrules/RuleNodeGoal.java \
+src/agents/marzrules/RuleNodeRoot.java \
+src/agents/marzrules/RulesAgent.java \
+src/agents/marzrules/RulesAgentProvider.java \
+src/agents/marzrules/Ruleset.java \
+src/agents/marzrules/RuleSetEvaluator.java \
+src/agents/marzrules/TestHeuristic.java \
+src/agents/ndxr/CondSet.java \
+src/agents/ndxr/Conf.java \
+src/agents/ndxr/NdxrAgent.java \
+src/agents/ndxr/NdxrAgentProvider.java \
+src/agents/ndxr/PathRule.java \
+src/agents/ndxr/Rule.java \
+src/agents/ndxr/RuleIndex.java \
+src/agents/ndxr/TreeNode.java \
+src/agents/ndxr/WCBitSet.java \
+src/agents/nsm/NBor.java \
+src/agents/nsm/NHood.java \
+src/agents/nsm/NSMAgent.java \
+src/agents/nsm/NSMAgentProvider.java \
+src/agents/nsm/QEpisode.java \
+src/agents/nsm/QEpisodicMemory.java \
+src/agents/nsm/QLearningConfiguration.java \
+src/agents/nsmp/NSMpAgent.java \
+src/agents/nsmp/NSMpAgentProvider.java \
+src/agents/nsmp/pQEpisodicMemory.java \
+src/agents/phujus/PathRule.java \
+src/agents/phujus/PhuJusAgent.java \
+src/agents/phujus/PhuJusAgentProvider.java \
+src/agents/phujus/Rule.java \
+src/agents/phujus/RuleLoader.java \
+src/agents/phujus/TFRule.java \
+src/agents/phujus/TreeNode.java \
+src/agents/popr/PoprRulesAgent.java \
+src/agents/popr/PoprRulesAgentProvider.java \
+src/agents/popr/PoprRuleset.java \
+src/agents/popr/PoprRuleSetEvaluator.java \
+src/agents/predr/PredrAgent.java \
+src/agents/predr/PredrAgentProvider.java \
+src/agents/predr/Rule.java \
+src/agents/pytorchDQN/pytorchDQNAgent.java \
+src/agents/pytorchDQN/pytorchDQNAgentProvider.java \
+src/agents/RAgent/MemoryPattern.java \
+src/agents/RAgent/RAgent.java \
+src/agents/RAgent/RAgentProvider.java \
+src/agents/tfsocket/TFSocketAgent.java \
+src/agents/tfsocket/TFSocketAgentProvider.java \
+src/agents/wfc/PathNode.java \
+src/agents/wfc/WFCAgent.java \
+src/agents/wfc/WFCAgentProvider.java \
+src/agents/wfc/WFCPathRule.java \
+src/agents/wfc/WFCRule.java \
+src/environments/fsm/FSMEnvironment.java \
+src/environments/fsm/FSMEnvironmentProvider.java \
+src/environments/fsm/FSMTransitionTable.java \
+src/environments/fsm/FSMTransitionTableBuilder.java \
+src/environments/meta/MetaConfiguration.java \
+src/environments/meta/MetaEnvironment.java \
+src/environments/meta/MetaEnvironmentProvider.java \
+src/experiments/AAAIDefnitions.java \
+src/experiments/Runner.java \
+src/framework/Action.java \
+src/framework/Datum.java \
+src/framework/Episode.java \
+src/framework/GoalEvent.java \
+src/framework/IAgent.java \
+src/framework/IAgentProvider.java \
+src/framework/IEnvironment.java \
+src/framework/IEnvironmentProvider.java \
+src/framework/IGoalListener.java \
+src/framework/IIntrospector.java \
+src/framework/IResultCompiler.java \
+src/framework/NamedOutput.java \
+src/framework/SensorData.java \
+src/framework/Sequence.java \
+src/framework/TestRun.java \
+src/framework/TestSuite.java \
+src/framework/TestSuiteConfiguration.java \
+src/resultcompilers/file/FileResultCompiler.java \
+src/tests/agents/juno/EpisodeWeightsTest.java \
+src/tests/agents/juno/JunoAgentProviderTest.java \
+src/tests/agents/juno/WeightTableTest.java \
+src/tests/agents/marz/MaRzAgentProviderTest.java \
+src/tests/agents/marz/SuffixTreeTest.java \
+src/tests/agents/marzrules/RuleNodeRootTest.java \
+src/tests/agents/marzrules/RuleNodeTest.java \
+src/tests/agents/marzrules/RulesetTest.java \
+src/tests/agents/phujus/MergeQueueTest.java \
+src/tests/agents/phujus/PhuJusAgentTest.java \
+src/tests/agents/phujus/RuleLoaderTest.java \
+src/tests/agents/phujus/TFRuleTest.java \
+src/tests/agents/predr/PredrAgentTest.java \
+src/tests/agents/predr/RuleTest.java \
+src/tests/agents/RAgent/MemoryPatternTest.java \
+src/tests/agents/wfc/WFCAgentTest.java \
+src/tests/AssertionFailedException.java \
+src/tests/Assertions.java \
+src/tests/environments/fsm/FSMEnvironmentProviderTest.java \
+src/tests/environments/fsm/FSMEnvironmentTest.java \
+src/tests/environments/fsm/FSMTransitionTableBuilderTest.java \
+src/tests/environments/fsm/FSMTransitionTableTest.java \
+src/tests/environments/meta/MetaConfigurationTest.java \
+src/tests/environments/meta/MetaEnvironmentProviderTest.java \
+src/tests/environments/meta/MetaEnvironmentTest.java \
+src/tests/EpSemTest.java \
+src/tests/EpSemTestClass.java \
+src/tests/EpSemTestRunner.java \
+src/tests/framework/ActionTest.java \
+src/tests/framework/DatumTest.java \
+src/tests/framework/EpisodeTest.java \
+src/tests/framework/GoalEventTest.java \
+src/tests/framework/NamedOutputTest.java \
+src/tests/framework/SensorDataTest.java \
+src/tests/framework/SequenceTest.java \
+src/tests/framework/TestRunTest.java \
+src/tests/framework/TestSuiteConfigurationTest.java \
+src/tests/framework/TestSuiteTest.java \
+src/tests/Result.java \
+src/tests/resultcompilers/file/FileResultCompilerTest.java \
+src/tests/Results.java \
+src/tests/TestClassCollection.java \
+src/tests/UnitTestClass.java \
+src/tests/utils/DirectoryUtilsTest.java \
+src/tests/utils/EpisodeUtilsTest.java \
+src/tests/utils/EpisodicMemoryTest.java \
+src/tests/utils/ExceptionUtilsTest.java \
+src/tests/utils/SequenceGeneratorTest.java \
+src/utils/DirectoryUtils.java \
+src/utils/Discriminator.java \
+src/utils/EpisodeUtils.java \
+src/utils/EpisodicMemory.java \
+src/utils/ExceptionUtils.java \
+src/utils/Random.java \
+src/utils/Semsode.java \
+src/utils/SequenceGenerator.java \
+
+OUTDIRS :=  dir $(OUTDIR)
+
+print-% : ; @echo $* = $($*)
+classpathify = $(subst $(eval) ,:,$(wildcard $1))
+
+default: all 
+
+all:
+	if not exist out mkdir out
+	@$(JC) $(JARGS) $(ALLSRC)
+
+runexperiments: all
+	echo call
+	$(JVM) -cp $(call classpathify,$(OUTDIRS)) experiments.Runner
+	echo call
+
+runtests: all
+	$(JVM) -cp $(call classpathify,$(OUTDIRS)) tests.EpSemTestRunner out/tests
+
+runtestsnorebuild:
+	$(JVM) -cp $(call classpathify,$(OUTDIRS)) tests.EpSemTestRunner out/tests
+
+clean: 
+	del $(OUTDIRS)\$(FILES)
