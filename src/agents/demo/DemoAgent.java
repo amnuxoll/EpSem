@@ -91,5 +91,4 @@ public class DemoAgent implements IAgent {
         data.add(new Datum("actionConfidence", this.random.nextDouble()));
         return data;
     }
-    //for landon
 }
