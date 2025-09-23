@@ -64,7 +64,7 @@ def main():
 
                     elif strData.startswith('hit me'):
                         #TODO: Calculate a random action
-                        letter = 'a'
+                        letter = random.choice(alphabet)
                         # Send the model's prediction to the environment
                         conn.sendall(letter.encode('ASCII'))
                         log(f'sending random action, {letter}')
