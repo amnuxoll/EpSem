@@ -136,7 +136,7 @@ public class DemoSocketAgent implements IAgent {
 
         //Retrieve/use the agent's response
         Action act = getDemoAction();
-        System.out.println("received action from Python agent" + act);
+        System.out.println("received action from Python agent: " + act);
 
         return act;
     }
