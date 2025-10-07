@@ -4,6 +4,7 @@ import os
 import random
 import traceback
 import shutil
+import torch
 
 #Use this instead instead of print statements because print won't run when java launches this script
 def log(s):
@@ -22,7 +23,7 @@ def main():
 
     if os.path.isfile('pyout.txt'):
         os.remove('pyout.txt')
-    log('Running Python Demo Socket agent')
+    log('Running Python Pytorch 2 agent')
 
     argc = len(sys.argv)
     if argc < 2:
