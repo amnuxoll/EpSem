@@ -16,7 +16,7 @@ public class DemoSocketAgentProvider implements IAgentProvider {
 
     @Override
     public IAgent getAgent() {
-        return new DemoSocketAgent(Random.getTrue());
+        return new Pytorch2SocketAgent(Random.getTrue());
     }
 
     @Override

@@ -12,11 +12,11 @@ import utils.Random;
  *
  * @author Zachary Faltersack
  */
-public class DemoSocketAgentProvider implements IAgentProvider {
+public class Pytorch2SocketAgentProvider implements IAgentProvider {
 
     @Override
     public IAgent getAgent() {
-        return new DemoSocketAgent(Random.getTrue());
+        return new Pytorch2SocketAgent(Random.getTrue());
     }
 
     @Override

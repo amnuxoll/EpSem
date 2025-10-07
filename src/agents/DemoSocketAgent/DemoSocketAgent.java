@@ -62,8 +62,8 @@ public class DemoSocketAgent implements IAgent {
         // Run the python agent
         System.out.println("Demo Socket Agent");
         System.out.println("Launching Python Agent...");
-        System.out.println("python3" + " ./src/agents/demosocketagent/DemoSocket.py" + " " + port);
-        ProcessBuilder processBuilder = new ProcessBuilder("python3", "./src/agents/demosocketagent/DemoSocket.py", "" + port);
+        System.out.println("python3" + " ./src/agents/demosocketagent/Pytorch2Socket.py" + " " + port);
+        ProcessBuilder processBuilder = new ProcessBuilder("python3", "./src/agents/demosocketagent/Pytorch2Socket.py", "" + port);
         processBuilder.redirectErrorStream(true);
         try {
             Process process = processBuilder.start();
