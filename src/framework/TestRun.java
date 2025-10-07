@@ -53,6 +53,7 @@ public class TestRun implements IIntrospector, Runnable {
         this.environment = environment;
         this.agent = agent;
         this.numberOfGoalsToFind = numberOfGoalsToFind;
+        //this.numberOfGoalsToFind = 1;
     }
 
     //endregion
@@ -135,6 +136,8 @@ public class TestRun implements IIntrospector, Runnable {
                 }
 
                 // System.out.println();
+                //just to run an action ONCE
+                //goalCount = 1;
 
             } while (goalCount < this.numberOfGoalsToFind);
             this.agent.onTestRunComplete();

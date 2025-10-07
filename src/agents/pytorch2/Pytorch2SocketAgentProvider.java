@@ -1,4 +1,4 @@
-package agents.demo;
+package agents.demosocketagent;
 
 import framework.IAgent;
 import framework.IAgentProvider;
@@ -12,11 +12,11 @@ import utils.Random;
  *
  * @author Zachary Faltersack
  */
-public class DemoAgentProvider implements IAgentProvider {
+public class Pytorch2SocketAgentProvider implements IAgentProvider {
 
     @Override
     public IAgent getAgent() {
-        return new DemoAgent(Random.getTrue());
+        return new Pytorch2SocketAgent(Random.getTrue());
     }
 
     @Override

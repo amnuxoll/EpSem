@@ -8,12 +8,11 @@ import agents.marz.MaRzAgentProvider;
 import agents.marzrules.RulesAgentProvider;
 import agents.nsm.NSMAgentProvider;
 import agents.phujus.PhuJusAgentProvider;
-import agents.predr.PredrAgentProvider;
 import agents.pytorchDQN.pytorchDQNAgentProvider;
 import agents.wfc.WFCAgentProvider;
 import agents.ndxr.NdxrAgentProvider;
 import agents.tfsocket.TFSocketAgentProvider;
-import agents.demosocketagent.DemoSocketAgentProvider;
+import agents.demosocketagent.Pytorch2SocketAgentProvider;
 import environments.fsm.FSMEnvironment;
 import environments.fsm.FSMEnvironmentProvider;
 import environments.meta.MetaConfiguration;
@@ -335,7 +334,7 @@ public class Runner {
                 new FSMEnvironmentProvider(new FSMTransitionTableBuilder(2, 10, Random.getTrue()), FSMEnvironment.Sensor.NO_SENSORS),
         },
         new IAgentProvider[] {
-                new DemoSocketAgentProvider()
+                new Pytorch2SocketAgentProvider()
         }
 );
 

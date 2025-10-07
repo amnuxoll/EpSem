@@ -1,11 +1,7 @@
 package agents.demosocketagent;
 
 import framework.*;
-import utils.EpisodicMemory;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.Random;
 import java.io.*;
 import java.net.*;
@@ -19,7 +15,7 @@ import java.net.*;
  *
  * @author Zachary Faltersack
  */
-public class DemoSocketAgent implements IAgent {
+public class Pytorch2SocketAgent implements IAgent {
 
     private Action[] actions; //list of actions an agent is allowed to take in a given state
     private IIntrospector introspector; //not used
@@ -37,7 +33,7 @@ public class DemoSocketAgent implements IAgent {
     public static final int BASE_PORT = 8026;
     private int port; //port we use for the socket 
 
-    public DemoSocketAgent(Random random)
+    public Pytorch2SocketAgent(Random random)
     {
         // For unit testing purposes we inject a Random object that can be seeded to produce
         // specific, repeating behaviors.
