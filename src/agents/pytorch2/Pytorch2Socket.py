@@ -147,7 +147,7 @@ class QTrain:
                             conn.sendall('$$$ack'.encode('ASCII'))
 
                         elif strData.startswith('hit me'):
-                            #TODO: Calculate a random action
+                            #TODO: Calculate a random action; implement "inner loop" function of Yuji's code here?
                             letter = random.choice(alphabet)
                             # Send the model's prediction to the environment
                             conn.sendall(letter.encode('ASCII'))
