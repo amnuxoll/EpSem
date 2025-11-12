@@ -9,6 +9,7 @@ import torch
 from qnet import QNet
 import torch.optim as optim
 from collections import deque
+import numpy as np
 
 class ReplayBuffer:
     """
@@ -58,6 +59,7 @@ class QTrain:
 
         self.global_step, self.grad_steps = 0, 0
         self.success_log, self.length_log = [], []
+        self.done, self.total_r, self.steps = False, 0.0, 0
 
         self.episode_rewards = []
 
@@ -78,18 +80,43 @@ class QTrain:
         t = min(1.0, step / self.eps_decay_steps)
         return self.eps_start + (self.eps_end - self.eps_start) * t
 
+    #This method is called each time the agent starts a new run
+    def initModel(self):
+        self.observer.reset()
+        self.observer.observe(obs)
+        s = self.observer.encode().to(self.device)
+
+    #This method is called each time the agent completes a run
+    def recordGoal(self):
+        # this code below was outside
+        self.success_log.append(1 if self.total_r > 0 else 0)
+        self.length_log.append(self.steps)
+        self.episode_rewards.append(self.total_r)
+
+        if (ep + 1) % max(1, self.episodes // 10) == 0:
+            wr = np.mean(self.success_log[-50:]) if self.success_log else 0.0
+            print(f"Episode {ep + 1:4d}/{self.episodes} | recent win-rate(50)={wr:.2f} "
+                  f"| steps={self.steps} total_r={self.total_r:.1f}")
+
     def getNextActionFromQ(self):
         # This code was in the outer for-loop.  It will need to be triggered each
         # time we reach a goal (or max steps).  It might make sense for this
         # if-statement to be at the end of the method instead of the beginning?
-        done, total_r, steps = False, 0.0, 0
 
-        if done or steps >= self.env.max_steps:
-            #TODO: edit once we get our agent and environment in the Java portion
-            obs = self.env.reset()  # int token from env (0 on reset)
-            self.observer.reset()
-            self.observer.observe(obs)
-            s = self.observer.encode().to(self.device)
+        #NOTE:  If the agent gets in a loop (seems like it won't happen)
+        #       then code will be needed here to enforce a "max steps"
+        #       and only take random actions
+
+
+
+        if random.random() < self.epsilon(self.global_step):
+            a = self.env.sample_action()
+            return a
+        else:
+            with torch.no_grad():
+                qvals = self.q(s.unsqueeze(0))
+                a = int(torch.argmax(qvals, dim=1).item())
+                return a
 
     def getQ(self):
         return self.q, {"success":self.success_log, "lengths":self.length_log,
@@ -140,20 +167,20 @@ class QTrain:
                         strData = data.decode('utf-8') # Raw data from the java agent
 
                         if strData.startswith('$$$alphabet:'):
+                            #TODO: Initialize new run
                             alphabet = list(strData[12:])
                             log(f'New alphabet: {alphabet}')
                             log(f'Sending acknowledgment')
                             conn.sendall('$$$ack'.encode('ASCII'))
 
                         elif strData.startswith('hit me'):
-                            #TODO: Calculate a random action; implement "inner loop" function of Yuji's code here?
-                            letter = random.choice(alphabet)
+                            letter = self.getNextActionFromQ()
                             # Send the model's prediction to the environment
                             conn.sendall(letter.encode('ASCII'))
                             log(f'sending random action, {letter}')
 
                         elif strData.startswith('$$$quit'):
-                            # Add the last step to complete the history.
+                            #TODO: record goal here
                             log('python agent received quit signal:')
                             break
 
