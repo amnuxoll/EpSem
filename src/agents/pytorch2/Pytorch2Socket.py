@@ -4,15 +4,15 @@ import os
 import random
 import traceback
 import shutil
+from observer import Observer
 import torch
-from .qnet import QNet
+from qnet import QNet
 import torch.optim as optim
 from collections import deque
 
 class ReplayBuffer:
     """
     keep last capacity values to discount/remember
-    #TODO: python agent
     """
     def __init__(self, capacity=20_000):
         self.buf = deque(maxlen=capacity)
@@ -34,44 +34,44 @@ def log(s):
     f.write(s)
     f.write('\n')
     f.close()
+
 class QTrain:
     def __init__(self, environment):
         """
         Takes parameters from DQN_Train in Yuji's code and initializes them as
         instance variables
         """
-        env = environment
-        n_hist = 3
-        episodes = 500
-        gamma = 0.99  # discount factor
-        lr = 1e-3  # learning rate
-        batch_size = 64  # number of actions that is remembered for q-value
-        buffer_capacity = 20_000
-        start_learning_after = 500  # num random actions to take before learning
-        target_update_every = 200
-        eps_start = 1.0
-        eps_end = 0.05
-        eps_decay_steps = 5000
-        seed = 0
-        device = "cpu"
+        self.env = environment
+        self.n_hist = 3
+        self.episodes = 500
+        self.gamma = 0.99  # discount factor
+        self.lr = 1e-3  # learning rate
+        self.batch_size = 64  # number of actions that is remembered for q-value
+        self.buffer_capacity = 20_000
+        self.start_learning_after = 500  # num random actions to take before learning
+        self.target_update_every = 200
+        self.eps_start = 1.0
+        self.eps_end = 0.05
+        self.eps_decay_steps = 5000
+        self.seed = 0
+        self.device = "cpu"
 
-        global_step, grad_steps = 0, 0
-        success_log, length_log = [], []
+        self.global_step, self.grad_steps = 0, 0
+        self.success_log, self.length_log = [], []
 
-        episode_rewards = []
+        self.episode_rewards = []
 
-        K = len(env.alphabet)  # number of actions
-        #TODO: Is this our Java agent and do we instantiate it later?
-        #agent = DFAAgent(n_hist=n_hist, K=K, seed=seed)
-        obs_dim = n_hist * (K + 1)
-        n_actions = K
+        self.K = len(self.env.alphabet)  # number of actions
+        self.observer = Observer(n_hist=self.n_hist, K=self.K, seed=self.seed)
+        self.obs_dim = self.n_hist * (self.K + 1)
+        self.n_actions = self.K
 
-        q = QNet(obs_dim, n_actions).to(device)
-        qt = QNet(obs_dim, n_actions).to(device)
-        qt.load_state_dict(q.state_dict());
-        qt.eval()
-        opt = optim.Adam(q.parameters(), lr=lr)
-        buf = ReplayBuffer(buffer_capacity)
+        self.q = QNet(self.obs_dim, self.n_actions).to(self.device)
+        self.qt = QNet(self.obs_dim, self.n_actions).to(self.device)
+        self.qt.load_state_dict(self.q.state_dict())
+        self.qt.eval()
+        self.opt = optim.Adam(self.q.parameters(), lr=self.lr)
+        self.buf = ReplayBuffer(self.buffer_capacity)
 
     def epsilon(self, step):
         if self.eps_decay_steps <= 0: return self.eps_end
@@ -84,13 +84,12 @@ class QTrain:
         # if-statement to be at the end of the method instead of the beginning?
         done, total_r, steps = False, 0.0, 0
 
-        if (done or steps >= self.env.max_steps):
+        if done or steps >= self.env.max_steps:
             #TODO: edit once we get our agent and environment in the Java portion
-            #obs = env.reset()  # int token from env (0 on reset)
-            #agent.reset()
-            #agent.observe(obs)
-            #s = agent.encode().to(device)
-            pass
+            obs = self.env.reset()  # int token from env (0 on reset)
+            self.observer.reset()
+            self.observer.observe(obs)
+            s = self.observer.encode().to(self.device)
 
     def getQ(self):
         return self.q, {"success":self.success_log, "lengths":self.length_log,
