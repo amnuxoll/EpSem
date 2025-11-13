@@ -42,7 +42,7 @@ class QTrain:
         Takes parameters from DQN_Train in Yuji's code and initializes them as
         instance variables
         """
-        self.env = FSMEnvironment()
+        self.env = environment
         self.n_hist = 3
         self.episodes = 500
         self.gamma = 0.99  # discount factor
