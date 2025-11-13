@@ -42,7 +42,7 @@ class QTrain:
         Takes parameters from DQN_Train in Yuji's code and initializes them as
         instance variables
         """
-        self.env = environment
+        self.env = FSMEnvironment()
         self.n_hist = 3
         self.episodes = 500
         self.gamma = 0.99  # discount factor
@@ -167,7 +167,8 @@ class QTrain:
                         strData = data.decode('utf-8') # Raw data from the java agent
 
                         if strData.startswith('$$$alphabet:'):
-                            #TODO: Initialize new run
+                            #TODO: Check this -->Initialize new run
+                            self.initModel()
                             alphabet = list(strData[12:])
                             log(f'New alphabet: {alphabet}')
                             log(f'Sending acknowledgment')
@@ -180,7 +181,8 @@ class QTrain:
                             log(f'sending random action, {letter}')
 
                         elif strData.startswith('$$$quit'):
-                            #TODO: record goal here
+                            #TODO: Check this -->record goal here
+                            self.recordGoal()
                             log('python agent received quit signal:')
                             break
 
