@@ -11,8 +11,8 @@ SRCDIR :=  src
 
 OUTDIR := out
 
-ALLSRC := src/agents/demo/DemoSocketAgent.java \
-src/agents/demo/DemoSocketAgentProvider.java \
+ALLSRC := src/agents/DemoSocketAgent/DemoSocketAgent.java \
+src/agents/DemoSocketAgent/DemoSocketAgentProvider.java \
 src/agents/discr/MaRzLearner.java \
 src/agents/discr/MaRzLearnerProvider.java \
 src/agents/juno/EpisodeWeights.java \
