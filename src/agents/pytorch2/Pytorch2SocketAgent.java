@@ -56,10 +56,10 @@ public class Pytorch2SocketAgent implements IAgent {
         port = this.random.nextInt(1000) + BASE_PORT;
         
         // Run the python agent
-        System.out.println("Demo Socket Agent");
+        System.out.println("Pytorch2 Agent");
         System.out.println("Launching Python Agent...");
-        System.out.println("python3" + " ./src/agents/demosocketagent/Pytorch2Socket.py" + " " + port);
-        ProcessBuilder processBuilder = new ProcessBuilder("python3", "./src/agents/demosocketagent/Pytorch2Socket.py", "" + port);
+        System.out.println("python3" + " ./src/agents/pytorch2/Pytorch2Socket.py" + " " + port);
+        ProcessBuilder processBuilder = new ProcessBuilder("python3", "./src/agents/pytorch2/Pytorch2Socket.py", "" + port);
         processBuilder.redirectErrorStream(true);
         try {
             Process process = processBuilder.start();

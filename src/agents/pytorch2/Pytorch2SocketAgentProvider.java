@@ -21,6 +21,6 @@ public class Pytorch2SocketAgentProvider implements IAgentProvider {
 
     @Override
     public String getAlias() {
-        return "DemoAgent1";
+        return "PytorchAgent2";
     }
 }
