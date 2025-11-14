@@ -84,7 +84,8 @@ class QTrain:
     def initModel(self):
         self.observer.reset()
         self.observer.observe(obs)
-        s = self.observer.encode().to(self.device)
+        self.s = self.observer.encode().to(self.device) #changed s to 'self.'s to alter class variable of s
+                                                        #makes it used within rest of class
 
     #This method is called each time the agent completes a run
     def recordGoal(self):
@@ -93,6 +94,8 @@ class QTrain:
         self.length_log.append(self.steps)
         self.episode_rewards.append(self.total_r)
 
+        #finding the remainder of the next episode divided by the max of episodes or 10
+        #if not at 10, then ten is max????
         if (ep + 1) % max(1, self.episodes // 10) == 0:
             wr = np.mean(self.success_log[-50:]) if self.success_log else 0.0
             print(f"Episode {ep + 1:4d}/{self.episodes} | recent win-rate(50)={wr:.2f} "
@@ -106,6 +109,7 @@ class QTrain:
         #NOTE:  If the agent gets in a loop (seems like it won't happen)
         #       then code will be needed here to enforce a "max steps"
         #       and only take random actions
+        #       to force exploring, when exploit is not working
 
 
 
@@ -114,7 +118,9 @@ class QTrain:
             return a
         else:
             with torch.no_grad():
-                qvals = self.q(s.unsqueeze(0))
+                qvals = self.q(self.s.unsqueeze(0)) #is this the same s as initmodel
+                                                    # I added 'self.'s to use the class variable
+                                                    #makes it usable outside initmodel
                 a = int(torch.argmax(qvals, dim=1).item())
                 return a
 
