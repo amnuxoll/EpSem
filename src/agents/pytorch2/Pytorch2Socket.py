@@ -101,6 +101,13 @@ class QTrain:
             print(f"Episode {ep + 1:4d}/{self.episodes} | recent win-rate(50)={wr:.2f} "
                   f"| steps={self.steps} total_r={self.total_r:.1f}")
 
+    #
+    # getNextActionFromQ
+    #
+    # This method is the "connection" between the framework code and the code
+    # written by Yuji Sakabe that creates/manages the PyTorch model.
+    # See his dqn_train.py to see what the original looked like.  
+    #
     def getNextActionFromQ(self):
         # This code was in the outer for-loop.  It will need to be triggered each
         # time we reach a goal (or max steps).  It might make sense for this
