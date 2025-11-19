@@ -83,7 +83,7 @@ class QTrain:
     #This method is called each time the agent starts a new run
     def initModel(self):
         self.observer.reset()
-        self.observer.observe(obs)
+        self.observer.observe(0)
         self.s = self.observer.encode().to(self.device) #changed s to 'self.'s to alter class variable of s
                                                         #makes it used within rest of class
 
@@ -96,10 +96,11 @@ class QTrain:
 
         #finding the remainder of the next episode divided by the max of episodes or 10
         #if not at 10, then ten is max????
-        if (ep + 1) % max(1, self.episodes // 10) == 0:
-            wr = np.mean(self.success_log[-50:]) if self.success_log else 0.0
-            print(f"Episode {ep + 1:4d}/{self.episodes} | recent win-rate(50)={wr:.2f} "
-                  f"| steps={self.steps} total_r={self.total_r:.1f}")
+        #TEMP COMMENT OUT
+        #if (ep + 1) % max(1, self.episodes // 10) == 0:
+            #wr = np.mean(self.success_log[-50:]) if self.success_log else 0.0
+            #print(f"Episode {ep + 1:4d}/{self.episodes} | recent win-rate(50)={wr:.2f} "
+                  #f"| steps={self.steps} total_r={self.total_r:.1f}")
 
     #
     # getNextActionFromQ
@@ -117,8 +118,6 @@ class QTrain:
         #       then code will be needed here to enforce a "max steps"
         #       and only take random actions
         #       to force exploring, when exploit is not working
-
-
 
         if random.random() < self.epsilon(self.global_step):
             a = self.env.sample_action()
