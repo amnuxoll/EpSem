@@ -37,12 +37,11 @@ def log(s):
     f.close()
 
 class QTrain:
-    def __init__(self, environment):
+    def __init__(self):
         """
         Takes parameters from DQN_Train in Yuji's code and initializes them as
         instance variables
         """
-        self.env = environment
         self.n_hist = 3
         self.episodes = 500
         self.gamma = 0.99  # discount factor
@@ -63,7 +62,8 @@ class QTrain:
 
         self.episode_rewards = []
 
-        self.K = len(self.env.alphabet)  # number of actions
+        self.alpabet = []  #this gets init'd later
+        self.K = 0         #this gets init'd later
         self.observer = Observer(n_hist=self.n_hist, K=self.K, seed=self.seed)
         self.obs_dim = self.n_hist * (self.K + 1)
         self.n_actions = self.K
@@ -83,7 +83,7 @@ class QTrain:
     #This method is called each time the agent starts a new run
     def initModel(self):
         self.observer.reset()
-        self.observer.observe(obs)
+        self.observer.observe(0)
         self.s = self.observer.encode().to(self.device) #changed s to 'self.'s to alter class variable of s
                                                         #makes it used within rest of class
 
@@ -101,6 +101,36 @@ class QTrain:
             print(f"Episode {ep + 1:4d}/{self.episodes} | recent win-rate(50)={wr:.2f} "
                   f"| steps={self.steps} total_r={self.total_r:.1f}")
 
+    #
+    # logReward
+    #
+    # records the agent's reward for it's last action
+    def logReward(self, r):
+        
+        #TODO:  calculate  obs_next = self.lastAction + 1 (where lastAction is converted to its integer version)
+        obs_next = None #<-- Fix me!
+
+        observer.observe(obs_next)
+        sp = observer.encode().to(device)
+
+        buf.push(s, a, r, sp, False)
+        s = sp; total_r += r
+
+        if len(buf) >= start_learning_after:
+            S, A, R, SP, D = buf.sample(batch_size)
+            S, A, R, SP, D = S.to(device), A.to(device), R.to(device), SP.to(device), D.to(device)
+
+            q_sa = q(S).gather(1, A.unsqueeze(1)).squeeze(1)
+            with torch.no_grad():
+                target = R + (1.0 - D) * gamma * qt(SP).max(1).values
+                loss = nn.functional.mse_loss(q_sa, target)
+
+            opt.zero_grad(); loss.backward(); opt.step()
+            grad_steps += 1
+            if grad_steps % target_update_every == 0:
+                qt.load_state_dict(q.state_dict())
+        
+            
     #
     # getNextActionFromQ
     #
@@ -121,15 +151,16 @@ class QTrain:
 
 
         if random.random() < self.epsilon(self.global_step):
-            a = self.env.sample_action()
-            return a
+            a = self.env.sample_action()  #TODO: replace with something like random.choice()
         else:
             with torch.no_grad():
                 qvals = self.q(self.s.unsqueeze(0)) #is this the same s as initmodel
                                                     # I added 'self.'s to use the class variable
                                                     #makes it usable outside initmodel
                 a = int(torch.argmax(qvals, dim=1).item())
-                return a
+        return a
+
+    
 
     def getQ(self):
         return self.q, {"success":self.success_log, "lengths":self.length_log,
@@ -140,8 +171,6 @@ class QTrain:
         main
         '''
         conn = None
-
-        alphabet = None
 
         if os.path.isfile('pyout.txt'):
             os.remove('pyout.txt')
@@ -180,15 +209,24 @@ class QTrain:
                         strData = data.decode('utf-8') # Raw data from the java agent
 
                         if strData.startswith('$$$alphabet:'):
-                            #TODO: Check this -->Initialize new run
+                            #Initialize new run
+                            self.alphabet = list(strData[12:])
+                            self.K = len(self.alphabet)
                             self.initModel()
-                            alphabet = list(strData[12:])
                             log(f'New alphabet: {alphabet}')
                             log(f'Sending acknowledgment')
                             conn.sendall('$$$ack'.encode('ASCII'))
 
                         elif strData.startswith('hit me'):
+                            r = -0.01  
+                            #TODO:  extract the reward from the hit me string
+                            #and put in 'r'
+                            self.logReward(r)
                             letter = self.getNextActionFromQ()
+                            #TODO:  save the letter  e selected as an int, in an
+                            #instance var
+                            self.lastAction = int(letter) #TODO: something LIKE this but a=0, b=1, etc.
+
                             # Send the model's prediction to the environment
                             conn.sendall(letter.encode('ASCII'))
                             log(f'sending random action, {letter}')
