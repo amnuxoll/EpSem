@@ -151,7 +151,7 @@ class QTrain:
         #       to force exploring, when exploit is not working
 
         if random.random() < self.epsilon(self.global_step):
-            a = self.env.sample_action()  #TODO: replace with something like random.choice()
+            a = int(random.choice(self.alphabet)) #self.env.sample_action()  #replace with something like random.choice()
         else:
             with torch.no_grad():
                 qvals = self.q(self.s.unsqueeze(0)) #is this the same s as initmodel
@@ -222,10 +222,13 @@ class QTrain:
                             r = re.findall(r'\d+.\d+', strData)
                             #and put in 'r'
                             self.logReward(r)
-                            letter = self.getNextActionFromQ()
-                            #TODO:  save the letter  e selected as an int, in an
-                            #instance var
-                            self.lastAction = int(letter) #TODO: something LIKE this but a=0, b=1, etc.
+                            letter = self.getNextActionFromQ() # letter is returned as an integer
+                            # (from todo) save the letter  e selected as an int, in an instance var
+
+                            # J: letter is returned as an int (a = 0, b = 1, etc.) from getNextActionFromQ
+                            # TODO: check the way letter is being returned -J
+                            
+                            self.lastAction = letter
 
                             # Send the model's prediction to the environment
                             conn.sendall(letter.encode('ASCII'))
