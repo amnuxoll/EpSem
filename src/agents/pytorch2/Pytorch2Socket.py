@@ -67,8 +67,8 @@ class QTrain:
         self.obs_dim = self.n_hist * (self.K + 1)
         self.n_actions = self.K
 
-        self.q = QNet(self.obs_dim, self.n_actions).to(self.device)
-        self.qt = QNet(self.obs_dim, self.n_actions).to(self.device)
+        self.q = QTrain.QNet(self.obs_dim, self.n_actions).to(self.device)
+        self.qt = QTrain.QNet(self.obs_dim, self.n_actions).to(self.device)
         self.qt.load_state_dict(self.q.state_dict())
         self.qt.eval()
         self.opt = optim.Adam(self.q.parameters(), lr=self.lr)
@@ -133,6 +133,17 @@ class QTrain:
     def getQ(self):
         return self.q, {"success":self.success_log, "lengths":self.length_log,
                         "rewards":self.episode_rewards}
+
+    class QNet(nn.Module):
+        def __init__(self, obs_dim: int, n_actions: int, hidden: int = 64):
+            super().__init__()
+            self.net = nn.Sequential(
+                nn.Linear(obs_dim, hidden), nn.ReLU(),
+                nn.Linear(hidden, hidden), nn.ReLU(),
+                nn.Linear(hidden, n_actions),
+            )
+
+        def forward(self, x): return self.net(x)
 
     def main(self):
         '''
@@ -232,13 +243,3 @@ if __name__ == '__main__':
             f.close()
         except Exception as errerr:
             log(f'Exception exception!: {errerr}')
-
-class QNet(nn.Module):
-    def __init__(self, obs_dim: int, n_actions: int, hidden: int = 64):
-        super().__init__()
-        self.net = nn.Sequential(
-            nn.Linear(obs_dim, hidden), nn.ReLU(),
-            nn.Linear(hidden, hidden), nn.ReLU(),
-            nn.Linear(hidden, n_actions),
-        )
-    def forward(self, x): return self.net(x)
