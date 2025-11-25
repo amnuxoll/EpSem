@@ -10,6 +10,7 @@ import torch
 from qnet import QNet
 import torch.optim as optim
 from collections import deque
+from torch import nn
 import numpy as np
 
 class ReplayBuffer:
@@ -112,25 +113,27 @@ class QTrain:
         #TODO:  calculate  obs_next = self.lastAction + 1 (where lastAction is converted to its integer version)
         obs_next = None #<-- Fix me!
 
-        observer.observe(obs_next)
-        sp = observer.encode().to(device)
+        total_r = 0.0
 
-        buf.push(s, a, r, sp, False)
+        self.observer.observe(obs_next)
+        sp = self.observer.encode().to(self.device)
+
+        self.buf.push(self.observer, a, r, sp, False)
         s = sp; total_r += r
 
-        if len(buf) >= start_learning_after:
-            S, A, R, SP, D = buf.sample(batch_size)
-            S, A, R, SP, D = S.to(device), A.to(device), R.to(device), SP.to(device), D.to(device)
+        if len(self.buf) >= self.start_learning_after:
+            S, A, R, SP, D = self.buf.sample(self.batch_size)
+            S, A, R, SP, D = S.to(self.device), A.to(self.device), R.to(self.device), SP.to(self.device), D.to(self.device)
 
             q_sa = q(S).gather(1, A.unsqueeze(1)).squeeze(1)
             with torch.no_grad():
-                target = R + (1.0 - D) * gamma * qt(SP).max(1).values
+                target = R + (1.0 - D) * self.gamma * self.qt(SP).max(1).values
                 loss = nn.functional.mse_loss(q_sa, target)
 
-            opt.zero_grad(); loss.backward(); opt.step()
-            grad_steps += 1
-            if grad_steps % target_update_every == 0:
-                qt.load_state_dict(q.state_dict())
+            self.opt.zero_grad(); loss.backward(); self.opt.step()
+            self.grad_steps += 1
+            if self.grad_steps % self.target_update_every == 0:
+                self.qt.load_state_dict(q.state_dict())
         
             
     #
@@ -154,7 +157,7 @@ class QTrain:
             a = int(random.choice(self.alphabet)) #self.env.sample_action()  #replace with something like random.choice()
         else:
             with torch.no_grad():
-                qvals = self.q(self.s.unsqueeze(0)) #is this the same s as initmodel
+                qvals = self.q(self.observer.unsqueeze(0)) #is this the same s as initmodel
                                                     # I added 'self.'s to use the class variable
                                                     #makes it usable outside initmodel
                 a = int(torch.argmax(qvals, dim=1).item())
@@ -213,7 +216,7 @@ class QTrain:
                             self.alphabet = list(strData[12:])
                             self.K = len(self.alphabet)
                             self.initModel()
-                            log(f'New alphabet: {alphabet}')
+                            log(f'New alphabet: {self.alphabet}')
                             log(f'Sending acknowledgment')
                             conn.sendall('$$$ack'.encode('ASCII'))
 
