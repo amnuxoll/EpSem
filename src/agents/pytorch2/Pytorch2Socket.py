@@ -3,7 +3,6 @@ import socket
 import os
 import random
 import traceback
-import shutil
 from observer import Observer
 import torch
 from qnet import QNet
@@ -26,6 +25,7 @@ class ReplayBuffer:
                 torch.tensor(a, dtype=torch.long),
                 torch.tensor(r, dtype=torch.float32),
                 torch.stack(sp),
+                
                 torch.tensor(d, dtype=torch.float32))
     def __len__(self): return len(self.buf)
 
@@ -42,7 +42,7 @@ class QTrain:
         Takes parameters from DQN_Train in Yuji's code and initializes them as
         instance variables
         """
-        self.env = environment
+        #self.env = environment #our "environment" are the java files in pytorch2
         self.n_hist = 3
         self.episodes = 500
         self.gamma = 0.99  # discount factor

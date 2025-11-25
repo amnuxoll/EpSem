@@ -76,8 +76,11 @@ public class Pytorch2SocketAgent implements IAgent {
         int refuseCount = 0;
         while (refuseCount < 5) {
             try {
+                System.out.println("test1a");
                 sock = new Socket("127.0.0.1", port);
+                System.out.println("test1b");
                 inputStream = sock.getInputStream();
+                System.out.println("test1c");
                 outStream = sock.getOutputStream();
                 break;
             } catch (ConnectException ce) {
