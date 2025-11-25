@@ -131,6 +131,9 @@ public class Pytorch2SocketAgent implements IAgent {
     public Action getNextAction(SensorData sensorData) throws Exception {
         
         // System.out.println(hist);
+        //TODO:  append a reward to the "hit me" message based on the
+        //       goal sensor in sensorData.  +1 for goal.
+        //       -0.01 for everything else
         sendMessage("hit me");
 
         //Retrieve/use the agent's response
