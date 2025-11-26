@@ -133,6 +133,43 @@ class QTrain:
                 a = int(torch.argmax(qvals, dim=1).item())
         return a
 
+
+        #
+        # logReward
+        #
+        # records the agent's reward for it's last action
+
+    def logReward(self, r):
+
+        # TODO:  calculate  obs_next = self.lastAction + 1 (where lastAction is converted to its integer version)
+        obs_next = None  # <-- Fix me!
+
+        self.observer.observe(obs_next)
+        sp = self.observer.encode().to(self.device)
+        total_r = 0.0
+
+        #TODO: what is a?
+        self.buf.push(self.observer, a, r, sp, False)
+        self.observer = sp
+        total_r +=r
+
+        if len(self.buf) >= self.start_learning_after:
+            S, A, R, SP, D = self.buf.sample(self.batch_size)
+            S, A, R, SP, D = (S.to(self.device), A.to(self.device),
+                              R.to(self.device), SP.to(self.device), D.to(self.device))
+
+            q_sa = q(S).gather(1, A.unsqueeze(1)).squeeze(1)
+            with torch.no_grad():
+                target = R + (1.0 - D) * self.gamma * self.qt(SP).max(1).values
+                loss = nn.functional.mse_loss(q_sa, target)
+
+            self.opt.zero_grad();
+            loss.backward();
+            self.opt.step()
+            self.grad_steps += 1
+            if self.grad_steps % self.target_update_every == 0:
+                self.qt.load_state_dict(q.state_dict())
+
     def getQ(self):
         return self.q, {"success":self.success_log, "lengths":self.length_log,
                         "rewards":self.episode_rewards}
