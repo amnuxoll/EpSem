@@ -60,6 +60,9 @@ class QTrain:
         self.success_log, self.length_log = [], []
         self.done, self.total_r, self.steps = False, 0.0, 0
 
+        self.prevAction = 0   #the last action we took is saved here so we can
+                              #log the state, action + reward combo together
+                              #after the env replies
         self.episode_rewards = []
 
         self.alphabet = []  #this gets init'd later
@@ -141,15 +144,13 @@ class QTrain:
 
     def logReward(self, r):
 
-        # TODO:  calculate  obs_next = self.lastAction + 1 (where lastAction is converted to its integer version)
-        obs_next = None  # <-- Fix me!
+        obs_next = self.lastAction + 1
 
         self.observer.observe(obs_next)
         sp = self.observer.encode().to(self.device)
         total_r = 0.0
 
-        #TODO: what is a?
-        self.buf.push(self.observer, a, r, sp, False)
+        self.buf.push(self.observer, self.lastAction, r, sp, False)
         self.observer = sp
         total_r +=r
 
