@@ -61,7 +61,7 @@ class QTrain:
 
         self.episode_rewards = []
 
-        self.alpabet = []  #this gets init'd later
+        self.alphabet = []  #this gets init'd later
         self.K = 0         #this gets init'd later
         self.observer = Observer(n_hist=self.n_hist, K=self.K, seed=self.seed)
         self.obs_dim = self.n_hist * (self.K + 1)
@@ -74,19 +74,22 @@ class QTrain:
         self.opt = optim.Adam(self.q.parameters(), lr=self.lr)
         self.buf = ReplayBuffer(self.buffer_capacity)
 
+
     def epsilon(self, step):
         if self.eps_decay_steps <= 0: return self.eps_end
         t = min(1.0, step / self.eps_decay_steps)
         return self.eps_start + (self.eps_end - self.eps_start) * t
 
-    #This method is called each time the agent starts a new run
+    #This method is called each time the agent starts a new run. This code was
+    # originally in the outer for-loop in Yuji's dqn_train() method.
     def initModel(self):
         self.observer.reset()
-        self.observer.observe(obs)
+        self.observer.observe(0)
         self.s = self.observer.encode().to(self.device) #changed s to 'self.'s to alter class variable of s
                                                         #makes it used within rest of class
 
-    #This method is called each time the agent completes a run
+    #This method is called each time the agent completes a run. This code was
+    # originally in the outer for-loop in Yuji's dqn_train() method.
     def recordGoal(self):
         # this code below was outside
         self.success_log.append(1 if self.total_r > 0 else 0)
@@ -108,9 +111,6 @@ class QTrain:
     # See his dqn_train.py to see what the original looked like.
     #
     def getNextActionFromQ(self):
-        # This code was in the outer for-loop.  It will need to be triggered each
-        # time we reach a goal (or max steps).  It might make sense for this
-        # if-statement to be at the end of the method instead of the beginning?
 
         #NOTE:  If the agent gets in a loop (seems like it won't happen)
         #       then code will be needed here to enforce a "max steps"
@@ -120,14 +120,14 @@ class QTrain:
 
 
         if random.random() < self.epsilon(self.global_step):
-            a = int(random.choice(self.alphabet)) #self.env.sample_action()  #replace with something like random.choice()
+            a = random.randint(0, len(self.alphabet)-1)
         else:
             with torch.no_grad():
                 qvals = self.q(self.s.unsqueeze(0)) #is this the same s as initmodel
                                                     # I added 'self.'s to use the class variable
                                                     #makes it usable outside initmodel
                 a = int(torch.argmax(qvals, dim=1).item())
-                return a
+        return a
 
     def getQ(self):
         return self.q, {"success":self.success_log, "lengths":self.length_log,
@@ -149,8 +149,6 @@ class QTrain:
         main
         '''
         conn = None
-
-        alphabet = None
 
         if os.path.isfile('pyout.txt'):
             os.remove('pyout.txt')
@@ -189,10 +187,9 @@ class QTrain:
                         strData = data.decode('utf-8') # Raw data from the java agent
 
                         if strData.startswith('$$$alphabet:'):
-                            #TODO: Check this -->Initialize new run
                             self.initModel()
-                            alphabet = list(strData[12:])
-                            log(f'New alphabet: {alphabet}')
+                            self.alphabet = list(strData[12:])
+                            log(f'New alphabet: {self.alphabet}')
                             log(f'Sending acknowledgment')
                             conn.sendall('$$$ack'.encode('ASCII'))
 
@@ -202,7 +199,6 @@ class QTrain:
 
                             # J: letter is returned as an int (a = 0, b = 1, etc.) from getNextActionFromQ
                             # TODO: check the way letter is being returned -J
-                            
                             self.lastAction = letter
                             
                             # Send the model's prediction to the environment
