@@ -99,10 +99,12 @@ class QTrain:
 
         #finding the remainder of the next episode divided by the max of episodes or 10
         #if not at 10, then ten is max????
-        if (ep + 1) % max(1, self.episodes // 10) == 0:
-            wr = np.mean(self.success_log[-50:]) if self.success_log else 0.0
-            print(f"Episode {ep + 1:4d}/{self.episodes} | recent win-rate(50)={wr:.2f} "
-                  f"| steps={self.steps} total_r={self.total_r:.1f}")
+        # Nux comments this out for now since 'ep' doesn't exist here and this
+        # seems  to be a data message generation only (not sure)
+        # if (ep + 1) % max(1, self.episodes // 10) == 0:
+        #     wr = np.mean(self.success_log[-50:]) if self.success_log else 0.0
+        #     print(f"Episode {ep + 1:4d}/{self.episodes} | recent win-rate(50)={wr:.2f} "
+        #           f"| steps={self.steps} total_r={self.total_r:.1f}")
 
 
     #
