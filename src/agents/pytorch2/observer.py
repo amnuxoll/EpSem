@@ -12,7 +12,6 @@ class Observer:
     A "one-hot" is a vector (an array of numbers) used in machine
     learning to represent categorical data, where exactly one
     element is set to 1 and all other elements are 0.
-    #TODO: Put this into our own Java agent
     """
     def __init__(self, n_hist: int, K: int, seed: int = 0):
         self.n_hist = int(n_hist)

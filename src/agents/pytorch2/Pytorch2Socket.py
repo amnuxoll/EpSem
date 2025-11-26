@@ -104,6 +104,7 @@ class QTrain:
             print(f"Episode {ep + 1:4d}/{self.episodes} | recent win-rate(50)={wr:.2f} "
                   f"| steps={self.steps} total_r={self.total_r:.1f}")
 
+
     #
     # getNextActionFromQ
     #

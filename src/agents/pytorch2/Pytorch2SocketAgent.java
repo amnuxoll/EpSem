@@ -42,6 +42,8 @@ public class Pytorch2SocketAgent implements IAgent {
 
     @Override
     public void initialize(Action[] actions, IIntrospector introspector) {
+
+
         // Initialize is called prior to running an Experiment in an environment.
         // The available actions for the environment are provided
         this.actions = actions;
