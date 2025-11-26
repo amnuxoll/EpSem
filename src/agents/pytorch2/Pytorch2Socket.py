@@ -1,3 +1,4 @@
+import re
 import sys
 import socket
 import os
@@ -194,6 +195,12 @@ class QTrain:
                             conn.sendall('$$$ack'.encode('ASCII'))
 
                         elif strData.startswith('hit me'):
+                            #extract the reward from the hit me string
+                            r = re.findall(r'\d+.\d+', strData)
+                            
+                            #and put in 'r'
+                            self.logReward(r)
+
                             letter = self.getNextActionFromQ() # letter is returned as an integer
                             # (from todo) save the letter  e selected as an int, in an instance var
 
