@@ -137,7 +137,11 @@ public class Pytorch2SocketAgent implements IAgent {
         //TODO:  append a reward to the "hit me" message based on the
         //       goal sensor in sensorData.  +1 for goal.
         //       -0.01 for everything else
-        sendMessage("hit me");
+        float reward = -0.001f;
+        if (sensorData.isGoal()) {
+            reward = 1.0f;
+        }
+        sendMessage("hit me" + reward);
 
         //Retrieve/use the agent's response
         Action act = getDemoAction();

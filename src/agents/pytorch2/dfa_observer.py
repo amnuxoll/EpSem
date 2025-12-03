@@ -2,7 +2,7 @@ from collections import deque
 import torch
 import random
 
-class Observer:
+class DFAObserver:
     """
     Originally DFAAgent in Yuji's code, renamed for clarity.
 
