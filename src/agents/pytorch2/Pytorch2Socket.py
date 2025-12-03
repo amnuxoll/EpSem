@@ -4,7 +4,7 @@ import socket
 import os
 import random
 import traceback
-from observer import Observer
+from dfa_observer import DFAObserver
 import torch
 import torch.optim as optim
 import torch.nn as nn
@@ -58,16 +58,18 @@ class QTrain:
 
         self.global_step, self.grad_steps = 0, 0
         self.success_log, self.length_log = [], []
-        self.done, self.total_r, self.steps = False, 0.0, 0
+        self.done = False
+        self.total_r = 0.0
+        self.steps = 0
 
-        self.prevAction = 0   #the last action we took is saved here so we can
+        self.lastAction = 0   #the last action we took is saved here so we can
                               #log the state, action + reward combo together
                               #after the env replies
         self.episode_rewards = []
 
         self.alphabet = []  #this gets init'd later
         self.K = 0         #this gets init'd later
-        self.observer = Observer(n_hist=self.n_hist, K=self.K, seed=self.seed)
+        self.myobserver = DFAObserver(n_hist=self.n_hist, K=self.K, seed=self.seed)
         self.obs_dim = self.n_hist * (self.K + 1)
         self.n_actions = self.K
 
@@ -87,9 +89,9 @@ class QTrain:
     #This method is called each time the agent starts a new run. This code was
     # originally in the outer for-loop in Yuji's dqn_train() method.
     def initModel(self):
-        self.observer.reset()
-        self.observer.observe(0)
-        self.s = self.observer.encode().to(self.device) #changed s to 'self.'s to alter class variable of s
+        self.myobserver.reset()
+        self.myobserver.observe(0)
+        self.s = self.myobserver.encode().to(self.device) #changed s to 'self.'s to alter class variable of s
                                                         #makes it used within rest of class
 
     #This method is called each time the agent completes a run. This code was
@@ -146,13 +148,18 @@ class QTrain:
 
         obs_next = self.lastAction + 1
 
-        self.observer.observe(obs_next)
-        sp = self.observer.encode().to(self.device)
-        total_r = 0.0
+        #TODO: WE ARE STUCK HERE
+        #self.myobserver is initially a DFAObserver() object but somehow it's
+        #become a Tensor object (probably below:  self.myobserver = sp)
+        #not sure whether that's intended or we messed something
+        #NextStep:  x-ref with Yuji's code
+        # also don't forget:  our "dfa_observer" is Yuji's dfa_agent
+        self.myobserver.observe(obs_next)
+        sp = self.myobserver.encode().to(self.device)
 
-        self.buf.push(self.observer, self.lastAction, r, sp, False)
-        self.observer = sp
-        total_r +=r
+        self.buf.push(self.myobserver, self.lastAction, r, sp, False)
+        self.myobserver = sp
+        self.total_r += r
 
         if len(self.buf) >= self.start_learning_after:
             S, A, R, SP, D = self.buf.sample(self.batch_size)
@@ -237,17 +244,22 @@ class QTrain:
 
                         elif strData.startswith('hit me'):
                             #extract the reward from the hit me string
-                            r = re.findall(r'\d+.\d+', strData)
+                            #NOTE:  No error checking here...
+                            r = float(strData[6:])
                             
                             #and put in 'r'
                             self.logReward(r)
 
-                            letter = self.getNextActionFromQ() # letter is returned as an integer
+                            action = self.getNextActionFromQ() # letter is returned as an integer
                             # (from todo) save the letter  e selected as an int, in an instance var
 
                             # J: letter is returned as an int (a = 0, b = 1, etc.) from getNextActionFromQ
                             # TODO: check the way letter is being returned -J
-                            self.lastAction = letter
+                            self.lastAction = action
+
+                            #convert action to a letter that the Java side is
+                            #expecting
+                            letter = self.alphabet[action]
                             
                             # Send the model's prediction to the environment
                             conn.sendall(letter.encode('ASCII'))
