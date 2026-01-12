@@ -64,7 +64,8 @@ class QTrain:
 
         self.lastAction = 0   #the last action we took is saved here so we can
                               #log the state, action + reward combo together
-                              #after the env replies
+                              #after the env
+        self.lastState = None;
         self.episode_rewards = []
 
         self.alphabet = []  #this gets init'd later
@@ -91,7 +92,7 @@ class QTrain:
     def initModel(self):
         self.myobserver.reset()
         self.myobserver.observe(0)
-        self.s = self.myobserver.encode().to(self.device) #changed s to 'self.'s to alter class variable of s
+        self.lastState = self.myobserver.encode().to(self.device) #changed s to 'self.'s to alter class variable of s
                                                         #makes it used within rest of class
 
     #This method is called each time the agent completes a run. This code was
@@ -129,8 +130,10 @@ class QTrain:
 
 
         if random.random() < self.epsilon(self.global_step):
+            print("python: choosing a random action")
             a = random.randint(0, len(self.alphabet)-1)
         else:
+            print("python: choosing a PyTorch action")
             with torch.no_grad():
                 qvals = self.q(self.s.unsqueeze(0)) #is this the same s as initmodel
                                                     # I added 'self.'s to use the class variable
@@ -157,8 +160,8 @@ class QTrain:
         self.myobserver.observe(obs_next)
         sp = self.myobserver.encode().to(self.device)
 
-        self.buf.push(self.myobserver, self.lastAction, r, sp, False)
-        self.myobserver = sp
+        self.buf.push(self.lastState, self.lastAction, r, sp, False)
+        self.lastState = sp
         self.total_r += r
 
         if len(self.buf) >= self.start_learning_after:
