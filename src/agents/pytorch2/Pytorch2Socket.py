@@ -65,7 +65,7 @@ class QTrain:
         self.lastAction = 0   #the last action we took is saved here so we can
                               #log the state, action + reward combo together
                               #after the env
-        self.lastState = None;
+        self.lastState = None
         self.episode_rewards = []
 
         self.alphabet = []  #this gets init'd later
@@ -151,7 +151,7 @@ class QTrain:
 
         obs_next = self.lastAction + 1
 
-        #TODO: WE ARE STUCK HERE
+    
         #self.myobserver is initially a DFAObserver() object but somehow it's
         #become a Tensor object (probably below:  self.myobserver = sp)
         #not sure whether that's intended or we messed something
@@ -160,7 +160,7 @@ class QTrain:
         self.myobserver.observe(obs_next)
         sp = self.myobserver.encode().to(self.device)
 
-        self.buf.push(self.lastState, self.lastAction, r, sp, False)
+        self.buf.push(self.lastState, self.lastAction, r, sp, False)# TODO: look into these values, they don't match with Yuji's code, his has tensor with 10, ours has tensor with 3 numbers; what's happening with last state?
         self.lastState = sp
         self.total_r += r
 
@@ -169,17 +169,26 @@ class QTrain:
             S, A, R, SP, D = (S.to(self.device), A.to(self.device),
                               R.to(self.device), SP.to(self.device), D.to(self.device))
 
-            q_sa = q(S).gather(1, A.unsqueeze(1)).squeeze(1)
+            log("-----------------------------------------------\nVariable A before unsqueeze.squeeze:\n" + str(A) + "-----------------------------------------------\n")
+
+            log("-----------------------------------------------\nVariable q(S) before unsqueeze.squeeze:\n" + str(A) + "-----------------------------------------------\n")
+
+            q_sa = self.q(S).gather(1, A.unsqueeze(1)).squeeze(1)
+            q_sa = self.q(S).gather(1, A.unsqueeze(1))
+            log("-----------------------------------------------\nVariable q(S) before unsqueeze.squeeze:\n" + str(A) + "-----------------------------------------------\n")
+            log("-----------------------------------------------\nVariable q(S) after unsqueeze.squeeze:\n" + str(A) + "-----------------------------------------------\n")
+            log("-----------------------------------------------\nVariable q_sa:\n" + str(q_sa) + "-----------------------------------------------\n")
+            
             with torch.no_grad():
                 target = R + (1.0 - D) * self.gamma * self.qt(SP).max(1).values
                 loss = nn.functional.mse_loss(q_sa, target)
 
-            self.opt.zero_grad();
-            loss.backward();
+            self.opt.zero_grad()
+            loss.backward()
             self.opt.step()
             self.grad_steps += 1
             if self.grad_steps % self.target_update_every == 0:
-                self.qt.load_state_dict(q.state_dict())
+                self.qt.load_state_dict(self.q.state_dict())
 
     def getQ(self):
         return self.q, {"success":self.success_log, "lengths":self.length_log,
