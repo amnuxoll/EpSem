@@ -56,11 +56,13 @@ class QTrain:
         self.seed = 0
         self.device = "cpu"
 
-        self.global_step, self.grad_steps = 0, 0
-        self.success_log, self.length_log = [], []
-        self.done = False
-        self.total_r = 0.0
-        self.steps = 0
+        self.global_step = 0
+        self.grad_steps  = 0
+        self.success_log = []
+        self.length_log  = []
+        self.done        = False
+        self.total_r     = 0.0
+        self.steps       = 0
 
         self.lastAction = 0   #the last action we took is saved here so we can
                               #log the state, action + reward combo together
@@ -68,18 +70,18 @@ class QTrain:
         self.lastState = None;
         self.episode_rewards = []
 
-        self.alphabet = []  #this gets init'd later
-        self.K = 0         #this gets init'd later
-        self.myobserver = DFAObserver(n_hist=self.n_hist, K=self.K, seed=self.seed)
-        self.obs_dim = self.n_hist * (self.K + 1)
-        self.n_actions = self.K
+        self.alphabet = []  #this gets init'd in main() with '$$$alphabet' call
 
-        self.q = QTrain.QNet(self.obs_dim, self.n_actions).to(self.device)
-        self.qt = QTrain.QNet(self.obs_dim, self.n_actions).to(self.device)
-        self.qt.load_state_dict(self.q.state_dict())
-        self.qt.eval()
-        self.opt = optim.Adam(self.q.parameters(), lr=self.lr)
+        #The following variables all get init'd in initModel()
+        self.K = -1 
+        self.myobserver = None
+        self.obs_dim = -1
+        self.n_actions = -1
+        self.q = None
+        self.qt = None
+
         self.buf = ReplayBuffer(self.buffer_capacity)
+        
 
 
     def epsilon(self, step):
@@ -87,13 +89,29 @@ class QTrain:
         t = min(1.0, step / self.eps_decay_steps)
         return self.eps_start + (self.eps_end - self.eps_start) * t
 
-    #This method is called each time the agent starts a new run. This code was
-    # originally in the outer for-loop in Yuji's dqn_train() method.
+    #Creates a new Q-Learning model.  This method can't be called until
+    #we know the alphabet size
     def initModel(self):
+        #A lot of the setup depends on the alphabet size.  We don't know
+        #that until we get the $$$alphabet call below which then calls
+        #this function.  So do that setup now.
+        self.K = len(self.alphabet)  # number of actions
+        self.myobserver = DFAObserver(n_hist=self.n_hist, K=self.K, seed=self.seed)
+        self.obs_dim = self.n_hist * (self.K + 1)
+        self.n_actions = self.K
+        self.q = QTrain.QNet(self.obs_dim, self.n_actions).to(self.device)
+        self.qt = QTrain.QNet(self.obs_dim, self.n_actions).to(self.device)
+        self.qt.load_state_dict(self.q.state_dict())
+        self.qt.eval()
+        self.opt = optim.Adam(self.q.parameters(), lr=self.lr)
+
+        
+        #This code is originally exec'd each time the agent starts a new run. It
+        # was originally in the outer for-loop in Yuji's dqn_train() method.
         self.myobserver.reset()
         self.myobserver.observe(0)
-        self.lastState = self.myobserver.encode().to(self.device) #changed s to 'self.'s to alter class variable of s
-                                                        #makes it used within rest of class
+        #Note: changed 's' from Yuji's code to self.lastState
+        self.lastState = self.myobserver.encode().to(self.device) 
 
     #This method is called each time the agent completes a run. This code was
     # originally in the outer for-loop in Yuji's dqn_train() method.
@@ -109,7 +127,7 @@ class QTrain:
         # seems  to be a data message generation only (not sure)
         # if (ep + 1) % max(1, self.episodes // 10) == 0:
         #     wr = np.mean(self.success_log[-50:]) if self.success_log else 0.0
-        #     print(f"Episode {ep + 1:4d}/{self.episodes} | recent win-rate(50)={wr:.2f} "
+        #     log(f"Episode {ep + 1:4d}/{self.episodes} | recent win-rate(50)={wr:.2f} "
         #           f"| steps={self.steps} total_r={self.total_r:.1f}")
 
 
@@ -130,14 +148,12 @@ class QTrain:
 
 
         if random.random() < self.epsilon(self.global_step):
-            print("python: choosing a random action")
+            log("python: choosing a random action")
             a = random.randint(0, len(self.alphabet)-1)
         else:
-            print("python: choosing a PyTorch action")
+            log("python: choosing a PyTorch action")
             with torch.no_grad():
-                qvals = self.q(self.s.unsqueeze(0)) #is this the same s as initmodel
-                                                    # I added 'self.'s to use the class variable
-                                                    #makes it usable outside initmodel
+                qvals = self.q(self.lastState.unsqueeze(0))
                 a = int(torch.argmax(qvals, dim=1).item())
         return a
 
@@ -151,16 +167,11 @@ class QTrain:
 
         obs_next = self.lastAction + 1
 
-        #TODO: WE ARE STUCK HERE
-        #self.myobserver is initially a DFAObserver() object but somehow it's
-        #become a Tensor object (probably below:  self.myobserver = sp)
-        #not sure whether that's intended or we messed something
-        #NextStep:  x-ref with Yuji's code
-        # also don't forget:  our "dfa_observer" is Yuji's dfa_agent
         self.myobserver.observe(obs_next)
         sp = self.myobserver.encode().to(self.device)
 
         self.buf.push(self.lastState, self.lastAction, r, sp, False)
+
         self.lastState = sp
         self.total_r += r
 
@@ -169,17 +180,18 @@ class QTrain:
             S, A, R, SP, D = (S.to(self.device), A.to(self.device),
                               R.to(self.device), SP.to(self.device), D.to(self.device))
 
-            q_sa = q(S).gather(1, A.unsqueeze(1)).squeeze(1)
+            q_sa = self.q(S).gather(1, A.unsqueeze(1)).squeeze(1)
+
             with torch.no_grad():
                 target = R + (1.0 - D) * self.gamma * self.qt(SP).max(1).values
-                loss = nn.functional.mse_loss(q_sa, target)
 
+            loss = nn.functional.mse_loss(q_sa, target)
             self.opt.zero_grad();
             loss.backward();
             self.opt.step()
             self.grad_steps += 1
             if self.grad_steps % self.target_update_every == 0:
-                self.qt.load_state_dict(q.state_dict())
+                self.qt.load_state_dict(self.q.state_dict())
 
     def getQ(self):
         return self.q, {"success":self.success_log, "lengths":self.length_log,
@@ -239,8 +251,8 @@ class QTrain:
                         strData = data.decode('utf-8') # Raw data from the java agent
 
                         if strData.startswith('$$$alphabet:'):
-                            self.initModel()
                             self.alphabet = list(strData[12:])
+                            self.initModel()
                             log(f'New alphabet: {self.alphabet}')
                             log(f'Sending acknowledgment')
                             conn.sendall('$$$ack'.encode('ASCII'))
@@ -256,6 +268,9 @@ class QTrain:
                             action = self.getNextActionFromQ() # letter is returned as an integer
                             # (from todo) save the letter  e selected as an int, in an instance var
 
+                            #DEBUG (remove later)
+                            log("received reward: " + str(r));
+                            
                             # J: letter is returned as an int (a = 0, b = 1, etc.) from getNextActionFromQ
                             # TODO: check the way letter is being returned -J
                             self.lastAction = action
@@ -266,7 +281,8 @@ class QTrain:
                             
                             # Send the model's prediction to the environment
                             conn.sendall(letter.encode('ASCII'))
-                            log(f'sending random action, {letter}')
+                            log(f'sending action, {letter}')
+                            self.global_step += 1
 
                         elif strData.startswith('$$$quit'):
                             #TODO: Check this -->record goal here
