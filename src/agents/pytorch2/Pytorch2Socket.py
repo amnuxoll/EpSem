@@ -8,7 +8,6 @@ from dfa_observer import DFAObserver
 import torch
 import torch.optim as optim
 import torch.nn as nn
-import numpy as np
 from collections import deque
 
 class ReplayBuffer:
@@ -17,8 +16,10 @@ class ReplayBuffer:
     """
     def __init__(self, capacity=20_000):
         self.buf = deque(maxlen=capacity)
+
     def push(self, s, a, r, sp, done):
         self.buf.append((s, a, r, sp, done))
+
     def sample(self, batch_size):
         batch = random.sample(self.buf, batch_size)
         s, a, r, sp, d = zip(*batch)
@@ -27,6 +28,7 @@ class ReplayBuffer:
                 torch.tensor(r, dtype=torch.float32),
                 torch.stack(sp),
                 torch.tensor(d, dtype=torch.float32))
+    
     def __len__(self): return len(self.buf)
 
 #Use this  instead of print statements because print won't run when java launches this script
@@ -42,19 +44,19 @@ class QTrain:
         Takes parameters from DQN_Train in Yuji's code and initializes them as
         instance variables
         """
-        self.n_hist = 3
-        self.episodes = 500
-        self.gamma = 0.99  # discount factor
-        self.lr = 1e-3  # learning rate
-        self.batch_size = 64  # number of actions that is remembered for q-value
-        self.buffer_capacity = 20_000
-        self.start_learning_after = 500  # num random actions to take before learning
-        self.target_update_every = 200
-        self.eps_start = 1.0
-        self.eps_end = 0.05
-        self.eps_decay_steps = 5000
-        self.seed = 0
-        self.device = "cpu"
+        self.n_hist                 = 3
+        self.episodes               = 500
+        self.gamma                  = 0.99  # discount factor
+        self.lr                     = 1e-3  # learning rate
+        self.batch_size             = 64    # number of actions that is remembered for q-value
+        self.buffer_capacity        = 20_000
+        self.start_learning_after   = 500   # num random actions to take before learning
+        self.target_update_every    = 200
+        self.eps_start              = 1.0   # epsilon value at start of training
+        self.eps_end                = 0.05  # epsilon value at end of training
+        self.eps_decay_steps        = 5000  # over how many steps to decay epsilon to end value
+        self.seed                   = 0
+        self.device                 = "cpu"
 
         self.global_step = 0
         self.grad_steps  = 0
@@ -67,7 +69,7 @@ class QTrain:
         self.lastAction = 0   #the last action we took is saved here so we can
                               #log the state, action + reward combo together
                               #after the env
-        self.lastState = None;
+        self.lastState       = None
         self.episode_rewards = []
 
         self.alphabet = []  #this gets init'd in main() with '$$$alphabet' call
@@ -83,29 +85,42 @@ class QTrain:
         self.buf = ReplayBuffer(self.buffer_capacity)
         
 
-
+    # epsilon(step)
+    #   epsilon is the probability of taking a random action vs best-known action
+    #   at each step, aka exploration vs exploitation. It decays from eps_start to 
+    #   eps_end over eps_decay_steps steps.
+    #
+    #   Parameters:
+    #       step - current global step count
+    #   
     def epsilon(self, step):
+        # if we reach our limit of decay steps, return eps_end
         if self.eps_decay_steps <= 0: return self.eps_end
+
+        # calculate linear decay based on the fraction of the decay limit 
+        # we are currently at, if this is < 1.0 then we are still decaying
         t = min(1.0, step / self.eps_decay_steps)
+
         return self.eps_start + (self.eps_end - self.eps_start) * t
 
-    #Creates a new Q-Learning model.  This method can't be called until
-    #we know the alphabet size
+
+    # initModel()
+    #   Creates a new Q-Learning model.  This method can't be called until
+    #   we know the alphabet size. See line 272 in main().
+    #
     def initModel(self):
-        #A lot of the setup depends on the alphabet size.  We don't know
-        #that until we get the $$$alphabet call below which then calls
-        #this function.  So do that setup now.
-        self.K = len(self.alphabet)  # number of actions
+        self.K          = len(self.alphabet)  # number of actions
         self.myobserver = DFAObserver(n_hist=self.n_hist, K=self.K, seed=self.seed)
-        self.obs_dim = self.n_hist * (self.K + 1)
-        self.n_actions = self.K
-        self.q = QTrain.QNet(self.obs_dim, self.n_actions).to(self.device)
-        self.qt = QTrain.QNet(self.obs_dim, self.n_actions).to(self.device)
+        self.obs_dim    = self.n_hist * (self.K + 1)
+        self.n_actions  = self.K
+        self.q          = QTrain.QNet(self.obs_dim, self.n_actions).to(self.device)
+        self.qt         = QTrain.QNet(self.obs_dim, self.n_actions).to(self.device)
+
         self.qt.load_state_dict(self.q.state_dict())
         self.qt.eval()
-        self.opt = optim.Adam(self.q.parameters(), lr=self.lr)
 
-        
+        self.opt        = optim.Adam(self.q.parameters(), lr=self.lr)
+
         #This code is originally exec'd each time the agent starts a new run. It
         # was originally in the outer for-loop in Yuji's dqn_train() method.
         self.myobserver.reset()
@@ -113,30 +128,21 @@ class QTrain:
         #Note: changed 's' from Yuji's code to self.lastState
         self.lastState = self.myobserver.encode().to(self.device) 
 
-    #This method is called each time the agent completes a run. This code was
-    # originally in the outer for-loop in Yuji's dqn_train() method.
+
+    # recordGoal()
+    #   This method is called each time the agent completes a run. This code was
+    #   originally in the outer for-loop in Yuji's dqn_train() method.
+    #
     def recordGoal(self):
-        # this code below was outside
         self.success_log.append(1 if self.total_r > 0 else 0)
         self.length_log.append(self.steps)
         self.episode_rewards.append(self.total_r)
 
-        #finding the remainder of the next episode divided by the max of episodes or 10
-        #if not at 10, then ten is max????
-        # Nux comments this out for now since 'ep' doesn't exist here and this
-        # seems  to be a data message generation only (not sure)
-        # if (ep + 1) % max(1, self.episodes // 10) == 0:
-        #     wr = np.mean(self.success_log[-50:]) if self.success_log else 0.0
-        #     log(f"Episode {ep + 1:4d}/{self.episodes} | recent win-rate(50)={wr:.2f} "
-        #           f"| steps={self.steps} total_r={self.total_r:.1f}")
 
-
-    #
     # getNextActionFromQ
-    #
-    # This method is the "connection" between the framework code and the code
-    # written by Yuji Sakabe that creates/manages the PyTorch model.
-    # See his dqn_train.py to see what the original looked like.
+    #   This method is the "connection" between the framework code and the code
+    #   written by Yuji Sakabe that creates/manages the PyTorch model.
+    #   See his dqn_train.py to see what the original looked like.
     #
     def getNextActionFromQ(self):
 
@@ -146,36 +152,34 @@ class QTrain:
         #       to force exploring, when exploit is not working
 
 
-
         if random.random() < self.epsilon(self.global_step):
             log("python: choosing a random action")
-            a = random.randint(0, len(self.alphabet)-1)
+            action = random.randint(0, len(self.alphabet)-1)
         else:
             log("python: choosing a PyTorch action")
             with torch.no_grad():
                 qvals = self.q(self.lastState.unsqueeze(0))
-                a = int(torch.argmax(qvals, dim=1).item())
-        return a
+                action = int(torch.argmax(qvals, dim=1).item())
+        return action
 
 
-        #
-        # logReward
-        #
-        # records the agent's reward for it's last action
-
+    # logReward(r)
+    #   Records the agent's reward (r) for its last action
+    #
     def logReward(self, r):
 
         obs_next = self.lastAction + 1
 
         self.myobserver.observe(obs_next)
-        sp = self.myobserver.encode().to(self.device)
+        currState = self.myobserver.encode().to(self.device) # originally sp, changed to currState
 
-        self.buf.push(self.lastState, self.lastAction, r, sp, False)
+        self.buf.push(self.lastState, self.lastAction, r, currState, False)
 
-        self.lastState = sp
+        self.lastState = currState
         self.total_r += r
 
-        if len(self.buf) >= self.start_learning_after:
+        if len(self.buf) >= self.start_learning_after: # num random actions to take before learning
+            # References: S: lastState, A: lastAction, R: reward, SP: currState, D: done
             S, A, R, SP, D = self.buf.sample(self.batch_size)
             S, A, R, SP, D = (S.to(self.device), A.to(self.device),
                               R.to(self.device), SP.to(self.device), D.to(self.device))
@@ -186,8 +190,8 @@ class QTrain:
                 target = R + (1.0 - D) * self.gamma * self.qt(SP).max(1).values
 
             loss = nn.functional.mse_loss(q_sa, target)
-            self.opt.zero_grad();
-            loss.backward();
+            self.opt.zero_grad()
+            loss.backward()
             self.opt.step()
             self.grad_steps += 1
             if self.grad_steps % self.target_update_every == 0:
@@ -265,14 +269,11 @@ class QTrain:
                             #and put in 'r'
                             self.logReward(r)
 
-                            action = self.getNextActionFromQ() # letter is returned as an integer
-                            # (from todo) save the letter  e selected as an int, in an instance var
+                            action = self.getNextActionFromQ() # action is returned as an integer index
 
                             #DEBUG (remove later)
-                            log("received reward: " + str(r));
+                            log("received reward: " + str(r))
                             
-                            # J: letter is returned as an int (a = 0, b = 1, etc.) from getNextActionFromQ
-                            # TODO: check the way letter is being returned -J
                             self.lastAction = action
 
                             #convert action to a letter that the Java side is
@@ -285,7 +286,6 @@ class QTrain:
                             self.global_step += 1
 
                         elif strData.startswith('$$$quit'):
-                            #TODO: Check this -->record goal here
                             self.recordGoal()
                             log('python agent received quit signal:')
                             break

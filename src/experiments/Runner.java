@@ -12,7 +12,7 @@ import agents.pytorchDQN.pytorchDQNAgentProvider;
 import agents.wfc.WFCAgentProvider;
 import agents.ndxr.NdxrAgentProvider;
 import agents.tfsocket.TFSocketAgentProvider;
-import agents.demosocketagent.DemoSocketAgentProvider;
+import agents.DemoSocketAgent.DemoSocketAgentProvider;
 import agents.pytorch2.Pytorch2SocketAgentProvider;
 import environments.fsm.FSMEnvironment;
 import environments.fsm.FSMEnvironmentProvider;
@@ -339,7 +339,7 @@ public class Runner {
         }
 );
     private static TestSuite PYTORCH2_SUITE = new TestSuite(
-            TestSuiteConfiguration.TEST,
+            TestSuiteConfiguration.MEDIUM,
             new IEnvironmentProvider[] {
                     new FSMEnvironmentProvider(new FSMTransitionTableBuilder(2, 10, Random.getTrue()), FSMEnvironment.Sensor.NO_SENSORS),
             },

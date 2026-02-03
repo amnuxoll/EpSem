@@ -1,4 +1,4 @@
-package agents.demosocketagent;
+package agents.DemoSocketAgent;
 
 import framework.*;
 import utils.EpisodicMemory;
