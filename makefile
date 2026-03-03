@@ -175,7 +175,6 @@ classpathify = $(subst $(eval) ,:,$(wildcard $1))
 default: all 
 
 all:
-	if not exist out mkdir out
 	@$(JC) $(JARGS) $(ALLSRC)
 
 runexperiments: all
