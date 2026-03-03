@@ -57,13 +57,13 @@ public class DemoSocketAgent implements IAgent {
 
         //Pick a random port number in case stale python agents are sitting
         //around
-        port = this.random.nextInt(1000) + BASE_PORT;
+        port = this.random.nextInt(100) + BASE_PORT;
         
         // Run the python agent
         System.out.println("Demo Socket Agent");
         System.out.println("Launching Python Agent...");
-        System.out.println("python3" + " ./src/agents/demosocketagent/Pytorch2Socket.py" + " " + port);
-        ProcessBuilder processBuilder = new ProcessBuilder("python3", "./src/agents/demosocketagent/Pytorch2Socket.py", "" + port);
+        System.out.println("python3" + " ./src/agents/demosocketagent/DemoSocket.py" + " " + port);
+        ProcessBuilder processBuilder = new ProcessBuilder("python3", "./src/agents/demosocketagent/DemoSocket.py", "" + port);
         processBuilder.redirectErrorStream(true);
         try {
             Process process = processBuilder.start();
@@ -227,6 +227,15 @@ public class DemoSocketAgent implements IAgent {
         return null; //should never be reached
 
     }//getDemoAction
+
+    /** NEW CODE
+     * cleanup the socket and child process
+     */
+    @Override
+    public void onTestRunComplete() {
+        shutdown();
+    }
+
 
      /**
      * shutdown the python and java agent.  This is separate from onTestRunComplete()

@@ -235,6 +235,16 @@ public class Pytorch2SocketAgent implements IAgent {
 
     }//getDemoAction
 
+
+    /**
+     * cleanup the socket and child process
+     */
+    @Override
+    public void onTestRunComplete() {
+        shutdown();
+    }
+
+
      /**
      * shutdown the python and java agent.  This is separate from onTestRunComplete()
      * because it can be used for both a successful end of run or for an abort
