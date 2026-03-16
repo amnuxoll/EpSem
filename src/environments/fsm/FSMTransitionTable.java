@@ -143,7 +143,7 @@ public class FSMTransitionTable {
      * of the environment but does not know what state it has started in.  This
      * method uses A* search to reduce resource usage.
      *
-     * CAVEAT: This method is solving an NP-hard probelm and can take a really
+     * CAVEAT: This method is solving an NP-hard problem and can take a really
      * long time to execute on larger FSMs.
      *
      */
@@ -179,7 +179,7 @@ public class FSMTransitionTable {
         }//while
 
         return null; //should not be reached
-    }//shortestBlindPathToGoal
+    }//getUniversalSequence
 
 
 

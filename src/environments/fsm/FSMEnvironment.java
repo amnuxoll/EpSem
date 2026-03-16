@@ -30,6 +30,7 @@ public class FSMEnvironment implements IEnvironment {
     //odds of doing a no-op instead of the action prescribed
     private double noOpChance = 0.0;
 
+
     //endregion
 
     //region Constructors
@@ -64,7 +65,18 @@ public class FSMEnvironment implements IEnvironment {
         Sequence uSeq = this.transitionTable.getUniversalSequence();
         System.err.println("Universal sequence: " + uSeq + " (" + uSeq.getLength() + " steps)");
         System.out.println(this.transitionTable.dotFormOutput(this.currentState));
-    }
+
+        //DEBUG: calculate the approx optimal steps to goal for an agent
+        //       that uses the universal sequence to reach the goal each time
+        float numStates = this.transitionTable.getNumberOfStates() - 1; //excluding goal
+        float sum = 0;
+        for(int here = 0; here < numStates; ++here) {
+            sum +=  getBlindPathString(here).length();
+        }
+        String avgStr = String.format("%.2f", sum/numStates);
+        System.err.println("Average Steps to Goal Using this Universal Sequence: " + avgStr);
+
+    }//ctor
 
     private FSMEnvironment(FSMEnvironment toCopy) {
         this.transitionTable = toCopy.transitionTable;
@@ -259,7 +271,7 @@ public class FSMEnvironment implements IEnvironment {
         Sequence uSeq = this.transitionTable.getUniversalSequence();
         int here = startState;
         for(Action act : uSeq.getActions()) {
-            if (here == this.transitionTable.getNumberOfStates() - 1) {
+            if (here == this.transitionTable.getNumberOfStates() - 1) {  //reached goal
                 break;
             }
 
