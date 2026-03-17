@@ -189,4 +189,4 @@ runtestsnorebuild:
 	$(JVM) -cp $(call classpathify,$(OUTDIRS)) tests.EpSemTestRunner out/tests
 
 clean: 
-	del $(OUTDIRS)\$(FILES)
+	rm $(OUTDIRS)\$(FILES)

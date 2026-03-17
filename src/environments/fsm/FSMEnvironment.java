@@ -30,6 +30,15 @@ public class FSMEnvironment implements IEnvironment {
     //odds of doing a no-op instead of the action prescribed
     private double noOpChance = 0.0;
 
+    // I use these variables to track the overall average steps to goal for
+    // a blind agent using universal sequence across all FSMs generated so far.
+    // I'm using a public static variable here because it's a cheap way to give,
+    // the result compiler access to this datum.  To do it properly would
+    // require overhauling the framework in a way that's not worth it.
+    // so I use this kludge instead.  -:AMN: 17 Mar 2026
+    private static float numTables = 0.0f; //number of FSMs ever created
+    public static float overallAvg = -1.0f; //average USeq steps to goal for all FSMs created
+
 
     //endregion
 
@@ -73,8 +82,15 @@ public class FSMEnvironment implements IEnvironment {
         for(int here = 0; here < numStates; ++here) {
             sum +=  getBlindPathString(here).length();
         }
-        String avgStr = String.format("%.2f", sum/numStates);
+        float avgUSeqSteps = sum/numStates;
+        String avgStr = String.format("%.2f", avgUSeqSteps);
         System.err.println("Average Steps to Goal Using this Universal Sequence: " + avgStr);
+
+        //Update the overall average for reporting
+        float newSum = FSMEnvironment.overallAvg * FSMEnvironment.numTables + avgUSeqSteps;
+        FSMEnvironment.numTables++;
+        FSMEnvironment.overallAvg = newSum / FSMEnvironment.numTables;
+
 
     }//ctor
 

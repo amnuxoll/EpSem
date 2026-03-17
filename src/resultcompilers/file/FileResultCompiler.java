@@ -1,5 +1,6 @@
 package resultcompilers.file;
 
+import environments.fsm.FSMEnvironment;
 import framework.Datum;
 import framework.IResultCompiler;
 import utils.DirectoryUtils;
@@ -123,11 +124,14 @@ public class FileResultCompiler implements IResultCompiler {
         for (Datum datum : data) {
             key.setData(datum.getStatistic());
             if (!this.writers.containsKey(key)) {
-                File file = new File(this.outputDirectory, "[" + environmentId + "][" + agentId + "][" + datum.getStatistic() + "][" + iteration + "]");
+                File file = new File(this.outputDirectory, "iter" + iteration + genFileSuffix(datum.getStatistic(), agentId, environmentId));
                 this.files.add(file);
                 this.writers.put(key, new FileWriter(file));
             }
-            this.writers.get(key).write(datum.getDatum() + ",");
+            FileWriter writer = this.writers.get(key);
+            writer.write(datum.getDatum() + ",");
+            writer.flush();  //write the data now so it'll be there even if the agent crashes
+
         }
     }
 
@@ -148,6 +152,7 @@ public class FileResultCompiler implements IResultCompiler {
                     List<File> relevantFiles = this.getFilesForKey(environment.getKey(), agent.getKey(), datum);
                     File targetFile = this.generateFile(agent.getKey(), agent.getValue().alias, environment.getKey(), environment.getValue(), datum);
                     try (PrintWriter writer = new PrintWriter(targetFile)) {
+                        this.printGoalIds(writer, agent.getValue().alias);
                         this.mergeFiles(writer, relevantFiles);
                         this.addAverages(writer, agent.getValue().alias);
                         relevantFiles.forEach(f -> f.delete());
@@ -169,20 +174,35 @@ public class FileResultCompiler implements IResultCompiler {
         return this.convertToColumn(column / 26) + (char)(((int)'A') + right);
     }
 
+    /**
+     * a result file is written for each iteration.  The filename contains
+     * info of increasing breadth.  Thus, all files with the same suffix
+     * are averaged together to make one final output file.
+     * This method generates that suffix so that it is consistent.
+     *
+     * Example single iteration filename:  run11_steps_agent3_env2.csv
+     * Suffix of the above is: steps_agent3_env2.csv
+     */
+    private String genFileSuffix(String datum, int agentId, int environmentId) {
+        return "_" + datum + "_agent" + agentId + "_env" + environmentId + ".csv";
+    }
+
     private File generateFile(int agentIndex, String agentAlias, int environmentIndex, String environmentAlias, String resultType) {
         String fileName = "env_" + environmentAlias + "_" + environmentIndex +  "_agent_" + agentAlias + "_" + agentIndex + "_" + resultType;
         return new File(this.outputDirectory,  fileName + "." + DirectoryUtils.getTimestamp(System.currentTimeMillis()) + ".csv");
     }
 
     private List<File> getFilesForKey(int environmentId, int agentId, String datum) {
-        String keySet = "[" + environmentId + "][" + agentId + "][" + datum + "]";
+        //old: String keySet = "[" + environmentId + "][" + agentId + "][" + datum + "]";
+        String suffixKey = genFileSuffix(datum, agentId, environmentId);
         Comparator<File> iteration = Comparator.comparingInt(file -> {
-            int index = file.getName().lastIndexOf("][");
-            String value = file.getName().substring(index + 2);
-            value = value.substring(0, value.length() - 1);
-            return Integer.parseInt(value);
+            String filename = file.getName();
+            int iterBeginIndex = filename.indexOf("iter") + 4;  //this should always be 4
+            int iterEndIndex = filename.lastIndexOf(suffixKey);
+            String iterNumStr = filename.substring(iterBeginIndex, iterEndIndex);
+            return Integer.parseInt(iterNumStr);
         });
-        return this.files.stream().filter(file -> file.getName().startsWith(keySet)).sorted(iteration).collect(Collectors.toList());
+        return this.files.stream().filter(file -> file.getName().endsWith(suffixKey)).sorted(iteration).collect(Collectors.toList());
     }
 
     private void mergeFiles(PrintWriter targetFileWriter, List<File> sourceFiles) throws IOException {
@@ -197,11 +217,27 @@ public class FileResultCompiler implements IResultCompiler {
         }
     }
 
+
+    /**
+     * prints a sequential number at the top of each column to provide
+     * a goal id for each column.  This will be the x-axis of the data.
+     */
+    private void printGoalIds(PrintWriter writer, String agentAlias) {
+        writer.write(agentAlias + "\ngoal:,");
+        // Write out the basic goal sums
+        for (int i = 1; i <= this.numberOfGoals; i++) {
+            writer.write(i + ",");
+        }
+        writer.write("\n\n");
+    }
+
+
     private void addAverages(PrintWriter writer, String agentAlias) {
         writer.write(agentAlias + " Average,");
+        int startRow = 4;  //N rows in the spreadsheet before the iteration data starts
+
         // Write out the basic goal sums
         for (int i = 2; i <= this.numberOfGoals + 1; i++) {
-            int startRow = 1;
             int endRow = startRow + this.numberOfIterations - 1;
             String columnLabel = this.convertToColumn(i);
             writer.write("=average(" + columnLabel + startRow + ":" + columnLabel + endRow + "),");
@@ -213,16 +249,17 @@ public class FileResultCompiler implements IResultCompiler {
         for (int i = 5; i <= this.numberOfGoals - 2; i++) {
             String leftColumn = this.convertToColumn(i - 3);
             String rightColumn = this.convertToColumn(i + 3);
-            int row = 1 + this.numberOfIterations;
+            int row = startRow + this.numberOfIterations;
 
             writer.write("=average(" + leftColumn + row + ":" + rightColumn + row + "),");
         }
         writer.write("\n");
 
-        //Write out the optimal steps
-        writer.write("Optimal,");
+        //Write out the average of the (sort-of) optimal steps for all FSMs
+        writer.write("Near-Optimal,");
+        String optStr = String.format("%.2f", FSMEnvironment.overallAvg);
         for (int i = 2; i <= this.numberOfGoals + 1; i++) {
-            writer.write("4.44,"); //for now, hard-coded for 6,2 FSM
+            writer.write(optStr + ","); //for now, hard-coded for 6,2 FSM
         }
         writer.write("\n");
 
