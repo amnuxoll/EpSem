@@ -419,7 +419,7 @@ public class RuleIndex {
     }//bestBrothers
 
     /**
-     * removeRule
+     * replaceRule
      * <p>
      * removes all trace of a given rule from this index and replaces with another
      * Note: 'this' must be the RuleIndex leaf node that contains the given rules

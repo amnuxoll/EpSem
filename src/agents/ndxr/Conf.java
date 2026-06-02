@@ -4,6 +4,7 @@ package agents.ndxr;
  * class Conf
  * <p>
  * An instance of this class tracks the agent's confidence in something.
+ * It's been engineered to use less space which may be overengineering.
  */
 public class Conf {
     /** number of bits per condition used to measure confidence.  I have this
@@ -16,7 +17,7 @@ public class Conf {
     /** the highest confidence that the agent can have */
     public static final byte MAX = (byte)0b01111111; //i.e., 127
 
-    /** for convenice, index to the most significant bit in a confidence value */
+    /** for convenience, index to the most significant bit in a confidence value */
     public static final byte MOST_SIG = (byte)(byte)0b01000000;
 
     /** the raw confidence value */

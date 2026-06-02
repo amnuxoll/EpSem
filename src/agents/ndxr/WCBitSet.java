@@ -58,6 +58,13 @@ public class WCBitSet extends BitSet implements Cloneable {
      *
      * merges another WCBitSet with this one.  Where their bits disagree,
      * the value is set to a wildcard.
+     * 
+     * NOTE: The two WCBitSets must be the same size!
+     *
+     * Example:
+     * this:   0.011.101
+     * other:  10001.10.
+     * result: ..0.1.10.
      */
     public void mergeWith(WCBitSet other) {
         for(int i = 0; i <= other.length(); ++i) {

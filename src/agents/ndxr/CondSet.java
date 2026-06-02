@@ -24,7 +24,7 @@ public class CondSet implements Cloneable {
                                              (byte)0b00010000, (byte)0b00100000, (byte)0b01000000 };
 
     //The initial value of each bit is represented in this value which never
-    // changes once set.  If an agent ever has more than 7 sensors, this will
+    // change once set.  If an agent ever has more than 7 sensors, this will
     // have to become a different type to accommodate
     private byte base = 0;
 
