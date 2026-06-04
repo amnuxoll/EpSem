@@ -194,7 +194,7 @@ public class CondSet implements Cloneable {
      * wcBitString
      * <p>
      * returns a string of '1', '0' and '.' that represents this CondSet
-     * '1' and '0' are used when confidence is high.  Otherwise '.' is used.
+     * '1' and '0' are used when confidence is high.  Otherwise, '.' is used.
      */
     public String wcBitString() {
         StringBuilder sb = new StringBuilder();

@@ -19,13 +19,13 @@ import java.util.Vector;
  */
 public class NdxrAgent implements IAgent {
     /** maximum number of rules allowed */
-    public static final int MAX_NUM_RULES = 50;
+    public static final int MAX_NUM_RULES = 5000;
     /** max depth of TreeNode Search */
     //TODO: replace with MAX_EXPANSIONS someday
     public static final int MAX_SEARCH_DEPTH = 3;
 
     /** turn on/off debug printlns */
-    public static final boolean DEBUGPRINTSWITCH = true;
+    public static final boolean DEBUGPRINTSWITCH = false;
 
     //a list of valid actions in the env
     private Action[] actions;
@@ -202,11 +202,11 @@ public class NdxrAgent implements IAgent {
 
 
         //DEBUG: print all rules
-        System.out.println("\nRules:");
+        debugPrintln("\nRules:");
         this.rules.printAll();
-        System.out.println("\nPathRules:");
+        debugPrintln("\nPathRules:");
         for(PathRule pr : this.pathRules) {
-            System.out.println(pr);
+            debugPrintln(pr.toString());
         }
 
         //DEBUG: Put breakpoints below
@@ -236,8 +236,8 @@ public class NdxrAgent implements IAgent {
         //DEBUG: PROFILING
         long agentStop = System.currentTimeMillis();
         agentTotal += agentStop - agentStart;
-        System.out.println("Subroutine Time: " + subTotal);
-        System.out.println("Total Time: " + agentTotal);
+        debugPrintln("Subroutine Time: " + subTotal);
+        debugPrintln("Total Time: " + agentTotal);
 
         return action;
     }//getNextAction

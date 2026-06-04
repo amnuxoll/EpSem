@@ -356,7 +356,7 @@ public class Runner {
 
         // The suite that's used is fed in as a command line argument. If an invalid command line argument is given,
         // it fails silently and uses the default suite instead. The name of the suite must match exactly.
-        TestSuite defaultSuite = PYTORCH2_SUITE; //prev. TF SUITE
+        TestSuite defaultSuite = NDXR_AGENT;
 
         if (args.length >= 1) {
             String suiteName = args[0];

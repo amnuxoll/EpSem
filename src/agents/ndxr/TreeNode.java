@@ -316,21 +316,21 @@ public class TreeNode {
      * @param indent how much to indent any output from this method
      */
     private void printTreeHelper(String indent) {
-        System.out.print(indent + "  " + this);
+        agent.debugPrint(indent + "  " + this);
 
         //base case #1: Goal Node found (not at root)
         if ( isGoalNode() ) {
-            System.out.println("*");
+            agent.debugPrintln("*");
             return;
         }
 
         //base case #2:  Leaf Node (no goal found)
         if (this.isLeaf) {
-            System.out.println();
+            agent.debugPrintln("");
             return;
         }
 
-        System.out.println();
+        agent.debugPrintln("");
 
         //recursive case: print child nodes
         for(TreeNode child : this.children) {

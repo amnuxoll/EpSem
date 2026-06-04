@@ -530,13 +530,17 @@ public class RuleIndex {
         }
 
         //DEBUG
-        System.out.println("REMOVING rule: " + r2.verboseString());
-        System.out.println("  merged with: " + r1.verboseString());
+        if (NdxrAgent.DEBUGPRINTSWITCH) {
+            System.out.println("REMOVING rule: " + r2.verboseString());
+            System.out.println("  merged with: " + r1.verboseString());
+        }
 
         r1.mergeWith(r2);
 
         //DEBUG: REMOVE
-        System.out.println("       to get: " + r1.verboseString());
+        if (NdxrAgent.DEBUGPRINTSWITCH) {
+            System.out.println("       to get: " + r1.verboseString());
+        }
 
         //remove the old rule from the index
         replaceRule(r2, r1);
@@ -622,9 +626,6 @@ public class RuleIndex {
                 double score = r.matchScore(prevInternal, prevExtBits, currExtBits);
                 MatchResult mr = new MatchResult(r, score);
                 results.add(mr);
-
-                //DEBUG: print the match results
-                //System.out.println("Matching bin " + this + ": " + r + " match score: " + score);
             }//for each rule in this node
         }//else if leaf node
     }//matchHelper

@@ -8,7 +8,7 @@ import java.util.HashMap;
 /** describes sensing+action->sensing */
 public class Rule {
     private static int nextId = 1;  //next unique rule Id (use val then increment)
-    public static int MAX_DEPTH = 7; //maximum rule depth allowed (see depth instance var)
+    public static final int MAX_DEPTH = 7; //maximum rule depth allowed (see depth instance var)
 
     /*===========================================================================
      * Inner Classes
@@ -47,7 +47,7 @@ public class Rule {
     private int depth = 0;
 
     //Rules keep track of which other rule is most similar to them
-    //Despite the name brotherhood is not a associative.
+    //Despite the name brotherhood is not associative.
     private Rule brother = null;
 
     //The match score between 'this' and 'this.brother'
@@ -352,7 +352,10 @@ public class Rule {
             key = "" + r2.id + "_" + r1.id;
         }
         RuleScore rs = new RuleScore(score);
-        Rule.scoreHash.put(key, rs);
+
+        //DEBUG:  I'm removing this temporarily to see if it fixes the memory leak
+        //Rule.scoreHash.put(key, rs);
+
     }
 
     /** replace one rule in this.prevRules with another */
