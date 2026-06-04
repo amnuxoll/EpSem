@@ -905,10 +905,9 @@ public class RuleIndex {
                 sb.append(" /// ");
                 sb.append(r.verboseString());
 
-        //Commented out may 2024 b/c did not compile and didn't immediately have
-        //time to fix
                 //print the complete string
-//                System.out.print(sb.toString().indent(2 + this.indexDepth * 2));
+                sb.insert(0, " ".repeat(2 + this.indexDepth * 2));
+                agent.debugPrintln(sb.toString());
             }
         }
     }//printAll
