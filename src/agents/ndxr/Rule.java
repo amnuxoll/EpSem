@@ -4,11 +4,13 @@ import framework.SensorData;
 
 import java.util.Vector;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 /** describes sensing+action->sensing */
 public class Rule {
     private static int nextId = 1;  //next unique rule Id (use val then increment)
-    public static final int MAX_DEPTH = 7; //maximum rule depth allowed (see depth instance var)
+    public static int MAX_DEPTH = 7; //maximum rule depth allowed (see depth instance var)
 
     /*===========================================================================
      * Inner Classes
@@ -30,6 +32,30 @@ public class Rule {
         }//ctor
     }//class RuleScore
 
+    /**
+     * class LRUHashMap
+     * 
+     * Doubly-linked hashtable allowing for least recently used entires to be removed.
+     * 
+     * @Author Google Gemini
+     */
+    public static class LRUHashMap<K, V> extends LinkedHashMap<K, V> {
+        private final int maxSize;
+
+        public LRUHashMap(int maxSize) {
+            // True enables access-order (LRU), false maintains insertion-order
+            super(maxSize + 1, 1.0f, true); 
+            this.maxSize = maxSize;
+        }
+ 
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<K, V> eldest) {
+            return size() > maxSize; 
+        }
+    }//LRUHashMap
+
+
+
     /*===========================================================================
      * Instance Variables
      ----------------------------------------------------------------------------*/
@@ -47,7 +73,7 @@ public class Rule {
     private int depth = 0;
 
     //Rules keep track of which other rule is most similar to them
-    //Despite the name brotherhood is not associative.
+    //Despite the name brotherhood is not a associative.
     private Rule brother = null;
 
     //The match score between 'this' and 'this.brother'
@@ -55,7 +81,7 @@ public class Rule {
 
     //match scores are cached for memoization
     //hash key:  "<id1>_<id2>" where id1 < id2  (example key:  "37_81")
-    private static HashMap<String, RuleScore> scoreHash = new HashMap<>();
+    private static LRUHashMap<String, RuleScore> scoreHash = new LRUHashMap<>(10000);
 
     /**
      * boring ctor
@@ -184,6 +210,7 @@ public class Rule {
      * faster comparison
      */
     public double matchScore(Rule other) {
+        
         //See if this score is already known
         double score = getRuleScore(this, other);
         if (score >= 0.0) return score;
@@ -344,6 +371,17 @@ public class Rule {
         if (rs.timestamp != NdxrAgent.getTimeStep()) return -1.0; //out of date
         return rs.score;
     }
+
+    public static void removeRuleScore(Rule r1, Rule r2) {
+        String key;
+        if (r1.id < r2.id) {
+            key = "" + r1.id + "_" + r2.id;
+        } else {
+            key = "" + r2.id + "_" + r1.id;
+        }
+        Rule.scoreHash.remove(key);
+    }//removeRuleScore
+
     private void putRuleScore(Rule r1, Rule r2, double score) {
         String key;
         if (r1.id < r2.id) {
@@ -352,10 +390,7 @@ public class Rule {
             key = "" + r2.id + "_" + r1.id;
         }
         RuleScore rs = new RuleScore(score);
-
-        //DEBUG:  I'm removing this temporarily to see if it fixes the memory leak
-        //Rule.scoreHash.put(key, rs);
-
+        Rule.scoreHash.put(key, rs);
     }
 
     /** replace one rule in this.prevRules with another */

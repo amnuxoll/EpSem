@@ -255,6 +255,15 @@ public class FileResultCompiler implements IResultCompiler {
         }
         writer.write("\n");
 
+        writer.write(agentAlias + " Median,");
+        //Write out the median steps to completion for an FSM
+        for (int i = 2; i <= this.numberOfGoals + 1; i++) {
+            int endRow = startRow + this.numberOfIterations - 1;
+            String columnLabel = this.convertToColumn(i);
+            writer.write("=median(" + columnLabel + startRow + ":" + columnLabel + endRow + "),");
+        }
+        writer.write("\n");
+
         //Write out the average of the (sort-of) optimal steps for all FSMs
         writer.write("Near-Optimal,");
         String optStr = String.format("%.2f", FSMEnvironment.overallAvg);
