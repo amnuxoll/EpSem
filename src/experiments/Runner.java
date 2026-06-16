@@ -271,10 +271,10 @@ public class Runner {
     );
 
     private static TestSuite NDXR_AGENT = new TestSuite(
-            TestSuiteConfiguration.QUICK,
+            TestSuiteConfiguration.MEDIUM,
             new IEnvironmentProvider[] {
                     new FSMEnvironmentProvider(
-                            new FSMTransitionTableBuilder(2, 5, Random.getFalse()),
+                            new FSMTransitionTableBuilder(2, 10, Random.getFalse()),
                             EnumSet.of(FSMEnvironment.Sensor.NOISE1, FSMEnvironment.Sensor.IS_ODD))
 //                    new FSMTransitionTableBuilder(2, 50, Random.getFalse()),
 //                    EnumSet.of(FSMEnvironment.Sensor.NOISE1, FSMEnvironment.Sensor.NOISE2,

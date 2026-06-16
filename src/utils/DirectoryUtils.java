@@ -3,6 +3,7 @@ package utils;
 import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Scanner;
 
 /**
  * Contains some utility methods for working with directories.
@@ -36,7 +37,12 @@ public class DirectoryUtils {
 
     public static File generateCenekOutputDirectory()
     {
-        File file = new File(DirectoryUtils.outputRootDirectory, DirectoryUtils.getTimestamp(System.currentTimeMillis()));
+        //Request file name from user
+        Scanner s =  new Scanner(System.in);
+        System.out.println("Enter File Name: ");
+        String fileName = s.nextLine();
+        
+        File file = new File(DirectoryUtils.outputRootDirectory, DirectoryUtils.getTimestamp(System.currentTimeMillis()) + "_" + fileName);
         file.mkdirs();
         return file;
     }
