@@ -116,7 +116,7 @@ public class CondSet implements Cloneable {
             boolean myVal = (this.getBit(i) == 1);
             double tf = this.confs[i].dval();
             double df = NdxrAgent.getDocFrequency(i);
-            double relevance = Math.abs(tf - df);
+            double relevance = Math.abs(tf - df);  //what was my reason for this instead of 1-df?
             if (sensorVal == myVal) sum += tf * relevance;
             max += relevance;
         }

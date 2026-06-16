@@ -19,13 +19,13 @@ import java.util.Vector;
  */
 public class NdxrAgent implements IAgent {
     /** maximum number of rules allowed */
-    public static final int MAX_NUM_RULES = 5000;
+    public static final int MAX_NUM_RULES = 50;
     /** max depth of TreeNode Search */
     //TODO: replace with MAX_EXPANSIONS someday
     public static final int MAX_SEARCH_DEPTH = 3;
 
     /** turn on/off debug printlns */
-    public static final boolean DEBUGPRINTSWITCH = false;
+    public static final boolean DEBUGPRINTSWITCH = true;
 
     //a list of valid actions in the env
     private Action[] actions;
