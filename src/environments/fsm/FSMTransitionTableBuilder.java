@@ -83,7 +83,6 @@ public class FSMTransitionTableBuilder {
             maxTransitionsToGoal = 1;
 
         int trans = this.random.nextInt(maxTransitionsToGoal);
-        System.out.println("rand trans =" + trans);
         this.pickTransitions(transitions,this.numStates - 1, trans + 1, 0);
         return transitions;
     }
@@ -95,9 +94,7 @@ public class FSMTransitionTableBuilder {
             if(transitionsDone == ((transitions.length-1)*this.actions.length))
                 return;
             initState = this.random.nextInt(transitions.length);
-            System.out.println("rand initState=" + initState);
             int moveIndex = this.random.nextInt(this.actions.length);
-            System.out.println("rand moveIndex=" + moveIndex);
 
             if (transitions[initState] != null && transitions[initState].containsKey(this.actions[moveIndex])) {
                 i--;
