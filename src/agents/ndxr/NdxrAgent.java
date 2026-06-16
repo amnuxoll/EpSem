@@ -4,6 +4,7 @@ import framework.Action;
 import framework.IAgent;
 import framework.IIntrospector;
 import framework.SensorData;
+import utils.RandomFactory;
 
 import java.util.BitSet;
 import java.util.Collections;
@@ -32,7 +33,7 @@ public class NdxrAgent implements IAgent {
     //allows you to configure data gathered about agent performance (not used atm)
     private IIntrospector introspector;
     //Use this for all random number generation in this agent
-    public static final Random rand = utils.Random.getFalse();
+    public static final Random rand = RandomFactory.getFalse();
 
     //Rules that matched the agent's last N previous experiences (where N = Rule.MAX_DEPTH)
     private final Vector< Vector<Rule> > prevInternal = new Vector<>();

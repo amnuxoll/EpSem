@@ -8,11 +8,7 @@ import environments.fsm.FSMEnvironment;
 import environments.fsm.FSMEnvironmentProvider;
 import environments.fsm.FSMTransitionTableBuilder;
 import framework.*;
-import utils.Random;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.util.EnumSet;
 
 /**
@@ -41,68 +37,68 @@ public class AAAIDefnitions {
     private static TestSuiteConfiguration configuration = new TestSuiteConfiguration(NumberOfIterations, NumberOfGoals);
 
     private static IEnvironmentProvider[] environmentProviders = new IEnvironmentProvider[] {
-            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(SmallAlphabet, SmallFSM, Random.getTrue()), FSMEnvironment.Sensor.NO_SENSORS),
-            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(SmallAlphabet, MediumFSM, Random.getTrue()), FSMEnvironment.Sensor.NO_SENSORS),
-            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(SmallAlphabet, LargeFSM, Random.getTrue()), FSMEnvironment.Sensor.NO_SENSORS),
-            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(SmallAlphabet, XLargeFSM, Random.getTrue()), FSMEnvironment.Sensor.NO_SENSORS),
-            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(SmallAlphabet, XXLargeFSM, Random.getTrue()), FSMEnvironment.Sensor.NO_SENSORS),
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(SmallAlphabet, SmallFSM, RandomFactory.getTrue()), FSMEnvironment.Sensor.NO_SENSORS),
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(SmallAlphabet, MediumFSM, RandomFactory.getTrue()), FSMEnvironment.Sensor.NO_SENSORS),
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(SmallAlphabet, LargeFSM, RandomFactory.getTrue()), FSMEnvironment.Sensor.NO_SENSORS),
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(SmallAlphabet, XLargeFSM, RandomFactory.getTrue()), FSMEnvironment.Sensor.NO_SENSORS),
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(SmallAlphabet, XXLargeFSM, RandomFactory.getTrue()), FSMEnvironment.Sensor.NO_SENSORS),
 
-            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(MediumAlphabet, SmallFSM, Random.getTrue()), FSMEnvironment.Sensor.NO_SENSORS),
-            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(MediumAlphabet, MediumFSM, Random.getTrue()), FSMEnvironment.Sensor.NO_SENSORS),
-            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(MediumAlphabet, LargeFSM, Random.getTrue()), FSMEnvironment.Sensor.NO_SENSORS),
-            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(MediumAlphabet, XLargeFSM, Random.getTrue()), FSMEnvironment.Sensor.NO_SENSORS),
-            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(MediumAlphabet, XXLargeFSM, Random.getTrue()), FSMEnvironment.Sensor.NO_SENSORS),
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(MediumAlphabet, SmallFSM, RandomFactory.getTrue()), FSMEnvironment.Sensor.NO_SENSORS),
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(MediumAlphabet, MediumFSM, RandomFactory.getTrue()), FSMEnvironment.Sensor.NO_SENSORS),
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(MediumAlphabet, LargeFSM, RandomFactory.getTrue()), FSMEnvironment.Sensor.NO_SENSORS),
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(MediumAlphabet, XLargeFSM, RandomFactory.getTrue()), FSMEnvironment.Sensor.NO_SENSORS),
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(MediumAlphabet, XXLargeFSM, RandomFactory.getTrue()), FSMEnvironment.Sensor.NO_SENSORS),
 
-            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(LargeAlphabet, SmallFSM, Random.getTrue()), FSMEnvironment.Sensor.NO_SENSORS),
-            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(LargeAlphabet, MediumFSM, Random.getTrue()), FSMEnvironment.Sensor.NO_SENSORS),
-            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(LargeAlphabet, LargeFSM, Random.getTrue()), FSMEnvironment.Sensor.NO_SENSORS),
-            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(LargeAlphabet, XLargeFSM, Random.getTrue()), FSMEnvironment.Sensor.NO_SENSORS),
-            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(LargeAlphabet, XXLargeFSM, Random.getTrue()), FSMEnvironment.Sensor.NO_SENSORS),
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(LargeAlphabet, SmallFSM, RandomFactory.getTrue()), FSMEnvironment.Sensor.NO_SENSORS),
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(LargeAlphabet, MediumFSM, RandomFactory.getTrue()), FSMEnvironment.Sensor.NO_SENSORS),
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(LargeAlphabet, LargeFSM, RandomFactory.getTrue()), FSMEnvironment.Sensor.NO_SENSORS),
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(LargeAlphabet, XLargeFSM, RandomFactory.getTrue()), FSMEnvironment.Sensor.NO_SENSORS),
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(LargeAlphabet, XXLargeFSM, RandomFactory.getTrue()), FSMEnvironment.Sensor.NO_SENSORS),
 
-            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(XLargeAlphabet, SmallFSM, Random.getTrue()), FSMEnvironment.Sensor.NO_SENSORS),
-            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(XLargeAlphabet, MediumFSM, Random.getTrue()), FSMEnvironment.Sensor.NO_SENSORS),
-            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(XLargeAlphabet, LargeFSM, Random.getTrue()), FSMEnvironment.Sensor.NO_SENSORS),
-            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(XLargeAlphabet, XLargeFSM, Random.getTrue()), FSMEnvironment.Sensor.NO_SENSORS),
-            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(XLargeAlphabet, XXLargeFSM, Random.getTrue()), FSMEnvironment.Sensor.NO_SENSORS),
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(XLargeAlphabet, SmallFSM, RandomFactory.getTrue()), FSMEnvironment.Sensor.NO_SENSORS),
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(XLargeAlphabet, MediumFSM, RandomFactory.getTrue()), FSMEnvironment.Sensor.NO_SENSORS),
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(XLargeAlphabet, LargeFSM, RandomFactory.getTrue()), FSMEnvironment.Sensor.NO_SENSORS),
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(XLargeAlphabet, XLargeFSM, RandomFactory.getTrue()), FSMEnvironment.Sensor.NO_SENSORS),
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(XLargeAlphabet, XXLargeFSM, RandomFactory.getTrue()), FSMEnvironment.Sensor.NO_SENSORS),
 
-            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(XXLargeAlphabet, SmallFSM, Random.getTrue()), FSMEnvironment.Sensor.NO_SENSORS),
-            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(XXLargeAlphabet, MediumFSM, Random.getTrue()), FSMEnvironment.Sensor.NO_SENSORS),
-            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(XXLargeAlphabet, LargeFSM, Random.getTrue()), FSMEnvironment.Sensor.NO_SENSORS),
-            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(XXLargeAlphabet, XLargeFSM, Random.getTrue()), FSMEnvironment.Sensor.NO_SENSORS),
-            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(XXLargeAlphabet, XXLargeFSM, Random.getTrue()), FSMEnvironment.Sensor.NO_SENSORS),
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(XXLargeAlphabet, SmallFSM, RandomFactory.getTrue()), FSMEnvironment.Sensor.NO_SENSORS),
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(XXLargeAlphabet, MediumFSM, RandomFactory.getTrue()), FSMEnvironment.Sensor.NO_SENSORS),
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(XXLargeAlphabet, LargeFSM, RandomFactory.getTrue()), FSMEnvironment.Sensor.NO_SENSORS),
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(XXLargeAlphabet, XLargeFSM, RandomFactory.getTrue()), FSMEnvironment.Sensor.NO_SENSORS),
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(XXLargeAlphabet, XXLargeFSM, RandomFactory.getTrue()), FSMEnvironment.Sensor.NO_SENSORS),
 
     };
 
     private static IEnvironmentProvider[] environmentProvidersSensors = new IEnvironmentProvider[] {
-            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(SmallAlphabet, SmallFSM, Random.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
-            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(SmallAlphabet, MediumFSM, Random.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
-            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(SmallAlphabet, LargeFSM, Random.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
-            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(SmallAlphabet, XLargeFSM, Random.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
-            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(SmallAlphabet, XXLargeFSM, Random.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(SmallAlphabet, SmallFSM, RandomFactory.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(SmallAlphabet, MediumFSM, RandomFactory.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(SmallAlphabet, LargeFSM, RandomFactory.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(SmallAlphabet, XLargeFSM, RandomFactory.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(SmallAlphabet, XXLargeFSM, RandomFactory.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
 
-            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(MediumAlphabet, SmallFSM, Random.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
-            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(MediumAlphabet, MediumFSM, Random.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
-            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(MediumAlphabet, LargeFSM, Random.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
-            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(MediumAlphabet, XLargeFSM, Random.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
-            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(MediumAlphabet, XXLargeFSM, Random.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(MediumAlphabet, SmallFSM, RandomFactory.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(MediumAlphabet, MediumFSM, RandomFactory.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(MediumAlphabet, LargeFSM, RandomFactory.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(MediumAlphabet, XLargeFSM, RandomFactory.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(MediumAlphabet, XXLargeFSM, RandomFactory.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
 
-            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(LargeAlphabet, SmallFSM, Random.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
-            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(LargeAlphabet, MediumFSM, Random.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
-            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(LargeAlphabet, LargeFSM, Random.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
-            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(LargeAlphabet, XLargeFSM, Random.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
-            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(LargeAlphabet, XXLargeFSM, Random.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(LargeAlphabet, SmallFSM, RandomFactory.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(LargeAlphabet, MediumFSM, RandomFactory.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(LargeAlphabet, LargeFSM, RandomFactory.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(LargeAlphabet, XLargeFSM, RandomFactory.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(LargeAlphabet, XXLargeFSM, RandomFactory.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
 
-            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(XLargeAlphabet, SmallFSM, Random.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
-            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(XLargeAlphabet, MediumFSM, Random.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
-            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(XLargeAlphabet, LargeFSM, Random.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
-            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(XLargeAlphabet, XLargeFSM, Random.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
-            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(XLargeAlphabet, XXLargeFSM, Random.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(XLargeAlphabet, SmallFSM, RandomFactory.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(XLargeAlphabet, MediumFSM, RandomFactory.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(XLargeAlphabet, LargeFSM, RandomFactory.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(XLargeAlphabet, XLargeFSM, RandomFactory.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(XLargeAlphabet, XXLargeFSM, RandomFactory.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
 
-            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(XXLargeAlphabet, SmallFSM, Random.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
-            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(XXLargeAlphabet, MediumFSM, Random.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
-            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(XXLargeAlphabet, LargeFSM, Random.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
-            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(XXLargeAlphabet, XLargeFSM, Random.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
-            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(XXLargeAlphabet, XXLargeFSM, Random.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(XXLargeAlphabet, SmallFSM, RandomFactory.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(XXLargeAlphabet, MediumFSM, RandomFactory.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(XXLargeAlphabet, LargeFSM, RandomFactory.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(XXLargeAlphabet, XLargeFSM, RandomFactory.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
+            new FSMEnvironmentProvider(new FSMTransitionTableBuilder(XXLargeAlphabet, XXLargeFSM, RandomFactory.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN)),
 
     };
 

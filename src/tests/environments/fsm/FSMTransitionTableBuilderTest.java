@@ -3,7 +3,7 @@ package tests.environments.fsm;
 import environments.fsm.FSMTransitionTable;
 import environments.fsm.FSMTransitionTableBuilder;
 import framework.Action;
-import utils.Random;
+import utils.RandomFactory;
 
 import java.util.HashMap;
 
@@ -21,19 +21,19 @@ public class FSMTransitionTableBuilderTest {
     //region Constructor Tests
     @EpSemTest
     public void constructorAlphabetSizeLessThanOneThrowsException() {
-        assertThrows(IllegalArgumentException.class, () -> new FSMTransitionTableBuilder(0, 1, Random.getTrue()));
+        assertThrows(IllegalArgumentException.class, () -> new FSMTransitionTableBuilder(0, 1, RandomFactory.getTrue()));
     }
 
     @EpSemTest
     public void constructorNumStatesLessThanOneThrowsException() {
-        assertThrows(IllegalArgumentException.class, () -> new FSMTransitionTableBuilder(1, 0, Random.getTrue()));
+        assertThrows(IllegalArgumentException.class, () -> new FSMTransitionTableBuilder(1, 0, RandomFactory.getTrue()));
     }
     //endregion
 
     //region getTransitionTable Tests
     @EpSemTest
     public void buildTransitionTableSingleTransitionSingleState() {
-        FSMTransitionTableBuilder builder = new FSMTransitionTableBuilder(1, 1, Random.getTrue());
+        FSMTransitionTableBuilder builder = new FSMTransitionTableBuilder(1, 1, RandomFactory.getTrue());
         FSMTransitionTable transitionTable = builder.getTransitionTable();
         assertEquals(1, transitionTable.getTransitions().length);
         HashMap<Action, Integer> goalTransitions = transitionTable.getTransitions()[0];
@@ -42,7 +42,7 @@ public class FSMTransitionTableBuilderTest {
 
     @EpSemTest
     public void buildTransitionTableMultipleTransitionSingleState() {
-        FSMTransitionTableBuilder builder = new FSMTransitionTableBuilder(13, 1, Random.getTrue());
+        FSMTransitionTableBuilder builder = new FSMTransitionTableBuilder(13, 1, RandomFactory.getTrue());
         FSMTransitionTable transitionTable = builder.getTransitionTable();
         assertEquals(1, transitionTable.getTransitions().length);
         HashMap<Action, Integer> goalTransitions = transitionTable.getTransitions()[0];

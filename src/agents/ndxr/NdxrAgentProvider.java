@@ -1,9 +1,7 @@
 package agents.ndxr;
 
-import agents.ndxr.NdxrAgent;
 import framework.IAgent;
 import framework.IAgentProvider;
-import utils.Random;
 
 /**
  *

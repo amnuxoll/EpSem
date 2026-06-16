@@ -2,13 +2,13 @@ package agents.pytorchDQN;
 
 import framework.IAgent;
 import framework.IAgentProvider;
-import utils.Random;
+import utils.RandomFactory;
 
 public class pytorchDQNAgentProvider implements IAgentProvider {
 
     @Override
     public IAgent getAgent() {
-        return new pytorchDQNAgent(Random.getTrue());
+        return new pytorchDQNAgent(RandomFactory.getTrue());
     }
 
     @Override

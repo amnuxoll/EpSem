@@ -2,7 +2,7 @@ package agents.DemoSocketAgent;
 
 import framework.IAgent;
 import framework.IAgentProvider;
-import utils.Random;
+import utils.RandomFactory;
 
 /**
  *
@@ -16,7 +16,7 @@ public class DemoSocketAgentProvider implements IAgentProvider {
 
     @Override
     public IAgent getAgent() {
-        return new DemoSocketAgent(Random.getTrue());
+        return new DemoSocketAgent(RandomFactory.getTrue());
     }
 
     @Override

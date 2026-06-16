@@ -3,7 +3,7 @@ package tests.environments.fsm;
 import environments.fsm.FSMEnvironment;
 import environments.fsm.FSMEnvironmentProvider;
 import environments.fsm.FSMTransitionTableBuilder;
-import utils.Random;
+import utils.RandomFactory;
 
 import java.util.EnumSet;
 
@@ -21,31 +21,31 @@ public class FSMEnvironmentProviderTest {
     //region constructor Tests
     @EpSemTest
     public void constructorAlphabetSizeLessThanOneThrowsException() {
-        assertThrows(IllegalArgumentException.class, () -> new FSMEnvironmentProvider(new FSMTransitionTableBuilder(0, 1, Random.getTrue()), FSMEnvironment.Sensor.ALL_SENSORS));
+        assertThrows(IllegalArgumentException.class, () -> new FSMEnvironmentProvider(new FSMTransitionTableBuilder(0, 1, RandomFactory.getTrue()), FSMEnvironment.Sensor.ALL_SENSORS));
     }
 
     @EpSemTest
     public void constructorNumberOfStatesLessThanOneThrowsException() {
-        assertThrows(IllegalArgumentException.class, () -> new FSMEnvironmentProvider(new FSMTransitionTableBuilder(1, 0, Random.getTrue()), FSMEnvironment.Sensor.ALL_SENSORS));
+        assertThrows(IllegalArgumentException.class, () -> new FSMEnvironmentProvider(new FSMTransitionTableBuilder(1, 0, RandomFactory.getTrue()), FSMEnvironment.Sensor.ALL_SENSORS));
     }
 
     @EpSemTest
     public void constructorNullEnumSetThrowsException() {
-        assertThrows(IllegalArgumentException.class, () -> new FSMEnvironmentProvider(new FSMTransitionTableBuilder(1, 1, Random.getTrue()), null));
+        assertThrows(IllegalArgumentException.class, () -> new FSMEnvironmentProvider(new FSMTransitionTableBuilder(1, 1, RandomFactory.getTrue()), null));
     }
     //endregion
 
     //region getEnvironmentDescription Tests
     @EpSemTest
     public void getEnvironmentDescriptionHeedsConfiguration1() {
-        FSMEnvironmentProvider descriptionProvider = new FSMEnvironmentProvider(new FSMTransitionTableBuilder(1, 2, Random.getTrue()), FSMEnvironment.Sensor.ALL_SENSORS);
+        FSMEnvironmentProvider descriptionProvider = new FSMEnvironmentProvider(new FSMTransitionTableBuilder(1, 2, RandomFactory.getTrue()), FSMEnvironment.Sensor.ALL_SENSORS);
         FSMEnvironment description = (FSMEnvironment)descriptionProvider.getEnvironment();
         assertEquals(1, description.getActions().length);
     }
 
     @EpSemTest
     public void getEnvironmentDescriptionHeedsConfiguration2() {
-        FSMEnvironmentProvider descriptionProvider = new FSMEnvironmentProvider(new FSMTransitionTableBuilder(13, 42, Random.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN));
+        FSMEnvironmentProvider descriptionProvider = new FSMEnvironmentProvider(new FSMTransitionTableBuilder(13, 42, RandomFactory.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN));
         FSMEnvironment description = (FSMEnvironment)descriptionProvider.getEnvironment();
         assertEquals(13, description.getActions().length);
     }
@@ -54,7 +54,7 @@ public class FSMEnvironmentProviderTest {
     //region getAlias Tests
     @EpSemTest
     public void getAlias() {
-        FSMEnvironmentProvider descriptionProvider = new FSMEnvironmentProvider(new FSMTransitionTableBuilder(13, 42, Random.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN));
+        FSMEnvironmentProvider descriptionProvider = new FSMEnvironmentProvider(new FSMTransitionTableBuilder(13, 42, RandomFactory.getTrue()), EnumSet.of(FSMEnvironment.Sensor.IS_EVEN));
         assertEquals("FSMEnvironment[Alpha_13_States_42]", descriptionProvider.getAlias());
     }
     //endregion

@@ -2,7 +2,7 @@ package agents.pytorch2;
 
 import framework.IAgent;
 import framework.IAgentProvider;
-import utils.Random;
+import utils.RandomFactory;
 
 /**
  *
@@ -16,7 +16,7 @@ public class Pytorch2SocketAgentProvider implements IAgentProvider {
 
     @Override
     public IAgent getAgent() {
-        return new Pytorch2SocketAgent(Random.getTrue());
+        return new Pytorch2SocketAgent(RandomFactory.getTrue());
     }
 
     @Override

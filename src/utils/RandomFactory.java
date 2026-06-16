@@ -7,7 +7,7 @@ package utils;
  * @author Zachary Paul Faltersack
  * @version 0.95
  */
-public class Random {
+public class RandomFactory {
 
     //region Public Static Methods
 
@@ -26,6 +26,7 @@ public class Random {
      * @return a {@link java.util.Random}.
      */
     public static java.util.Random getFalse() {
+        System.out.println("yeah, 13");
         return new java.util.Random(13);
     }
 

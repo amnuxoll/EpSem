@@ -2,13 +2,13 @@ package agents.tfsocket;
 
 import framework.IAgent;
 import framework.IAgentProvider;
-import utils.Random;
+import utils.RandomFactory;
 
 public class TFSocketAgentProvider implements IAgentProvider {
 
     @Override
     public IAgent getAgent() {
-        return new TFSocketAgent(Random.getTrue());
+        return new TFSocketAgent(RandomFactory.getTrue());
     }
 
     @Override
