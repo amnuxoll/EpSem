@@ -26,7 +26,6 @@ public class RandomFactory {
      * @return a {@link java.util.Random}.
      */
     public static java.util.Random getFalse() {
-        System.out.println("yeah, 13");
         return new java.util.Random(13);
     }
 
