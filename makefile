@@ -163,7 +163,7 @@ src/utils/Discriminator.java \
 src/utils/EpisodeUtils.java \
 src/utils/EpisodicMemory.java \
 src/utils/ExceptionUtils.java \
-src/utils/Random.java \
+src/utils/RandomFactory.java \
 src/utils/Semsode.java \
 src/utils/SequenceGenerator.java \
 

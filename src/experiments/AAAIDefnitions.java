@@ -8,6 +8,7 @@ import environments.fsm.FSMEnvironment;
 import environments.fsm.FSMEnvironmentProvider;
 import environments.fsm.FSMTransitionTableBuilder;
 import framework.*;
+import utils.RandomFactory;
 
 import java.util.EnumSet;
 
