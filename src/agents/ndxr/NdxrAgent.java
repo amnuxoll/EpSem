@@ -26,7 +26,7 @@ public class NdxrAgent implements IAgent {
     public static final int MAX_SEARCH_DEPTH = 3;
 
     /** turn on/off debug printlns */
-    public static final boolean DEBUGPRINTSWITCH = true;
+    public static final boolean DEBUGPRINTSWITCH = false;
 
     //a list of valid actions in the env
     private Action[] actions;

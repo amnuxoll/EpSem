@@ -4,6 +4,8 @@ import framework.*;
 
 import java.util.*;
 
+import utils.RandomFactory;
+
 /**
  * An FSMEnvironment is an environment modeled as a Finite State Machine.
  *
@@ -21,6 +23,8 @@ public class FSMEnvironment implements IEnvironment {
     private EnumSet<Sensor> sensorsToInclude;
     //seed to DEBUG
     private static Random random = new Random(13);
+
+    private static final Random rand = RandomFactory.getFalse();
 
     private int currentState;
 
@@ -233,7 +237,7 @@ public class FSMEnvironment implements IEnvironment {
 
     private void applyNoiseSensors(SensorData sensorData) {
         if (this.sensorsToInclude.contains(Sensor.NOISE1))
-            sensorData.setSensor(Sensor.NOISE1.toString(), Math.random() > 0.5);
+            sensorData.setSensor(Sensor.NOISE1.toString(), rand.nextInt() > 0.5);
         if (this.sensorsToInclude.contains(Sensor.NOISE2))
             sensorData.setSensor(Sensor.NOISE2.toString(), Math.random() > 0.5);
         if (this.sensorsToInclude.contains(Sensor.NOISE3))
