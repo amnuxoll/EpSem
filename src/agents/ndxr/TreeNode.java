@@ -131,7 +131,7 @@ public class TreeNode {
 
         //Adjust with the best matching PathRule (if it exists)
         //Note:  the fact that no adjustment is made for mismatch makes the agent explore more.  TODO: too curious?
-        PathRule match = agent.getBestMatchingPathRule(agent.getCurrPathRule(), foundPath);
+        PathRule match = agent.getBestMatchingPathRule(foundPath);
         if (match != null) {
             foundScore *= match.getConfidence();
         }
@@ -218,7 +218,7 @@ public class TreeNode {
 
             //DEBUG
             if (path != null) {
-                PathRule matchPR = agent.getBestMatchingPathRule(agent.getCurrPathRule(), path);
+                PathRule matchPR = agent.getBestMatchingPathRule(path);
                 agent.debugPrintln("    Cand Path Found: " + path.lastElement());
                 if (matchPR != null) {
                     agent.debugPrintln("             adj by: " + matchPR + " c" + matchPR.getConfidence());

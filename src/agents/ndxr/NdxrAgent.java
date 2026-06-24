@@ -20,13 +20,13 @@ import java.util.Vector;
  */
 public class NdxrAgent implements IAgent {
     /** maximum number of rules allowed */
-    public static final int MAX_NUM_RULES = 50;
+    public static final int MAX_NUM_RULES = 100;
     /** max depth of TreeNode Search */
     //TODO: replace with MAX_EXPANSIONS someday
     public static final int MAX_SEARCH_DEPTH = 3;
 
     /** turn on/off debug printlns */
-    public static final boolean DEBUGPRINTSWITCH = false;
+    public static final boolean DEBUGPRINTSWITCH = true;
 
     //a list of valid actions in the env
     private Action[] actions;
@@ -272,7 +272,7 @@ public class NdxrAgent implements IAgent {
         //Build a new pathRule
         Vector<Rule> newRHS = new Vector<>();
         newRHS.add(bestRule);
-        return new PathRule(this, null, newRHS);
+        return new PathRule(this, newRHS);
     }//makeMatchingPathRule
 
 
@@ -367,11 +367,11 @@ public class NdxrAgent implements IAgent {
                 this.pathStepsRemaining = goalPath;
 
                 //Find or create the PathRule that best matches this new path
-                PathRule match = getBestMatchingPathRule(this.currPathRule, goalPath);
+                PathRule match = getBestMatchingPathRule(goalPath);
                 if (match == null) {
                     //create a new PathRule that matches
                     Vector<Rule> newRHS = PathRule.nodePathToRulePath(goalPath);
-                    match = new PathRule(this, this.currPathRule, newRHS);
+                    match = new PathRule(this, newRHS);
                     this.pathRules.add(match);
                 }
                 this.currPathRule = match;
@@ -762,11 +762,11 @@ public class NdxrAgent implements IAgent {
         }
 
         //Merge rules to keep under the limit
-        while (this.numRules > MAX_NUM_RULES) {
-            boolean success = this.rules.reduce(this.numRules - MAX_NUM_RULES);
-            if (!success) break;
-            this.numRules--;
-        }//rule merging
+        // while (this.numRules > MAX_NUM_RULES) {
+        //     boolean success = this.rules.reduce(this.numRules - MAX_NUM_RULES);
+        //     if (!success) break;
+        //     this.numRules--;
+        // }//rule merging
     }//ruleMaintenance
 
 
@@ -779,11 +779,11 @@ public class NdxrAgent implements IAgent {
      *
      * @return the matching PR or null if not found
      */
-    public PathRule getBestMatchingPathRule(PathRule prev, Vector<TreeNode> path) {
+    public PathRule getBestMatchingPathRule(Vector<TreeNode> path) {
         double bestScore = 0.0;
         PathRule bestPR = null;
         for (PathRule pr : this.pathRules) {
-            double score = pr.matchScore(prev, path);
+            double score = pr.prRulesMatch(path);
             if (score > bestScore) {
                 bestScore = score;
                 bestPR = pr;
@@ -797,7 +797,7 @@ public class NdxrAgent implements IAgent {
      * getBestMatchingPathRule
      * <p>
      * determines which PathRule in this.pathRules best matches a given action.
-     * In particular, this must be a PathRule with one-step RHS that has the
+     * In particular, this must be a PathRule with one-step prRules that has the
      * given action.  The match scores with current external sensors are used
      * to find the best match.
      *
@@ -807,14 +807,11 @@ public class NdxrAgent implements IAgent {
         double bestScore = 0.0;
         PathRule bestPR = null;
         for (PathRule pr : this.pathRules) {
-            //LHS must be empty
-            if (pr.getLHS().size() > 0) continue;
-
             //only one-step paths can match
-            if (pr.getRHS().size() != 1) continue;
+            if (pr.getPrRules().size() != 1) continue;
 
             //action must match
-            Rule step = pr.getRHS().get(0);
+            Rule step = pr.getPrRules().get(0);
             if (step.getAction() != act) continue;
 
             //Note:  no need to check depth since it must be depth 0 given the other requirements

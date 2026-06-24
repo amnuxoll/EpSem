@@ -1,6 +1,5 @@
 package agents.ndxr;
 
-import java.util.HashSet;
 import java.util.Vector;
 
 /**
@@ -14,9 +13,9 @@ import java.util.Vector;
  */
 public class PathRule {
     //to assign a unique id to each rule this shared variable is incremented by the ctor
-    private static int nextRuleId = 18;
+    private static int nextRuleId = 1;
 
-//region Instance Variables
+    //region Instance Variables
 
     //The agent using this rule
     protected final NdxrAgent agent;
@@ -24,12 +23,8 @@ public class PathRule {
     //each rule has a unique integer id
     protected final int ruleId;
 
-    /** The LHS is a set of existing PathRules.  One of which must precede this one */
-    private final HashSet<PathRule> lhs = new HashSet<>();  //can be empty but not null
-
-    /** The RHS is a sequence of rules that describe a path.  The LHS of each
-     * rule must match the RHS of the preceding rule. */
-    private final Vector<Rule> rhs;  //must contain at least one step
+    /** The prRules is a sequence of rules that describe a path. */
+    private final Vector<Rule> prRules;  //must contain at least one step
 
     /** maintain a confidence in this PathRule */
     private final Conf confidence = new Conf();
@@ -38,12 +33,11 @@ public class PathRule {
 
 //region ctors and initialization
 
-    /** ctor for lhs init from given PathRule */
-    public PathRule(NdxrAgent initAgent, PathRule initLHS, Vector<Rule> initRHS) {
+    /** ctor for prRules init from given PathRule */
+    public PathRule(NdxrAgent initAgent, Vector<Rule> initPrRules) {
         this.agent = initAgent;
         this.ruleId = PathRule.nextRuleId++;
-        if (initLHS != null) this.lhs.add(initLHS);
-        this.rhs = initRHS;
+        this.prRules = initPrRules;
     }
 
     /** converts a Vector<TreeNode> into a Vector<Rule> */
@@ -63,18 +57,18 @@ public class PathRule {
 //endregion ctors and initialization
 
     /**
-     * rhsMatch
+     * prRulesMatch
      * <p>
-     * Determines if a given Vector<TreeNode> matches this rule's rhs.
+     * Determines if a given Vector<TreeNode> matches this rule's prRules.
      */
-    public double rhsMatch(Vector<TreeNode> matRHS) {
-        if (matRHS.size() != this.rhs.size()) return 0.0;  //unequal lengths
+    public double prRulesMatch(Vector<TreeNode> matPrRules) {
+        if (matPrRules.size() != this.prRules.size()) return 0.0;  //unequal lengths
 
         //Comparison
         double score = 1.0;
-        for(int i = 0; i < matRHS.size(); ++i) {
-            Rule matRule = matRHS.get(i).getRule();
-            Rule myRule = this.rhs.get(i);
+        for(int i = 0; i < matPrRules.size(); ++i) {
+            Rule matRule = matPrRules.get(i).getRule();
+            Rule myRule = this.prRules.get(i);
             //actions *must* match
             if (matRule.getAction() != myRule.getAction()) return 0.0;
             score *= matRule.matchScore(myRule);
@@ -82,77 +76,30 @@ public class PathRule {
         }
 
         return score;
-    }//rhsMatch
+    }//prRulesMatch
 
-    /**
-     * lhsMatch
-     * <p>
-     * determines if a given PathRule is contained in this rule's LHS
-     * If a 'null' then an empty LHS is considered  match
-     *
-     * @return 1.0 if found, 0.0 if not
-     */
-    public double lhsMatch(PathRule lhs) {
-        //If the parameter is null then this rule's lhs must also be empty
-        if (lhs == null)  {
-            if (this.lhsSize() == 0) return 1.0;
-            else return 0.0;
-        }
-
-        //One overlapping rule is sufficient
-        if (this.lhs.contains(lhs)) return 1.0;
-        return 0.0;
-
-    }//lhsMatch
-
-    /**
-     * matchScore
-     * <p>
-     * calculate a match score for this PathRule with a given lhs and rhs
-     */
-    public double matchScore(PathRule lhs, Vector<TreeNode> rhs) {
-        double score = lhsMatch(lhs);
-        if (score > 0.0) {
-            score *= rhsMatch(rhs);
-        }
-        return score;
-    }//matchScore
-
-
-    /** helper for toString that just prints the LHS. */
-    private void toStringLHS(StringBuilder result) {
-        result.append("#pr");
-        result.append(this.ruleId);
-        result.append(": (");
-        boolean first = true;
-        for(PathRule pr : this.lhs) {
-            result.append(first ? "" : ",");
-            first = false;
-            result.append(pr.ruleId);
-        }
-        result.append(") -> ");
-    }//toStringConf
-
-    /** adds a short version of the RHS to a given SB */
-    private void rhsToStringShort(StringBuilder result) {
+    /** adds a short version of the prRules to a given SB */
+    private void prRulesToStringShort(StringBuilder result) {
 
         //first append all the actions
-        for(Rule step : this.rhs) {
+        for(Rule step : this.prRules) {
             result.append(step.getAction());
         }
 
         //now append the final ext sensors
         result.append(":");
-        result.append(this.rhs.lastElement().getRHS().wcBitString());
-    }//rhsToStringShort
+        result.append(this.prRules.lastElement().getRHS().wcBitString());
+    }//prRulesToStringShort
 
     @Override
     public String toString() {
         StringBuilder result = new StringBuilder();
-        toStringLHS(result);
+        
+        result.append("#pr");
+        result.append(this.ruleId + "  ");
 
         //print a short version first
-        rhsToStringShort(result);
+        prRulesToStringShort(result);
 
         //print stats
         result.append(String.format(" ^  conf=%.5f", getConfidence()).replaceAll("0+$", "0"));
@@ -160,7 +107,7 @@ public class PathRule {
         //now print the full version
         result.append("  [");
         boolean first = true;
-        for (Rule r : this.rhs) {
+        for (Rule r : this.prRules) {
             if (!first) result.append(",");
             first = false;
             result.append(r.toString());
@@ -173,8 +120,9 @@ public class PathRule {
     /** a shorter string format designed to be used inline */
     public String toStringShort() {
         StringBuilder result = new StringBuilder();
-        toStringLHS(result);
-        rhsToStringShort(result);
+        result.append("#pr");
+        result.append(this.ruleId + "  ");
+        prRulesToStringShort(result);
 
         return result.toString();
     }//toStringShort
@@ -186,34 +134,10 @@ public class PathRule {
         return (this.ruleId == other.ruleId);
     }
 
-    /**
-     * length
-     * <p>
-     * Caveat:  this is a recursive method!
-     *
-     * @return the time depth of this rule
-     */
-    public int length() {
-        //Base Case is implicit in the fact that you eventually reach a
-        // PathRule with empty lhs
-
-        //Recursive Case
-        int bestLen = 0;
-        for(PathRule pr : this.lhs) {
-            int len = pr.length();
-            if (len > bestLen) {
-                bestLen = len;
-            }
-        }
-        return 1 + bestLen;
-    }//length
 
     /** get the final sensor data of this path */
     public int getId() { return this.ruleId; }
-    public int lhsSize() { return this.lhs.size(); }
-    public boolean lhsContains(PathRule other) { return this.lhs.contains(other); }
-    public HashSet<PathRule> getLHS() { return this.lhs; }
-    public Vector<Rule> getRHS() { return this.rhs; }
+    public Vector<Rule> getPrRules() { return this.prRules; }
     public void logSuccess() { this.confidence.adj(true); }
     public void logFailure() { this.confidence.adj(false); }
     public double getConfidence() { return this.confidence.dval(); }

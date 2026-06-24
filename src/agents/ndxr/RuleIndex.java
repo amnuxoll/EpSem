@@ -547,7 +547,7 @@ public class RuleIndex {
 
         //Replace the old rule in all PathRules
         for(PathRule pr : agent.getPathRules()) {
-            replaceInRuleList(r1, r2, pr.getRHS());
+            replaceInRuleList(r1, r2, pr.getPrRules());
         }
 
         //Replace the old rule from the agent's prevInternal
