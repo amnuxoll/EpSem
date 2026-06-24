@@ -1,3 +1,19 @@
+# 2026
+## Researchers
+Joseph Early and Clint Sizemore
+
+## Overview: 
+Working on completing the NDXR agent begun in 2023.  This is a rule-based success to the PhuJus agent which applies meta-learning via PathRule.
+
+# 2025-26
+## Researchers
+Landon Harrison, Jacqui Bouchard, Megan Ou
+
+## Overview: 
+Implemented a Deep Q Network (DQN) agent for Blind FSM (see src/agents/pytorch2).  Credit:  initial DQN code provided by Yuji Sakabe at UNICAMP.  Results published at BICA 2026.
+
+
+
 # Summer 2024
 ## Researchers
 Jayven Cachola and Penny Silliman
