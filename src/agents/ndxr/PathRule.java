@@ -65,17 +65,13 @@ public class PathRule {
         if (matPrRules.size() != this.prRules.size()) return 0.0;  //unequal lengths
 
         //Comparison
-        double score = 1.0;
         for(int i = 0; i < matPrRules.size(); ++i) {
             Rule matRule = matPrRules.get(i).getRule();
             Rule myRule = this.prRules.get(i);
-            //actions *must* match
-            if (matRule.getAction() != myRule.getAction()) return 0.0;
-            score *= matRule.matchScore(myRule);
-            if (score <= 0.0) break;
+            if (matRule.getId() != myRule.getId()) { return 0.0; }
         }
 
-        return score;
+        return 1.0;
     }//prRulesMatch
 
     /** adds a short version of the prRules to a given SB */
