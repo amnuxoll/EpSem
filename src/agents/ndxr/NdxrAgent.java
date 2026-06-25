@@ -26,7 +26,7 @@ public class NdxrAgent implements IAgent {
     public static final int MAX_SEARCH_DEPTH = 3;
 
     /** turn on/off debug printlns */
-    public static final boolean DEBUGPRINTSWITCH = true;
+    public static final boolean DEBUGPRINTSWITCH = false;
 
     //a list of valid actions in the env
     private Action[] actions;
@@ -655,21 +655,16 @@ public class NdxrAgent implements IAgent {
         //This will be init'd by this method
         this.currInternal.clear();
 
-        //Look for a perfect LHS match
-        Rule r = findEquiv(matches, this.prevExternal, null, 0);
-
-        //If that fails try for a perfect RHS match
-        if (r == null) r = findBestRHSMatch(matches, this.currExternal, 0);
-
-        //If no perfect match for either LHS or RHS, then a new rule is needed
+        //Make sure this rule doesn't already exist
+        Rule r = findEquiv(matches, this.prevExternal, this.currExternal, 0);
         if (r == null) {
-            r = new Rule(this.prevExternal, this.prevAction,
-                    this.currExternal, null);
+            //no matching rule so create one
+            r = new Rule(this.prevExternal, this.prevAction, this.currExternal, null);
             newRules.add(r);
         }
 
         this.currInternal.add(r);
-    }//createNewDepth0Rules
+    }
 
     /**
      * createNewDepth1PlusRules
