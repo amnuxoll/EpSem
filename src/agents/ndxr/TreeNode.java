@@ -268,6 +268,10 @@ public class TreeNode {
      * creates a terse ASCII representation of this node.  The child nodes are not depicted.
      */
     public String toString(boolean includeConf) {
+        if (this.rule == null) {
+            return "ROOT";
+        }
+
         StringBuilder result = new StringBuilder();
 
         //the actions that led to this node

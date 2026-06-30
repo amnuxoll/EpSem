@@ -583,6 +583,11 @@ public class RuleIndex {
             this.rule = initRule;
             this.score = initScore;
         }
+
+        @Override
+        public String toString() {
+            return "#" + rule.getId() + " " + this.score;
+        }
     }//class MatchResult
 
     /**
@@ -591,8 +596,10 @@ public class RuleIndex {
      * is a helper method for {@link #findMatches} that finds all matches in this subtree.
      * Note: This method must be called on a node with indexDepth of 2+.
      *
+     * @param results      the matching rules are added to this vector
      * @param prevInternal must contain only rules whose depth matches this subtree.
-     * @param currExtBits may be empty if you only want to match LHS
+     * @param prevExtBits  the lhs bits to match
+     * @param currExtBits  the rhs bits to match.  may be empty if you only want to match lhs
      */
     private void matchHelper(Vector<MatchResult> results, Vector<Rule> prevInternal,
                              CondSet prevExtBits, CondSet currExtBits) {
@@ -611,11 +618,12 @@ public class RuleIndex {
                 bit = currExtBits.getBit(bitIndex);
             }
 
-            //Recurse into matching child(ren)
-            if (bit == 0) {
+            //Recurse into matching child(ren).
+            if ((bit == 0) || (bit == -1)) {
                 this.children[0].matchHelper(results, prevInternal, prevExtBits, currExtBits);
             }
-            else {
+
+            if ((bit == 1) || (bit == -1)) {  //don't make this an else if
                 this.children[1].matchHelper(results, prevInternal, prevExtBits, currExtBits);
             }
         }//non-leaf
@@ -721,7 +729,7 @@ public class RuleIndex {
         for(int depth = 0; depth <= Rule.MAX_DEPTH; ++depth) {
             //Find the subtree for this depth and action
             int actIndex = act - 'a';
-            RuleIndex d2node = this.children[depth].children[actIndex];
+            RuleIndex d2node = this.children[depth].children[actIndex];  //depth 2 is the shallowest level that might a leaf
 
             //Find the members of prevInternal at this depth
             piIndex = extractRulesOfDepth(piIndex, depth - 1, prevInternal, lilPI);
