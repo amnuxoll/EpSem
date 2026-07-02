@@ -11,6 +11,13 @@ SRCDIR :=  src
 
 OUTDIR := out
 
+ifeq (runexperiments,$(firstword $(MAKECMDGOALS)))
+  # use the rest as arguments for "run"
+  RUN_ARGS := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
+  # ...and turn them into do-nothing targets
+  $(eval $(RUN_ARGS):;@:)
+endif
+
 ALLSRC :=src/agents/pytorch2/Pytorch2SocketAgent.java \
 src/agents/pytorch2/Pytorch2SocketAgentProvider.java \
 src/agents/demo/DemoAgent.java \
@@ -179,7 +186,7 @@ all:
 
 runexperiments: all
 	echo call
-	$(JVM) -cp $(call classpathify,$(OUTDIRS)) experiments.Runner
+	$(JVM) -cp $(call classpathify,$(OUTDIRS)) experiments.Runner "$(RUN_ARGS)"
 	echo call
 
 runtests: all

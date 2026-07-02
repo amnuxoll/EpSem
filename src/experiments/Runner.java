@@ -369,7 +369,7 @@ public class Runner {
         // it fails silently and uses the default suite instead. The name of the suite must match exactly.
         TestSuite defaultSuite = NDXR_AGENT;
 
-        if (args.length >= 1) {
+        if (args.length >= 2) {
             String suiteName = args[0];
             Class<Runner> runner = Runner.class;
 
@@ -386,7 +386,9 @@ public class Runner {
 
 
         try {
-            File outputDirectory = DirectoryUtils.generateCenekOutputDirectory();
+            File outputDirectory;
+            if (args.length >= 1) {outputDirectory = DirectoryUtils.generateNamedOutputDirectory(args[0]); }
+            else { outputDirectory = DirectoryUtils.generateNewOutputDirectory(); }
             Runner.redirectOutput(outputDirectory);
             defaultSuite.run(new FileResultCompiler(outputDirectory));
         } catch (OutOfMemoryError mem) {

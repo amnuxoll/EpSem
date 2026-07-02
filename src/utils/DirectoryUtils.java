@@ -14,9 +14,11 @@ import java.util.Scanner;
 public class DirectoryUtils {
 
     //region Static Variables
-
+    
     /** Provides a standard directory in the user's home directory for all statistical output. */
     private final static File outputRootDirectory = new File(System.getProperty("user.home"), "fsm_output");
+
+    public static String nameOfFile = "output";
 
     //private final static File cenekRootDirectory = new File("/mnt/spinning_disks/", "fsm_output");
     //endregion
@@ -35,14 +37,12 @@ public class DirectoryUtils {
         return file;
     }
 
-    public static File generateCenekOutputDirectory()
+    public static File generateNamedOutputDirectory(String fileName)
     {
-        //Request file name from user
-        Scanner s =  new Scanner(System.in);
-        System.out.println("Enter File Name: ");
-        String fileName = s.nextLine();
-        
-        File file = new File(DirectoryUtils.outputRootDirectory, DirectoryUtils.getTimestamp(System.currentTimeMillis()) + "_" + fileName);
+        if (fileName.length() > 0) nameOfFile = fileName;
+        String time = DirectoryUtils.getTimestamp(System.currentTimeMillis());
+        nameOfFile = time + "_" + nameOfFile;
+        File file = new File(DirectoryUtils.outputRootDirectory, nameOfFile);
         file.mkdirs();
         return file;
     }

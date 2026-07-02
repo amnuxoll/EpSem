@@ -1,16 +1,14 @@
 package agents.ndxr;
 
 import framework.SensorData;
-
 import java.util.Vector;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 /** describes sensing+action->sensing */
 public class Rule {
     private static int nextId = 1;  //next unique rule Id (use val then increment)
-    public static int MAX_DEPTH = 7; //maximum rule depth allowed (see depth instance var)
+    public static int MAX_DEPTH = 1; //maximum rule depth allowed (see depth instance var)
 
     /*===========================================================================
      * Inner Classes
@@ -230,7 +228,7 @@ public class Rule {
      * adjusts the CondSets of this rule based on a given prediction that the rule made
      */
     public void tune(SensorData prevExternal, SensorData currExternal) {
-        this.lhs.update(prevExternal);
+        // this.lhs.update(prevExternal); //Removed to stop confidence in sensors changing on the LHS of rules
         this.rhs.update(currExternal);
     }//tune
 
