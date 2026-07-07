@@ -200,6 +200,7 @@ public class NdxrAgent implements IAgent {
             debugPrintln("TIME STEP: " + NdxrAgent.timeStep);
             printPrevCurrEpisode();
         }
+        if (NdxrAgent.timeStep % 100 == 0) System.err.print(".");  //agent heartbeat
 
 
         //DEBUG: print all rules
