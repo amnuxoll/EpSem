@@ -123,6 +123,7 @@ public class TreeNode {
      * 2.  the matching PathRule's confidence
      * 3.  the path's length (longer paths are less certain)
      *
+     * @return a score in the range [0.0..1.0]
      */
     private static double calcOverallScore(Vector<TreeNode> foundPath) {
         //the score starts with a base confidence

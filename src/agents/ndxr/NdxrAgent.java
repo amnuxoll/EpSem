@@ -17,6 +17,20 @@ import java.util.Vector;
  * This agent is intended to be like PhuJus but scalable.  In particular,
  * it allows the agent to find and merage similar rules with a minimal
  * loss of knowledge.
+ *
+ * Master Research Question To-Do List:
+ * TODO Pathrules that have inconsistent depths.  Ex: Depth0 -> Depth0 -> Depth1.  Investigate and decide if the agent should enforce consistency.
+ * TODO Rather than just merging rules to keep them under a limit, sometimes just throw out a bad rule (e.g., very low confidence)?
+ * TODO Investigate Unmerging Rules.  When merging rules, keep track of what rules it came from.  If the newly merged rule is bad, unmerge them and go back to the originals.
+ * TODO [Low Priority] Some PathRules that don't go to the goal.  Seems like a minor bug that doesn't hurt agent perf and can be ignored for now.
+ * TODO The path search (TreeNode.java) is finding the same path multiple times (maybe).  Investigate.
+ * TODO Investigate having the agent abort a path that is clearly not succeeding
+ * TODO Currently, LHS conditions aren't adjusted {@link NdxrAgent#tuneRules()}.  The hypothesis is that wildcards only come into LHS via rule merges.  Investigate to confirm this is best.
+ * TODO Try Softmax Rule Prediction (see Nux journal entry for 07 Jul 2026)
+ * TODO Try Initial Rule Confidence (see Nux journal entry for 07 Jul 2026)
+ * TODO Try Tracking Rule Usefulness (see Nux journal entry for 07 Jul 2026)
+ *
+ * A dream experiment:  Give Ndxr 90% of the frames of a movie.  Then, have it fill in the missing portions using its memory to see how appropriate they are.
  */
 public class NdxrAgent implements IAgent {
     /** maximum number of rules allowed */
@@ -200,6 +214,7 @@ public class NdxrAgent implements IAgent {
             debugPrintln("TIME STEP: " + NdxrAgent.timeStep);
             printPrevCurrEpisode();
         }
+        if (NdxrAgent.timeStep % 100 == 0) System.err.print(".");  //agent heartbeat
 
 
         //DEBUG: print all rules
