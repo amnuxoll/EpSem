@@ -63,15 +63,28 @@ public class PathRule {
      */
     public double prRulesMatch(Vector<TreeNode> matPrRules) {
         if (matPrRules.size() != this.prRules.size()) return 0.0;  //unequal lengths
-
-        //Comparison
+        boolean first = false;
+        //Comparison -- Using the idea that the action, length, and the FIRST LHS and the LAST RHS in the 
+        //  pathrule must match, the other sensors in the middle are irrelivant.
+        //This is becuase pathrules do not consider individual rules, but instead only where they start, and which actions to take.
         for(int i = 0; i < matPrRules.size(); ++i) {
-            Rule matRule = matPrRules.get(i).getRule();
-            Rule myRule = this.prRules.get(i);
-            if (matRule.getId() != myRule.getId()) { return 0.0; }
-        }
+            Rule checkRule = matPrRules.get(i).getRule();
+            Rule tryRule = this.prRules.get(i);
+            //First checks the actions are the same
+            if (checkRule.getAction() != tryRule.getAction()) { return 0.0; }
 
-        return 1.0;
+            //Then check if the first rules LHS sensors match perfectly, if not return
+            if (i == 0 && !(checkRule.getLHS().equals(tryRule.getLHS()))) { return 0.0; } 
+            //if they do note the first LHS is true in a bool
+            else if (i == 0) { first = true; }
+
+            //Check if the last rules RHS sensors match perfectly, if not return
+            if ((i == matPrRules.size()-1) && !(checkRule.getRHS().equals(tryRule.getRHS()))) { return 0.0;}
+            //if they do match, and the first pair matched, return a match
+            else if (first) { return 1.0; }
+        }
+        
+        return 0.0;
     }//prRulesMatch
 
     /** adds a short version of the prRules to a given SB */
