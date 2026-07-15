@@ -1,8 +1,8 @@
 package agents.ndxr;
 
-import java.util.*;
-import framework.SensorData;
 import agents.ndxr.RuleIndex.MatchResult;
+import framework.SensorData;
+import java.util.*;
 
 /**
  * class TreeNode
@@ -10,55 +10,60 @@ import agents.ndxr.RuleIndex.MatchResult;
  * This class is a descendent of NdxrAgent.TreeNode
  * <p>
  * Each instance is a node in an N-ary tree where N is the number of actions (i.e., the FSM's
- * alphabet) that tries to predict outcomes of sequences of actions.  Thus, we can find a
+ * alphabet) that tries to predict outcomes of sequences of actions. Thus, we can find a
  * "best" (shortest, most confident) sequence of actions to reach the goal
  */
 
 public class TreeNode {
-    //Agent's current state
+    // Agent's current state
     private static NdxrAgent agent;
 
-    //the rule that was used to create this node.  (null for root node)
+    // the rule that was used to create this node. (null for root node)
     private final Rule rule;
 
-    //The TreeNode that preceded this one in time
+    // The TreeNode that preceded this one in time
     private final TreeNode parent;
 
-    //child nodes
+    // child nodes
     private final Vector<TreeNode> children = new Vector<>();
 
-    //bool for if tree has children or not
+    // bool for if tree has children or not
     private boolean isLeaf = false;
 
-    //This is the path used to reach this node
+    // This is the path used to reach this node
     private final Vector<TreeNode> path;
 
-    //The same path as above expressed as a String of action chars
+    // The same path as above expressed as a String of action chars
     private final String pathStr;
 
-    //A measure from 0.0 to 1.0 of how confident the agent is that this path is correct
+    // A measure from 0.0 to 1.0 of how confident the agent is that this path is correct
     private final double confidence;
+
+    // A general score from 0.0 to 1.0 determined by confidence of the best matching PathRule, the confidence of path, and the path's length.
+    private final double score;
 
     /**
      * This root node constructor is built from the agent.
      *
      */
     public TreeNode(NdxrAgent initAgent) {
-        //initializing agent and its children
+        // initializing agent and its children
         TreeNode.agent = initAgent;
         this.parent = null;
         this.rule = null;
         this.path = new Vector<>();
         this.pathStr = "";
-        //full confidence because drawn directly from agent's present sensing
+        // full confidence because drawn directly from agent's present sensing
         this.confidence = 1.0;
-    }//ctor
+        this.score = 1.0;
+    }// ctor
 
     /**
      * constructs a child TreeNode with given sensors and action
-     * @param parent the TreeNode that precedes this one in a path
+     * 
+     * @param parent   the TreeNode that precedes this one in a path
      * @param initRule rule used to create this node
-     * @param score match score for this rule
+     * @param score    match score for this rule
      */
     public TreeNode(TreeNode parent, Rule initRule, double score) {
         this.parent = parent;
@@ -67,7 +72,8 @@ public class TreeNode {
         this.path.add(this);
         this.pathStr = parent.pathStr + initRule.getAction();
         this.confidence = parent.confidence * score;
-    }//child ctor
+        this.score = calcOverallScore(path);
+    }// child ctor
 
     /**
      * expand
@@ -75,149 +81,149 @@ public class TreeNode {
      * populates this.children
      */
     private void expand() {
-        //check:  already expanded
+        // check: already expanded
         if (this.children.size() != 0) return;
 
         int numActions = agent.getActionList().length;
 
-        //Create predicted child nodes for each possible action
-        for(int actId = 0; actId < numActions; actId++) {
+        // Create predicted child nodes for each possible action
+        for (int actId = 0; actId < numActions; actId++) {
 
             char act = agent.getActionList()[actId].getName().charAt(0);
 
-            //Calculate the expected outcome for this action
+            // Calculate the expected outcome for this action
             Vector<Rule> prevRules = new Vector<>();
             Vector<MatchResult> results;
-            CondSet rhsBits = new CondSet(SensorData.createEmpty());  //only matching LHS
-            if (this.rule == null) { //root note
+            CondSet rhsBits = new CondSet(SensorData.createEmpty()); // only matching LHS
+            if (this.rule == null) { // root note
                 CondSet lhsBits = new CondSet(agent.getCurrExternal());
                 results = agent.getRules().findMatches(prevRules, lhsBits,
-                                                       act, rhsBits);
-            }
-            else {  //non-root node
+                        act, rhsBits);
+            } else { // non-root node
                 prevRules.add(this.rule);
                 results = agent.getRules().findMatches(prevRules, this.rule.getLHS(),
                                                        act, rhsBits);
             }
 
-            //create a child for this action + ext sensor combo
+            // create a child for this action + ext sensor combo
             for (MatchResult mr : results) {
-                //agent must be more confident in this path than just taking a random action
+                // agent must be more confident in this path than just taking a random action
                 if (mr.score <= agent.getRandSuccessRate()) continue;
 
-                //Create a child node
+                // Create a child node
                 Vector<Rule> newPrev = new Vector<>();
                 newPrev.add(mr.rule);
                 TreeNode child = new TreeNode(this, mr.rule, mr.score);
                 this.children.add(child);
-            }//for each match result
-        }//for each action
+            }// for each match result
+        }// for each action
 
-    }//expand
+    }// expand
 
     /**
      * calcOverallScore
      * <p>
      * A path has an overall score based on these factors:
-     * 1.  the path confidence (based on the Rule confidences)
-     * 2.  the matching PathRule's confidence
-     * 3.  the path's length (longer paths are less certain)
+     * 1. the path confidence (based on the Rule confidences)
+     * 2. the matching PathRule's confidence
+     * 3. the path's length (longer paths are less certain)
      *
      * @return a score in the range [0.0..1.0]
      */
     private static double calcOverallScore(Vector<TreeNode> foundPath) {
-        //the score starts with a base confidence
+        // the score starts with a base confidence
         TreeNode lastEl = foundPath.lastElement();
         double foundScore = lastEl.confidence;
 
-        //Adjust with the best matching PathRule (if it exists)
-        //Note:  the fact that no adjustment is made for mismatch makes the agent explore more.  TODO: too curious?
+        // Adjust with the best matching PathRule (if it exists)
+        // Note: the fact that no adjustment is made for mismatch makes the agent explore more. TODO: too curious?
         PathRule match = agent.getBestMatchingPathRule(foundPath);
         if (match != null) {
             foundScore *= match.getConfidence();
         }
 
-        //Adjust based on path length.  This is based on the Sunrise problem in probability.
+        // Adjust based on path length. This is based on the Sunrise problem in probability.
         foundScore *= (1.0 / (foundPath.size()));
 
         return foundScore;
-    }//calcOverallScore
-
+    }// calcOverallScore
 
     /**
      * fbgpHelper
      * <p>
      * recursive helper method for {@link #findBestGoalPath}
      *
-     * @param depth  depth of this node
+     * @param depth    depth of this node
      * @param maxDepth maximum depth allowed
      *
      * @return a path to the goal (or null if not found)
      */
     private Vector<TreeNode> fbgpHelper(int depth, int maxDepth) {
-        //base case:  found goal
+        // base case: found goal
         if (this.isGoalNode()) {
             this.isLeaf = true;
             return this.path;
         }
 
-        //base case:  max depth
+        // base case: max depth
         if (depth >= maxDepth) {
             this.isLeaf = true;
             return null;
         }
 
-        /* ====================================
-           Recursive case: examine child nodes
-           ------------------------------------ */
+        /*
+         * ====================================
+         * Recursive case: examine child nodes
+         * ------------------------------------
+         */
 
-        //Keeps track of the best path we've seen so far
+        // Keeps track of the best path we've seen so far
         Vector<TreeNode> bestPath = null;
         double bestScore = 0.0;
 
-        //Create the child nodes if they don't exist yet
+        // Create the child nodes if they don't exist yet
         if (this.children.size() == 0) {
             expand();
         } else {
             for (TreeNode child : this.children) {
-                child.isLeaf = false; //reset from any prev use of this child
+                child.isLeaf = false; // reset from any prev use of this child
             }
         }
 
-        for(TreeNode child : this.children) {
-            //Recursive case: test all children and return shortest path
+        for (TreeNode child : this.children) {
+            // Recursive case: test all children and return shortest path
             Vector<TreeNode> foundPath = child.fbgpHelper(depth + 1, maxDepth);
 
-            if ( foundPath != null ) {
+            if (foundPath != null) {
                 double foundScore = calcOverallScore(foundPath);
 
-                //best so far?
+                // best so far?
                 if (foundScore > bestScore) {
                     bestPath = foundPath;
                     bestScore = foundScore;
                 }
             }
-        }//for
+        } // for
 
         return bestPath;
 
-    }//fbgpHelper
+    }// fbgpHelper
 
     /**
-     * findBestGoalPath
+     * findBestGoalPathOld
      * <p>
      * uses an iterative deepening search tree to find a path to the goal
      * <p>
-     * TODO:  Could do A*Search instead if this is too slow.
-     *        Also likely better to limit search by max # of expansions instead of a max depth.
+     * TODO: Could do A*Search instead if this is too slow.
+     *       Also likely better to limit search by max # of expansions instead of a max depth.
      */
-    public Vector<TreeNode> findBestGoalPath() {
+    public Vector<TreeNode> findBestGoalPathOld() {
         double bestScore = 0.0;
         Vector<TreeNode> bestPath = null;
-        for(int max = 1; max <= NdxrAgent.MAX_SEARCH_DEPTH; ++max) {
+        for (int max = 1; max <= NdxrAgent.MAX_SEARCH_DEPTH; ++max) {
             Vector<TreeNode> path = fbgpHelper(0, max);
 
-            //DEBUG
+            // DEBUG
             if (path != null) {
                 PathRule matchPR = agent.getBestMatchingPathRule(path);
                 agent.debugPrintln("    Cand Path Found: " + path.lastElement());
@@ -227,46 +233,104 @@ public class TreeNode {
             }
 
             if (path != null) {
-                //ignore scores that are worse than random
+                // ignore scores that are worse than random
                 double score = calcOverallScore(path);
                 if (score < agent.getRandSuccessRate()) {
                     path = null;
                 }
 
-                //Is this the best so far?
+                // Is this the best so far?
                 else if (score > bestScore) {
                     bestScore = score;
                     bestPath = path;
                 }
             }
-        }//for
+        } // for
 
-        return bestPath;  //null if failed to find a path to goal
-    }//findBestGoalPath
+        return bestPath; // null if failed to find a path to goal
+    }// findBestGoalPathOld
+
+
+    /**
+     * findBestGoalPath
+     * <p>
+     * Uses an iterative greedy search to selectively expand nodes in its search for a path to goal.
+     * The search length is limited by NdxrAgent.MAX_EXPANSIONS
+     * 
+     * The switch to greedy search from findBestGoalPathOld() was made to increase both performance and runtime.
+     */
+    public Vector<TreeNode> findBestGoalPath() {
+
+        this.children.clear();
+        double bestScore = 0.0;
+        Vector<TreeNode> bestPath = null;
+
+        // Create the child nodes if they don't exist yet
+        if (this.children.size() == 0) {
+            expand();
+        }
+
+        Vector<TreeNode> sortedNodes = new Vector<>(this.children);
+
+        if (this.children.size() > 0) {
+            for (int expansions = 1; expansions <= NdxrAgent.MAX_EXPANSIONS; ++expansions) {
+
+                // Sort through current nodes in descending order and expand the highest confidence node.
+                Collections.sort(sortedNodes, Comparator.comparingDouble(TreeNode::getScore).reversed());
+
+                TreeNode currNode = sortedNodes.get(0);
+                Vector<TreeNode> currPath = currNode.path;
+                double currScore = currNode.getScore();
+
+                if ((currNode.isGoalNode()) && (currNode.getScore() > bestScore)) {
+                    bestPath = currPath;
+                    bestScore = currScore;
+                } else if (!(currNode.isGoalNode())) {
+                    currNode.expand();
+
+                    // append the expanded nodes children to the sortedNodes vector
+                    for (int i = 0; i < currNode.children.size(); ++i) {
+                        TreeNode currChild = currNode.children.get(i);
+                        sortedNodes.add(currChild);
+                    }
+                }
+
+                // Clear the highest scoring node
+                sortedNodes.remove(0);
+
+                if(sortedNodes.size() == 0) {
+                    break;
+                }
+
+            }//for
+        }
+
+        return ((bestPath != null) && (calcOverallScore(bestPath) >= agent.getRandSuccessRate())) ? bestPath : null;
+    }// findBestGoalPath
 
     /**
      * sortedKeys
      *
      * @return a sorted Vector of the Integer keys in an external sensor SensorData.
-     * The GOAL sensor is always put at the end, however.
+     *         The GOAL sensor is always put at the end, however.
      */
     private static Vector<String> sortedKeys(SensorData external) {
         Vector<String> result = new Vector<>(external.getSensorNames());
         Collections.sort(result);
 
-        //Move the goal to the end
+        // Move the goal to the end
         if (result.contains(SensorData.goalSensor)) {
             result.remove(SensorData.goalSensor);
             result.add(SensorData.goalSensor);
         }
 
         return result;
-    }//sortedKeys
+    }// sortedKeys
 
     /**
      * toString
      * <p>
-     * creates a terse ASCII representation of this node.  The child nodes are not depicted.
+     * creates a terse ASCII representation of this node. The child nodes are not depicted.
      */
     public String toString(boolean includeConf) {
         if (this.rule == null) {
@@ -275,23 +339,23 @@ public class TreeNode {
 
         StringBuilder result = new StringBuilder();
 
-        //the actions that led to this node
+        // the actions that led to this node
         result.append(this.pathStr);
         result.append("->");
 
-        //prev rules
+        // prev rules
         result.append("(");
         boolean first = true;
         result.append(this.rule.getId());
         result.append(")|");
 
-        //external sensors
+        // external sensors
         result.append(this.rule.getRHS().wcBitString());
 
-        //Confidence
+        // Confidence
         if (includeConf) {
             result.append("\tc");
-            //note:  replaceAll call removes extra trailing 0's to improve readability
+            // note: replaceAll call removes extra trailing 0's to improve readability
             result.append(String.format("%.6f", this.confidence).replaceAll("0+$", "0"));
         }
 
@@ -303,13 +367,12 @@ public class TreeNode {
         return toString(true);
     }
 
-
     /**
-     * prints the tree in an "easily" readable format.  This method is the front facing interface.
-     * {@link #printTreeHelper} is the recursive helper method that traverses the tree
+     * prints the tree in an "easily" readable format. This method is the front facing interface.
+     * {@link #printTreeHelper} is the recursive helper method that traverses thetree
      */
     public void printTree() {
-        //print the nodes recursively
+        // print the nodes recursively
         printTreeHelper("");
     }
 
@@ -323,13 +386,13 @@ public class TreeNode {
     private void printTreeHelper(String indent) {
         agent.debugPrint(indent + "  " + this);
 
-        //base case #1: Goal Node found (not at root)
-        if ( isGoalNode() ) {
+        // base case #1: Goal Node found (not at root)
+        if (isGoalNode()) {
             agent.debugPrintln("*");
             return;
         }
 
-        //base case #2:  Leaf Node (no goal found)
+        // base case #2: Leaf Node (no goal found)
         if (this.isLeaf) {
             agent.debugPrintln("");
             return;
@@ -337,11 +400,11 @@ public class TreeNode {
 
         agent.debugPrintln("");
 
-        //recursive case: print child nodes
-        for(TreeNode child : this.children) {
+        // recursive case: print child nodes
+        for (TreeNode child : this.children) {
             child.printTreeHelper(indent + "   ");
         }
-    }//printTreeHelper
+    }// printTreeHelper
 
     /**
      * isGoalNode
@@ -349,13 +412,21 @@ public class TreeNode {
      * @return true if this node's external sensors include GOAL=true
      */
     public boolean isGoalNode() {
-        if (this.rule == null) return false;  //root node
+        if (this.rule == null) return false; // root node
         CondSet rhs = this.rule.getRHS();
         return (rhs.getBit(rhs.size() - 1) == 1);
     }
 
-    public char getAction() { return this.pathStr.charAt(this.pathStr.length() - 1); }
+    public char getAction() {
+        return this.pathStr.charAt(this.pathStr.length() - 1);
+    }
 
     public Rule getRule() { return this.rule; }
+
+    public double getScore() { return this.score; }
+
     public double getConfidence() { return this.confidence; }
-}//class TreeNode
+
+    public String getPathStr() { return this.pathStr; }
+    
+}// class TreeNode

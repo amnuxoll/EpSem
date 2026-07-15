@@ -4,12 +4,11 @@ import framework.Action;
 import framework.IAgent;
 import framework.IIntrospector;
 import framework.SensorData;
-import utils.RandomFactory;
-
 import java.util.BitSet;
 import java.util.Collections;
 import java.util.Random;
 import java.util.Vector;
+import utils.RandomFactory;
 
 /**
  * NdxrAgent
@@ -29,7 +28,7 @@ import java.util.Vector;
  * TODO Try Softmax Rule Prediction (see Nux journal entry for 07 Jul 2026)
  * TODO Try Initial Rule Confidence (see Nux journal entry for 07 Jul 2026)
  * TODO Try Tracking Rule Usefulness (see Nux journal entry for 07 Jul 2026)
- *
+ * TODO experiment with the shape of the curve as you decrease MAX_EXPANSIONS (y-axis would be avg of avg).
  * A dream experiment:  Give Ndxr 90% of the frames of a movie.  Then, have it fill in the missing portions using its memory to see how appropriate they are.
  */
 public class NdxrAgent implements IAgent {
@@ -38,6 +37,8 @@ public class NdxrAgent implements IAgent {
     /** max depth of TreeNode Search */
     //TODO: replace with MAX_EXPANSIONS someday
     public static final int MAX_SEARCH_DEPTH = 3;
+
+    public static final int MAX_EXPANSIONS = 300;
 
     /** turn on/off debug printlns */
     public static final boolean DEBUGPRINTSWITCH = false;
