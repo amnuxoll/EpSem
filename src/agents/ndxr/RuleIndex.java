@@ -645,7 +645,7 @@ public class RuleIndex {
      * in a given array list that have a given depth
      *
      * @param index  the search begins at this index.  This list is assumed
-     *               to be in sorted order.
+     *               to be in sorted order by depth.
      * @param depth  the required depth
      * @param list   the list to search
      * @param found  this list is filled with the matching rules.  Any existing contents are cleared.
@@ -725,14 +725,15 @@ public class RuleIndex {
 
         //Find matches at each indexDepth
         int piIndex = 0;  //declare this here so it doesn't get reset to 0 in the loop
-        Vector<Rule> lilPI = new Vector<>();
+        Vector<Rule> lilPI = new Vector<>();  //subset of all rules of a certain depth extracted from prevInternal
         for(int depth = 0; depth <= Rule.MAX_DEPTH; ++depth) {
             //Find the subtree for this depth and action
             int actIndex = act - 'a';
-            RuleIndex d2node = this.children[depth].children[actIndex];  //depth 2 is the shallowest level that might a leaf
+            RuleIndex d2node = this.children[depth].children[actIndex];  //depth 2 is the shallowest level that might have a leaf
 
-            //Find the members of prevInternal at this depth
+            //Find the members of prevInternal that can possibly match the rules at this depth (i.e., they are depth - 1)
             piIndex = extractRulesOfDepth(piIndex, depth - 1, prevInternal, lilPI);
+            if (lilPI.isEmpty()  && depth > 0) continue;  //nothing to match
 
             //Retrieve the matching rules
             d2node.matchHelper(results, lilPI, prevExtBits, currExtBits);

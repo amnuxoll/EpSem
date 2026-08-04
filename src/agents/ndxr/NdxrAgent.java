@@ -37,7 +37,7 @@ public class NdxrAgent implements IAgent {
     /** max depth of TreeNode Search */
 
     //This is only used by the old, interative-deepening search
-    public static final int MAX_SEARCH_DEPTH = 3;
+    public static final int MAX_SEARCH_DEPTH = 4;
 
     //Limit the path search duration
     public static final int MAX_EXPANSIONS = 300;
@@ -216,11 +216,6 @@ public class NdxrAgent implements IAgent {
         if (DEBUGPRINTSWITCH) {
             debugPrintln("TIME STEP: " + NdxrAgent.timeStep);
             printPrevCurrEpisode();
-
-            //DEBUG
-            if (timeStep == 383) {
-                int zamboni = 3;
-            }
         }
         if (NdxrAgent.timeStep % 100 == 0) System.err.print(".");  //agent heartbeat
 

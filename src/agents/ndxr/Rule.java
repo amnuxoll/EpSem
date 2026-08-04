@@ -140,6 +140,9 @@ public class Rule {
         //TODO:  Consider adding this back in.  I'm taking it out for now to
         //       minimize the amount of differences between NDXR and PhuJus
         //A partial match score is the best match score of any two rules
+        //so even if the internal sensors (prevRule) on this Rule don't have
+        //an exact match, we calculate a score based upon which two rules
+        //have the highest match score.
         double bestScore = 0.0;
 //        for(Rule r1 : prevInt) {
 //            for (Rule r2 : this.prevRules) {
