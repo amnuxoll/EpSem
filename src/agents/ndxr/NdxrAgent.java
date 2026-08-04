@@ -35,9 +35,11 @@ public class NdxrAgent implements IAgent {
     /** maximum number of rules allowed */
     public static final int MAX_NUM_RULES = 100;
     /** max depth of TreeNode Search */
-    //TODO: replace with MAX_EXPANSIONS someday
+
+    //This is only used by the old, interative-deepening search
     public static final int MAX_SEARCH_DEPTH = 3;
 
+    //Limit the path search duration
     public static final int MAX_EXPANSIONS = 300;
 
     /** turn on/off debug printlns */
@@ -214,6 +216,11 @@ public class NdxrAgent implements IAgent {
         if (DEBUGPRINTSWITCH) {
             debugPrintln("TIME STEP: " + NdxrAgent.timeStep);
             printPrevCurrEpisode();
+
+            //DEBUG
+            if (timeStep == 383) {
+                int zamboni = 3;
+            }
         }
         if (NdxrAgent.timeStep % 100 == 0) System.err.print(".");  //agent heartbeat
 
@@ -773,11 +780,11 @@ public class NdxrAgent implements IAgent {
         }
 
         //Merge rules to keep under the limit
-        // while (this.numRules > MAX_NUM_RULES) {
-        //     boolean success = this.rules.reduce(this.numRules - MAX_NUM_RULES);
-        //     if (!success) break;
-        //     this.numRules--;
-        // }//rule merging
+         while (this.numRules > MAX_NUM_RULES) {
+             boolean success = this.rules.reduce(this.numRules - MAX_NUM_RULES);
+             if (!success) break;
+             this.numRules--;
+         }//rule merging
     }//ruleMaintenance
 
 

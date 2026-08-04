@@ -8,7 +8,7 @@ import java.util.Map;
 /** describes sensing+action->sensing */
 public class Rule {
     private static int nextId = 1;  //next unique rule Id (use val then increment)
-    public static int MAX_DEPTH = 1; //maximum rule depth allowed (see depth instance var)
+    public static int MAX_DEPTH = 3; //maximum rule depth allowed (see depth instance var)
 
     /*===========================================================================
      * Inner Classes

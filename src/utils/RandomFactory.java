@@ -26,7 +26,7 @@ public class RandomFactory {
      * @return a {@link java.util.Random}.
      */
     public static java.util.Random getFalse() {
-        return new java.util.Random(13);
+        return new java.util.Random(16);
     }
 
     //endregion

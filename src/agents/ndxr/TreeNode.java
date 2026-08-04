@@ -101,7 +101,7 @@ public class TreeNode {
                         act, rhsBits);
             } else { // non-root node
                 prevRules.add(this.rule);
-                results = agent.getRules().findMatches(prevRules, this.rule.getLHS(),
+                results = agent.getRules().findMatches(prevRules, this.rule.getRHS(),
                                                        act, rhsBits);
             }
 
@@ -133,7 +133,7 @@ public class TreeNode {
     private static double calcOverallScore(Vector<TreeNode> foundPath) {
         // the score starts with a base confidence
         TreeNode lastEl = foundPath.lastElement();
-        double foundScore = lastEl.confidence;
+        double foundScore = lastEl.confidence;  //This is the product of match score of all nodes in the path
 
         // Adjust with the best matching PathRule (if it exists)
         // Note: the fact that no adjustment is made for mismatch makes the agent explore more. TODO: too curious?
