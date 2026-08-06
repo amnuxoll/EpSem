@@ -75,10 +75,6 @@ public class MetaEnvironmentProviderTest {
             return null;
         }
 
-        @Override
-        public boolean validateSequence(Sequence sequence) {
-            return false;
-        }
     }
     //endregion
 }

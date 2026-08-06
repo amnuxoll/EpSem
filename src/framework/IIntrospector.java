@@ -16,7 +16,7 @@ public interface IIntrospector {
      * @param sequence the {@link Sequence} to validate.
      * @return true if the goal would be hit; otherwise false.
      */
-    boolean validateSequence(Sequence sequence);
+    int validateSequence(Sequence sequence);
 
     //endregion
 

@@ -87,13 +87,11 @@ public class TestRun implements IIntrospector, Runnable {
     //region IIntrospector Members
 
     /**
-     * Determines if the execution of the given {@link Sequence} would result in hitting a goal at any point.
-     *
-     * @param sequence the {@link Sequence} to validate.
-     * @return true if the goal would be hit; otherwise false.
+     * @return the number of steps the agent will take to reach the goal with
+     *         a given sequence or 0 if the sequence is ineffective
      */
     @Override
-    public boolean validateSequence(Sequence sequence) {
+    public int validateSequence(Sequence sequence) {
         return this.environment.validateSequence(sequence);
     }
 

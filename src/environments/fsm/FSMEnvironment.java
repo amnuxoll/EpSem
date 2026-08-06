@@ -185,18 +185,39 @@ public class FSMEnvironment implements IEnvironment {
         return new FSMEnvironment(this);
     }
 
+    /**
+     * @return the number of steps the agent will take to reach the goal with
+     *         a given sequence or 0 if the sequence is ineffective
+     */
     @Override
-    public boolean validateSequence(Sequence sequence) {
+    public int validateSequence(Sequence sequence) {
         if (sequence == null)
             throw new IllegalArgumentException("sequence cannot be null.");
         int tempState = this.currentState;
+        int stepCount = 0;
         for (Action action : sequence.getActions()) {
             tempState = this.transitionTable.getTransitions()[tempState].get(action);
+            stepCount++;
             if (this.transitionTable.isGoalState(tempState))
-                return true;
+                return stepCount;
         }
-        return false;
+        return 0;
     }
+
+    /** overloaded version of the above that takes a String of action chars */
+    public int validateSequence(String path) {
+        //sanity check
+        if ((path == null) || (path.length() == 0)) return 0;
+
+        Action[] acts = new Action[path.length()];
+        for(int i = 0; i < path.length(); ++i) {
+            acts[i] = new Action("" + path.charAt(i));
+        }
+
+        Sequence seq = new Sequence(acts);
+        return validateSequence(seq);
+    }//validateSequence(String path)
+
     //endregion
 
     //region Private Methods

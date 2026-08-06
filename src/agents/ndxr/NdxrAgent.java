@@ -42,7 +42,7 @@ public class NdxrAgent implements IAgent {
     public static final int MAX_EXPANSIONS = 300;
 
     /** turn on/off debug printlns */
-    public static final boolean DEBUGPRINTSWITCH = false;
+    public static final boolean DEBUGPRINTSWITCH = true;
 
     //a list of valid actions in the env
     private Action[] actions;
@@ -242,6 +242,8 @@ public class NdxrAgent implements IAgent {
 
         pathMaintenance(sensorData.isGoal());
 
+        if (DEBUGPRINTSWITCH) debugAnalyzeCurrPath();
+
         //Select the agent's next action
         //If the agent has a path, take the next step in that path
         Action action = calcAction();
@@ -300,6 +302,34 @@ public class NdxrAgent implements IAgent {
         }
     }//debugLogStateInfo
 
+
+    /**
+     * debugAnalyzeCurrPath
+     *
+     * compare the agent's current (remaining) path to shortest
+     *     - will it get to goal?
+     *     - if so, how many extra steps is it taking?
+     *
+     * document a path the agent could have chosen that would take it to
+     * the goal in the fewest steps and diagnose why it wasn't chosen
+     */
+    public void debugAnalyzeCurrPath() {
+        //Get the agent's current path
+        if (! this.pathStepsRemaining.isEmpty()) {
+            //Extract path steps remaining
+            String path = this.pathStepsRemaining.getLast().getPathStr();
+            int pathLen =  path.length();
+            int stepCount = this.pathStepsRemaining.size();
+            if (pathLen > stepCount) {
+                path = path.substring(pathLen - stepCount);  //cut off the already-taken steps
+            }
+            //STOPPED HERE: Will the agent's current path get to goal?
+            this.env.validateSequence(path);
+        }//if agent is on a path
+
+
+
+    }//debugAnalyzeCurrPath
 
     /**
      * makeMatchingPathRule

@@ -41,13 +41,10 @@ public interface IEnvironment {
     //region Defaulted Methods for Introspection
 
     /**
-     * Validates the provided {@link Sequence} to indicate whether or not its execution would result in the goal
-     * at any point.
-     *
-     * @param sequence the {@link Sequence} to validate.
-     * @return true if the sequence would work (and the method is implemented); otherwise false.
+     * @return the number of steps the agent will take to reach the goal with
+     *         a given sequence or 0 if the sequence is ineffective
      */
-    default boolean validateSequence(Sequence sequence) { return false; }
+    default int validateSequence(Sequence sequence) { return 0; }
 
     //endregion
 

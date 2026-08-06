@@ -100,10 +100,6 @@ public class MetaEnvironmentTest {
             return new SensorData(true);
         }
 
-        @Override
-        public boolean validateSequence(Sequence sequence) {
-            return false;
-        }
     }
     //endregion
 }

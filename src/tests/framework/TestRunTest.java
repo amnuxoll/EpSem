@@ -181,11 +181,6 @@ public class TestRunTest {
         }
 
         @Override
-        public boolean validateSequence(Sequence sequence) {
-            return false;
-        }
-
-        @Override
         public SensorData applyAction(Action action) {
             if (action == null)
                 return new SensorData(true);

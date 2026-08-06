@@ -258,10 +258,6 @@ public class TestSuiteTest {
             return new TestEnvironmentDescription();
         }
 
-        @Override
-        public boolean validateSequence(Sequence sequence) {
-            return false;
-        }
     }
 
     private class TestResultCompiler implements IResultCompiler {
