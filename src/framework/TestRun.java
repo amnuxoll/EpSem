@@ -69,6 +69,8 @@ public class TestRun implements IIntrospector, Runnable {
         this.goalListeners.add(listener);
     }
 
+    public IEnvironment getEnvironment() { return this.environment; }
+
     //endregion
 
     //region Private Methods

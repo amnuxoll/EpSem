@@ -1,9 +1,8 @@
 package agents.ndxr;
 
-import framework.Action;
-import framework.IAgent;
-import framework.IIntrospector;
-import framework.SensorData;
+import environments.fsm.FSMEnvironment;
+import framework.*;
+
 import java.util.BitSet;
 import java.util.Collections;
 import java.util.Random;
@@ -49,6 +48,17 @@ public class NdxrAgent implements IAgent {
     private Action[] actions;
     //allows you to configure data gathered about agent performance (not used atm)
     private IIntrospector introspector;
+
+    /**WARNING!  These variables are used for diagnostic data only.
+     * The agent should not make decisions using these variables
+     * ALSO!  The variables should not be used when DEBUGPRINTSWITCH == false */
+    //Used to extract diagnostic data about how the agent is doing
+    private FSMEnvironment env = null;  //agent's Blind FSM environment
+    private int currState = -1;  //current state the agent is in
+    private String univSeqPath = null; //the substring of univ sequence that gets to the goal from here
+    private String optimalPath = null; //the shortest path to goal from here
+
+
     //Use this for all random number generation in this agent
     public static final Random rand = RandomFactory.getFalse();
 
@@ -120,6 +130,10 @@ public class NdxrAgent implements IAgent {
         this.actions = actions;
         this.introspector = introspector;
         this.rules = new RuleIndex(this);
+
+        //Get a reference to the environment.  This code makes the assumption that we're in an FSM
+        //The agent should not use this since that's cheating.  We just use it to print diagnostic data
+        this.env = (FSMEnvironment) (((TestRun) introspector).getEnvironment());
     }
 
     /**
@@ -197,18 +211,8 @@ public class NdxrAgent implements IAgent {
         //update the sensor logs
         updateSensors(sensorData);
 
-        //DEBUG:  print the experience the agent just had
-        if (this.prevExternal != null) {
-            StringBuilder sb = new StringBuilder();
-            sb.append("Agent Experienced: ");
-            sb.append("  ");
-            sb.append(RuleIndex.ruleIdListStr(lastPrevInternal()));
-            sb.append(new CondSet(this.prevExternal).bitString());
-            sb.append(this.prevAction);
-            sb.append(" -> ");
-            sb.append(new CondSet(this.currExternal).bitString());
-            debugPrintln(sb.toString());
-        }
+        //DEBUG:  log experience, current state and best paths
+        if (DEBUGPRINTSWITCH) debugLogStateInfo();
 
         ruleMaintenance();
 
@@ -260,6 +264,41 @@ public class NdxrAgent implements IAgent {
 
         return action;
     }//getNextAction
+
+    /**
+     * debugLogStateInfo
+     *
+     * prints a variety of data about the agent's current state to help human debuggers and for analysis.
+     * These data are also stored in instance vars for other analysis code to use.
+     */
+    private void debugLogStateInfo() {
+
+        //Print what state the agent is in.
+        this.currState = this.env.getCurrentState();
+        debugPrintln("Agent's current state: s" + this.currState);
+
+        //This is the path the agent would follow to goal using the universal sequence
+        this.univSeqPath = this.env.getBlindPathString(this.currState);
+        debugPrintln("Univ Seq Path: " + this.univSeqPath);
+
+        //This is the shortest path to the goal
+        this.optimalPath = this.env.getShortestSequenceString(this.currState);
+        if (this.optimalPath.length() == this.univSeqPath.length()) this.optimalPath = this.univSeqPath;
+        debugPrintln("Optimal Path: " + this.optimalPath);
+
+        //print the experience the agent just had
+        if (this.prevExternal != null) {
+            StringBuilder sb = new StringBuilder();
+            sb.append("Agent Experienced: ");
+            sb.append("  ");
+            sb.append(RuleIndex.ruleIdListStr(lastPrevInternal()));
+            sb.append(new CondSet(this.prevExternal).bitString());
+            sb.append(this.prevAction);
+            sb.append(" -> ");
+            sb.append(new CondSet(this.currExternal).bitString());
+            debugPrintln(sb.toString());
+        }
+    }//debugLogStateInfo
 
 
     /**
