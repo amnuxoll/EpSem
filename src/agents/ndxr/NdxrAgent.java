@@ -2,7 +2,6 @@ package agents.ndxr;
 
 import environments.fsm.FSMEnvironment;
 import framework.*;
-
 import java.util.BitSet;
 import java.util.Collections;
 import java.util.Random;
@@ -42,7 +41,7 @@ public class NdxrAgent implements IAgent {
     public static final int MAX_EXPANSIONS = 300;
 
     /** turn on/off debug printlns */
-    public static final boolean DEBUGPRINTSWITCH = true;
+    public static final boolean DEBUGPRINTSWITCH = false;
 
     //a list of valid actions in the env
     private Action[] actions;
@@ -240,6 +239,7 @@ public class NdxrAgent implements IAgent {
             boolean stop = true;
         }
 
+        //boolean newSearch = (this.pathStepsRemaining.size() == 0);
         pathMaintenance(sensorData.isGoal());
 
         if (DEBUGPRINTSWITCH) debugAnalyzeCurrPath();
@@ -314,21 +314,103 @@ public class NdxrAgent implements IAgent {
      * the goal in the fewest steps and diagnose why it wasn't chosen
      */
     public void debugAnalyzeCurrPath() {
-        //Get the agent's current path
+        debugPrintln("\nDEBUG PATH ANALYSIS");
+
+        String path = "";
+        double currPathScore = 0.0;
+
+        //Analyze current path info
         if (! this.pathStepsRemaining.isEmpty()) {
+
             //Extract path steps remaining
-            String path = this.pathStepsRemaining.getLast().getPathStr();
+            path = this.pathStepsRemaining.getLast().getPathStr();
             int pathLen =  path.length();
             int stepCount = this.pathStepsRemaining.size();
             if (pathLen > stepCount) {
                 path = path.substring(pathLen - stepCount);  //cut off the already-taken steps
             }
-            //STOPPED HERE: Will the agent's current path get to goal?
-            this.env.validateSequence(path);
+
+            currPathScore = this.pathStepsRemaining.getLast().getScore();
+
+            //Will the agent's current path get to goal?
+            int currNumStepsToGoal = this.env.validateSequence(path);
+            int extraSteps = path.length() - this.optimalPath.length();
+            if (currNumStepsToGoal != 0) {
+                debugPrintln("Selected path: '" + path + "' will successfully reach the goal in " + currNumStepsToGoal + " steps. (" + extraSteps + " extra steps to goal)");
+            } else {
+                debugPrintln("Selected path '" + path + "' will not result in a goal.");
+            }
         }//if agent is on a path
 
+        //Compare current path to optimal path
+        if( (this.optimalPath != null) && (!this.optimalPath.isEmpty()) ) {
 
+            //Is the agent on the optimal path?
+            if(path.equals(optimalPath)) {
+                debugPrintln("Agent is currently on optimal path: " + path);
+            }
+            
+            //If not, can the optimal path be reconstructed from existing rules?
+            else {
 
+                //Reconstruct path from current rules
+                TreeNode root = new TreeNode(this);
+                Vector<TreeNode> optimalPathRules = root.findRulesForPath(this.optimalPath);
+
+                if( (optimalPathRules != null) && (!optimalPathRules.isEmpty()) ) { //Path is findable
+
+                    double optimalPathScore = optimalPathRules.lastElement().getScore();
+                    debugPrintln("Optimal Path '" + this.optimalPath + "' (score: " + optimalPathScore + ") can be reconstructed with current ruleset. \n");
+                    debugPrintln("Rules for Optimal Path: ");
+
+                    //Keep track of weakest link in path
+                    TreeNode weakestLink = null;
+                    double weakestLinkConf = 100.0; //any number > 1.0 works here
+
+                    for(TreeNode currNode : optimalPathRules) {
+                        if(currNode.getRule() != null) {
+                            double currConfidence = currNode.getConfidence();
+                            debugPrintln("\t\t\t" + currNode.getRule().toString() + " w/ conf: " + currConfidence); //print curr rule
+
+                            //Update the lowest scoring rule
+                            if(currConfidence < weakestLinkConf) {
+                                weakestLink = currNode;
+                                weakestLinkConf = currConfidence;
+                            }
+                        }
+                    }
+
+                    debugPrintln("\nWeakest Rule in optimal path: " + weakestLink.getRule().toString() + " conf: " + weakestLinkConf + "\n");
+
+                    //Determine why the agent wasn't on the optimal path
+                    //Agent is NOT ON a path
+                    if(pathStepsRemaining.isEmpty()) {
+                        debugPrintln("Agent is not on any path.");
+                        debugPrintln("Optimal Path Score: " + optimalPathScore + " vs. Random Success Rate: " + getRandSuccessRate());
+                    }
+
+                    //Selected path outscores optimal path
+                    else if (currPathScore > optimalPathScore) {
+                        debugPrintln("Selected path (" + currPathScore + ") outscores optimal path (" + optimalPathScore + "). ");
+                    }
+
+                    //Optimal path outscores selected path, but was not chosen.
+                    else if (currPathScore < optimalPathScore) {
+                        debugPrintln("Optimal path (" + optimalPathScore + ") outscores selected path (" + currPathScore + ").");
+                    }
+
+                    //Selected and optimal path scores are identical
+                    else {
+                        debugPrintln("Optimal and selected path scores are identical: " + optimalPathScore);
+                    }
+
+                } else { //Path is not findable
+                    debugPrintln("Optimal path '" + optimalPath + "' is NOT findable with current ruleset.");
+                }
+            } 
+
+            debugPrintln(""); //newline for formatting
+        }
     }//debugAnalyzeCurrPath
 
     /**

@@ -1,35 +1,34 @@
 package experiments;
 
+import agents.DemoSocketAgent.DemoSocketAgentProvider;
 import agents.demo.DemoAgentProvider;
 import agents.discr.MaRzLearnerProvider;
 import agents.juno.JunoAgentProvider;
 import agents.juno.JunoConfiguration;
 import agents.marz.MaRzAgentProvider;
+import agents.marzrules.Heuristic;
 import agents.marzrules.RulesAgentProvider;
+import agents.ndxr.NdxrAgentProvider;
 import agents.nsm.NSMAgentProvider;
 import agents.phujus.PhuJusAgentProvider;
-import agents.pytorchDQN.pytorchDQNAgentProvider;
-import agents.wfc.WFCAgentProvider;
-import agents.ndxr.NdxrAgentProvider;
-import agents.tfsocket.TFSocketAgentProvider;
-import agents.DemoSocketAgent.DemoSocketAgentProvider;
 import agents.pytorch2.Pytorch2SocketAgentProvider;
+import agents.pytorchDQN.pytorchDQNAgentProvider;
+import agents.tfsocket.TFSocketAgentProvider;
+import agents.wfc.WFCAgentProvider;
 import environments.fsm.FSMEnvironment;
 import environments.fsm.FSMEnvironmentProvider;
+import environments.fsm.FSMTransitionTableBuilder;
 import environments.meta.MetaConfiguration;
 import environments.meta.MetaEnvironmentProvider;
 import framework.*;
-import resultcompilers.file.FileResultCompiler;
-import utils.DirectoryUtils;
-import environments.fsm.FSMTransitionTableBuilder;
-import agents.marzrules.Heuristic;
-import utils.RandomFactory;
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.lang.reflect.Field;
 import java.util.EnumSet;
+import resultcompilers.file.FileResultCompiler;
+import utils.DirectoryUtils;
+import utils.RandomFactory;
 
 /**
  * IMPORTANT NOTE: If you are using RandomFactory to generate a fixed seed
@@ -341,7 +340,7 @@ public class Runner {
     );
 
     private static TestSuite NDXR_AGENT = new TestSuite(
-            TestSuiteConfiguration.QUICK,
+            TestSuiteConfiguration.ONCE,
             new IEnvironmentProvider[] {
                     new FSMEnvironmentProvider(
                             new FSMTransitionTableBuilder(2, 5, RandomFactory.getFalse()),

@@ -88,37 +88,44 @@ public class TreeNode {
 
         // Create predicted child nodes for each possible action
         for (int actId = 0; actId < numActions; actId++) {
-
             char act = agent.getActionList()[actId].getName().charAt(0);
-
-            // Calculate the expected outcome for this action
-            Vector<Rule> prevRules = new Vector<>();
-            Vector<MatchResult> results;
-            CondSet rhsBits = new CondSet(SensorData.createEmpty()); // only matching LHS
-            if (this.rule == null) { // root note
-                CondSet lhsBits = new CondSet(agent.getCurrExternal());
-                results = agent.getRules().findMatches(prevRules, lhsBits,
-                        act, rhsBits);
-            } else { // non-root node
-                prevRules.add(this.rule);
-                results = agent.getRules().findMatches(prevRules, this.rule.getRHS(),
-                                                       act, rhsBits);
-            }
-
-            // create a child for this action + ext sensor combo
-            for (MatchResult mr : results) {
-                // agent must be more confident in this path than just taking a random action
-                if (mr.score <= agent.getRandSuccessRate()) continue;
-
-                // Create a child node
-                Vector<Rule> newPrev = new Vector<>();
-                newPrev.add(mr.rule);
-                TreeNode child = new TreeNode(this, mr.rule, mr.score);
-                this.children.add(child);
-            }// for each match result
+            expandForAction(act);
         }// for each action
 
     }// expand
+
+    /**
+     * expandForAction
+     * populates this.children for all matching rules that include a given action
+     */
+
+    private void expandForAction(char act) {
+        // Calculate the expected outcome for this action
+        Vector<Rule> prevRules = new Vector<>();
+        Vector<MatchResult> results;
+        CondSet rhsBits = new CondSet(SensorData.createEmpty()); // only matching LHS
+        if (this.rule == null) { // root note
+            CondSet lhsBits = new CondSet(agent.getCurrExternal());
+            results = agent.getRules().findMatches(prevRules, lhsBits,
+                    act, rhsBits);
+        } else { // non-root node
+            prevRules.add(this.rule);
+            results = agent.getRules().findMatches(prevRules, this.rule.getRHS(),
+                                                   act, rhsBits);
+        }
+
+        // create a child for this action + ext sensor combo
+        for (MatchResult mr : results) {
+            // agent must be more confident in this path than just taking a random action
+            if (mr.score <= agent.getRandSuccessRate()) continue;
+
+            // Create a child node
+            Vector<Rule> newPrev = new Vector<>();
+            newPrev.add(mr.rule);
+            TreeNode child = new TreeNode(this, mr.rule, mr.score);
+            this.children.add(child);
+        }// for each match result
+    }//expandForAction
 
     /**
      * calcOverallScore
@@ -256,7 +263,7 @@ public class TreeNode {
      * <p>
      * Uses an iterative greedy search to selectively expand nodes in its search for a path to goal.
      * The search length is limited by NdxrAgent.MAX_EXPANSIONS
-     * 
+     *
      * The switch to greedy search from findBestGoalPathOld() was made to increase both performance and runtime.
      */
     public Vector<TreeNode> findBestGoalPath() {
@@ -278,14 +285,22 @@ public class TreeNode {
                 // Sort through current nodes in descending order and expand the highest confidence node.
                 Collections.sort(sortedNodes, Comparator.comparingDouble(TreeNode::getScore).reversed());
 
-                TreeNode currNode = sortedNodes.get(0);
+                //Get the highest scoring node that's not a dead end (max depth and no goal)
+                TreeNode currNode = sortedNodes.remove(0);
+                while( (currNode.getRule().getDepth() == Rule.MAX_DEPTH)
+                        && (! currNode.isGoalNode()) ){
+                        currNode = sortedNodes.remove(0);
+                }
+
                 Vector<TreeNode> currPath = currNode.path;
                 double currScore = currNode.getScore();
 
                 if ((currNode.isGoalNode()) && (currNode.getScore() > bestScore)) {
                     bestPath = currPath;
                     bestScore = currScore;
-                } else if (!(currNode.isGoalNode())) {
+                    System.out.println("New Best Scoring Path Found: " + bestPath + " w/ score: " + calcOverallScore(bestPath));
+                }
+                else if (! (currNode.isGoalNode())) {
                     currNode.expand();
 
                     // append the expanded nodes children to the sortedNodes vector
@@ -294,9 +309,6 @@ public class TreeNode {
                         sortedNodes.add(currChild);
                     }
                 }
-
-                // Clear the highest scoring node
-                sortedNodes.remove(0);
 
                 if(sortedNodes.size() == 0) {
                     break;
@@ -307,6 +319,83 @@ public class TreeNode {
 
         return ((bestPath != null) && (calcOverallScore(bestPath) >= agent.getRandSuccessRate())) ? bestPath : null;
     }// findBestGoalPath
+
+    /**
+     * findRulesForPath
+     * <p>
+     * Uses the agent's rules to build Vector<TreeNode></TreeNode> with the highest confidence which has the given path
+     * <p>
+     * @param path the path to find expressed as a string of action chars (e.g., "acccba")
+     *
+     */
+    public Vector<TreeNode> findRulesForPath(String path) {
+
+        //sanity check
+        if (path.isEmpty()) return null;
+
+        //Setup
+        this.children.clear();
+
+        //update the path for the next step
+        char act = path.charAt(0);
+        path = path.substring(1);
+
+
+        //create all child nodes for this next step in the path
+        expandForAction(act);
+
+        //Remove all children that aren't worth investigating
+        Vector<TreeNode> goodKids = new Vector<>();
+        for(TreeNode child : this.children) {
+            //Filter for dead ends (max depth and no goal)
+            if( !((child.getRule().getDepth() == Rule.MAX_DEPTH) && (!child.isGoalNode())) ) {
+                //Filter for sufficient confidence
+                if(child.getConfidence() >= agent.getRandSuccessRate()) {
+                    goodKids.add(child);
+                }
+            }//if
+        }//for
+
+        //BASE CASE: if we've reached the end of the path then the path we want is the child of
+        // this node that has the highest confidence.
+        if (path.isEmpty()) {
+            //sanity check
+            if (goodKids.isEmpty()) return null;
+
+            //Sort goodKids by confidence
+            Collections.sort(goodKids, Comparator.comparingDouble(TreeNode::getConfidence).reversed());
+            while(!goodKids.isEmpty()) {
+                TreeNode currNode = goodKids.get(0);
+                if(currNode.isGoalNode()) {
+                    return currNode.getPath();
+                }
+                goodKids.remove(currNode);
+            }
+
+            return null;
+        }
+
+        //RECURSIVE CASE
+        double bestScore = 0.0;
+        Vector<TreeNode> bestPath = null;
+        for(TreeNode kid : goodKids) {
+            
+            Vector<TreeNode> potentialPath = kid.findRulesForPath(path);
+            
+            if(potentialPath != null) {
+                double score = calcOverallScore(potentialPath);
+
+                //Update bestScore
+                if(score > bestScore) {
+                    bestScore = score;
+                    bestPath = potentialPath;
+                }
+            }
+
+        }//for
+
+        return bestPath;
+    }// findRulesForPath
 
     /**
      * sortedKeys
@@ -428,5 +517,7 @@ public class TreeNode {
     public double getConfidence() { return this.confidence; }
 
     public String getPathStr() { return this.pathStr; }
+
+    public Vector<TreeNode> getPath() { return this.path; }
     
 }// class TreeNode
