@@ -397,7 +397,9 @@ public class RuleIndex {
         if (this.children != null) {
             for(RuleIndex child : this.children) {
                 Rule cand = child.bestBrothers();
-                if ((cand != null) && (cand.getBrotherScore() > bestScore)) {
+                //The middle boolean prevents depth 0 rules from being merged, this is a cheap and quick fix
+                //  to the larger issue of changing how merging fundamentally works
+                if ((cand != null) && ((cand.getDepth() != 0) && (cand.getBrotherScore() > bestScore))) {
                     bestScore = cand.getBrotherScore();
                     bestRule = cand;
                 }
@@ -523,8 +525,11 @@ public class RuleIndex {
 
         //merge the closest matching rules
         Rule r1 = this.bestBrothers();
-        Rule r2 = r1.getBrother();
+        if (r1 == null) {
+            return false;  //no matching rules to cull
+        }
 
+        Rule r2 = r1.getBrother();
         if (r2 == null) {
             return false;  //no matching rules to cull
         }

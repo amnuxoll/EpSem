@@ -72,7 +72,7 @@ public class TreeNode {
         this.path.add(this);
         this.pathStr = parent.pathStr + initRule.getAction();
         this.confidence = parent.confidence * score;
-        this.score = calcOverallScore(path);
+        this.score = calcOverallScore(path); // * score;
     }// child ctor
 
     /**
@@ -140,6 +140,7 @@ public class TreeNode {
     private static double calcOverallScore(Vector<TreeNode> foundPath) {
         // the score starts with a base confidence
         TreeNode lastEl = foundPath.lastElement();
+        Vector<TreeNode> tempFoundPath = new Vector<>(foundPath);
         double foundScore = lastEl.confidence;  //This is the product of match score of all nodes in the path
 
         // Adjust with the best matching PathRule (if it exists)
@@ -149,8 +150,16 @@ public class TreeNode {
             foundScore *= match.getConfidence();
         }
 
+        //This loop reduces the score of pathrules that do not use consecutive increaseing depth rules (Ex: Depth0->Depth1->Depth2)
+        //It reduces the score using a exponential equation which mimicks the pathrule confidence decrease.
+        int counter = 0;
+        while ((counter<7) && (tempFoundPath.size() > 1) && (tempFoundPath.removeLast().getRule().getDepth()-1 != (tempFoundPath.getLast().getRule().getDepth()))) { 
+            counter++;
+            foundScore *= (Math.pow(2,7-counter )-1)/127;  // y = (2^(7-x)-1)/127
+        }
+
         // Adjust based on path length. This is based on the Sunrise problem in probability.
-        foundScore *= (1.0 / (foundPath.size()));
+        // foundScore *= (1.0 / (foundPath.size())); This has been replaced with while loop above
 
         return foundScore;
     }// calcOverallScore
@@ -286,9 +295,10 @@ public class TreeNode {
                 Collections.sort(sortedNodes, Comparator.comparingDouble(TreeNode::getScore).reversed());
 
                 //Get the highest scoring node that's not a dead end (max depth and no goal)
+                
                 TreeNode currNode = sortedNodes.remove(0);
-                while( (currNode.getRule().getDepth() == Rule.MAX_DEPTH)
-                        && (! currNode.isGoalNode()) ){
+                
+                while((currNode.getRule().getDepth() == Rule.MAX_DEPTH) && (!currNode.isGoalNode()) && (!sortedNodes.isEmpty()) ){
                         currNode = sortedNodes.remove(0);
                 }
 
@@ -296,11 +306,11 @@ public class TreeNode {
                 double currScore = currNode.getScore();
 
                 if ((currNode.isGoalNode()) && (currNode.getScore() > bestScore)) {
+                    System.out.println("Node: " + currNode);
                     bestPath = currPath;
                     bestScore = currScore;
-                    System.out.println("New Best Scoring Path Found: " + bestPath + " w/ score: " + calcOverallScore(bestPath));
                 }
-                else if (! (currNode.isGoalNode())) {
+                else if (!(currNode.isGoalNode())) {
                     currNode.expand();
 
                     // append the expanded nodes children to the sortedNodes vector
@@ -313,7 +323,6 @@ public class TreeNode {
                 if(sortedNodes.size() == 0) {
                     break;
                 }
-
             }//for
         }
 

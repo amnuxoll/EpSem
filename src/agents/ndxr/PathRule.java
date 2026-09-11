@@ -87,6 +87,27 @@ public class PathRule {
         return 0.0;
     }//prRulesMatch
 
+    /**
+     * prPerfectMatch
+     * <p>
+     * returns if two pathrules are identical
+     */
+    public boolean prPerfectMatch(PathRule matPrRules) {
+        if (matPrRules.getPrRules().size() != this.prRules.size()) return false;
+
+        if (matPrRules.getId() == this.getId()) return false;
+
+        for(int i = 0; i < matPrRules.getPrRules().size(); ++i) {
+            Rule checkRule = matPrRules.getPrRules().get(i);
+            Rule tryRule = this.prRules.get(i);
+
+            if (checkRule.getId() != tryRule.getId()) { return false; } 
+        }
+        System.out.println("Found match: " + matPrRules + "  and  " + this);
+
+        return true;
+    }//prPerfectMatch
+
     /** adds a short version of the prRules to a given SB */
     private void prRulesToStringShort(StringBuilder result) {
 
@@ -152,4 +173,3 @@ public class PathRule {
     public double getConfidence() { return this.confidence.dval(); }
 
 }//class PathRule
-

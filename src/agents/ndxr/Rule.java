@@ -8,7 +8,7 @@ import java.util.Vector;
 /** describes sensing+action->sensing */
 public class Rule {
     private static int nextId = 1;  //next unique rule Id (use val then increment)
-    public static int MAX_DEPTH = 1; //maximum rule depth allowed (see depth instance var)
+    public static int MAX_DEPTH = 4; //maximum rule depth allowed (see depth instance var)
 
     /*===========================================================================
      * Inner Classes
@@ -79,7 +79,7 @@ public class Rule {
 
     //match scores are cached for memoization
     //hash key:  "<id1>_<id2>" where id1 < id2  (example key:  "37_81")
-    private static LRUHashMap<String, RuleScore> scoreHash = new LRUHashMap<>(10000);
+    private static LRUHashMap<String, RuleScore> scoreHash = new LRUHashMap<>(10000); //maybe could be set to MAX_NUM_RULES squared
 
     /**
      * boring ctor

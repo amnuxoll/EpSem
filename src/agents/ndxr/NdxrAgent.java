@@ -55,7 +55,7 @@ public class NdxrAgent implements IAgent {
     private FSMEnvironment env = null;  //agent's Blind FSM environment
     private int currState = -1;  //current state the agent is in
     private String univSeqPath = null; //the substring of univ sequence that gets to the goal from here
-    private String optimalPath = null; //the shortest path to goal from here
+    public String optimalPath = null; //the shortest path to goal from here
 
 
     //Use this for all random number generation in this agent
@@ -238,11 +238,11 @@ public class NdxrAgent implements IAgent {
         if (this.stepsSinceLastGoal > 15) {
             boolean stop = true;
         }
+        boolean newSearch = this.pathStepsRemaining.isEmpty();
 
-        //boolean newSearch = (this.pathStepsRemaining.size() == 0);
         pathMaintenance(sensorData.isGoal());
 
-        if (DEBUGPRINTSWITCH) debugAnalyzeCurrPath();
+        if (DEBUGPRINTSWITCH && newSearch) debugAnalyzeCurrPath();
 
         //Select the agent's next action
         //If the agent has a path, take the next step in that path
@@ -548,8 +548,8 @@ public class NdxrAgent implements IAgent {
 
                 //DEBUG
                 StringBuilder sb = new StringBuilder();
-                sb.append("New Goal Path Found: ");
-                sb.append(goalPath.lastElement());
+                sb.append("Goal Path Found: ");
+                sb.append(this.currPathRule);
                 sb.append("\n             using rules: ");
                 for(TreeNode tn : goalPath) {
                     sb.append("\n                 ");
@@ -558,8 +558,6 @@ public class NdxrAgent implements IAgent {
                     double matScore = tn.getRule().matchScore(this.getCurrInternal(), new CondSet(this.getCurrExternal()), null);
                     sb.append(String.format("%.3f", matScore));
                 }
-                sb.append("\n             adj by: ");
-                sb.append(this.currPathRule);
                 debugPrintln(sb.toString());
 
             }//path found
@@ -931,6 +929,9 @@ public class NdxrAgent implements IAgent {
              if (!success) break;
              this.numRules--;
          }//rule merging
+
+         //Check for duplicates created from merging (Suprisingly has very minimal runtime impact, <1 second for a 2,5)
+         while (cleanPathRules()) {}
     }//ruleMaintenance
 
 
@@ -953,9 +954,38 @@ public class NdxrAgent implements IAgent {
                 bestPR = pr;
             }
         }
-
         return bestPR;
     }//getBestMatchingPathRule
+
+    /**
+     * cleanPathRules
+     * <p>
+     * Compares each pathrule to one another and removes any exact duplicates
+     * 
+     * TODO check for difference in confidence and either delete the lowest or average them
+     * 
+     * @return
+     */
+    public boolean cleanPathRules() {
+        int index = -1;
+        for (PathRule pr : this.pathRules) {
+            if (index != -1) break;
+            for (int i = 0; i < this.pathRules.size(); ++i) {
+                PathRule prCompare = this.pathRules.get(i);
+                if (pr.prPerfectMatch(prCompare)) {
+                    index = i;
+                    break;
+                }
+            }
+        }
+
+        if (index != -1) {
+            this.pathRules.remove(index);
+            return true;
+        }
+        
+        return false; //no more deletes
+    }//cleanPathRules
 
     /**
      * getBestMatchingPathRule
