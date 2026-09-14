@@ -153,7 +153,7 @@ public class TreeNode {
         //This loop reduces the score of pathrules that do not use consecutive increaseing depth rules (Ex: Depth0->Depth1->Depth2)
         //It reduces the score using a exponential equation which mimicks the pathrule confidence decrease.
         int counter = 0;
-        while ((counter<7) && (tempFoundPath.size() > 1) && (tempFoundPath.removeLast().getRule().getDepth()-1 != (tempFoundPath.getLast().getRule().getDepth()))) { 
+        while ((counter<7) && (tempFoundPath.size() > 1) && (tempFoundPath.remove(tempFoundPath.size()-1).getRule().getDepth()-1 != (tempFoundPath.get(tempFoundPath.size()-1).getRule().getDepth()))) { 
             counter++;
             foundScore *= (Math.pow(2,7-counter )-1)/127;  // y = (2^(7-x)-1)/127
         }

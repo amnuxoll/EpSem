@@ -323,14 +323,14 @@ public class NdxrAgent implements IAgent {
         if (! this.pathStepsRemaining.isEmpty()) {
 
             //Extract path steps remaining
-            path = this.pathStepsRemaining.getLast().getPathStr();
+            path = this.pathStepsRemaining.get(this.pathStepsRemaining.size()-1).getPathStr();
             int pathLen =  path.length();
             int stepCount = this.pathStepsRemaining.size();
             if (pathLen > stepCount) {
                 path = path.substring(pathLen - stepCount);  //cut off the already-taken steps
             }
 
-            currPathScore = this.pathStepsRemaining.getLast().getScore();
+            currPathScore = this.pathStepsRemaining.get(this.pathStepsRemaining.size()-1).getScore();
 
             //Will the agent's current path get to goal?
             int currNumStepsToGoal = this.env.validateSequence(path);
