@@ -32,6 +32,7 @@ public class Pytorch2SocketAgent implements IAgent {
 
     public static final int BASE_PORT = 8026;
     private int port; //port we use for the socket 
+    private boolean sensorsSent = false;
 
     public Pytorch2SocketAgent(Random random)
     {
@@ -47,6 +48,8 @@ public class Pytorch2SocketAgent implements IAgent {
         // Initialize is called prior to running an Experiment in an environment.
         // The available actions for the environment are provided
         this.actions = actions;
+
+        this.sensorsSent = false;
 
         // The introspector can be used to query for information related to the
         // environment. This is strictly for analytics during data collection.
@@ -132,14 +135,23 @@ public class Pytorch2SocketAgent implements IAgent {
 
     @Override
     public Action getNextAction(SensorData sensorData) throws Exception {
-        
+
+        // send the Python agent the list of sensor names if you haven't already
+        if (!sensorsSent) {
+            sendMessage("$$$sensors:" + sensorData.sensorNamesShort());
+            sensorsSent = true;
+        }
+
+        boolean done = sensorData.isGoal();
+
         //append a reward to the "hit me" message based on the goal sensor in
         //sensorData.  +1 for goal.  -0.01 for everything else
         float reward = -0.0001f;
-        if (sensorData.isGoal()) {
+        if (done) {
             reward = 1.0f;
         }
-        sendMessage("hit me" + reward);
+
+        sendMessage("hit me " + reward + " " + sensorData.toStringShort() + " " + done);
 
         //Retrieve/use the agent's response
         Action act = getDemoAction();

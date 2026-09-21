@@ -74,6 +74,10 @@ class QTrain:
 
         self.alphabet = []  #this gets init'd in main() with '$$$alphabet' call
 
+        # new variables for sensor data
+        self.sensor_names = []
+        self.n_sensors = 0
+
         #The following variables all get init'd in initModel()
         self.K = -1 
         self.myobserver = None
@@ -110,8 +114,8 @@ class QTrain:
     #
     def initModel(self):
         self.K          = len(self.alphabet)  # number of actions
-        self.myobserver = DFAObserver(n_hist=self.n_hist, K=self.K, seed=self.seed)
-        self.obs_dim    = self.n_hist * (self.K + 1)
+        self.myobserver = DFAObserver(n_hist=self.n_hist, n_sensors=self.n_sensors, K=self.K, seed=self.seed)
+        self.obs_dim    = self.n_hist * (self.n_sensors + 1) # changed from self.n_hist * (self.K + 1)
         self.n_actions  = self.K
         self.q          = QTrain.QNet(self.obs_dim, self.n_actions).to(self.device)
         self.qt         = QTrain.QNet(self.obs_dim, self.n_actions).to(self.device)
@@ -124,9 +128,11 @@ class QTrain:
         #This code is originally exec'd each time the agent starts a new run. It
         # was originally in the outer for-loop in Yuji's dqn_train() method.
         self.myobserver.reset()
-        self.myobserver.observe(0)
+        # self.myobserver.observe(0)
+        self.myobserver.reset()
         #Note: changed 's' from Yuji's code to self.lastState
-        self.lastState = self.myobserver.encode().to(self.device) 
+        # self.lastState = self.myobserver.encode().to(self.device) 
+        self.lastState = None
 
 
     # recordGoal()
@@ -166,34 +172,107 @@ class QTrain:
     # logReward(r)
     #   Records the agent's reward (r) for its last action
     #
-    def logReward(self, r):
+    def logReward(self, r, sensor_bits, done):
+        sensor_values = [
+            int(bit)
+            for bit in sensor_bits
+        ]
 
-        obs_next = self.lastAction + 1
+        # previous action becomes the obs token
+        obs_next = self.lastAction + 1 # observation token based on the previous action
+        # actions are represented by numbers:
+        # 0 = no previous action, initial observation
+        # 1 = action 0
+        # 2 = action 1
+        # 3 = action 2
 
-        self.myobserver.observe(obs_next)
+        # DFAObserver vocabulary: 0..K since self.dim_slot = K + 1
+        # observer is appending this obs_next token to its history
+        # since our self.n_hist = 3, we are remembering the last 3 tokens/actions
+        self.myobserver.observe(obs_next, sensor_values)
+
+        # Now we want to convert the history into the numerical state that goes into the NN
+        # encode() --> creates a matrix, a 12-element vector representing the current state
+        # for every token, its position in the matrix gets set to 1
+        # Since K = 3, our matrix has 4 colomns (0, 1, 2, 3) representing each action
+        # example: if our history is [0, 2, 1],
+        # then the one-hot becomes:
+        # token 0 --> [1, 0, 0, 0]
+        # token 2 --> [0, 0, 1, 0]
+        # token 1 --> [0, 1, 0, 0]
+        # So: [
+        # [1,0,0,0],
+        # [0,0,1,0],
+        # [0,1,0,0]
+        #]
+        # these are then flattended (.flatten()) to create the 12-element vector representing the current state
+        # [1,0,0,0, 0,0,1,0, 0,1,0,0]
         currState = self.myobserver.encode().to(self.device) # originally sp, changed to currState
 
-        self.buf.push(self.lastState, self.lastAction, r, currState, False)
+        # First observation: no previous
+        if self.lastState is None:
+            self.lastState = currState
+            self.total_r = 0.0
+            return
+
+        # This stores one experience/replay tuple in our buffer
+        # This is the data that the DQN learns from
+        #
+        # maybe add bitSet as a param
+        self.buf.push(self.lastState, self.lastAction, r, currState, done)
 
         self.lastState = currState
-        self.total_r += r
+        self.total_r += r # Not directly part of the NN learning, just keeps track of the total 
+                            # reward in the current run/episode
+        # recordGoal uses total_r to determine a success (positive is success)
 
+        # records everything onto the device: cpu
+        # if we wanted to use a CUDA GPU, then we'd move the tnesors onto that
+        #
+        # maybe add the bitSet as a param to the buffer?
         if len(self.buf) >= self.start_learning_after: # num random actions to take before learning
             # References: S: lastState, A: lastAction, R: reward, SP: currState, D: done
             S, A, R, SP, D = self.buf.sample(self.batch_size)
             S, A, R, SP, D = (S.to(self.device), A.to(self.device),
                               R.to(self.device), SP.to(self.device), D.to(self.device))
 
+            # calculate the Q-value for the action actually taken
+            # q = neural network, takes a state and outputs a Q-value for every possible action
+            # q_sa contains the Q-value corresponding to the action that was actually taken
+            # gather --> finding the prediction/Q-value for a specific action in a specific state
+            # this action is the last-taken action in the last state
             q_sa = self.q(S).gather(1, A.unsqueeze(1)).squeeze(1)
 
+            # tell PyTorch not to calculate gradients for the caluclations inside this block
+            # because we are treating the target as a fixed value that we're trying to make our
+            # current network prediction approach
             with torch.no_grad():
+                # core Q-learning equation:
+                # target = immediate reward + discounted value of the best next action
+                # gamma, or the discount factor, = 0.99
+                # this means future rewards are highly important, but slightly less important than immediate rewards
+                # self.qt(SP) --> feeds next state into the target network
+                # which outputs Q-values for every possible action in that next state
+                # .max(1).values --> selects the highest predicted Q-value
+                # "If I reach this next state, what's the best future value I currently know about?"
+                # SO, it's 0.99 * future value
+                # remember: PEMDAS
                 target = R + (1.0 - D) * self.gamma * self.qt(SP).max(1).values
 
+            # calculate the loss
+            # "How different is the neural network's current prediction from the Q-learning target?"
+            # mse --> mean squared error, measures (network prediction - target)^2
+            # Remember: goal of training is to make q_sa ~= target
             loss = nn.functional.mse_loss(q_sa, target)
-            self.opt.zero_grad()
-            loss.backward()
-            self.opt.step()
-            self.grad_steps += 1
+            self.opt.zero_grad() # clears old gradients, PyTorch accumulates gradients by default, need to do this before calculating a new gradient
+            loss.backward() # PyTorch calculates: "How should each NN weight change to reduce this loss?"
+            self.opt.step() # update the NN, NN weights are changed here
+            self.grad_steps += 1 # increment this counter when the gradient updates
+
+            # update the target network periodically
+            # for every 200 gradient updates, we copy the weights into the target network
+            # Both qt and q are networks, qt stays fixed for 200 training updates at a time
+            # this is so that the target isn't constantly moving while we're trying to elarn toward it
             if self.grad_steps % self.target_update_every == 0:
                 self.qt.load_state_dict(self.q.state_dict())
 
@@ -255,20 +334,63 @@ class QTrain:
                         # Check for sentinels
                         strData = data.decode('utf-8') # Raw data from the java agent
 
+                        # Startup Sequence:
+                        # $$$alphabet:
+                        #     ↓
+                        # store actions
+
+                        # $$$sensors:
+                        #     ↓
+                        # store sensor names
+                        #     ↓
+                        # calculate observation dimension
+                        #     ↓
+                        # create observer
+                        #     ↓
+                        # create Q-network
                         if strData.startswith('$$$alphabet:'):
-                            self.alphabet = list(strData[12:])
-                            self.initModel()
+                            alphabet_string = strData[len("$$$alphabet:"):]
+                            self.alphabet = list(alphabet_string)
+                            # self.initModel() # we need to do this when we get the sensor names
                             log(f'New alphabet: {self.alphabet}')
                             log(f'Sending acknowledgment')
                             conn.sendall('$$$ack'.encode('ASCII'))
 
+                            continue
+
+                        elif strData.startswith("$$$sensors:"):
+                            sensor_string = strData[len("$$$sensors:"):]
+
+                            self.sensor_names = sensor_string.split(",")
+                            log(f"Sensors: {self.sensor_names[0:]}")
+
+                            self.n_sensors = len(self.sensor_names)
+
+                            self.initModel() # now we have everything we need so call initModel()
+
+                            continue
+
                         elif strData.startswith('hit me'):
-                            #extract the reward from the hit me string
+                            # adjust processing to accept the reward and the bitSet of the sensors
+                            # extract the reward from the hit me string
                             #NOTE:  No error checking here...
-                            r = float(strData[6:])
+                            #r = float(strData[6:])
+
+                            chunk = strData.split()
+                            # chunk[0] --> "hit"
+                            # chunk[1] --> "me"
+                            # chunk[2] --> reward
+                            # chunk[3] --> sensor bits as a string
+                            r = float(chunk[2])
+
+                            sensor_bits = chunk[3]
+                            log("SensorData bits: " + sensor_bits) # prints entire bitSet
+
+                            done = chunk[4].lower() == "true"
                             
                             #and put in 'r'
-                            self.logReward(r)
+                            # changed from just r being passed to incorporate sensor data
+                            self.logReward(r, sensor_bits, done)
 
                             action = self.getNextActionFromQ() # action is returned as an integer index
 
