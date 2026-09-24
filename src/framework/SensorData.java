@@ -164,7 +164,7 @@ public class SensorData {
     }
 
     /**
-     * toBitSet
+     * BitSet
      *
      * Converts the SensorData into a java.util.BitSet
      *
@@ -209,6 +209,30 @@ public class SensorData {
 
         return result.toString();
     }//toStringShort
+
+    /**
+     * sensorNamesShort
+     * 
+     * Returns the sensor names in the same exact order as the bits
+     * This lets the java side send the explicit mapping of sensors 
+     * for the current run. 
+     * 
+     */
+    public String sensorNamesShort() {
+        ArrayList<Entry<String, Object>> entries = getEntriesSorted();
+
+        StringBuilder result = new StringBuilder();
+
+        for (Entry<String, Object> entry : entries) {
+            if (result.length() > 0) {
+                result.append(",");
+            }
+
+            result.append(entry.getKey());
+        }
+
+        return result.toString();
+    }
 
 
 
