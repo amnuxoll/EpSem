@@ -138,7 +138,9 @@ public class Pytorch2SocketAgent implements IAgent {
 
         // send the Python agent the list of sensor names if you haven't already
         if (!sensorsSent) {
-            sendMessage("$$$sensors:" + sensorData.sensorNamesShort());
+            String message = "$$$sensors:" + sensorData.sensorNamesShort();
+            System.out.println("sending sensor names to python agent: " + message);
+            sendMessage(message);
             sensorsSent = true;
         }
 
