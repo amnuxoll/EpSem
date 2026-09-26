@@ -58,13 +58,13 @@ public class Pytorch2SocketAgent implements IAgent {
 
         //Pick a random port number in case stale python agents are sitting
         //around
-        port = this.random.nextInt(1000) + BASE_PORT;
+        port = this.random.nextInt(100) + BASE_PORT;
         
         // Run the python agent
         System.out.println("Pytorch2 Agent");
         System.out.println("Launching Python Agent...");
-        System.out.println("python3" + " ./src/agents/pytorch2/Pytorch2Socket.py" + " " + port);
-        ProcessBuilder processBuilder = new ProcessBuilder("python3", "./src/agents/pytorch2/Pytorch2Socket.py", "" + port);
+        System.out.println("python3.12" + " ./src/agents/pytorch2/Pytorch2Socket.py" + " " + port);
+        ProcessBuilder processBuilder = new ProcessBuilder("python3.12", "./src/agents/pytorch2/Pytorch2Socket.py", "" + port);
         processBuilder.redirectErrorStream(true);
         try {
             Process process = processBuilder.start();
@@ -81,26 +81,45 @@ public class Pytorch2SocketAgent implements IAgent {
         int refuseCount = 0;
         while (refuseCount < 5) {
             try {
-                System.out.println("test1a: about to create socket with port " + port);
-                sock = new Socket("127.0.0.1", port);
-                System.out.println("test1b: created socket, about to get inputstream()");
+                System.out.println("Java: test1a: about to create socket with port " + port);
+
+		// Try to create a socket
+		try {
+                	sock = new Socket("127.0.0.1", port);
+		} catch (UnknownHostException e) {
+			// Thrown if the IP address of the host could be determined
+			System.err.println("Java Error: The host 127.0.0.1 could not be found");
+		}
+
+		//Immediately check if socket is null
+		//If you see a similar null message being outputted but not this one,
+		//then make sure that you're running the Python side with Python3.12 (within
+		//first 100 lines)
+		if (sock == null) {
+			System.out.println("Java: The socket created is initially null.");
+		}
+
+		//Print for reference
+		System.out.println("Java Port: " + port + " Socket: " + sock);
+
+                System.out.println("Java test1b: created socket, about to get inputstream()");
                 inputStream = sock.getInputStream();
-                System.out.println("test1c: got inputStream() about to getOutputStream()");
+                System.out.println("Java test1c: got inputStream() about to getOutputStream()");
                 outStream = sock.getOutputStream();
-                System.out.println("test1d: has gotten outputStream()");
+                System.out.println("Java test1d: has gotten outputStream()");
                 break;
             } catch (ConnectException ce) {
-                if (refuseCount > 0) System.err.println("Connection refused.  Retrying...");
+                if (refuseCount > 0) System.err.println("Java: Connection refused.  Retrying...");
                 refuseCount++;
                 try {
                     Thread.sleep(10000);
                 }
                 catch (InterruptedException ie) {
-                    System.err.println("Interrupted while waiting to retry connection.");
+                    System.err.println("Java: Interrupted while waiting to retry connection.");
                     System.err.println(ie);
                 }
             } catch (IOException ioe) {
-                System.err.println("ERROR connecting to python agent.");
+                System.err.println("Java: ERROR connecting to python agent.");
                 System.err.println(ioe);
                 System.exit(-2);
             }
@@ -264,6 +283,10 @@ public class Pytorch2SocketAgent implements IAgent {
     private void shutdown() {
         System.out.println("Sending quit message to python agent.");
         if (sock == null) {
+	    // If you get the following error message,
+	    // then first ensure you're running the python
+	    // agent using Python3.12, then investigate
+	    // the null socket.
             System.out.println("Socket reference is null!");
         }
         else {

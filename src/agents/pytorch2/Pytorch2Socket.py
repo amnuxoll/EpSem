@@ -307,6 +307,7 @@ class QTrain:
 
         # Creating the python side of the socket
         portNum = int(sys.argv[1])
+        print(f'port number: {portNum}')
         timeout = 0
         log(f'port number: {portNum}')
         log('Creating server for the Java environment to connect to...')
