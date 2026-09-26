@@ -44,17 +44,17 @@ class QTrain:
         Takes parameters from DQN_Train in Yuji's code and initializes them as
         instance variables
         """
-        self.n_hist                 = 3
+        self.n_hist                 = 6
         self.episodes               = 500
-        self.gamma                  = 0.99  # discount factor
-        self.lr                     = 1e-3  # learning rate
+        self.gamma                  = 0.8625  # discount factor
+        self.lr                     = 8.53e-4  # learning rate
         self.batch_size             = 64    # number of actions that is remembered for q-value
         self.buffer_capacity        = 20_000
         self.start_learning_after   = 500   # num random actions to take before learning
         self.target_update_every    = 200
         self.eps_start              = 1.0   # epsilon value at start of training
         self.eps_end                = 0.05  # epsilon value at end of training
-        self.eps_decay_steps        = 5000  # over how many steps to decay epsilon to end value
+        self.eps_decay_steps        = 500  # over how many steps to decay epsilon to end value
         self.seed                   = 0
         self.device                 = "cpu"
 
@@ -359,9 +359,14 @@ class QTrain:
 
                             continue
 
-                        elif strData.startswith("$$$sensors:"):
-                            sensor_string = strData[len("$$$sensors:"):]
-
+                        elif strData.startswith('$$$sensors:'):
+                            start_index = len("$$$sensors:")
+                            end_index = strData.find('h', start_index)
+                            if (end_index == -1):
+                                sensor_string = strData[start_index:]
+                            else:
+                                sensor_string = strData[start_index:end_index]
+                            
                             self.sensor_names = sensor_string.split(",")
                             log(f"Sensors: {self.sensor_names[0:]}")
 
