@@ -153,123 +153,19 @@ public class TreeNode {
         //This loop reduces the score of pathrules that do not use consecutive increaseing depth rules (Ex: Depth0->Depth1->Depth2)
         //It reduces the score using a exponential equation which mimicks the pathrule confidence decrease.
         int counter = 0;
-        //double demerit = 1.0;
-        while ((tempFoundPath.size() > 1)) { 
+        while ((tempFoundPath.size() > 1)) {
             if((tempFoundPath.remove(tempFoundPath.size()-1).getRule().getDepth()-1 != (tempFoundPath.get(tempFoundPath.size()-1).getRule().getDepth()))) {
                 counter++;
-                foundScore *= (Math.pow(2,7-counter)-1)/127;  // y = (2^(7-x)-1)/127
+                foundScore *= (Math.pow(2,7-counter)-1)/127;  // y = (2^(7-x)-1)/127  (exponential degradation over a byte)
             }
         }
-        //foundScore *= demerit;
 
+        // KEEP FOR NOW (we may bring this back) :AMN: Sep 2026
         // Adjust based on path length. This is based on the Sunrise problem in probability.
         //foundScore *= (1.0 / (foundPath.size()));// This has been replaced with while loop above
 
         return foundScore;
     }// calcOverallScore
-
-    /**
-     * fbgpHelper
-     * <p>
-     * recursive helper method for {@link #findBestGoalPath}
-     *
-     * @param depth    depth of this node
-     * @param maxDepth maximum depth allowed
-     *
-     * @return a path to the goal (or null if not found)
-     */
-    private Vector<TreeNode> fbgpHelper(int depth, int maxDepth) {
-        // base case: found goal
-        if (this.isGoalNode()) {
-            this.isLeaf = true;
-            return this.path;
-        }
-
-        // base case: max depth
-        if (depth >= maxDepth) {
-            this.isLeaf = true;
-            return null;
-        }
-
-        /*
-         * ====================================
-         * Recursive case: examine child nodes
-         * ------------------------------------
-         */
-
-        // Keeps track of the best path we've seen so far
-        Vector<TreeNode> bestPath = null;
-        double bestScore = 0.0;
-
-        // Create the child nodes if they don't exist yet
-        if (this.children.size() == 0) {
-            expand();
-        } else {
-            for (TreeNode child : this.children) {
-                child.isLeaf = false; // reset from any prev use of this child
-            }
-        }
-
-        for (TreeNode child : this.children) {
-            // Recursive case: test all children and return shortest path
-            Vector<TreeNode> foundPath = child.fbgpHelper(depth + 1, maxDepth);
-
-            if (foundPath != null) {
-                double foundScore = calcOverallScore(foundPath);
-
-                // best so far?
-                if (foundScore > bestScore) {
-                    bestPath = foundPath;
-                    bestScore = foundScore;
-                }
-            }
-        } // for
-
-        return bestPath;
-
-    }// fbgpHelper
-
-    /**
-     * findBestGoalPathOld
-     * <p>
-     * uses an iterative deepening search tree to find a path to the goal
-     * <p>
-     * TODO: Could do A*Search instead if this is too slow.
-     *       Also likely better to limit search by max # of expansions instead of a max depth.
-     */
-    public Vector<TreeNode> findBestGoalPathOld() {
-        double bestScore = 0.0;
-        Vector<TreeNode> bestPath = null;
-        for (int max = 1; max <= NdxrAgent.MAX_SEARCH_DEPTH; ++max) {
-            Vector<TreeNode> path = fbgpHelper(0, max);
-
-            // DEBUG
-            // if (path != null) {
-            //     PathRule matchPR = agent.getBestMatchingPathRule(path);
-            //     agent.debugPrintln("    Cand Path Found: " + path.lastElement());
-            //     if (matchPR != null) {
-            //         agent.debugPrintln("             adj by: " + matchPR + " c" + matchPR.getConfidence());
-            //     }
-            // }
-
-            if (path != null) {
-                // ignore scores that are worse than random
-                double score = calcOverallScore(path);
-                if (score < agent.getRandSuccessRate()) {
-                    path = null;
-                }
-
-                // Is this the best so far?
-                else if (score > bestScore) {
-                    bestScore = score;
-                    bestPath = path;
-                }
-            }
-        } // for
-
-        return bestPath; // null if failed to find a path to goal
-    }// findBestGoalPathOld
-
 
     /**
      * findBestGoalPath

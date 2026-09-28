@@ -343,7 +343,7 @@ public class Runner {
             TestSuiteConfiguration.ONCE,
             new IEnvironmentProvider[] {
                     new FSMEnvironmentProvider(
-                            new FSMTransitionTableBuilder(2, 5, RandomFactory.getFalse()),
+                            new FSMTransitionTableBuilder(2, 10, RandomFactory.getFalse()),
                             EnumSet.of(FSMEnvironment.Sensor.NOISE1, FSMEnvironment.Sensor.IS_ODD))
 //                    new FSMTransitionTableBuilder(2, 50, Random.getFalse()),
 //                    EnumSet.of(FSMEnvironment.Sensor.NOISE1, FSMEnvironment.Sensor.NOISE2,

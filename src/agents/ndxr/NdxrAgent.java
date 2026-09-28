@@ -32,12 +32,8 @@ import utils.RandomFactory;
 public class NdxrAgent implements IAgent {
     /** maximum number of rules allowed */
     public static final int MAX_NUM_RULES = 100;
-    /** max depth of TreeNode Search */
 
-    //This is only used by the old, interative-deepening search
-    public static final int MAX_SEARCH_DEPTH = 4;
-
-    //Limit the path search duration
+    /** Limit the path search duration */
     public static final int MAX_EXPANSIONS = 300;
 
     /** turn on/off debug printlns */
