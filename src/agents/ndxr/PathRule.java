@@ -61,9 +61,10 @@ public class PathRule {
      * <p>
      * Determines if a given Vector<TreeNode> matches this rule's prRules.
      */
-    public double prRulesMatch(Vector<TreeNode> matPrRules) {
+    public double prRulesMatch(Vector<TreeNode> matPrRules) { 
         if (matPrRules.size() != this.prRules.size()) return 0.0;  //unequal lengths
         boolean first = false;
+        boolean match = false;
         //Comparison -- Using the idea that the action, length, and the FIRST LHS and the LAST RHS in the 
         //  pathrule must match, the other sensors in the middle are irrelivant.
         //This is becuase pathrules do not consider individual rules, but instead only where they start, and which actions to take.
@@ -76,14 +77,15 @@ public class PathRule {
             //Then check if the first rules LHS sensors match perfectly, if not return
             if (i == 0 && !(checkRule.getLHS().equals(tryRule.getLHS()))) { return 0.0; } 
             //if they do note the first LHS is true in a bool
-            else if (i == 0) { first = true; }
+            else if (i == 0) { match = true; }//first = true; }
 
             //Check if the last rules RHS sensors match perfectly, if not return
-            if ((i == matPrRules.size()-1) && !(checkRule.getRHS().equals(tryRule.getRHS()))) { return 0.0;}
+            if ((i == matPrRules.size()-1) && !(checkRule.getRHS().equals(tryRule.getRHS()))) { return 0.0; }
             //if they do match, and the first pair matched, return a match
-            else if (first) { return 1.0; }
+            //else if (first) { return 1.0; }
         }
-        
+        //if (lastPath != null && lastPath.prRulesMatch(matPrRules, null) == 1.0) { return 0.0; }
+        if (match) return 1.0;
         return 0.0;
     }//prRulesMatch
 
@@ -93,6 +95,9 @@ public class PathRule {
      * returns if two pathrules are identical
      */
     public boolean prPerfectMatch(PathRule matPrRules) {
+        //if (!(this.prevPathRule != null && this.prevPathRule.equals(matPrRules.prevPathRule))) { return false; }
+        //else if (this.prevPathRule != matPrRules.prevPathRule) { return false; }
+
         if (matPrRules.getPrRules().size() != this.prRules.size()) return false;
 
         if (matPrRules.getId() == this.getId()) return false;

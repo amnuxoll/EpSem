@@ -223,9 +223,10 @@ public class NdxrAgent implements IAgent {
         if (NdxrAgent.timeStep % 100 == 0) System.err.print(".");  //agent heartbeat
 
 
-        //DEBUG: print all rules
-        debugPrintln("\nRules:");
-        this.rules.printAll();
+        //DEBUG: print all rules\
+        //TODO something to still print out rules at somepoint, just not every timestep
+        //debugPrintln("\nRules:");
+        //this.rules.printAll();  //Commented out as it causes to much slowdown on larger FSMs
         debugPrintln("\nPathRules:");
         for(PathRule pr : this.pathRules) {
             debugPrintln(pr.toString());

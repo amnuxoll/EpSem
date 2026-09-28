@@ -153,13 +153,17 @@ public class TreeNode {
         //This loop reduces the score of pathrules that do not use consecutive increaseing depth rules (Ex: Depth0->Depth1->Depth2)
         //It reduces the score using a exponential equation which mimicks the pathrule confidence decrease.
         int counter = 0;
-        while ((counter<7) && (tempFoundPath.size() > 1) && (tempFoundPath.remove(tempFoundPath.size()-1).getRule().getDepth()-1 != (tempFoundPath.get(tempFoundPath.size()-1).getRule().getDepth()))) { 
-            counter++;
-            foundScore *= (Math.pow(2,7-counter )-1)/127;  // y = (2^(7-x)-1)/127
+        //double demerit = 1.0;
+        while ((tempFoundPath.size() > 1)) { 
+            if((tempFoundPath.remove(tempFoundPath.size()-1).getRule().getDepth()-1 != (tempFoundPath.get(tempFoundPath.size()-1).getRule().getDepth()))) {
+                counter++;
+                foundScore *= (Math.pow(2,7-counter)-1)/127;  // y = (2^(7-x)-1)/127
+            }
         }
+        //foundScore *= demerit;
 
         // Adjust based on path length. This is based on the Sunrise problem in probability.
-        // foundScore *= (1.0 / (foundPath.size())); This has been replaced with while loop above
+        //foundScore *= (1.0 / (foundPath.size()));// This has been replaced with while loop above
 
         return foundScore;
     }// calcOverallScore
@@ -240,13 +244,13 @@ public class TreeNode {
             Vector<TreeNode> path = fbgpHelper(0, max);
 
             // DEBUG
-            if (path != null) {
-                PathRule matchPR = agent.getBestMatchingPathRule(path);
-                agent.debugPrintln("    Cand Path Found: " + path.lastElement());
-                if (matchPR != null) {
-                    agent.debugPrintln("             adj by: " + matchPR + " c" + matchPR.getConfidence());
-                }
-            }
+            // if (path != null) {
+            //     PathRule matchPR = agent.getBestMatchingPathRule(path);
+            //     agent.debugPrintln("    Cand Path Found: " + path.lastElement());
+            //     if (matchPR != null) {
+            //         agent.debugPrintln("             adj by: " + matchPR + " c" + matchPR.getConfidence());
+            //     }
+            // }
 
             if (path != null) {
                 // ignore scores that are worse than random
@@ -306,7 +310,6 @@ public class TreeNode {
                 double currScore = currNode.getScore();
 
                 if ((currNode.isGoalNode()) && (currNode.getScore() > bestScore)) {
-                    System.out.println("Node: " + currNode);
                     bestPath = currPath;
                     bestScore = currScore;
                 }

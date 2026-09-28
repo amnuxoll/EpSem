@@ -8,7 +8,8 @@ import java.util.Vector;
 /** describes sensing+action->sensing */
 public class Rule {
     private static int nextId = 1;  //next unique rule Id (use val then increment)
-    public static int MAX_DEPTH = 4; //maximum rule depth allowed (see depth instance var)
+    //2,5 Opt MAX_DEPTH is 4; 2,10 Opt MAX_DEPTH is 9
+    public static int MAX_DEPTH = 9; //maximum rule depth allowed (see depth instance var)
 
     /*===========================================================================
      * Inner Classes
