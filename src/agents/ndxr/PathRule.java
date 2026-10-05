@@ -26,18 +26,22 @@ public class PathRule {
     /** The prRules is a sequence of rules that describe a path. */
     private final Vector<Rule> prRules;  //must contain at least one step
 
+    //The last failed pathrule the agent was on
+    private final PathRule prevPathRule; //this should maybe be a vector
+
     /** maintain a confidence in this PathRule */
-    private final Conf confidence = new Conf();
+    private final Conf confidence = new Conf(); //(byte)0b00111111
 
 //endregion Instance Variables
 
 //region ctors and initialization
 
     /** ctor for prRules init from given PathRule */
-    public PathRule(NdxrAgent initAgent, Vector<Rule> initPrRules) {
+    public PathRule(NdxrAgent initAgent, Vector<Rule> initPrRules, PathRule initPathRule) {
         this.agent = initAgent;
         this.ruleId = PathRule.nextRuleId++;
         this.prRules = initPrRules;
+        this.prevPathRule = initPathRule;
     }
 
     /** converts a Vector<TreeNode> into a Vector<Rule> */
@@ -62,11 +66,20 @@ public class PathRule {
      * Determines if a given Vector<TreeNode> matches this rule's prRules.
      *
      * the actions, length, the FIRST LHS, and the LAST RHS must match,
-     * the other sensors in the middle are irrelivant.
+     * the other sensors in the middle are irrelevant.
      */
-    public double prRulesMatch(Vector<TreeNode> matPrRules) { 
+    public double prRulesMatch(Vector<TreeNode> matPrRules, PathRule lastPath) {
         if (matPrRules.size() != this.prRules.size()) return 0.0;  //unequal lengths
-        boolean match = false;
+
+        //if currPathRule = x, then 'this' internal sensor can either match x, or be null
+        //if currPathRule = null, then 'this' must have a null internal sensor
+        if (lastPath == null) {
+            if (this.prevPathRule != null) { return 0.0; } 
+            //Otherwise both are null so they can be compared
+        }
+        else if (this.prevPathRule != null) {
+            if (!(this.prevPathRule.equals(lastPath))) { return 0.0; } //if non null internal sensors are unequal
+        }
 
         //CHECK:  the first rules LHS sensors match perfectly, if not return
         Rule checkRule = matPrRules.get(0).getRule();
@@ -85,7 +98,7 @@ public class PathRule {
 
         //CHECK: the last rules' RHS sensors match perfectly
         //NOTE:  checkRule and tryRule should already be set correctly as side effect of the loop above
-        if (checkRule.getRHS().equals(tryRule.getRHS())) { return 0.0; }
+        if (!(checkRule.getRHS().equals(tryRule.getRHS()))) { return 0.0; }
 
         //No mismatches found
         return 1.0;
@@ -94,9 +107,18 @@ public class PathRule {
     /**
      * prPerfectMatch
      * <p>
-     * returns if two pathrules are identical
+     * returns if two pathrules have the same internal sensor, and have identical rules
      */
     public boolean prPerfectMatch(PathRule matPrRules) {
+        //Makes sure this.prevPathRule is not null to avoid error
+        //Then checks if the two objects are identical
+        if (this.prevPathRule == null) {
+            if (!(matPrRules.prevPathRule == null)) { return false; }
+        }
+        else if (matPrRules.prevPathRule == null) { return false;}
+        else if (!(this.prevPathRule.equals(matPrRules.prevPathRule))) { return false; }
+
+
         if (matPrRules.getPrRules().size() != this.prRules.size()) return false;
 
         if (matPrRules.getId() == this.getId()) return false;
@@ -131,6 +153,9 @@ public class PathRule {
         
         result.append("#pr");
         result.append(this.ruleId + "  ");
+
+        if(this.prevPathRule != null) { result.append("(" + this.prevPathRule.getId() + ")  "); }
+        else  {result.append("()  "); }
 
         //print a short version first
         prRulesToStringShort(result);

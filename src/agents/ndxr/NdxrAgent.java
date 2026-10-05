@@ -37,7 +37,7 @@ public class NdxrAgent implements IAgent {
     public static final int MAX_EXPANSIONS = 300;
 
     /** turn on/off debug printlns */
-    public static final boolean DEBUGPRINTSWITCH = false;
+    public static final boolean DEBUGPRINTSWITCH = true;
 
     //a list of valid actions in the env
     private Action[] actions;
@@ -105,6 +105,7 @@ public class NdxrAgent implements IAgent {
 
     /** This is the PathRule that matches the agent's current path */
     private PathRule currPathRule = null;
+    private PathRule currPathRuleMimic = null;
 
     //DATA:  track how many steps to reach each goal
     private int goalCount = 0;
@@ -438,7 +439,7 @@ public class NdxrAgent implements IAgent {
         //Build a new pathRule
         Vector<Rule> newRHS = new Vector<>();
         newRHS.add(bestRule);
-        return new PathRule(this, newRHS);
+        return new PathRule(this, newRHS, null);
     }//makeMatchingPathRule
 
 
@@ -511,10 +512,15 @@ public class NdxrAgent implements IAgent {
             if (this.currPathRule != null) {
                 if (isGoal) {
                     this.currPathRule.logSuccess();
+                    this.currPathRule = null;
+                    this.currPathRuleMimic = null;
                 }
                 else {
                     this.currPathRule.logFailure();
-                    this.currPathRule = null; //don't use on LHS because of failure
+                    if (this.currPathRuleMimic != null) {
+                        this.currPathRuleMimic.logFailure();
+                        this.currPathRuleMimic = null;
+                    }
                 }
             }
 
@@ -533,14 +539,18 @@ public class NdxrAgent implements IAgent {
                 this.pathStepsRemaining = goalPath;
 
                 //Find or create the PathRule that best matches this new path
-                PathRule match = getBestMatchingPathRule(goalPath);
+                PathRule match = getBestMatchingPathRule(goalPath, this.currPathRule);
+                PathRule mimic = null;
                 if (match == null) {
                     //create a new PathRule that matches
                     Vector<Rule> newRHS = PathRule.nodePathToRulePath(goalPath);
-                    match = new PathRule(this, newRHS);
+                    match = new PathRule(this, newRHS, this.currPathRule);
+                    if (this.currPathRule != null) mimic = new PathRule(this, newRHS, null);
                     this.pathRules.add(match);
+                    if (mimic != null) this.pathRules.add(mimic);
                 }
                 this.currPathRule = match;
+                this.currPathRuleMimic = mimic;
 
 
                 //DEBUG
@@ -941,11 +951,12 @@ public class NdxrAgent implements IAgent {
      *
      * @return the matching PR or null if not found
      */
-    public PathRule getBestMatchingPathRule(Vector<TreeNode> path) {
+    public PathRule getBestMatchingPathRule(Vector<TreeNode> path, PathRule prev) {
         double bestScore = 0.0;
         PathRule bestPR = null;
         for (PathRule pr : this.pathRules) {
-            double score = pr.prRulesMatch(path);
+            double score;
+            score = pr.prRulesMatch(path, prev);
             if (score > bestScore) {
                 bestScore = score;
                 bestPR = pr;

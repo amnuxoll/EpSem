@@ -145,16 +145,23 @@ public class TreeNode {
 
         // Adjust with the best matching PathRule (if it exists)
         // Note: the fact that no adjustment is made for mismatch makes the agent explore more. TODO: too curious?
-        PathRule match = agent.getBestMatchingPathRule(foundPath);
+        PathRule match = agent.getBestMatchingPathRule(foundPath, agent.getCurrPathRule());
         if (match != null) {
             foundScore *= match.getConfidence();
         }
 
         //This loop reduces the score of pathrules that do not use consecutive increaseing depth rules (Ex: Depth0->Depth1->Depth2)
         //It reduces the score using a exponential equation which mimicks the pathrule confidence decrease.
+        Rule lastRule;
+        Rule secondToLastRule;
         int counter = 0;
         while ((tempFoundPath.size() > 1)) {
-            if((tempFoundPath.remove(tempFoundPath.size()-1).getRule().getDepth()-1 != (tempFoundPath.get(tempFoundPath.size()-1).getRule().getDepth()))) {
+            //Removes the last rule and stores it
+            lastRule = tempFoundPath.remove(tempFoundPath.size()-1).getRule(); 
+            //Checks the now last rule, but does not remove
+            secondToLastRule = tempFoundPath.get(tempFoundPath.size()-1).getRule(); 
+
+            if((lastRule.getDepth()-1 != (secondToLastRule.getDepth()))) {
                 counter++;
                 foundScore *= (Math.pow(2,7-counter)-1)/127;  // y = (2^(7-x)-1)/127  (exponential degradation over a byte)
             }
