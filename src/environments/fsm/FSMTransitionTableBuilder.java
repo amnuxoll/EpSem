@@ -16,7 +16,7 @@ import java.util.Random;
  *
  * based off of code from:
  * @author Hailee Kenney
- * @author Preben Ingvaldsen
+ * @author Lilah Ingvaldsen
  */
 public class FSMTransitionTableBuilder {
     //region Class Variables
@@ -87,26 +87,42 @@ public class FSMTransitionTableBuilder {
         return transitions;
     }
 
-    private void pickTransitions(HashMap<Action, Integer>[] transitions, int initGoal, int numOfTransitions, int transitionsDone) {
+    /**
+     * randomly creates random transitions for each state in the FSM.
+     * Note: This method does not guarantee a path from each state to the goal.
+     * Caveaat:  This method is RECURSIVE!
+     *
+     * @param transitions  the current (incomplete) transition table
+     * @param destState the destination state for transitions generated on this call
+     * @param numOfTransitions how many transitions to create on this call
+     * @param transitionsDone how many total transitions have been done so far (used to halt recursion)
+     */
+    private void pickTransitions(HashMap<Action, Integer>[] transitions, int destState, int numOfTransitions, int transitionsDone) {
         int initState = -1;
         for(int i = 0; i < numOfTransitions; i++) {
             //check to see if table is full
             if(transitionsDone == ((transitions.length-1)*this.actions.length))
                 return;
+
+            //pick a random state and action
             initState = this.random.nextInt(transitions.length);
             int moveIndex = this.random.nextInt(this.actions.length);
 
-            if (transitions[initState] != null && transitions[initState].containsKey(this.actions[moveIndex])) {
+            //If we have already have a transition from initState using the random action, try again
+            HashMap<Action, Integer> rowTransitions = transitions[initState];
+            if (transitions[initState] != null && rowTransitions.containsKey(this.actions[moveIndex])) {
                 i--;
                 continue;
             }
-            HashMap<Action, Integer> rowTransitions = transitions[initState];
+
+            //add the random transition
+            rowTransitions = transitions[initState];
             if (rowTransitions == null)
                 transitions[initState] = rowTransitions = new HashMap<>();
-            rowTransitions.put(this.actions[moveIndex], initGoal);
+            rowTransitions.put(this.actions[moveIndex], destState);
             transitionsDone++;
         }
         this.pickTransitions(transitions, initState, 1, transitionsDone);
     }
-    //endregion
+
 }

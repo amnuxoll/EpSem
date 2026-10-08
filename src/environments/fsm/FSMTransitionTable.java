@@ -40,7 +40,7 @@ public class FSMTransitionTable {
 
     /**
      * class PathNode
-     *
+     * <p>
      * used to contain info for the shortest path search.  Each node contains a
      * path and the current position the agent would be in having followed that
      * path from each state as well as 'h' and 'g' values to support A*
@@ -54,40 +54,52 @@ public class FSMTransitionTable {
         public int g = 0;
         public int h;
 
-        /** default ctor */
+        /**
+         * default ctor
+         */
         public PathNode() {
-            for(int i = 0; i < NUM_STATES; ++i) {
+            for (int i = 0; i < NUM_STATES; ++i) {
                 currStates[i] = i;
             }
             updateH();
         }
 
-        /** copy ctor */
+        /**
+         * copy ctor
+         */
         public PathNode(PathNode parent) {
             path = new ArrayList<>(parent.path);
-            for(int i = 0; i < NUM_STATES; ++i) {
+            for (int i = 0; i < NUM_STATES; ++i) {
                 currStates[i] = parent.currStates[i];
             }
             g = parent.g;
             h = parent.h;
         }
 
-        /** calculate the 'h' (heuristic) value for A* search.  In this case
-         * it's the length of the longest remaining shortest path */
+        /**
+         * calculate the 'h' (heuristic) value for A* search.  In this case
+         * it's the length of the longest remaining shortest path
+         */
         public void updateH() {
             this.h = 0;
-            for(int i = 0; i < NUM_STATES; ++i) {
+            for (int i = 0; i < NUM_STATES; ++i) {
                 if (currStates[i] != GOAL_STATE) {
                     this.h += shortestSequences.get(i).size();
                 }
             }
         }//updateH
 
-        /** the 'f' value for A* search */
-        public int getF() { return h + g; }
+        /**
+         * the 'f' value for A* search
+         */
+        public int getF() {
+            return h + g;
+        }
 
-        /** this method is for the Comparable interface so that we can use this
-         * node in a sorted collection */
+        /**
+         * this method is for the Comparable interface so that we can use this
+         * node in a sorted collection
+         */
         public int compareTo(PathNode other) {
             int result = (this.getF() - other.getF());
 
@@ -108,9 +120,11 @@ public class FSMTransitionTable {
             return result;
         }
 
-        /** appends a new action to the path and adjusts the states accordingly */
+        /**
+         * appends a new action to the path and adjusts the states accordingly
+         */
         public void advance(Action act) {
-            for(int i = 0; i < NUM_STATES; ++i) {
+            for (int i = 0; i < NUM_STATES; ++i) {
                 if (currStates[i] != GOAL_STATE) {
                     currStates[i] = transitions[currStates[i]].get(act);
                 }
@@ -120,11 +134,12 @@ public class FSMTransitionTable {
             updateH();
         }//advance
 
-        /** @return true if the agent would reach the goal from all states with
+        /**
+         * @return true if the agent would reach the goal from all states with
          * this node's path
          */
         public boolean allGoal() {
-            for(int i = 0; i < NUM_STATES; ++i) {
+            for (int i = 0; i < NUM_STATES; ++i) {
                 if (currStates[i] != GOAL_STATE) return false;
             }
 
@@ -142,14 +157,14 @@ public class FSMTransitionTable {
      * Calculates the shortest path to the goal if the agent has a perfect model
      * of the environment but does not know what state it has started in.  This
      * method uses A* search to reduce resource usage.
-     *
+     * <p>
      * CAVEAT: This method is solving an NP-hard problem and can take a really
      * long time to execute on larger FSMs.
      *
      */
     public Sequence getUniversalSequence() {
         if (this.universalSequence != null) return this.universalSequence;
-        getShortestSequences();
+        getShortestSequences();  //populate this.shortestSequences
 
         //An ordered set containing this initial node
         PathNode pn = new PathNode();
@@ -157,10 +172,10 @@ public class FSMTransitionTable {
         queue.add(pn);
 
         //Main search loop
-        while(! queue.isEmpty()) {
+        while (!queue.isEmpty()) {
             PathNode parent = queue.first();
             queue.remove(parent);
-            for(Action act : this.actions) {
+            for (Action act : this.actions) {
 
                 //Create a child node with this action
                 PathNode node = new PathNode(parent);
@@ -182,10 +197,8 @@ public class FSMTransitionTable {
     }//getUniversalSequence
 
 
-
     public HashMap<Integer, ArrayList<Action>> getShortestSequences() {
-        if (this.shortestSequences == null)
-        {
+        if (this.shortestSequences == null) {
             int numStates = transitions.length;
             this.shortestSequences = new HashMap<>();
             //Goal node is presumed to be the highest numbered state.
@@ -193,13 +206,13 @@ public class FSMTransitionTable {
             this.shortestSequences.put(numStates - 1, new ArrayList<>());
             boolean tryAgain = true;
             int currLen = 0;  //at each iteration we are looking for states that are this far from the goal
-            while(tryAgain) {
+            while (tryAgain) {
                 tryAgain = false;  //assume we're done until we find out otherwise
 
-                for(int state = 0; state < numStates - 1; ++state) {
+                for (int state = 0; state < numStates - 1; ++state) {
                     if (shortestSequences.get(state) == null) {
                         tryAgain = true;  //if there are any unset sequences, we need loop again
-                        for(Action act : this.actions) {
+                        for (Action act : this.actions) {
                             Integer destState = this.transitions[state].get(act);
                             ArrayList<Action> destSS = this.shortestSequences.get(destState);
                             if ((destSS != null) && (destSS.size() <= currLen)) {
@@ -219,8 +232,9 @@ public class FSMTransitionTable {
 
     /**
      * dotFormOutput
-     *
+     * <p>
      * produces a String that can be printed to the console and copied to a .dot graph tool
+     *
      * @return .dot format String to view an FSM
      */
     public String dotFormOutput(int currentState) {
@@ -231,7 +245,7 @@ public class FSMTransitionTable {
         // State definition region
         builder.append("\t{\n");
         builder.append("\t\tnode [shape=circle]\n");
-        for(int i = 0; i < this.transitions.length - 1; ++i) {
+        for (int i = 0; i < this.transitions.length - 1; ++i) {
             builder.append("\t\ts" + i + "\n");
         }
         builder.append("\t}\n\n");
@@ -239,13 +253,13 @@ public class FSMTransitionTable {
         // Goal State definition region
         builder.append("\t{\n");
         builder.append("\t\tnode [shape=doublecircle]\n");
-        builder.append("\t\ts" + (this.transitions.length-1) + "\n");
+        builder.append("\t\ts" + (this.transitions.length - 1) + "\n");
         builder.append("\t}\n\n");
 
         // Loop and define the transitions between states using labels
         // Note, the last state is not included since the Goal State always loops to itself
-        for(int i = 0; i < this.transitions.length-1; ++i) {
-            for(Action a : this.actions) {
+        for (int i = 0; i < this.transitions.length - 1; ++i) {
+            for (Action a : this.actions) {
                 builder.append("\ts" + i + " -> s" + this.transitions[i].get(a) + " [label=" + a + "];\n");
             }
         }
@@ -256,8 +270,7 @@ public class FSMTransitionTable {
         return builder.toString();
     }//dotFormOutput
 
-    public int getNumberOfStates()
-    {
+    public int getNumberOfStates() {
         return this.transitions.length;
     }
 
@@ -265,19 +278,20 @@ public class FSMTransitionTable {
         return state == (this.transitions.length - 1);
     }
 
-    /** this doesn't necessarily calculate the shortest universal sequence but it will be at least close */
+    /**
+     * this doesn't necessarily calculate the shortest universal sequence but it will be at least close
+     */
     public Sequence old_getUniversalSequence() {
         getShortestSequences();
-        if (this.universalSequence == null)
-        {
+        if (this.universalSequence == null) {
             ArrayList<Integer> states = new ArrayList<>(this.shortestSequences.keySet());
             states.sort(Comparator.comparingInt(o -> this.shortestSequences.get(o).size()));
             ArrayList<Action> universalSequence = new ArrayList<>();
             for (Integer i : states) {
                 int newState = i;
-                for(Action m : universalSequence){
+                for (Action m : universalSequence) {
                     newState = this.transitions[newState].get(m);
-                    if(this.isGoalState(newState)) {
+                    if (this.isGoalState(newState)) {
                         break;
                     }
                 }
@@ -287,6 +301,30 @@ public class FSMTransitionTable {
         }
         return this.universalSequence;
     }
+
+    /**
+     * isFSMValid
+     * <p>
+     * Determines whether there is a path from every non-goal state to the goal state
+     */
+    public boolean isFSMValid() {
+        return false; //TODO
+    }
+
+    /**
+     * randomTransitionChange
+     *
+     * changes one randomly chosen transition to something else.  THis method guarantees that the change it
+     * makes maintains the property that the agent can reach the goal from any state.
+     *
+     */
+    public void randomTransitionChange() {
+        //TODO
+    }
+
+
+    //endregion
+
     //endregion
 
     @Override
