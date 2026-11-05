@@ -55,7 +55,16 @@ public class FSMTransitionTableBuilder {
      */
     public FSMTransitionTable getTransitionTable() {
         HashMap<Action, Integer>[] transitions = this.buildTransitionTable();
-        return new FSMTransitionTable(transitions);
+        FSMTransitionTable table = new FSMTransitionTable(transitions);
+        
+        // ensure every state can reach the goal state
+        if (table.isFSMValid()) {
+            System.out.println("FSM is valid.");
+            return table;
+        } else {
+            throw new IllegalStateException("FSM is not valid");
+            // TODO: maybe fix the table here instead of throwing an exception?  This would require a new method to fix the table.
+        }
     }
 
     public int getNumStates() {
@@ -84,6 +93,7 @@ public class FSMTransitionTableBuilder {
 
         int trans = this.random.nextInt(maxTransitionsToGoal);
         this.pickTransitions(transitions,this.numStates - 1, trans + 1, 0);
+
         return transitions;
     }
 

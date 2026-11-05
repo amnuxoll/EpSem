@@ -308,7 +308,51 @@ public class FSMTransitionTable {
      * Determines whether there is a path from every non-goal state to the goal state
      */
     public boolean isFSMValid() {
-        return false; //TODO
+        int numStates = this.transitions.length;
+        int goal = numStates - 1;
+
+        // array tracking which states can reach the goal state
+        boolean[] reachesGoal = new boolean[numStates];
+        reachesGoal[goal] = true; // goal state can reach itself
+
+        boolean changed;
+
+        // Find every state that can already reach the goal state
+        do {
+            changed = false; // changed really just means that we found a transition
+            // from one state to another that we already know can reach the goal.
+            // so, we can now mark this state as being able to reach the goal
+            // If we end a pass without marking any new states as reachesGoal(state) = true,
+            // then we are done and can exit the loop
+
+            for (int state = 0; state < goal; state++) {
+                if (reachesGoal[state]) {
+                    continue;
+                }
+
+                for (Integer destination : this.transitions[state].values()) {
+                    if (destination != null
+                            && destination >= 0
+                            && destination < numStates
+                            && reachesGoal[destination]) {
+
+                        reachesGoal[state] = true;
+                        changed = true;
+                        break;
+                    }
+                }
+            }
+        } while (changed);
+
+        // Now, reachesGoal array has been correctly populated.
+        // So, we perform a final check to see if all non-goal states can reach the goal state
+        for (int state = 0; state < goal; state++) {
+            if (!reachesGoal[state]) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**
@@ -319,7 +363,46 @@ public class FSMTransitionTable {
      *
      */
     public void randomTransitionChange() {
-        //TODO
+        Random random = new Random();
+        int goalState = this.transitions.length - 1;
+        int newDest = 0;
+        int oldDest = 0;
+
+        // randomly select a state that is not the goal state
+        int stateToChange = random.nextInt(goalState);
+
+        // randomly select an action to change
+        Action[] actions = this.actions;
+        Action actionToChange = actions[random.nextInt(actions.length)];
+        
+        if (this.transitions[stateToChange].containsKey(actionToChange)) {
+            // save the old destination in case we need to revert the change
+            oldDest = this.transitions[stateToChange].get(actionToChange);
+            
+            // randomly select a new destination for the chosen transition
+            newDest = getNewDest(random, stateToChange, actionToChange, goalState);
+        }
+
+        // update the transition
+        this.transitions[stateToChange].put(actionToChange, newDest);
+
+        // check if the FSM is still valid after the change
+        if (!isFSMValid()) {
+            // revert the change if it makes the FSM invalid
+            this.transitions[stateToChange].put(actionToChange, oldDest);
+            
+            // retry
+            randomTransitionChange();
+        }
+    }
+
+    public int getNewDest(Random random, int stateToChange, Action actionToChange, int goalState) {
+        int newDest = random.nextInt(goalState);
+        if (newDest == transitions[stateToChange].get(actionToChange)) {
+            return getNewDest(random, stateToChange, actionToChange, goalState);
+        }
+
+        return newDest;
     }
 
 
