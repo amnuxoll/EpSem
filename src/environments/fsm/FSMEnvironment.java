@@ -44,8 +44,8 @@ public class FSMEnvironment implements IEnvironment {
     public static float overallAvg = -1.0f; //average USeq steps to goal for all FSMs created
 
     private int goalsReached = 0; //number of times the agent has reached the goal state
-    private static final int GOAL_INTERVAL = 100; //number of goals reached before changing the transition table
-    private static final boolean PYTORCH2_AGENT = false; //if true, the FSM will change its transition table every GOAL_INTERVAL goals reached
+    private static final int FSM_CHANGES_INTERVAL = 100; //number of goals reached before changing the transition table
+    private static final boolean FSM_CHANGES = false; //if true, the FSM will change its transition table every FSM_CHANGES_INTERVAL goals reached
 
     //endregion
 
@@ -169,10 +169,10 @@ public class FSMEnvironment implements IEnvironment {
             // reached the goal state, increment counter
             goalsReached++;
             // check if we should change the transition table
-            if (PYTORCH2_AGENT && goalsReached >= GOAL_INTERVAL) {
+            if (FSM_CHANGES && goalsReached >= FSM_CHANGES_INTERVAL) {
                 transitionTable.randomTransitionChange();
                 goalsReached = 0;
-                System.out.println("Transition table changed after reaching the goal " + GOAL_INTERVAL + " times.");
+                System.out.println("Transition table changed after reaching the goal " + FSM_CHANGES_INTERVAL + " times.");
             }
             // System.out.println("New state: s" + this.currentState + " is the goal state!");
             this.currentState = this.getRandomState();

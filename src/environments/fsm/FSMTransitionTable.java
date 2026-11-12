@@ -361,6 +361,8 @@ public class FSMTransitionTable {
      * changes one randomly chosen transition to something else.  THis method guarantees that the change it
      * makes maintains the property that the agent can reach the goal from any state.
      *
+     * Future Extension: Could be modified to allow for a change to the transition that leads to the goal
+     *        state. This would require a more complex algorithm to ensure that the change does not make the FSM invalid.
      */
     public void randomTransitionChange() {
         Random random = new Random();
@@ -392,6 +394,7 @@ public class FSMTransitionTable {
             this.transitions[stateToChange].put(actionToChange, oldDest);
             
             // retry
+            // This may lead to infinite recursion if the FSM is in a state where no valid transition changes can be made.
             randomTransitionChange();
         }
     }
