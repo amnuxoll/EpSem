@@ -27,7 +27,23 @@ public class PathRule {
     private final Vector<Rule> prRules;  //must contain at least one step
 
     //The last failed pathrule the agent was on
-    private final PathRule prevPathRule; //this should maybe be a vector
+    private final PathRule prevPathRule;
+
+    //Used for debugging purposes to tell what caused this pathrule to be created
+    private boolean isRand = false; //created after a random action
+    public boolean isBackwards = false; //created through backwards chaining in NdxrAgent.pathMaintenence
+
+    //Individual pathrule metrics used to calculate utility
+    private int numAttempts = 0;
+    private int numSuccess = 0;
+    private int numSteps = 0;
+
+    //Contains refernces to all the pathrules that use this pathrule as an internal sensor
+    private Vector<PathRule> descendents = new Vector<>();
+
+    //Remembers last goal this pathrule failed so it can try not to use it again
+    private int lastFailure;
+    private int numLastFail = 0;
 
     /** maintain a confidence in this PathRule */
     private final Conf confidence = new Conf(); //(byte)0b00111111
@@ -37,11 +53,21 @@ public class PathRule {
 //region ctors and initialization
 
     /** ctor for prRules init from given PathRule */
-    public PathRule(NdxrAgent initAgent, Vector<Rule> initPrRules, PathRule initPathRule) {
+    public PathRule(NdxrAgent initAgent, Vector<Rule> initPrRules, PathRule initInternalSensor) {
         this.agent = initAgent;
         this.ruleId = PathRule.nextRuleId++;
         this.prRules = initPrRules;
-        this.prevPathRule = initPathRule;
+        this.prevPathRule = initInternalSensor;
+        if (this.getPrevPathRule() != null) this.getPrevPathRule().addChild(this);
+    }
+
+    // ctor for copying a pathrule with a new internal sensor
+    public PathRule(PathRule initPr, PathRule initInternalSensor) {
+        this.agent = initPr.agent;
+        this.ruleId = PathRule.nextRuleId++;
+        this.prRules = initPr.prRules;  //note:  shallow copy (seems ok)
+        this.prevPathRule = initInternalSensor;
+        if (this.getPrevPathRule() != null) this.getPrevPathRule().addChild(this);
     }
 
     /** converts a Vector<TreeNode> into a Vector<Rule> */
@@ -57,7 +83,6 @@ public class PathRule {
         return result;
     }//nodePathToRulePath
 
-
 //endregion ctors and initialization
 
     /**
@@ -67,17 +92,22 @@ public class PathRule {
      *
      * the actions, length, the FIRST LHS, and the LAST RHS must match,
      * the other sensors in the middle are irrelevant.
+     * The internal sensor must also match or be empty.
      */
     public double prRulesMatch(Vector<TreeNode> matPrRules, PathRule lastPath) {
+        //If lengths are unequal they can not match
         if (matPrRules.size() != this.prRules.size()) return 0.0;  //unequal lengths
 
+        //TODO: make these comments better?
+        //Current logic for matching internal sensors is the newly created pathrule can either have the current pathrule as its internal sensor,
+        //or it can have no internal sensor. It can not have a different internal sensor.
+
         //if currPathRule = x, then 'this' internal sensor can either match x, or be null
-        //if currPathRule = null, then 'this' must have a null internal sensor
-        if (lastPath == null) {
+        if (lastPath == null) { //if currPathRule = null, then 'this' must have a null internal sensor
             if (this.prevPathRule != null) { return 0.0; } 
             //Otherwise both are null so they can be compared
         }
-        else if (this.prevPathRule != null) {
+        else if (this.prevPathRule != null) { //sanity check
             if (!(this.prevPathRule.equals(lastPath))) { return 0.0; } //if non null internal sensors are unequal
         }
 
@@ -101,7 +131,8 @@ public class PathRule {
         if (!(checkRule.getRHS().equals(tryRule.getRHS()))) { return 0.0; }
 
         //No mismatches found
-        return 1.0;
+        if (this.prevPathRule != null && this.prevPathRule.equals(lastPath)) return 1.0; // if pathRule does not have lastpath as its internal
+        return 0.9;
     }//prRulesMatch
 
     /**
@@ -160,8 +191,10 @@ public class PathRule {
         //print a short version first
         prRulesToStringShort(result);
 
-        //print stats
-        result.append(String.format(" ^  conf=%.5f", getConfidence()).replaceAll("0+$", "0"));
+        result.append(" Utility: " + this.getUtility() + " Success: " + this.numSuccess + " Attempts: " + this.numAttempts + " SR: " + this.getSuccessRate() + " ");
+
+        //Old printline for confidence
+        //result.append(String.format(" ^  conf=%.5f", getConfidence()).replaceAll("0+$", "0"));
 
         //now print the full version
         result.append("  [");
@@ -193,12 +226,106 @@ public class PathRule {
         return (this.ruleId == other.ruleId);
     }
 
-
-    /** get the final sensor data of this path */
+    public int length() { return prRules.size(); }
     public int getId() { return this.ruleId; }
     public Vector<Rule> getPrRules() { return this.prRules; }
-    public void logSuccess() { this.confidence.adj(true); }
-    public void logFailure() { this.confidence.adj(false); }
+    public PathRule getPrevPathRule() { return this.prevPathRule; }
+    public void logSuccess() { 
+        this.confidence.adj(true); 
+        this.numSuccess++; 
+        this.numAttempts++;
+        resetNumLastFail();
+    }
+    public void logFailure() { 
+        this.confidence.adj(false); 
+        this.numAttempts++;
+        this.lastFailure = agent.getGoalCount();
+        this.numLastFail++;
+    }
+    //Sets all pathrule's number of failures for this goal to zero
+    public void resetNumLastFail() {
+        for(PathRule pr : agent.getPrsToGoal()){
+            pr.numLastFail = 0;
+        }
+    }
+    public void setRand() { this.isRand = true; }
+    public boolean isRand() { return this.isRand; }
+    public void addSuccess() { this.numSuccess++;} 
+    public void addTries() { this.numAttempts++; }
+    public void addStep() { this.numSteps++; }
+    public void addChild(PathRule child) { this.descendents.add(child); }
     public double getConfidence() { return this.confidence.dval(); }
+    public int getNumSuccess() { return this.numSuccess; }
+    public int getNumAttempts() { return this.numAttempts; }
+    public int getNumSteps() { return this.numSteps; }
+    public Vector<PathRule> getDescendents() { return this.descendents; }
+    public double getSuccessRate() { return (double)this.numSuccess / this.numAttempts; } // Refernce P_pr in the doc
+    public double getAveSteps() { return (double)this.numSteps / this.numAttempts; } // Reference T_pr in the doc
+
+    //Reference C_pr in the doc = T_Pr * rho
+    //Right now this uses the total agent success rate times the average number of step of this pathrule
+    //This calculation currently causes a performace decrease and is not optimal
+    public double calcCost() { return (agent.getAgentSuccessRate() * getAveSteps()); } 
+
+    //Calculates the average utility of all descendents, weighted by how many times they have been tried
+    public double getDescendentsUtility() {
+        double sumUtility = 0.0;
+        int weightDenomitor = 0;
+        for(PathRule pr : descendents) {
+            sumUtility += pr.getUtility() * pr.getNumAttempts();
+            weightDenomitor += pr.getNumAttempts();
+        }
+        return (sumUtility / this.descendents.size()) / weightDenomitor;
+    }//getDescendentsUtility
+
+    /**
+     * getUtility
+     * 
+     * Cacluates the utlility of this pathrule, using success rate, average utility of descendents
+     *  and whether or not this pathrule has failed for this goal already.
+     * 
+     * Used a cost calculation to account for longer pathrules, but we have not found a good solution
+     *  for this yet.
+    */
+    public double getUtility() { 
+
+        //P_PR (SR) Each pathrules successes / tries
+        double utility = this.getSuccessRate();
+
+        //TODO P_PR - C_PR -- The following show consistant decrease in ave of aves
+        //utility -= this.calcCost();    //maybe use a dampening weight
+
+        //Calculates the total number of times descendent pathrule have been tried
+        int totalDecTries = 0;
+        for(PathRule dec : this.descendents) {
+            totalDecTries += dec.getNumAttempts();
+        }
+
+        //P_PR + (Q_next * weight of descendents)
+        //This weighing takes into account the chance that a pathrule is not followed by a descendent
+        // but is instead followed by a random action or a pathrule with no internal sensor
+        if (this.descendents.size() > 0) {
+            utility += ((1-this.getSuccessRate()) * this.getDescendentsUtility() * this.numAttempts/totalDecTries);
+        }
+
+        //Punished a pathrule if it has already failed this goal (resets after goal)
+        //TODO use agent.prsToGoal to make this easier
+        if (this.lastFailure == agent.getGoalCount()) {
+            for (int i = 0; i < this.numLastFail; ++i) {
+                utility *= 0.5;
+            }
+        }
+
+        //Return the final calculated value
+        return utility;
+    }//getUtility
+
+    public String getActions() {
+        StringBuilder result = new StringBuilder();
+        for(Rule step : this.prRules) {
+            result.append(step.getAction());
+        }
+        return result.toString();
+    }//getActions
 
 }//class PathRule

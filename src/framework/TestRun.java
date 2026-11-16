@@ -25,7 +25,8 @@ public class TestRun implements IIntrospector, Runnable {
     private IEnvironment environment;
 
     /** The number of goals to find in the environment. */
-    private int numberOfGoalsToFind;
+    //Set this variable to static and created a getter, so NdxrAgent could run automated debug info at the end of the run
+    private static int numberOfGoalsToFind;
 
     /** Subscribers to the goal found event. */
     private List<IGoalListener> goalListeners = new ArrayList<>();
@@ -146,6 +147,7 @@ public class TestRun implements IIntrospector, Runnable {
         }
     }
 
+    public static int getnumberOfGoalsToFind() { return TestRun.numberOfGoalsToFind; }
     //endregion
 }
 

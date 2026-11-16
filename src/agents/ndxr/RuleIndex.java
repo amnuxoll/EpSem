@@ -535,17 +535,13 @@ public class RuleIndex {
         }
 
         //DEBUG
-        if (NdxrAgent.DEBUGPRINTSWITCH) {
-            System.out.println("REMOVING rule: " + r2.verboseString());
-            System.out.println("  merged with: " + r1.verboseString());
-        }
+        agent.debugPrintln("REMOVING rule: " + r2.verboseString());
+        agent.debugPrintln("  merged with: " + r1.verboseString());
 
         r1.mergeWith(r2);
 
         //DEBUG: REMOVE
-        if (NdxrAgent.DEBUGPRINTSWITCH) {
-            System.out.println("       to get: " + r1.verboseString());
-        }
+        agent.debugPrintln("       to get: " + r1.verboseString());
 
         //remove the old rule from the index
         replaceRule(r2, r1);

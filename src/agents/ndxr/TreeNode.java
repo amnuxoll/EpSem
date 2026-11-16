@@ -147,7 +147,7 @@ public class TreeNode {
         // Note: the fact that no adjustment is made for mismatch makes the agent explore more. TODO: too curious?
         PathRule match = agent.getBestMatchingPathRule(foundPath, agent.getCurrPathRule());
         if (match != null) {
-            foundScore *= match.getConfidence();
+            foundScore *= match.getUtility();
         }
 
         //This loop reduces the score of pathrules that do not use consecutive increaseing depth rules (Ex: Depth0->Depth1->Depth2)
@@ -231,7 +231,7 @@ public class TreeNode {
                 }
             }//for
         }
-
+        
         return ((bestPath != null) && (calcOverallScore(bestPath) >= agent.getRandSuccessRate())) ? bestPath : null;
     }// findBestGoalPath
 

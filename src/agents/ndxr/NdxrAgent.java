@@ -4,6 +4,7 @@ import environments.fsm.FSMEnvironment;
 import framework.*;
 import java.util.BitSet;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Random;
 import java.util.Vector;
 import utils.RandomFactory;
@@ -36,8 +37,14 @@ public class NdxrAgent implements IAgent {
     /** Limit the path search duration */
     public static final int MAX_EXPANSIONS = 300;
 
-    /** turn on/off debug printlns */
-    public static final boolean DEBUGPRINTSWITCH = true;
+    /** turn on/off debug printlns 
+     * 0: No debug
+     * 1: Standard debug. PathRules, Steps, Actions, Rule adding/merging, end table
+     * 2: Long path analysis, debugAnalyzeCurrPath method
+     * 3: Includes Rule Printing
+    */
+    public static int DEBUGPRINTLEVEL = 1;
+
 
     //a list of valid actions in the env
     private Action[] actions;
@@ -102,10 +109,15 @@ public class NdxrAgent implements IAgent {
     /** a list of all the PathRules the agent is using
      * TODO:  create an index for these like RuleIndex? */
     private final Vector<PathRule> pathRules = new Vector<>();
+    
+    //Stores the pathrules that were used to reach the current goal
+    private Vector<PathRule> prsToGoal = new Vector<>();
 
     /** This is the PathRule that matches the agent's current path */
     private PathRule currPathRule = null;
     private PathRule currPathRuleMimic = null;
+    //Saves the prior currPathRule
+    private PathRule lastPathRule = null;
 
     //DATA:  track how many steps to reach each goal
     private int goalCount = 0;
@@ -116,6 +128,9 @@ public class NdxrAgent implements IAgent {
     public static long agentTotal = 0L;
     public static long subStart = 0L;
     public static long subTotal = 0L;
+
+    //Non static count of steps, this will reset on mutli-run trials unlike timeStep
+    private int totalSteps = 0;
 
     //ctor may be needed someday?
     public NdxrAgent() {
@@ -139,7 +154,7 @@ public class NdxrAgent implements IAgent {
      * It can be toggled on and off using the DEBUGPRINT variable
      */
     public void debugPrintln(String db) {
-        if(DEBUGPRINTSWITCH) {
+        if(DEBUGPRINTLEVEL >= 1) {
             System.out.println(db);
         }
     }//debugPrintln
@@ -151,7 +166,7 @@ public class NdxrAgent implements IAgent {
      * It can be toggled on/off (true/false) using the DEBUGPRINT variable
      */
     public void debugPrint(String db) {
-        if(DEBUGPRINTSWITCH) {
+        if(DEBUGPRINTLEVEL >= 1) {
             System.out.print(db);
         }
     }//debugPrint
@@ -160,7 +175,7 @@ public class NdxrAgent implements IAgent {
      * print what the agent expects at the next time step
      */
     private void debugPrintAgentExpectation() {
-        if(!DEBUGPRINTSWITCH)  return;
+        if(DEBUGPRINTLEVEL<1)  return;
 
         StringBuilder sb = new StringBuilder();
         sb.append("Agent is Expecting:  ");
@@ -203,27 +218,34 @@ public class NdxrAgent implements IAgent {
         agentStart = System.currentTimeMillis();
 
         NdxrAgent.timeStep++;
+        this.totalSteps++;
 
         //update the sensor logs
         updateSensors(sensorData);
 
         //DEBUG:  log experience, current state and best paths
-        if (DEBUGPRINTSWITCH) debugLogStateInfo();
+        if (DEBUGPRINTLEVEL>=1) debugLogStateInfo();
 
         ruleMaintenance();
 
         //DEBUG:  Tell the human what the agent is feeling
-        if (DEBUGPRINTSWITCH) {
+        if (DEBUGPRINTLEVEL>=1) {
             debugPrintln("TIME STEP: " + NdxrAgent.timeStep);
             printPrevCurrEpisode();
         }
         if (NdxrAgent.timeStep % 100 == 0) System.err.print(".");  //agent heartbeat
+        if (this.goalCount % 50 == 0 && this.stepsSinceLastGoal == 0) System.err.print("|"); //Prints every 50 steps for reference
 
 
-        //DEBUG: print all rules\
-        //TODO something to still print out rules at somepoint, just not every timestep
-        //debugPrintln("\nRules:");
-        //this.rules.printAll();  //Commented out as it causes to much slowdown on larger FSMs
+        //DEBUG: print all rules
+        if(DEBUGPRINTLEVEL>=3) { 
+            debugPrintln("\nRules:");
+            this.rules.printAll();
+        }
+        
+        debugPrintln("Number of Rules: " + this.numRules);
+        if (this.pathRules.size() > 0) { debugPrintln("PathRule SuccessRate: " + this.getAgentSuccessRate()); }
+        
         debugPrintln("\nPathRules:");
         for(PathRule pr : this.pathRules) {
             debugPrintln(pr.toString());
@@ -240,7 +262,7 @@ public class NdxrAgent implements IAgent {
 
         pathMaintenance(sensorData.isGoal());
 
-        if (DEBUGPRINTSWITCH && newSearch) debugAnalyzeCurrPath();
+        if (DEBUGPRINTLEVEL>=1 && newSearch) debugAnalyzeCurrPath();
 
         //Select the agent's next action
         //If the agent has a path, take the next step in that path
@@ -261,9 +283,56 @@ public class NdxrAgent implements IAgent {
         agentTotal += agentStop - agentStart;
         debugPrintln("Subroutine Time: " + subTotal);
         debugPrintln("Total Time: " + agentTotal);
+        debugPrintln("Total Steps Taken: " + this.totalSteps);
+        debugPrintln("Agent SR: " + getAgentSuccessRate());
+
+
+        //POST RUN DEBUG INFO
+        if (this.goalCount == TestRun.getnumberOfGoalsToFind()) {
+            debugPrintln("----------------------------------------------------------------------");
+            //Print all sorted PathRules
+            Vector<PathRule> sortedPathRules = new Vector<>(this.pathRules);
+            Collections.sort(sortedPathRules, Comparator.comparingInt(PathRule::getNumAttempts).reversed());
+
+            for(PathRule pr : sortedPathRules) {
+                printPRInfo(pr);
+            }
+            
+            debugPrintln("----------------------------------------------------------------------");
+        }
 
         return action;
     }//getNextAction
+
+    /**
+     * printPRInfo
+     *
+     * prints a variety of information about a provided PathRule to help with analysis.
+     * This includes attempts, successes, utility metrics, and descendent information.
+     */
+    public void printPRInfo(PathRule pr) {
+
+        //PathRule ID and rules
+        debugPrintln("PR#" + pr.getId() + " INFO");
+        debugPrintln(pr.toString());
+
+        //Success, Attempts, and Utility metrics
+        debugPrintln("Successes: " + pr.getNumSuccess() + " Attempts: " + pr.getNumAttempts() + " SR: " + pr.getSuccessRate());
+        debugPrintln("Utility: " + pr.getUtility() + " Cost: " + pr.calcCost() + " prRewardRate: " + this.getAgentSuccessRate());
+
+        //Descendent information
+        debugPrintln("Descendents Utility: " + pr.getDescendentsUtility() + "     " + pr.isBackwards);
+        if(!(pr.getDescendents().isEmpty())) {
+            debugPrint("Descendents <");
+
+            for(int i = 0; i < pr.getDescendents().size(); ++i) {
+                debugPrint(pr.getDescendents().get(i).getId() + ""); //pr id
+                if(i != pr.getDescendents().size() - 1) debugPrint(", ");
+            }
+            debugPrint(">\n");
+        }
+        debugPrintln("");
+    }//printPRInfo
 
     /**
      * debugLogStateInfo
@@ -312,102 +381,104 @@ public class NdxrAgent implements IAgent {
      * the goal in the fewest steps and diagnose why it wasn't chosen
      */
     public void debugAnalyzeCurrPath() {
-        debugPrintln("\nDEBUG PATH ANALYSIS");
+        if (DEBUGPRINTLEVEL >= 2) {
+            debugPrintln("\nDEBUG PATH ANALYSIS");
 
-        String path = "";
-        double currPathScore = 0.0;
+            String path = "";
+            double currPathScore = 0.0;
 
-        //Analyze current path info
-        if (! this.pathStepsRemaining.isEmpty()) {
+            //Analyze current path info
+            if (! this.pathStepsRemaining.isEmpty()) {
 
-            //Extract path steps remaining
-            path = this.pathStepsRemaining.get(this.pathStepsRemaining.size()-1).getPathStr();
-            int pathLen =  path.length();
-            int stepCount = this.pathStepsRemaining.size();
-            if (pathLen > stepCount) {
-                path = path.substring(pathLen - stepCount);  //cut off the already-taken steps
-            }
+                //Extract path steps remaining
+                path = this.pathStepsRemaining.get(this.pathStepsRemaining.size()-1).getPathStr();
+                int pathLen =  path.length();
+                int stepCount = this.pathStepsRemaining.size();
+                if (pathLen > stepCount) {
+                    path = path.substring(pathLen - stepCount);  //cut off the already-taken steps
+                }
 
-            currPathScore = this.pathStepsRemaining.get(this.pathStepsRemaining.size()-1).getScore();
+                currPathScore = this.pathStepsRemaining.get(this.pathStepsRemaining.size()-1).getScore();
 
-            //Will the agent's current path get to goal?
-            int currNumStepsToGoal = this.env.validateSequence(path);
-            int extraSteps = path.length() - this.optimalPath.length();
-            if (currNumStepsToGoal != 0) {
-                debugPrintln("Selected path: '" + path + "' will successfully reach the goal in " + currNumStepsToGoal + " steps. (" + extraSteps + " extra steps to goal)");
-            } else {
-                debugPrintln("Selected path '" + path + "' will not result in a goal.");
-            }
-        }//if agent is on a path
+                //Will the agent's current path get to goal?
+                int currNumStepsToGoal = this.env.validateSequence(path);
+                int extraSteps = path.length() - this.optimalPath.length();
+                if (currNumStepsToGoal != 0) {
+                    debugPrintln("Selected path: '" + path + "' will successfully reach the goal in " + currNumStepsToGoal + " steps. (" + extraSteps + " extra steps to goal)");
+                } else {
+                    debugPrintln("Selected path '" + path + "' will not result in a goal.");
+                }
+            }//if agent is on a path
 
-        //Compare current path to optimal path
-        if( (this.optimalPath != null) && (!this.optimalPath.isEmpty()) ) {
+            //Compare current path to optimal path
+            if( (this.optimalPath != null) && (!this.optimalPath.isEmpty()) ) {
 
-            //Is the agent on the optimal path?
-            if(path.equals(optimalPath)) {
-                debugPrintln("Agent is currently on optimal path: " + path);
-            }
-            
-            //If not, can the optimal path be reconstructed from existing rules?
-            else {
+                //Is the agent on the optimal path?
+                if(path.equals(optimalPath)) {
+                    debugPrintln("Agent is currently on optimal path: " + path);
+                }
+                
+                //If not, can the optimal path be reconstructed from existing rules?
+                else {
 
-                //Reconstruct path from current rules
-                TreeNode root = new TreeNode(this);
-                Vector<TreeNode> optimalPathRules = root.findRulesForPath(this.optimalPath);
+                    //Reconstruct path from current rules
+                    TreeNode root = new TreeNode(this);
+                    Vector<TreeNode> optimalPathRules = root.findRulesForPath(this.optimalPath);
 
-                if( (optimalPathRules != null) && (!optimalPathRules.isEmpty()) ) { //Path is findable
+                    if( (optimalPathRules != null) && (!optimalPathRules.isEmpty()) ) { //Path is findable
 
-                    double optimalPathScore = optimalPathRules.lastElement().getScore();
-                    debugPrintln("Optimal Path '" + this.optimalPath + "' (score: " + optimalPathScore + ") can be reconstructed with current ruleset. \n");
-                    debugPrintln("Rules for Optimal Path: ");
+                        double optimalPathScore = optimalPathRules.lastElement().getScore();
+                        debugPrintln("Optimal Path '" + this.optimalPath + "' (score: " + optimalPathScore + ") can be reconstructed with current ruleset. \n");
+                        debugPrintln("Rules for Optimal Path: ");
 
-                    //Keep track of weakest link in path
-                    TreeNode weakestLink = null;
-                    double weakestLinkConf = 100.0; //any number > 1.0 works here
+                        //Keep track of weakest link in path
+                        TreeNode weakestLink = null;
+                        double weakestLinkConf = 100.0; //any number > 1.0 works here
 
-                    for(TreeNode currNode : optimalPathRules) {
-                        if(currNode.getRule() != null) {
-                            double currConfidence = currNode.getConfidence();
-                            debugPrintln("\t\t\t" + currNode.getRule().toString() + " w/ conf: " + currConfidence); //print curr rule
+                        for(TreeNode currNode : optimalPathRules) {
+                            if(currNode.getRule() != null) {
+                                double currConfidence = currNode.getConfidence();
+                                debugPrintln("\t\t\t" + currNode.getRule().toString() + " w/ conf: " + currConfidence); //print curr rule
 
-                            //Update the lowest scoring rule
-                            if(currConfidence < weakestLinkConf) {
-                                weakestLink = currNode;
-                                weakestLinkConf = currConfidence;
+                                //Update the lowest scoring rule
+                                if(currConfidence < weakestLinkConf) {
+                                    weakestLink = currNode;
+                                    weakestLinkConf = currConfidence;
+                                }
                             }
                         }
+
+                        debugPrintln("\nWeakest Rule in optimal path: " + weakestLink.getRule().toString() + " conf: " + weakestLinkConf + "\n");
+
+                        //Determine why the agent wasn't on the optimal path
+                        //Agent is NOT ON a path
+                        if(pathStepsRemaining.isEmpty()) {
+                            debugPrintln("Agent is not on any path.");
+                            debugPrintln("Optimal Path Score: " + optimalPathScore + " vs. Random Success Rate: " + getRandSuccessRate());
+                        }
+
+                        //Selected path outscores optimal path
+                        else if (currPathScore > optimalPathScore) {
+                            debugPrintln("Selected path (" + currPathScore + ") outscores optimal path (" + optimalPathScore + "). ");
+                        }
+
+                        //Optimal path outscores selected path, but was not chosen.
+                        else if (currPathScore < optimalPathScore) {
+                            debugPrintln("Optimal path (" + optimalPathScore + ") outscores selected path (" + currPathScore + ").");
+                        }
+
+                        //Selected and optimal path scores are identical
+                        else {
+                            debugPrintln("Optimal and selected path scores are identical: " + optimalPathScore);
+                        }
+
+                    } else { //Path is not findable
+                        debugPrintln("Optimal path '" + optimalPath + "' is NOT findable with current ruleset.");
                     }
+                } 
 
-                    debugPrintln("\nWeakest Rule in optimal path: " + weakestLink.getRule().toString() + " conf: " + weakestLinkConf + "\n");
-
-                    //Determine why the agent wasn't on the optimal path
-                    //Agent is NOT ON a path
-                    if(pathStepsRemaining.isEmpty()) {
-                        debugPrintln("Agent is not on any path.");
-                        debugPrintln("Optimal Path Score: " + optimalPathScore + " vs. Random Success Rate: " + getRandSuccessRate());
-                    }
-
-                    //Selected path outscores optimal path
-                    else if (currPathScore > optimalPathScore) {
-                        debugPrintln("Selected path (" + currPathScore + ") outscores optimal path (" + optimalPathScore + "). ");
-                    }
-
-                    //Optimal path outscores selected path, but was not chosen.
-                    else if (currPathScore < optimalPathScore) {
-                        debugPrintln("Optimal path (" + optimalPathScore + ") outscores selected path (" + currPathScore + ").");
-                    }
-
-                    //Selected and optimal path scores are identical
-                    else {
-                        debugPrintln("Optimal and selected path scores are identical: " + optimalPathScore);
-                    }
-
-                } else { //Path is not findable
-                    debugPrintln("Optimal path '" + optimalPath + "' is NOT findable with current ruleset.");
-                }
-            } 
-
-            debugPrintln(""); //newline for formatting
+                debugPrintln(""); //newline for formatting
+            }
         }
     }//debugAnalyzeCurrPath
 
@@ -455,7 +526,8 @@ public class NdxrAgent implements IAgent {
             this.prevAction = step.getAction();
             action = new Action(this.prevAction + "");
             this.lastActionRandom = false;
-
+            if (this.currPathRule != null) this.currPathRule.addStep();
+            if (this.currPathRuleMimic != null) this.currPathRuleMimic.addStep();
             //DEBUG
             debugPrintln("Path action selected: " + this.prevAction);
         }
@@ -471,15 +543,53 @@ public class NdxrAgent implements IAgent {
             PathRule match = getBestMatchingPathRule(this.prevAction);
             if (match == null) {
                 match = makeMatchingPathRule(this.prevAction);
-                if (match != null) this.pathRules.add(match);
+                if (match != null) {
+                    this.pathRules.add(match);
+                    debugPrintln("Added PR#" + match.getId());
+                    debugPrintln(match.toString());
+                }
+            }
+            if (match != null) {
+                match.setRand();
+                this.prsToGoal.add(match);
             }
             this.currPathRule = match;
-
+            if (this.currPathRule != null) this.currPathRule.addStep(); //*/
             //DEBUG
             debugPrintln("Random action selected: " + this.prevAction);
         }
         return action;
     }//calcAction
+
+
+    /**
+     * printGoalInfo
+     * 
+     * Prints general information about the agent's most recent goal to help with post-goal analysis. This includes
+     * what PathRules were used to reach the goal and their metrics, random actions taken, and total number of steps to goal.
+     */
+    private void printGoalInfo(){
+        debugPrintln("\nPOST-GOAL DEBUG ANALYSIS (goal found with pr#" + this.currPathRule.getId() + ")");
+
+        if(!this.prsToGoal.isEmpty()) {
+
+            //PathRules used to reach the goal
+            debugPrint("PathRule Sequence (length: " + prsToGoal.size() + "): ");
+            for(PathRule pr : prsToGoal) {
+                if (pr.isRand()) debugPrint(pr.getActions() +" -> ");
+                else debugPrint("PR#" + pr.getId() +" -> ");
+            }
+            debugPrintln("GOAL");
+
+            //PathRule metrics for prsToGoal
+            debugPrintln("\nUtility Metrics");
+            for(PathRule pr : prsToGoal) {
+                printPRInfo(pr);
+            }
+
+        }
+        debugPrintln("\n");
+    }//printGoalInfo
 
     /**
      * pathMaintenance
@@ -498,6 +608,11 @@ public class NdxrAgent implements IAgent {
             this.stepsSinceLastGoal = 0;
             if (this.lastActionRandom) this.numRandSuccess++;
             this.pathStepsRemaining.clear();
+
+            //If the goal was found from a path, print postgoal info
+            if (this.currPathRule != null) printGoalInfo();
+            this.prsToGoal.clear();
+
         } else {
             //DEBUG: failsafe for inifinite loops
             if (this.stepsSinceLastGoal > 1000) {
@@ -508,22 +623,36 @@ public class NdxrAgent implements IAgent {
 
         //If the agent's goal path is empty, try to find a new path
         if (this.pathStepsRemaining.size() == 0) {
-            //log PathRule success/fail
             if (this.currPathRule != null) {
-                if (isGoal) {
+                if (isGoal) { 
                     this.currPathRule.logSuccess();
+                    PathRule temp = this.currPathRule.getPrevPathRule();
+                    while (temp != null) { //TODO should these be discouted or all the same?
+                        temp.logSuccess();
+                        temp = temp.getPrevPathRule();
+                    }
+                    if (this.currPathRuleMimic != null) {
+                        this.currPathRuleMimic.logSuccess();
+                    }
+                    //Backwards Chaining pathrules:
+                    // When a pathrule with no internal sensor is chosen after another pathrule has been used,
+                    // attempt to create a new pathrule that is a copy but with that prior pathrule as an internal sensor
+                    // This allows for more chaining later into runs for already existing pathrules
+                    // Intentionally not copying tries/successes, potential to try.
+                    if (this.lastPathRule != null && !this.lastActionRandom) {
+                        if (this.currPathRule.getPrevPathRule() == null) {
+                            PathRule match = new PathRule(this.currPathRule, this.lastPathRule);
+                            this.pathRules.add(match);
+                            
+                            debugPrintln("Made Backward Chaining PR: " + match.toString());
+                            match.logSuccess();
+                            match.isBackwards = true;
+                        }
+                    }
                     this.currPathRule = null;
                     this.currPathRuleMimic = null;
                 }
-                else {
-                    this.currPathRule.logFailure();
-                    if (this.currPathRuleMimic != null) {
-                        this.currPathRuleMimic.logFailure();
-                        this.currPathRuleMimic = null;
-                    }
-                }
             }
-
             //Attempt to find a new path to the goal
             TreeNode root = new TreeNode(this);
             //DEBUG: PROFILING
@@ -534,25 +663,59 @@ public class NdxrAgent implements IAgent {
             //DEBUG: PROFILING
             long subStop = System.currentTimeMillis();
             subTotal += subStop - subStart;
-
+            
+            PathRule match = null;
+            PathRule mimic = null;
             if (goalPath != null) {
                 this.pathStepsRemaining = goalPath;
 
                 //Find or create the PathRule that best matches this new path
-                PathRule match = getBestMatchingPathRule(goalPath, this.currPathRule);
-                PathRule mimic = null;
+                match = getBestMatchingPathRule(goalPath, this.currPathRule);
+                mimic = null;
                 if (match == null) {
-                    //create a new PathRule that matches
+                    //create a new PathRule that matches and a mimic that has no internal sensor
                     Vector<Rule> newRHS = PathRule.nodePathToRulePath(goalPath);
                     match = new PathRule(this, newRHS, this.currPathRule);
                     if (this.currPathRule != null) mimic = new PathRule(this, newRHS, null);
                     this.pathRules.add(match);
                     if (mimic != null) this.pathRules.add(mimic);
                 }
-                this.currPathRule = match;
-                this.currPathRuleMimic = mimic;
+            }
 
+            //if you just used a pathrule, it did not reach the goal, and now you are gunna do a random action
+            //So the pathrule, and its chain of internal sensors must log a failure
+            if (this.currPathRule != null && match == null) { 
+                this.currPathRule.logFailure();
+                PathRule temp = this.currPathRule.getPrevPathRule();
+                while (temp != null) {
+                    temp.logFailure();
+                    temp = temp.getPrevPathRule();
+                }
+            }
+            //if you just used a pathrule, it did not reach the goal, and a new pathrule with no internal sensor was chosen
+            //So the pathrule, and its chain of internal sensors must log a failure
+            else if (this.currPathRule != null && match != null && match.getPrevPathRule() == null) { //When there was a pr with internal used, but its not used in the next instance
+                this.currPathRule.logFailure();
+                PathRule temp = this.currPathRule.getPrevPathRule();
+                while (temp != null) {
+                    temp.logFailure();
+                    temp = temp.getPrevPathRule();
+                }
+            }
+            //At this point in the code, mimic is set to null upon success, so log a failure if its non-null
+            if (this.currPathRuleMimic != null) {
+                this.currPathRuleMimic.logFailure();
+            }
 
+            //ADD found path to vector
+            if(match != null) this.prsToGoal.add(match);
+
+            //lastPathRule allows the prior pathrule to be potentially used as an internal sensor for backwards chaining
+            this.lastPathRule = this.currPathRule;
+            this.currPathRule = match;
+            this.currPathRuleMimic = mimic;
+
+            if (goalPath != null) {
                 //DEBUG
                 StringBuilder sb = new StringBuilder();
                 sb.append("Goal Path Found: ");
@@ -1045,6 +1208,12 @@ public class NdxrAgent implements IAgent {
     public PathRule getCurrPathRule() { return this.currPathRule; }
     public Vector<PathRule> getPathRules() { return this.pathRules; }
     public Vector<Rule> getCurrInternal() { return this.currInternal; }
-
+    public double getAgentSuccessRate() { 
+        //sanity check
+        if (this.totalSteps == 0) return 0.0;
+        return (double) this.goalCount / this.totalSteps; 
+    }
+    public int getGoalCount() { return this.goalCount; }
+    public Vector<PathRule> getPrsToGoal() { return this.prsToGoal; }
 
 }//class NdxrAgent
